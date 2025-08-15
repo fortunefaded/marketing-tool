@@ -1,1 +1,53 @@
-npx lint-staged
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Pre-commitフック：コミット前に軽量なチェックを実行
+
+echo "🔍 Pre-commit フックを実行しています..."
+
+# ステージングされたファイルのみをチェック
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|tsx)$' || true)
+
+if [ -n "$STAGED_FILES" ]; then
+    echo "📘 ステージされたTypeScriptファイルをチェック中..."
+    
+    # 型チェック（変更されたファイルのみ）
+    echo "  TypeScript型チェック..."
+    npx tsc --noEmit
+    
+    # ESLintチェック（ステージされたファイルのみ、生成ファイルを除外）
+    echo "  ESLintチェック..."
+    # convex/_generatedの警告を除外
+    FILTERED_FILES=$(echo "$STAGED_FILES" | grep -v "convex/_generated" || true)
+    if [ -n "$FILTERED_FILES" ]; then
+        npx eslint $FILTERED_FILES --max-warnings 0
+    fi
+    
+    # Prettierフォーマットチェック（生成ファイルを除外）
+    echo "  Prettierフォーマットチェック..."
+    PRETTIER_FILES=$(echo "$STAGED_FILES" | grep -v "convex/_generated" || true)
+    if [ -n "$PRETTIER_FILES" ]; then
+        npx prettier --check $PRETTIER_FILES
+    fi
+    
+    if [ $? -ne 0 ]; then
+        echo "❌ Pre-commitチェックに失敗しました。"
+        echo "💡 ヒント: 'npm run format' でフォーマットを修正できます。"
+        exit 1
+    fi
+else
+    echo "ℹ️  TypeScriptファイルの変更はありません。"
+fi
+
+# テストは高速実行のため、スキップ（pre-pushで実行）
+# if [ -n "$STAGED_FILES" ]; then
+#     echo "📘 関連するテストを実行中..."
+#     npm test -- --run
+#     
+#     if [ $? -ne 0 ]; then
+#         echo "❌ テストに失敗しました。"
+#         exit 1
+#     fi
+# fi
+
+echo "✅ Pre-commitチェックが成功しました！"

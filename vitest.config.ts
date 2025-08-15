@@ -4,7 +4,8 @@ import { fileURLToPath, URL } from 'node:url'
 export default defineConfig({
   test: {
     globals: true,
-    environment: 'node',
+    environment: 'jsdom', // node → jsdom に変更（React テスト用）
+    setupFiles: './src/__tests__/test-utils.tsx',
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html', 'lcov'],
@@ -16,9 +17,10 @@ export default defineConfig({
         'tests/**',
         '**/*.test.ts',
         '**/*.spec.ts',
+        'src/__tests__/**',
       ],
     },
-    include: ['src/**/*.{test,spec}.{js,ts}', 'tests/**/*.{test,spec}.{js,ts}'],
+    include: ['src/**/*.{test,spec}.{js,ts,tsx}', 'tests/**/*.{test,spec}.{js,ts}'],
     watchExclude: ['node_modules', 'dist'],
   },
   resolve: {

@@ -1,0 +1,18 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Pre-pushフック：プッシュ前に基本的なチェックを実行
+
+echo "🚀 Pre-push フックを実行しています..."
+
+# 基本チェック（型チェック、lint、テスト）
+npm run pre-check
+
+# チェックが失敗した場合はプッシュを中止
+if [ $? -ne 0 ]; then
+    echo "❌ Pre-pushチェックに失敗しました。問題を修正してから再度プッシュしてください。"
+    echo "💡 ヒント: 'npm run pre-check:full' を実行してすべてのチェックを確認できます。"
+    exit 1
+fi
+
+echo "✅ Pre-pushチェックが成功しました。プッシュを続行します..."

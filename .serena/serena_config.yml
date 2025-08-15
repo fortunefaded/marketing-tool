@@ -1,0 +1,40 @@
+project:
+  name: marketing-tool
+  description: Marketing automation tool with Convex backend
+  type: typescript
+
+contexts:
+  ide-assistant:
+    project_activation:
+      mode: auto
+      paths:
+        - /Users/rakewonno/Documents/marketing-tool
+
+search:
+  max_results: 50
+  include_patterns:
+    - '*.ts'
+    - '*.tsx'
+    - '*.js'
+    - '*.jsx'
+    - '*.json'
+    - '*.css'
+    - '*.md'
+  exclude_patterns:
+    - 'node_modules/**'
+    - '.next/**'
+    - 'dist/**'
+    - 'build/**'
+    - '.git/**'
+    - '*.log'
+    - '*.lock'
+
+indexing:
+  auto_index: true
+  cache_ttl: 3600
+
+features:
+  auto_complete: true
+  code_navigation: true
+  symbol_search: true
+  file_search: true

@@ -20,6 +20,13 @@ export default [
         Buffer: 'readonly',
         __dirname: 'readonly',
         __filename: 'readonly',
+        document: 'readonly',
+        window: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearInterval: 'readonly',
+        React: 'readonly',
       },
     },
     plugins: {
@@ -35,6 +42,18 @@ export default [
     },
   },
   {
-    ignores: ['dist/**', 'node_modules/**', '*.js', '*.d.ts', '*.config.js'],
+    ignores: [
+      'dist/**',
+      'node_modules/**',
+      '*.js',
+      '*.d.ts',
+      '*.config.js',
+      '.next/**',
+      '.next-backup/**',
+      'convex/_generated/**',
+      '.serena/**',
+      'coverage/**',
+      '.convex/**',
+    ],
   },
 ]

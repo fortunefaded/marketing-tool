@@ -1,53 +1,58 @@
+# .github/labeler.yml
 # ラベルの自動付与ルール
+
 frontend:
   - changed-files:
       - any-glob-to-any-file:
-          - src/app/**
-          - src/components/**
-          - src/pages/**
-          - '*.tsx'
+          - 'src/**/*.tsx'
+          - 'src/**/*.ts'
+          - 'src/components/**'
+          - 'src/app/**'
 
 backend:
   - changed-files:
       - any-glob-to-any-file:
-          - convex/**
-          - src/api/**
-          - src/server/**
+          - 'convex/**'
+          - 'src/api/**'
+          - 'src/server/**'
 
 tests:
   - changed-files:
       - any-glob-to-any-file:
           - '**/*.test.ts'
-          - '**/*.spec.ts'
-          - tests/**
           - '**/*.test.tsx'
-          - '**/*.spec.tsx'
+          - '**/*.spec.ts'
+          - 'src/__tests__/**'
 
 documentation:
   - changed-files:
       - any-glob-to-any-file:
           - '**/*.md'
-          - docs/**
+          - 'docs/**'
 
 dependencies:
   - changed-files:
       - any-glob-to-any-file:
-          - package.json
-          - package-lock.json
-          - yarn.lock
-          - pnpm-lock.yaml
-
-ci/cd:
-  - changed-files:
-      - any-glob-to-any-file:
-          - .github/**
-          - .gitlab-ci.yml
-          - .circleci/**
+          - 'package.json'
+          - 'package-lock.json'
+          - 'pnpm-lock.yaml'
 
 config:
   - changed-files:
       - any-glob-to-any-file:
-          - '*.config.js'
           - '*.config.ts'
-          - .env*
-          - tsconfig.json
+          - '*.config.js'
+          - 'tsconfig.json'
+          - '.eslintrc*'
+          - '.prettierrc*'
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.github/**'
+
+feature:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/lib/vibelogger*'
+          - 'src/lib/convex-helpers*'
