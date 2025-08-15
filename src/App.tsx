@@ -9,6 +9,7 @@ import DetailAnalysis from './routes/DetailAnalysis'
 import PeriodAnalysis from './routes/PeriodAnalysis'
 import LandingPageAnalysis from './routes/LandingPageAnalysis'
 import CostAllocationAnalysis from './routes/CostAllocationAnalysis'
+import { MetaDashboard } from './pages/MetaDashboard'
 import Sidebar from './components/Sidebar'
 import Header from './components/Header'
 import { vibe } from './lib/vibelogger'
@@ -43,6 +44,7 @@ function AppContent() {
           <RouteLogger />
           <Routes>
             <Route path="/" element={<Dashboard />} />
+            <Route path="/meta-dashboard" element={<MetaDashboard />} />
             <Route path="/campaigns" element={<Campaigns />} />
             <Route path="/tasks" element={<Tasks />} />
             <Route path="/category-analysis" element={<CategoryAnalysis />} />

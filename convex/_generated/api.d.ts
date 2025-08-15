@@ -14,6 +14,7 @@ import type {
   FunctionReference,
 } from "convex/server";
 import type * as campaigns from "../campaigns.js";
+import type * as metaSync from "../metaSync.js";
 import type * as tasks from "../tasks.js";
 
 /**
@@ -26,6 +27,7 @@ import type * as tasks from "../tasks.js";
  */
 declare const fullApi: ApiFromModules<{
   campaigns: typeof campaigns;
+  metaSync: typeof metaSync;
   tasks: typeof tasks;
 }>;
 export declare const api: FilterApi<
