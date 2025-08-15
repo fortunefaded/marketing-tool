@@ -26,7 +26,7 @@
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",
     "@commitlint/config-conventional": "^19.8.1",
-    "@testing-library/jest-dom": "^6.6.4",
+    "@testing-library/jest-dom": "^6.7.0",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
     "@types/jsdom": "^21.1.7",
@@ -61,7 +61,9 @@
     ]
   },
   "dependencies": {
+    "@heroicons/react": "^2.2.0",
     "convex": "^1.25.4",
-    "react-router-dom": "^7.8.0"
+    "react-router-dom": "^7.8.0",
+    "recharts": "^3.1.2"
   }
 }

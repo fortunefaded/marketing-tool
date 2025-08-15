@@ -4,13 +4,20 @@
 
 :root {
   /* Primary Colors */
-  --primary-blue: #2563eb;
-  --primary-blue-dark: #1d4ed8;
+  --primary-yellow: #f6d856;
+  --primary-yellow-dark: #e5c945;
+  --primary-yellow-light: #fef3c7;
   --primary-gray: #6b7280;
+
+  /* Accent Colors */
+  --accent-blue: #3b82f6;
+  --accent-green: #10b981;
+  --accent-purple: #8b5cf6;
+  --accent-teal: #14b8a6;
 
   /* Status Colors */
   --status-up: #10b981;
-  --status-down: #ef4444;
+  --status-down: #f97316;
   --status-neutral: #6b7280;
 
   /* Background Colors */
@@ -28,7 +35,51 @@
   --border-medium: #d1d5db;
 
   /* Chart Colors */
-  --chart-line-1: #3b82f6;
+  --chart-line-1: #f6d856;
   --chart-line-2: #10b981;
-  --chart-area: rgba(59, 130, 246, 0.1);
+  --chart-area: rgba(246, 216, 86, 0.1);
+}
+
+/* Detail Analysis Table Styles */
+.detail-analysis-table table {
+  font-size: 0.75rem;
+}
+
+.detail-analysis-table th,
+.detail-analysis-table td {
+  padding: 0.5rem 0.75rem;
+}
+
+/* Period Analysis Table Styles */
+.period-analysis-table table {
+  font-size: 0.875rem;
+}
+
+.period-analysis-table th,
+.period-analysis-table td {
+  padding: 0.75rem 1rem;
+}
+
+/* Landing Page Table Styles */
+.landing-page-table table {
+  font-size: 0.875rem;
+}
+
+.landing-page-table th,
+.landing-page-table td {
+  padding: 0.75rem 1rem;
+}
+
+.landing-page-table th {
+  white-space: pre-line;
+}
+
+/* Cost Allocation Table Styles */
+.cost-allocation-table table {
+  font-size: 0.875rem;
+}
+
+.cost-allocation-table th,
+.cost-allocation-table td {
+  padding: 0.75rem 1rem;
 }

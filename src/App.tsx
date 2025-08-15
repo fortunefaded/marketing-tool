@@ -4,7 +4,13 @@ import { useEffect } from 'react'
 import Dashboard from './routes/Dashboard'
 import Campaigns from './routes/Campaigns'
 import Tasks from './routes/Tasks'
+import CategoryAnalysis from './routes/CategoryAnalysis'
+import DetailAnalysis from './routes/DetailAnalysis'
+import PeriodAnalysis from './routes/PeriodAnalysis'
+import LandingPageAnalysis from './routes/LandingPageAnalysis'
+import CostAllocationAnalysis from './routes/CostAllocationAnalysis'
 import Sidebar from './components/Sidebar'
+import Header from './components/Header'
 import { vibe } from './lib/vibelogger'
 
 // Convex URLのフォールバック処理を追加
@@ -29,48 +35,56 @@ function RouteLogger() {
 
 function AppContent() {
   return (
-    <div className="flex h-screen bg-gray-100">
-      <Sidebar />
-      <main className="flex-1 overflow-auto">
-        <RouteLogger />
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/campaigns" element={<Campaigns />} />
-          <Route path="/tasks" element={<Tasks />} />
-          <Route
-            path="/reports"
-            element={
-              <div className="p-6">
-                <h1 className="text-2xl font-bold">レポート</h1>
-              </div>
-            }
-          />
-          <Route
-            path="/media"
-            element={
-              <div className="p-6">
-                <h1 className="text-2xl font-bold">メディア</h1>
-              </div>
-            }
-          />
-          <Route
-            path="/conversion"
-            element={
-              <div className="p-6">
-                <h1 className="text-2xl font-bold">コンバージョン</h1>
-              </div>
-            }
-          />
-          <Route
-            path="/attribution"
-            element={
-              <div className="p-6">
-                <h1 className="text-2xl font-bold">アトリビューション</h1>
-              </div>
-            }
-          />
-        </Routes>
-      </main>
+    <div className="flex flex-col h-screen bg-gray-100">
+      <Header />
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar />
+        <main className="flex-1 overflow-auto">
+          <RouteLogger />
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/campaigns" element={<Campaigns />} />
+            <Route path="/tasks" element={<Tasks />} />
+            <Route path="/category-analysis" element={<CategoryAnalysis />} />
+            <Route path="/details" element={<DetailAnalysis />} />
+            <Route path="/period" element={<PeriodAnalysis />} />
+            <Route path="/landing" element={<LandingPageAnalysis />} />
+            <Route path="/cost-allocation" element={<CostAllocationAnalysis />} />
+            <Route
+              path="/reports"
+              element={
+                <div className="p-6">
+                  <h1 className="text-2xl font-bold">レポート</h1>
+                </div>
+              }
+            />
+            <Route
+              path="/media"
+              element={
+                <div className="p-6">
+                  <h1 className="text-2xl font-bold">メディア</h1>
+                </div>
+              }
+            />
+            <Route
+              path="/conversion"
+              element={
+                <div className="p-6">
+                  <h1 className="text-2xl font-bold">コンバージョン</h1>
+                </div>
+              }
+            />
+            <Route
+              path="/attribution"
+              element={
+                <div className="p-6">
+                  <h1 className="text-2xl font-bold">アトリビューション</h1>
+                </div>
+              }
+            />
+          </Routes>
+        </main>
+      </div>
     </div>
   )
 }
