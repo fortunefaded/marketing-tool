@@ -88,4 +88,48 @@ export default defineSchema({
     .index('by_campaignId', ['campaignId'])
     .index('by_creativeId', ['creativeId'])
     .index('by_dateRange', ['dateStart', 'dateStop']),
+
+  // 同期履歴テーブル
+  syncHistory: defineTable({
+    syncId: v.string(),
+    source: v.union(v.literal('meta'), v.literal('google'), v.literal('twitter')),
+    type: v.union(v.literal('campaigns'), v.literal('creatives'), v.literal('insights')),
+    status: v.union(v.literal('started'), v.literal('completed'), v.literal('failed')),
+    stats: v.object({
+      total: v.number(),
+      created: v.number(),
+      updated: v.number(),
+      failed: v.number(),
+    }),
+    errors: v.optional(v.array(v.object({
+      metaId: v.string(),
+      error: v.string(),
+    }))),
+    startedAt: v.string(),
+    completedAt: v.optional(v.string()),
+    duration: v.optional(v.number()),
+  })
+    .index('by_source', ['source'])
+    .index('by_status', ['status'])
+    .index('by_startedAt', ['startedAt']),
+
+  // 同期スケジュールテーブル
+  syncSchedules: defineTable({
+    name: v.string(),
+    type: v.union(v.literal('campaigns'), v.literal('creatives'), v.literal('insights')),
+    source: v.union(v.literal('meta'), v.literal('google'), v.literal('twitter')),
+    interval: v.union(v.literal('hourly'), v.literal('daily'), v.literal('weekly')),
+    config: v.object({
+      accountId: v.optional(v.string()),
+      lookbackDays: v.optional(v.number()),
+      filters: v.optional(v.any()),
+    }),
+    enabled: v.boolean(),
+    lastRun: v.optional(v.string()),
+    nextRun: v.string(),
+    createdAt: v.string(),
+    updatedAt: v.string(),
+  })
+    .index('by_enabled', ['enabled'])
+    .index('by_nextRun', ['nextRun']),
 })

@@ -12,6 +12,15 @@ vi.mock('../../components/dashboard/DashboardLayout', () => ({
   ),
 }))
 
+vi.mock('../../components/dashboard/DashboardLayoutWithFilters', () => ({
+  DashboardLayoutWithFilters: ({ children, title }: { children: React.ReactNode; title?: string }) => (
+    <div data-testid="dashboard-layout">
+      <h1>{title}</h1>
+      {children}
+    </div>
+  ),
+}))
+
 vi.mock('../../components/metrics/MetricCard', () => ({
   MetricCard: ({ title }: { title: string }) => (
     <div data-testid={`metric-card-${title}`}>{title}</div>
@@ -26,33 +35,88 @@ vi.mock('../../components/charts/PerformanceChart', () => ({
   PerformanceChart: () => <div data-testid="performance-chart">Performance Chart</div>,
 }))
 
-// Mock convex hooks
-vi.mock('convex/react', () => ({
-  useQuery: vi.fn(() => [
-    {
-      _id: '1',
-      name: 'Test Campaign',
-      status: 'active',
-      budget: 100000,
-      spent: 50000,
-      impressions: 100000,
-      clicks: 1000,
-      conversions: 50,
-      revenue: 200000,
-      startDate: '2024-01-01',
-      endDate: '2024-12-31',
-      dailyMetrics: [
-        {
-          date: '2024-01-01',
+vi.mock('../../components/analytics/ComparisonPanel', () => ({
+  ComparisonPanel: () => <div data-testid="comparison-panel">Comparison Panel</div>,
+}))
+
+vi.mock('../../components/creatives/CreativePerformanceGrid', () => ({
+  CreativePerformanceGrid: () => <div data-testid="creative-grid">Creative Grid</div>,
+}))
+
+vi.mock('../../components/creatives/CreativeDetailModal', () => ({
+  CreativeDetailModal: () => null,
+}))
+
+vi.mock('../../hooks/useComparisonAnalytics', () => ({
+  useComparisonAnalytics: () => ({
+    overallComparison: {
+      current: {
+        period: '2024年1月',
+        metrics: {
+          spend: 50000,
+          revenue: 200000,
           impressions: 100000,
           clicks: 1000,
           conversions: 50,
-          cost: 50000,
-          revenue: 200000,
+          ctr: 1.0,
+          cpc: 50,
+          cpa: 1000,
+          roas: 4.0,
         },
-      ],
+      },
+      previous: {
+        period: '2023年12月',
+        metrics: {
+          spend: 45000,
+          revenue: 180000,
+          impressions: 90000,
+          clicks: 900,
+          conversions: 45,
+          ctr: 1.0,
+          cpc: 50,
+          cpa: 1000,
+          roas: 4.0,
+        },
+      },
     },
-  ]),
+    selectedComparison: 'month-over-month',
+    setComparisonType: vi.fn(),
+    exportData: vi.fn(),
+    isLoading: false,
+  }),
+}))
+
+// Mock convex hooks
+vi.mock('convex/react', () => ({
+  useQuery: vi.fn(() => {
+    // Return campaign data
+    return [
+      {
+        _id: '1',
+        name: 'Test Campaign',
+        status: 'active',
+        budget: 100000,
+        spent: 50000,
+        impressions: 100000,
+        clicks: 1000,
+        conversions: 50,
+        revenue: 200000,
+        startDate: '2024-01-01',
+        endDate: '2024-12-31',
+        dailyMetrics: [
+          {
+            date: '2024-01-01',
+            impressions: 100000,
+            clicks: 1000,
+            conversions: 50,
+            cost: 50000,
+            revenue: 200000,
+          },
+        ],
+      },
+    ]
+  }),
+  useMutation: vi.fn(() => vi.fn()),
 }))
 
 describe('MetaDashboard', () => {

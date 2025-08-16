@@ -3,18 +3,17 @@ import type { MetaApiConfig, MetaCampaign, MetaCreative, MetaApiError } from './
 /* global fetch, URL */
 
 export class MetaApiClient {
-  private config: Required<MetaApiConfig>
+  private config: Required<Omit<MetaApiConfig, 'apiVersion'>>
+  private readonly apiVersion = 'v23.0'
   private baseUrl = 'https://graph.facebook.com'
 
   constructor(config: MetaApiConfig) {
-    this.config = {
-      apiVersion: 'v23.0',
-      ...config,
-    }
+    const { apiVersion, ...configWithoutVersion } = config
+    this.config = configWithoutVersion as Required<Omit<MetaApiConfig, 'apiVersion'>>
   }
 
   private async makeRequest<T>(endpoint: string, params: Record<string, string> = {}): Promise<T> {
-    const url = new URL(`${this.baseUrl}/${this.config.apiVersion}/${endpoint}`)
+    const url = new URL(`${this.baseUrl}/${this.apiVersion}/${endpoint}`)
 
     // Add access token to params
     url.searchParams.append('access_token', this.config.accessToken)

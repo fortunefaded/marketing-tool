@@ -7,6 +7,11 @@ import {
   CalendarDaysIcon,
   FolderIcon,
   PlayIcon,
+  ChartBarIcon,
+  Cog6ToothIcon,
+  CloudArrowUpIcon,
+  BeakerIcon,
+  SparklesIcon,
 } from '@heroicons/react/24/outline'
 import { ComponentType } from 'react'
 
@@ -28,6 +33,41 @@ export default function Sidebar() {
       name: 'ダッシュボード',
       path: '/',
       icon: Squares2X2Icon,
+    },
+    {
+      name: 'Meta広告ダッシュボード',
+      path: '/meta-dashboard',
+      icon: ChartBarIcon,
+    },
+    {
+      name: 'Meta API設定',
+      path: '/meta-api-setup',
+      icon: Cog6ToothIcon,
+    },
+    {
+      name: 'EC Forceインポート',
+      path: '/ecforce-import',
+      icon: CloudArrowUpIcon,
+    },
+    {
+      name: 'EC Forceダッシュボード',
+      path: '/ecforce-dashboard',
+      icon: ChartBarIcon,
+    },
+    {
+      name: '統合分析ダッシュボード',
+      path: '/integrated-dashboard',
+      icon: ChartBarIcon,
+    },
+    {
+      name: '予測分析',
+      path: '/predictive-analysis',
+      icon: SparklesIcon,
+    },
+    {
+      name: 'A/Bテスト分析',
+      path: '/ab-testing',
+      icon: BeakerIcon,
     },
     {
       name: 'カテゴリ分析',

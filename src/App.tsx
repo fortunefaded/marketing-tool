@@ -10,6 +10,12 @@ import PeriodAnalysis from './routes/PeriodAnalysis'
 import LandingPageAnalysis from './routes/LandingPageAnalysis'
 import CostAllocationAnalysis from './routes/CostAllocationAnalysis'
 import { MetaDashboard } from './pages/MetaDashboard'
+import { MetaApiSetup } from './pages/MetaApiSetup'
+import { ECForceImporter } from './components/ecforce/ECForceImporter'
+import { ECForceContainer } from './pages/ECForceContainer'
+import { IntegratedDashboard } from './pages/IntegratedDashboard'
+import { PredictiveAnalysis } from './pages/PredictiveAnalysis'
+import { ABTestingAnalysis } from './pages/ABTestingAnalysis'
 import Sidebar from './components/Sidebar'
 import Header from './components/Header'
 import { vibe } from './lib/vibelogger'
@@ -45,6 +51,12 @@ function AppContent() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/meta-dashboard" element={<MetaDashboard />} />
+            <Route path="/meta-api-setup" element={<MetaApiSetup />} />
+            <Route path="/ecforce-import" element={<ECForceImporter />} />
+            <Route path="/ecforce-dashboard" element={<ECForceContainer />} />
+            <Route path="/integrated-dashboard" element={<IntegratedDashboard />} />
+            <Route path="/predictive-analysis" element={<PredictiveAnalysis />} />
+            <Route path="/ab-testing" element={<ABTestingAnalysis />} />
             <Route path="/campaigns" element={<Campaigns />} />
             <Route path="/tasks" element={<Tasks />} />
             <Route path="/category-analysis" element={<CategoryAnalysis />} />
