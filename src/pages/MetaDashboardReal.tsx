@@ -23,6 +23,7 @@ export const MetaDashboardReal: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isInitialLoad, setIsInitialLoad] = useState(true)
+  const [loadingProgress, setLoadingProgress] = useState({ current: 0, total: 0, message: '' })
   
   // データ状態
   const [campaigns, setCampaigns] = useState<MetaCampaignData[]>([])
@@ -51,6 +52,7 @@ export const MetaDashboardReal: React.FC = () => {
     setIsLoading(true)
     if (!isUpdate) {
       setError(null) // 初回ロード時のみエラーをクリア
+      setLoadingProgress({ current: 1, total: 4, message: '権限を確認中...' })
     }
     
     try {
@@ -71,6 +73,7 @@ export const MetaDashboardReal: React.FC = () => {
       }
       
       // アカウント情報を確認
+      setLoadingProgress({ current: 2, total: 4, message: 'アカウント情報を確認中...' })
       console.log('Checking account info...')
       try {
         const accountInfo = await service.getAccountInfo()
@@ -112,6 +115,7 @@ export const MetaDashboardReal: React.FC = () => {
       }
       
       // インサイトデータの取得（日別）
+      setLoadingProgress({ current: 3, total: 4, message: 'インサイトデータを取得中...' })
       const insightsData = await service.getInsights({
         level: 'account',
         ...dateOptions,
@@ -142,42 +146,33 @@ export const MetaDashboardReal: React.FC = () => {
         setInsights(insightsData)
       }
       
-      // キャンペーン別のインサイトデータも取得（オプションアル）
-      try {
-        const campaignInsights = await service.getInsights({
-          level: 'campaign',
-          ...dateOptions,
-          fields: [
-            'campaign_name',
-            'campaign_id',
-            'spend',
-            'impressions',
-            'clicks',
-            'reach',
-            'cpm',
-            'cpc',
-            'ctr'
-          ],
-          time_increment: '1', // キャンペーン別も日毎に取得
-          limit: 1000
-        })
-        console.log(`キャンペーンインサイト取得完了: ${campaignInsights.length}件`)
-      } catch (campaignError: any) {
-        console.error('キャンペーンインサイトの取得エラー:', campaignError)
-        console.error('キャンペーンエラー詳細:', {
-          code: campaignError.code,
-          message: campaignError.message,
-          details: campaignError.details,
-          statusCode: campaignError.statusCode
-        })
-        
-        // キャンペーンインサイトのエラーをメインエラーに追加
-        throw new Error(
-          `メインデータは取得できましたが、キャンペーンデータの取得に失敗しました。\n` +
-          `キャンペーンエラー: ${campaignError.message || campaignError.code || 'Unknown error'}`
-        )
-      }
+      // キャンペーンデータは後で非同期取得（メインデータをブロックしない）
+      console.log('メインデータ取得完了、キャンペーンデータはバックグラウンドで取得中...')
       
+      // バックグラウンドでキャンペーンデータを取得
+      setTimeout(async () => {
+        try {
+          console.log('キャンペーンデータの取得を開始...')
+          const campaignInsights = await service.getInsights({
+            level: 'campaign',
+            datePreset: 'last_30d', // 短い期間でテスト
+            fields: [
+              'campaign_name',
+              'campaign_id',
+              'spend',
+              'impressions',
+              'clicks',
+              'reach'
+            ],
+            limit: 50 // 小さなバッチサイズ
+          })
+          console.log(`キャンペーンインサイト取得完了: ${campaignInsights.length}件`)
+        } catch (campaignError: any) {
+          console.warn('キャンペーンデータの取得に失敗しました:', campaignError.message)
+        }
+      }, 2000) // 2秒後に実行
+      
+      setLoadingProgress({ current: 4, total: 4, message: 'データ取得完了!' })
       setLastUpdateTime(new Date())
       setIsInitialLoad(false)
       
@@ -311,9 +306,22 @@ export const MetaDashboardReal: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
+        <div className="text-center max-w-md">
           <ArrowPathIcon className="h-12 w-12 text-gray-400 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">データを読み込んでいます...</p>
+          <p className="text-gray-600 mb-4">データを読み込んでいます...</p>
+          {loadingProgress.total > 0 && (
+            <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+              <div 
+                className="bg-indigo-600 h-2 rounded-full transition-all duration-300" 
+                style={{ width: `${(loadingProgress.current / loadingProgress.total) * 100}%` }}
+              />
+            </div>
+          )}
+          {loadingProgress.message && (
+            <p className="text-sm text-gray-500">
+              {loadingProgress.message} ({loadingProgress.current}/{loadingProgress.total})
+            </p>
+          )}
         </div>
       </div>
     )

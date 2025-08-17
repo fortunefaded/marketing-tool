@@ -115,6 +115,9 @@ export class MetaApiError extends Error {
 export class MetaApiService {
   private config: MetaApiConfig
   private baseUrl: string
+  private requestCount: number = 0
+  private lastRequestTime: number = 0
+  private readonly MIN_REQUEST_INTERVAL = 100 // 100ms間隔
 
   constructor(config: MetaApiConfig) {
     this.config = {
@@ -122,6 +125,43 @@ export class MetaApiService {
       apiVersion: config.apiVersion || 'v23.0'
     }
     this.baseUrl = `https://graph.facebook.com/${this.config.apiVersion}`
+  }
+  
+  // レート制限対応のための待機
+  private async rateLimit(): Promise<void> {
+    const now = Date.now()
+    const timeSinceLastRequest = now - this.lastRequestTime
+    
+    if (timeSinceLastRequest < this.MIN_REQUEST_INTERVAL) {
+      const waitTime = this.MIN_REQUEST_INTERVAL - timeSinceLastRequest
+      console.log(`レート制限対応: ${waitTime}ms待機`)
+      await new Promise(resolve => setTimeout(resolve, waitTime))
+    }
+    
+    this.lastRequestTime = Date.now()
+    this.requestCount++
+  }
+  
+  // 指数バックオフでリトライ
+  private async retryWithBackoff<T>(fn: () => Promise<T>, maxRetries: number = 3): Promise<T> {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await fn()
+      } catch (error: any) {
+        if (attempt === maxRetries) {
+          throw error
+        }
+        
+        // レート制限エラーの場合はより長く待機
+        const isRateLimit = error.statusCode === 429 || error.code === 'RATE_LIMIT'
+        const baseDelay = isRateLimit ? 5000 : 1000 // レート制限なら5秒、その他1秒
+        const delay = baseDelay * Math.pow(2, attempt - 1) // 指数バックオフ
+        
+        console.log(`リトライ ${attempt}/${maxRetries}: ${delay}ms待機 (${error.message})`)
+        await new Promise(resolve => setTimeout(resolve, delay))
+      }
+    }
+    throw new Error('Max retries exceeded')
   }
 
   getConfig(): MetaApiConfig {
@@ -288,7 +328,7 @@ export class MetaApiService {
     const params: any = {
       fields: options.fields ? options.fields.join(',') : (options.metrics || defaultMetrics).join(','),
       level: options.level,
-      limit: options.limit || 100
+      limit: Math.min(options.limit || 25, 25) // API制限を考慮した小さなバッチサイズ
     }
 
     if (options.datePreset) {
@@ -318,7 +358,10 @@ export class MetaApiService {
 
     let endpoint = `/act_${this.config.accountId}/insights`
     
-    const response = await this.apiCall(endpoint, params)
+    const response = await this.retryWithBackoff(async () => {
+      await this.rateLimit()
+      return await this.apiCall(endpoint, params)
+    })
     return (response.data || []).map((insight: any) => ({
       dateStart: insight.date_start,
       dateStop: insight.date_stop,
@@ -411,7 +454,7 @@ export class MetaApiService {
   // Private methods
   private async apiCall(endpoint: string, params?: any): Promise<any> {
     try {
-      console.log('Meta API - baseUrl:', this.baseUrl, 'apiVersion:', this.config.apiVersion)
+      console.log(`Meta API Call #${this.requestCount + 1} - ${endpoint}`)
       const url = new URL(`${this.baseUrl}${endpoint}`)
       
       if (params) {
