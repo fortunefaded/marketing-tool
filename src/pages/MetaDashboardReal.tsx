@@ -49,7 +49,9 @@ export const MetaDashboardReal: React.FC = () => {
 
   const loadData = async (service: MetaApiService, isUpdate: boolean = false) => {
     setIsLoading(true)
-    setError(null)
+    if (!isUpdate) {
+      setError(null) // 初回ロード時のみエラーをクリア
+    }
     
     try {
       // まず権限を確認
@@ -140,25 +142,29 @@ export const MetaDashboardReal: React.FC = () => {
         setInsights(insightsData)
       }
       
-      // キャンペーン別のインサイトデータも取得
-      const campaignInsights = await service.getInsights({
-        level: 'campaign',
-        ...dateOptions,
-        fields: [
-          'campaign_name',
-          'campaign_id',
-          'spend',
-          'impressions',
-          'clicks',
-          'reach',
-          'cpm',
-          'cpc',
-          'ctr'
-        ],
-        time_increment: '1', // キャンペーン別も日毎に取得
-        limit: 1000
-      })
-      console.log(`キャンペーンインサイト取得完了: ${campaignInsights.length}件`)
+      // キャンペーン別のインサイトデータも取得（オプションアル）
+      try {
+        const campaignInsights = await service.getInsights({
+          level: 'campaign',
+          ...dateOptions,
+          fields: [
+            'campaign_name',
+            'campaign_id',
+            'spend',
+            'impressions',
+            'clicks',
+            'reach',
+            'cpm',
+            'cpc',
+            'ctr'
+          ],
+          time_increment: '1', // キャンペーン別も日毎に取得
+          limit: 1000
+        })
+        console.log(`キャンペーンインサイト取得完了: ${campaignInsights.length}件`)
+      } catch (campaignError) {
+        console.warn('キャンペーンインサイトの取得に失敗しましたが、メインデータは取得できました:', campaignError)
+      }
       
       setLastUpdateTime(new Date())
       setIsInitialLoad(false)
@@ -171,6 +177,12 @@ export const MetaDashboardReal: React.FC = () => {
         details: err.details,
         statusCode: err.statusCode
       })
+      
+      // データが一部取得できている場合はエラーを表示しない
+      if (insights.length > 0) {
+        console.warn('一部データの取得に失敗しましたが、メインデータは表示できます')
+        return // エラーを表示せずに終了
+      }
       
       // 権限エラーの場合はより分かりやすいメッセージを表示
       if (err.code === 200 || err.code === 'PERMISSION_ERROR' || err.details?.error?.code === 200 || err.message?.includes('ads_management') || err.message?.includes('ads_read')) {
@@ -186,6 +198,10 @@ export const MetaDashboardReal: React.FC = () => {
       }
     } finally {
       setIsLoading(false)
+      // データが正常に取得できた場合はエラーをクリア
+      if (insights.length > 0) {
+        setError(null)
+      }
     }
   }
 
