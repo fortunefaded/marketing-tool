@@ -317,7 +317,7 @@ export const MetaApiSetupUnified: React.FC = () => {
                           className="flex-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full min-w-0 rounded-none rounded-r-md sm:text-sm border-gray-300"
                           placeholder="123456789012345"
                           pattern="[0-9]*"
-                          maxLength={15}
+                          maxLength={20}
                         />
                       </div>
                     </div>
