@@ -14,7 +14,7 @@ import { useRealtimeUpdates } from '../hooks/useRealtimeUpdates'
 import { useMockDataInitializer } from '../hooks/useMockData'
 import { RealtimeStatus } from '../components/realtime/RealtimeStatus'
 import { RealtimeMetricCard } from '../components/realtime/RealtimeMetricCard'
-import { AlertsPanel, FloatingAlerts } from '../components/realtime/AlertsPanel'
+import { AlertsPanel } from '../components/realtime/AlertsPanel'
 import type { CreativeData } from '../components/creatives/CreativePerformanceGrid'
 import {
   CurrencyDollarIcon,
@@ -441,15 +441,15 @@ export const MetaDashboard: React.FC = () => {
         onClose={() => setSelectedCreative(null)}
       />
 
-      {/* Floating Alerts */}
-      {showRealtime && alerts && (
+      {/* Floating Alerts - TODO: FloatingAlertsコンポーネントを実装する */}
+      {/* {showRealtime && alerts && (
         <FloatingAlerts
           alerts={alerts}
           position="top-right"
           autoHide={true}
           autoHideDelay={5000}
         />
-      )}
+      )} */}
     </DashboardLayoutWithFilters>
   )
 }

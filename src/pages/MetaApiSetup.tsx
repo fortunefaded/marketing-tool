@@ -1,17 +1,15 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { MetaTokenSetup } from '../lib/meta-api/token-setup-ui'
-import { MetaApiClientWithTokenManager } from '../lib/meta-api/client-with-token-manager'
-import { ConnectionTester } from '../components/meta-api/ConnectionTester'
-import { EnvConfigPanel } from '../components/meta-api/EnvConfigPanel'
-import { AppSecretGuide } from '../components/meta-api/AppSecretGuide'
+import { MetaApiService } from '../services/metaApiService'
 import { 
   CheckCircleIcon, 
   ExclamationTriangleIcon,
   InformationCircleIcon,
   DocumentDuplicateIcon,
   ArrowTopRightOnSquareIcon,
-  CodeBracketIcon
+  CodeBracketIcon,
+  KeyIcon,
+  ShieldCheckIcon
 } from '@heroicons/react/24/outline'
 
 export const MetaApiSetup: React.FC = () => {
@@ -24,53 +22,53 @@ export const MetaApiSetup: React.FC = () => {
     currency: string
   } | null>(null)
   const [envVars, setEnvVars] = useState({
-    appId: '',
-    appSecret: '',
+    accessToken: '',
+    accountId: '',
   })
   const [showEnvSuccess, setShowEnvSuccess] = useState(false)
+  const [apiService, setApiService] = useState<MetaApiService | null>(null)
 
-  // Get app credentials from environment variables
-  const appId = import.meta.env.VITE_META_APP_ID || ''
-  const appSecret = import.meta.env.VITE_META_APP_SECRET || ''
-  const apiVersion = 'v23.0' // 固定バージョン
-
-  const handleTokenReady = async (token: string) => {
+  const handleConnect = async () => {
     try {
-      // Create API client with token manager
-      const client = new MetaApiClientWithTokenManager({
-        appId,
-        appSecret,
-        adAccountId: '', // Will be set after fetching account info
+      if (!envVars.accessToken || !envVars.accountId) {
+        alert('アクセストークンとアカウントIDを入力してください。')
+        return
+      }
+
+      // MetaApiServiceを初期化
+      const service = new MetaApiService({
+        accessToken: envVars.accessToken,
+        accountId: envVars.accountId.replace('act_', ''), // act_プレフィックスを除去
       })
 
-      await client.initialize()
+      // トークンの検証
+      const isValid = await service.validateAccessToken()
       
-      // Test the connection by fetching ad accounts
-      const response = await fetch(
-        `https://graph.facebook.com/${apiVersion}/me/adaccounts?fields=id,name,currency&access_token=${token}`
-      )
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch ad accounts')
+      if (!isValid) {
+        throw new Error('アクセストークンが無効です')
       }
 
-      const data = await response.json()
+      // キャンペーン一覧を取得してテスト
+      const campaigns = await service.getCampaigns({ limit: 1 })
       
-      if (data.data && data.data.length > 0) {
-        const account = data.data[0]
-        setAccountInfo({
-          id: account.id,
-          name: account.name,
-          currency: account.currency,
-        })
-        setIsConnected(true)
-        
-        // Save account ID to environment
-        localStorage.setItem('meta_ad_account_id', account.id)
-      }
+      setApiService(service)
+      setIsConnected(true)
+      setAccountInfo({
+        id: `act_${envVars.accountId}`,
+        name: 'Meta広告アカウント',
+        currency: 'JPY',
+      })
+      
+      // 設定をローカルストレージに保存
+      localStorage.setItem('meta_access_token', envVars.accessToken)
+      localStorage.setItem('meta_account_id', envVars.accountId)
+      
+      setShowEnvSuccess(true)
+      setTimeout(() => setShowEnvSuccess(false), 3000)
+      
     } catch (error) {
       console.error('Failed to connect to Meta API:', error)
-      alert('Meta APIへの接続に失敗しました。トークンを確認してください。')
+      alert(`Meta APIへの接続に失敗しました: ${error instanceof Error ? error.message : '不明なエラー'}`)
     }
   }
 
@@ -82,26 +80,18 @@ export const MetaApiSetup: React.FC = () => {
     navigator.clipboard.writeText(text)
   }
 
-  const generateEnvContent = () => {
-    return `# Meta API Configuration
-VITE_META_APP_ID=${envVars.appId}
-VITE_META_AD_ACCOUNT_ID=act_your_ad_account_id
-VITE_USE_MOCK_DATA=false
-
-# オプション: トークン交換機能を使用する場合のみ
-# VITE_META_APP_SECRET=${envVars.appSecret}`
-  }
-
-  const handleSaveEnvVars = () => {
-    // 実際の環境では、これらの値を安全に保存する必要があります
-    localStorage.setItem('meta_app_id', envVars.appId)
-    localStorage.setItem('meta_app_secret', envVars.appSecret)
-    setShowEnvSuccess(true)
-    setTimeout(() => setShowEnvSuccess(false), 3000)
-  }
-
-  // 環境変数が設定されていない場合の表示を改善
-  const hasEnvVars = appId && appSecret
+  // ローカルストレージから設定を読み込む
+  React.useEffect(() => {
+    const savedToken = localStorage.getItem('meta_access_token')
+    const savedAccountId = localStorage.getItem('meta_account_id')
+    
+    if (savedToken && savedAccountId) {
+      setEnvVars({
+        accessToken: savedToken,
+        accountId: savedAccountId,
+      })
+    }
+  }, [])
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -245,60 +235,140 @@ VITE_USE_MOCK_DATA=false
         {/* 環境変数タブ */}
         {activeTab === 'env' && (
           <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">⚙️ 環境変数設定</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">⚙️ API認証情報設定</h2>
             
-            <div className="space-y-8">
-              {/* EnvConfigPanel for actual configuration */}
+            <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">環境変数の設定</h3>
-                <EnvConfigPanel />
+                <label htmlFor="access-token" className="block text-sm font-medium text-gray-700">
+                  アクセストークン
+                </label>
+                <div className="mt-1">
+                  <input
+                    type="password"
+                    id="access-token"
+                    value={envVars.accessToken}
+                    onChange={(e) => setEnvVars({ ...envVars, accessToken: e.target.value })}
+                    className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                    placeholder="EAA..."
+                  />
+                </div>
+                <p className="mt-2 text-sm text-gray-500">
+                  Meta開発者ダッシュボードで生成したアクセストークン
+                </p>
               </div>
-              
-              {/* Divider */}
-              <div className="border-t border-gray-200" />
-              
-              {/* App Secret Guide */}
+
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">App Secretの取得方法</h3>
-                <AppSecretGuide />
+                <label htmlFor="account-id" className="block text-sm font-medium text-gray-700">
+                  広告アカウントID
+                </label>
+                <div className="mt-1">
+                  <input
+                    type="text"
+                    id="account-id"
+                    value={envVars.accountId}
+                    onChange={(e) => setEnvVars({ ...envVars, accountId: e.target.value })}
+                    className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                    placeholder="act_123456789012345"
+                  />
+                </div>
+                <p className="mt-2 text-sm text-gray-500">
+                  ビジネスマネージャーで確認できる広告アカウントID（act_で始まる）
+                </p>
               </div>
+
+              <div className="flex justify-end">
+                <button
+                  onClick={handleConnect}
+                  disabled={!envVars.accessToken || !envVars.accountId}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                >
+                  <ShieldCheckIcon className="h-5 w-5 mr-2" />
+                  接続テスト
+                </button>
+              </div>
+
+              {showEnvSuccess && (
+                <div className="rounded-md bg-green-50 p-4">
+                  <div className="flex">
+                    <CheckCircleIcon className="h-5 w-5 text-green-400" />
+                    <div className="ml-3">
+                      <p className="text-sm font-medium text-green-800">
+                        接続に成功しました
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
 
         {/* トークンタブ */}
         {activeTab === 'token' && (
-          <div>
-            {!hasEnvVars ? (
-              <div className="bg-white shadow rounded-lg p-6">
-                <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
-                  <div className="flex">
-                    <ExclamationTriangleIcon className="h-5 w-5 text-yellow-400 mr-3" />
-                    <div className="flex-1">
-                      <h3 className="text-sm font-medium text-yellow-800">
-                        環境変数を先に設定してください
-                      </h3>
-                      <p className="mt-1 text-sm text-yellow-700">
-                        トークン設定の前に「環境変数設定」タブでApp IDとApp Secretを設定してください。
-                      </p>
-                      <button
-                        onClick={() => setActiveTab('env')}
-                        className="mt-3 text-sm font-medium text-yellow-800 hover:text-yellow-900"
-                      >
-                        環境変数設定へ →
-                      </button>
+          <div className="bg-white shadow rounded-lg p-6">
+            {!isConnected ? (
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">🔑 トークン取得方法</h2>
+                
+                <div className="space-y-6">
+                  <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+                    <h3 className="text-sm font-medium text-blue-800 mb-2">
+                      推奨: Graph API Explorer
+                    </h3>
+                    <ol className="list-decimal list-inside space-y-2 text-sm text-blue-700">
+                      <li>
+                        <a
+                          href="https://developers.facebook.com/tools/explorer/"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-500 inline-flex items-center"
+                        >
+                          Graph API Explorer
+                          <ArrowTopRightOnSquareIcon className="w-4 h-4 ml-1" />
+                        </a>
+                        にアクセス
+                      </li>
+                      <li>アプリを選択</li>
+                      <li>必要な権限を追加:
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          <span className="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded">ads_read</span>
+                          <span className="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded">ads_management</span>
+                        </div>
+                      </li>
+                      <li>「Generate Access Token」をクリック</li>
+                      <li>生成されたトークンをコピー</li>
+                    </ol>
+                  </div>
+
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+                    <div className="flex">
+                      <ExclamationTriangleIcon className="h-5 w-5 text-yellow-400 mr-3" />
+                      <div className="flex-1">
+                        <h3 className="text-sm font-medium text-yellow-800">
+                          セキュリティ注意事項
+                        </h3>
+                        <ul className="mt-1 text-sm text-yellow-700 list-disc list-inside">
+                          <li>アクセストークンは決して公開しないでください</li>
+                          <li>GitHubなどにコミットしないよう注意してください</li>
+                          <li>定期的にトークンを更新することを推奨します</li>
+                        </ul>
+                      </div>
                     </div>
+                  </div>
+
+                  <div className="flex justify-center pt-4">
+                    <button
+                      onClick={() => setActiveTab('env')}
+                      className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
+                    >
+                      <KeyIcon className="h-5 w-5 mr-2" />
+                      認証情報を設定する
+                    </button>
                   </div>
                 </div>
               </div>
-            ) : !isConnected ? (
-              <MetaTokenSetup
-                appId={appId || envVars.appId}
-                appSecret={appSecret || envVars.appSecret}
-                onTokenReady={handleTokenReady}
-              />
             ) : (
-              <div className="bg-white shadow rounded-lg p-6">
+              <div>
                 <div className="bg-green-50 border border-green-200 rounded-md p-4 mb-6">
                   <div className="flex">
                     <CheckCircleIcon className="h-5 w-5 text-green-400 mr-3" />
@@ -350,13 +420,13 @@ VITE_USE_MOCK_DATA=false
                 <div className="flex justify-between">
                   <button
                     onClick={() => setIsConnected(false)}
-                    className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
                   >
                     別のアカウントを設定
                   </button>
                   <button
                     onClick={handleContinue}
-                    className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700"
                   >
                     ダッシュボードへ進む
                   </button>
@@ -378,7 +448,49 @@ VITE_USE_MOCK_DATA=false
               </p>
             </div>
             
-            <ConnectionTester />
+            {apiService ? (
+              <div className="space-y-4">
+                <div className="bg-green-50 border border-green-200 rounded-md p-4">
+                  <div className="flex">
+                    <CheckCircleIcon className="h-5 w-5 text-green-400 mr-3" />
+                    <div>
+                      <h3 className="text-sm font-medium text-green-800">
+                        API接続確立済み
+                      </h3>
+                      <p className="mt-1 text-sm text-green-700">
+                        Meta APIサービスが正常に初期化されています
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={async () => {
+                    try {
+                      const campaigns = await apiService.getCampaigns({ limit: 5 })
+                      alert(`${campaigns.length}件のキャンペーンを取得しました`)
+                    } catch (error) {
+                      alert(`エラー: ${error instanceof Error ? error.message : '不明なエラー'}`)
+                    }
+                  }}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
+                >
+                  キャンペーン取得テスト
+                </button>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-gray-500 mb-4">
+                  まず「API認証情報設定」タブで接続を確立してください
+                </p>
+                <button
+                  onClick={() => setActiveTab('env')}
+                  className="text-indigo-600 hover:text-indigo-500"
+                >
+                  認証情報設定へ →
+                </button>
+              </div>
+            )}
             
             <div className="mt-6 p-4 bg-blue-50 rounded-lg">
               <h3 className="text-sm font-medium text-blue-900 mb-2">

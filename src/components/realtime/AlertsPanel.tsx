@@ -1,196 +1,149 @@
 import React from 'react'
-import {
+import { format } from 'date-fns'
+import { ja } from 'date-fns/locale'
+import { 
   ExclamationTriangleIcon,
-  XCircleIcon,
   XMarkIcon,
+  CheckIcon,
+  TrashIcon
 } from '@heroicons/react/24/outline'
-import { Transition } from '@headlessui/react'
+import { RealtimeAlert, AlertSeverity } from '../../hooks/useRealtimeAlerts'
 
-interface Alert {
-  type: 'warning' | 'critical'
-  message: string
-  campaignId: string
-  metric: string
-  value: number
-  threshold: number
-  formattedMessage: string
-}
-
-interface AlertsPanelProps {
-  alerts: Alert[]
-  onDismiss?: (campaignId: string) => void
+export interface AlertsPanelProps {
+  alerts: RealtimeAlert[]
+  onAcknowledge: (alertId: string) => void
+  onDismiss: (alertId: string) => void
+  onClearAll: () => void
+  maxDisplay?: number
   className?: string
 }
 
 export const AlertsPanel: React.FC<AlertsPanelProps> = ({
   alerts,
+  onAcknowledge,
   onDismiss,
-  className = '',
+  onClearAll,
+  maxDisplay = 10,
+  className = ''
 }) => {
-  if (!alerts || alerts.length === 0) {
-    return null
-  }
-
-  const criticalAlerts = alerts.filter((a) => a.type === 'critical')
-  const warningAlerts = alerts.filter((a) => a.type === 'warning')
-
-  return (
-    <div className={`space-y-4 ${className}`}>
-      {/* Critical Alerts */}
-      {criticalAlerts.length > 0 && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <div className="flex items-start">
-            <XCircleIcon className="h-5 w-5 text-red-600 mt-0.5 mr-3 flex-shrink-0" />
-            <div className="flex-1">
-              <h3 className="text-sm font-medium text-red-800 mb-2">
-                重要なアラート
-              </h3>
-              <div className="space-y-2">
-                {criticalAlerts.map((alert, index) => (
-                  <div
-                    key={`${alert.campaignId}-${index}`}
-                    className="flex items-center justify-between"
-                  >
-                    <p className="text-sm text-red-700">
-                      {alert.formattedMessage}
-                    </p>
-                    {onDismiss && (
-                      <button
-                        onClick={() => onDismiss(alert.campaignId)}
-                        className="ml-3 text-red-600 hover:text-red-800"
-                      >
-                        <XMarkIcon className="h-4 w-4" />
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Warning Alerts */}
-      {warningAlerts.length > 0 && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <div className="flex items-start">
-            <ExclamationTriangleIcon className="h-5 w-5 text-yellow-600 mt-0.5 mr-3 flex-shrink-0" />
-            <div className="flex-1">
-              <h3 className="text-sm font-medium text-yellow-800 mb-2">
-                警告
-              </h3>
-              <div className="space-y-2">
-                {warningAlerts.map((alert, index) => (
-                  <div
-                    key={`${alert.campaignId}-${index}`}
-                    className="flex items-center justify-between"
-                  >
-                    <p className="text-sm text-yellow-700">
-                      {alert.formattedMessage}
-                    </p>
-                    {onDismiss && (
-                      <button
-                        onClick={() => onDismiss(alert.campaignId)}
-                        className="ml-3 text-yellow-600 hover:text-yellow-800"
-                      >
-                        <XMarkIcon className="h-4 w-4" />
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
-// Floating alerts component for global notifications
-interface FloatingAlertsProps {
-  alerts: Alert[]
-  position?: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left'
-  autoHide?: boolean
-  autoHideDelay?: number
-}
-
-export const FloatingAlerts: React.FC<FloatingAlertsProps> = ({
-  alerts,
-  position = 'top-right',
-  autoHide = true,
-  autoHideDelay = 5000,
-}) => {
-  const [visibleAlerts, setVisibleAlerts] = React.useState<Alert[]>([])
-  const [dismissedIds, setDismissedIds] = React.useState<Set<string>>(new Set())
-
-  React.useEffect(() => {
-    // Filter out dismissed alerts
-    const newAlerts = alerts.filter(
-      (alert) => !dismissedIds.has(alert.campaignId)
-    )
-    setVisibleAlerts(newAlerts)
-
-    // Auto-hide logic
-    if (autoHide && newAlerts.length > 0) {
-      const timer = setTimeout(() => {
-        setVisibleAlerts([])
-      }, autoHideDelay)
-
-      return () => clearTimeout(timer)
+  const getSeverityColor = (severity: AlertSeverity) => {
+    switch (severity) {
+      case 'critical':
+        return 'border-red-600 text-red-400'
+      case 'high':
+        return 'border-orange-500 text-orange-400'
+      case 'medium':
+        return 'border-yellow-500 text-yellow-400'
+      case 'low':
+        return 'border-blue-500 text-blue-400'
+      default:
+        return 'border-gray-500 text-gray-400'
     }
-  }, [alerts, dismissedIds, autoHide, autoHideDelay])
-
-  const handleDismiss = (campaignId: string) => {
-    setDismissedIds((prev) => new Set(prev).add(campaignId))
   }
 
-  const positionClasses = {
-    'top-right': 'top-4 right-4',
-    'top-left': 'top-4 left-4',
-    'bottom-right': 'bottom-4 right-4',
-    'bottom-left': 'bottom-4 left-4',
+  const getSeverityIcon = (severity: AlertSeverity) => {
+    switch (severity) {
+      case 'critical':
+        return <ExclamationTriangleIcon className="h-5 w-5 text-red-400" />
+      case 'high':
+        return <ExclamationTriangleIcon className="h-5 w-5 text-orange-400" />
+      case 'medium':
+        return <ExclamationTriangleIcon className="h-5 w-5 text-yellow-400" />
+      case 'low':
+        return <ExclamationTriangleIcon className="h-5 w-5 text-blue-400" />
+      default:
+        return <ExclamationTriangleIcon className="h-5 w-5 text-gray-400" />
+    }
+  }
+
+  const displayAlerts = alerts.slice(0, maxDisplay)
+  const remainingCount = alerts.length - maxDisplay
+
+  if (alerts.length === 0) {
+    return (
+      <div className={`text-center py-8 text-gray-500 ${className}`}>
+        <ExclamationTriangleIcon className="h-12 w-12 mx-auto mb-2 opacity-50" />
+        <p>アラートはありません</p>
+      </div>
+    )
   }
 
   return (
-    <div className={`fixed ${positionClasses[position]} z-50 max-w-sm`}>
-      <Transition
-        show={visibleAlerts.length > 0}
-        enter="transition-all duration-300"
-        enterFrom="opacity-0 scale-95"
-        enterTo="opacity-100 scale-100"
-        leave="transition-all duration-300"
-        leaveFrom="opacity-100 scale-100"
-        leaveTo="opacity-0 scale-95"
-      >
-        <div className="space-y-2">
-          {visibleAlerts.map((alert, index) => (
-            <div
-              key={`${alert.campaignId}-${index}`}
-              className={`${
-                alert.type === 'critical'
-                  ? 'bg-red-600 text-white'
-                  : 'bg-yellow-500 text-white'
-              } rounded-lg shadow-lg p-4 flex items-center justify-between`}
-            >
-              <div className="flex items-start">
-                {alert.type === 'critical' ? (
-                  <XCircleIcon className="h-5 w-5 mr-2 flex-shrink-0" />
-                ) : (
-                  <ExclamationTriangleIcon className="h-5 w-5 mr-2 flex-shrink-0" />
-                )}
-                <p className="text-sm font-medium">{alert.formattedMessage}</p>
+    <div className={`space-y-3 ${className}`}>
+      {displayAlerts.map((alert) => {
+        const timestamp = typeof alert.timestamp === 'string' 
+          ? new Date(alert.timestamp) 
+          : alert.timestamp
+
+        return (
+          <div
+            key={alert.id}
+            className={`
+              rounded-lg border-l-4 p-4 
+              ${getSeverityColor(alert.severity)}
+              ${alert.acknowledged ? 'bg-gray-800' : 'bg-gray-700'}
+              transition-all duration-200
+            `}
+          >
+            <div className="flex items-start justify-between">
+              <div className="flex items-start space-x-3">
+                {getSeverityIcon(alert.severity)}
+                <div className="flex-1">
+                  <h4 className="font-semibold">{alert.title}</h4>
+                  <p className="text-sm text-gray-400 mt-1">{alert.message}</p>
+                  <p className="text-xs text-gray-500 mt-2">
+                    {format(timestamp, 'HH:mm', { locale: ja })}
+                  </p>
+                </div>
               </div>
-              <button
-                onClick={() => handleDismiss(alert.campaignId)}
-                className="ml-4 flex-shrink-0 hover:opacity-75"
-              >
-                <XMarkIcon className="h-5 w-5" />
-              </button>
+              
+              <div className="flex items-center space-x-2">
+                {!alert.acknowledged && (
+                  <button
+                    onClick={() => onAcknowledge(alert.id)}
+                    className="p-1 hover:bg-gray-600 rounded transition-colors"
+                    title="確認"
+                  >
+                    <CheckIcon className="h-4 w-4" />
+                  </button>
+                )}
+                {alert.acknowledged && (
+                  <button
+                    disabled
+                    className="p-1 opacity-50 cursor-not-allowed"
+                    title="確認済み"
+                  >
+                    <CheckIcon className="h-4 w-4" />
+                  </button>
+                )}
+                <button
+                  onClick={() => onDismiss(alert.id)}
+                  className="p-1 hover:bg-gray-600 rounded transition-colors"
+                  title="削除"
+                >
+                  <XMarkIcon className="h-4 w-4" />
+                </button>
+              </div>
             </div>
-          ))}
-        </div>
-      </Transition>
+          </div>
+        )
+      })}
+
+      {remainingCount > 0 && (
+        <p className="text-sm text-gray-500 text-center">
+          他{remainingCount}件のアラート
+        </p>
+      )}
+
+      {alerts.length > 0 && (
+        <button
+          onClick={onClearAll}
+          className="w-full py-2 px-4 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors flex items-center justify-center space-x-2"
+        >
+          <TrashIcon className="h-4 w-4" />
+          <span>すべてクリア</span>
+        </button>
+      )}
     </div>
   )
 }

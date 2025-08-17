@@ -12,6 +12,7 @@ import {
   CloudArrowUpIcon,
   BeakerIcon,
   SparklesIcon,
+  BoltIcon,
 } from '@heroicons/react/24/outline'
 import { ComponentType } from 'react'
 
@@ -93,6 +94,11 @@ export default function Sidebar() {
       name: 'コストアロケーション分析',
       path: '/cost-allocation',
       icon: PlayIcon,
+    },
+    {
+      name: 'リアルタイムダッシュボード',
+      path: '/realtime-dashboard',
+      icon: BoltIcon,
     },
   ]
 

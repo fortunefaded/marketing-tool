@@ -1,81 +1,406 @@
-import { MetaApiClient } from '../lib/meta-api'
-import { transformCampaignToConvex, transformInsightToConvex } from '../lib/meta-api'
-import { api } from '../../convex/_generated/api'
-import { ConvexClient } from 'convex/browser'
+export interface MetaApiConfig {
+  accessToken: string
+  accountId: string
+  apiVersion?: string
+}
+
+export interface MetaCampaignData {
+  id: string
+  name: string
+  status: string
+  objective: string
+  daily_budget: string | null
+  lifetime_budget: string | null
+  created_time: string
+  updated_time: string
+}
+
+export interface MetaAdSetData {
+  id: string
+  name: string
+  campaign_id: string
+  status: string
+  daily_budget: string | null
+  lifetime_budget: string | null
+  optimization_goal: string
+  billing_event: string
+  bid_amount: string
+  created_time: string
+  updated_time: string
+}
+
+export interface MetaAdData {
+  id: string
+  name: string
+  adset_id: string
+  campaign_id: string
+  status: string
+  creative: {
+    id: string
+    name: string
+    title: string
+    body: string
+    image_url: string
+  }
+  created_time: string
+  updated_time: string
+}
+
+export interface MetaInsightsData {
+  date_start: string
+  date_stop: string
+  impressions: string
+  clicks: string
+  spend: string
+  reach: string
+  frequency: string
+  cpm: string
+  cpc: string
+  ctr: string
+  conversions?: string
+  conversion_value?: string
+  cost_per_conversion?: string
+  roas?: string
+  [key: string]: string | undefined
+}
+
+export interface MetaApiFilter {
+  campaignIds?: string[]
+  adSetIds?: string[]
+  adIds?: string[]
+  dateRange?: {
+    since: string
+    until: string
+  }
+  status?: string[]
+}
+
+export interface MetaInsightsOptions {
+  level: 'account' | 'campaign' | 'adset' | 'ad'
+  dateRange: {
+    since: string
+    until: string
+  }
+  metrics?: string[]
+  breakdowns?: string[]
+  filtering?: any[]
+  limit?: number
+  after?: string
+}
+
+export interface MetaBatchRequest {
+  method: string
+  relative_url: string
+  body?: string
+}
+
+export class MetaApiError extends Error {
+  code: string
+  statusCode?: number
+  details?: any
+
+  constructor(message: string, code: string, statusCode?: number, details?: any) {
+    super(message)
+    this.name = 'MetaApiError'
+    this.code = code
+    this.statusCode = statusCode
+    this.details = details
+  }
+}
 
 export class MetaApiService {
-  private client: MetaApiClient
-  private convex: ConvexClient
+  private config: MetaApiConfig
+  private baseUrl: string
 
-  constructor() {
-    // 環境変数から認証情報を取得
-    const accessToken = process.env.META_ACCESS_TOKEN
-    const accountId = process.env.META_ACCOUNT_ID
+  constructor(config: MetaApiConfig) {
+    this.config = {
+      ...config,
+      apiVersion: config.apiVersion || 'v18.0'
+    }
+    this.baseUrl = `https://graph.facebook.com/${this.config.apiVersion}`
+  }
 
-    if (!accessToken || !accountId) {
-      throw new Error(
-        'Meta API credentials not configured. Please set META_ACCESS_TOKEN and META_ACCOUNT_ID in .env'
+  getConfig(): MetaApiConfig {
+    return this.config
+  }
+
+  // 認証
+  async validateAccessToken(): Promise<boolean> {
+    try {
+      const response = await this.apiCall('/debug_token', {
+        input_token: this.config.accessToken,
+        access_token: this.config.accessToken
+      })
+      
+      return response.data?.is_valid === true
+    } catch (error) {
+      if (error instanceof MetaApiError) {
+        throw error
+      }
+      throw new MetaApiError(
+        'Failed to validate access token',
+        'VALIDATION_ERROR',
+        undefined,
+        error
+      )
+    }
+  }
+
+  // キャンペーンデータ取得
+  async getCampaigns(filter?: MetaApiFilter & { limit?: number; after?: string }): Promise<MetaCampaignData[]> {
+    const params: any = {
+      fields: 'id,name,status,objective,daily_budget,lifetime_budget,created_time,updated_time',
+      limit: filter?.limit || 100
+    }
+
+    if (filter?.after) {
+      params.after = filter.after
+    }
+
+    if (filter?.campaignIds) {
+      params.filtering = JSON.stringify([{
+        field: 'id',
+        operator: 'IN',
+        value: filter.campaignIds
+      }])
+    }
+
+    if (filter?.dateRange) {
+      params.time_range = JSON.stringify({
+        since: filter.dateRange.since,
+        until: filter.dateRange.until
+      })
+    }
+
+    if (filter?.status) {
+      params.filtering = JSON.stringify([{
+        field: 'status',
+        operator: 'IN',
+        value: filter.status
+      }])
+    }
+
+    const response = await this.apiCall(`/act_${this.config.accountId}/campaigns`, params)
+    return response.data || []
+  }
+
+  // 広告セットデータ取得
+  async getAdSets(filter?: MetaApiFilter & { limit?: number; after?: string }): Promise<MetaAdSetData[]> {
+    const params: any = {
+      fields: 'id,name,campaign_id,status,daily_budget,lifetime_budget,optimization_goal,billing_event,bid_amount,created_time,updated_time',
+      limit: filter?.limit || 100
+    }
+
+    if (filter?.after) {
+      params.after = filter.after
+    }
+
+    if (filter?.adSetIds) {
+      params.filtering = JSON.stringify([{
+        field: 'id',
+        operator: 'IN',
+        value: filter.adSetIds
+      }])
+    }
+
+    if (filter?.campaignIds) {
+      params.filtering = JSON.stringify([{
+        field: 'campaign_id',
+        operator: 'IN',
+        value: filter.campaignIds
+      }])
+    }
+
+    const response = await this.apiCall(`/act_${this.config.accountId}/adsets`, params)
+    return response.data || []
+  }
+
+  // 広告データ取得
+  async getAds(filter?: MetaApiFilter & { limit?: number; after?: string }): Promise<MetaAdData[]> {
+    const params: any = {
+      fields: 'id,name,adset_id,campaign_id,status,creative{id,name,title,body,image_url},created_time,updated_time',
+      limit: filter?.limit || 100
+    }
+
+    if (filter?.after) {
+      params.after = filter.after
+    }
+
+    if (filter?.adIds) {
+      params.filtering = JSON.stringify([{
+        field: 'id',
+        operator: 'IN',
+        value: filter.adIds
+      }])
+    }
+
+    const response = await this.apiCall(`/act_${this.config.accountId}/ads`, params)
+    return response.data || []
+  }
+
+  // インサイトデータ取得
+  async getInsights(options: MetaInsightsOptions): Promise<MetaInsightsData[]> {
+    const defaultMetrics = [
+      'impressions', 'clicks', 'spend', 'reach', 'frequency',
+      'cpm', 'cpc', 'ctr', 'conversions', 'conversion_value',
+      'cost_per_conversion', 'purchase_roas'
+    ]
+
+    const params: any = {
+      fields: (options.metrics || defaultMetrics).join(','),
+      time_range: JSON.stringify({
+        since: options.dateRange.since,
+        until: options.dateRange.until
+      }),
+      level: options.level,
+      limit: options.limit || 100
+    }
+
+    if (options.after) {
+      params.after = options.after
+    }
+
+    if (options.breakdowns) {
+      params.breakdowns = options.breakdowns.join(',')
+    }
+
+    if (options.filtering) {
+      params.filtering = JSON.stringify(options.filtering)
+    }
+
+    let endpoint = `/act_${this.config.accountId}/insights`
+    
+    const response = await this.apiCall(endpoint, params)
+    return response.data || []
+  }
+
+  // バッチリクエスト
+  async batch(requests: MetaBatchRequest[]): Promise<any[]> {
+    const batch = requests.map(req => ({
+      method: req.method,
+      relative_url: req.relative_url,
+      body: req.body
+    }))
+
+    const params = {
+      batch: JSON.stringify(batch),
+      access_token: this.config.accessToken
+    }
+
+    const response = await fetch(`${this.baseUrl}/`, {
+      method: 'POST',
+      body: new URLSearchParams(params),
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new MetaApiError(
+        error.error?.message || 'Batch request failed',
+        'BATCH_ERROR',
+        response.status,
+        error
       )
     }
 
-    this.client = new MetaApiClient({
-      accessToken,
-      accountId,
-    })
-
-    this.convex = new ConvexClient(process.env.NEXT_PUBLIC_CONVEX_URL!)
+    return await response.json()
   }
 
-  async syncCampaigns() {
+  // データ変換
+  transformCampaignData(apiData: any): any {
+    const transformed: any = {
+      id: apiData.id,
+      name: apiData.name,
+      status: apiData.status,
+      objective: apiData.objective,
+      dailyBudget: apiData.daily_budget ? parseFloat(apiData.daily_budget) : null,
+      lifetimeBudget: apiData.lifetime_budget ? parseFloat(apiData.lifetime_budget) : null,
+      createdTime: apiData.created_time,
+      updatedTime: apiData.updated_time
+    }
+
+    if (apiData.insights?.data?.[0]) {
+      const insights = apiData.insights.data[0]
+      transformed.metrics = this.transformNumericFields(insights)
+    }
+
+    return transformed
+  }
+
+  transformNumericFields(data: any): any {
+    const transformed: any = {}
+    
+    for (const [key, value] of Object.entries(data)) {
+      if (typeof value === 'string' && !isNaN(Number(value))) {
+        transformed[key] = Number(value)
+      } else {
+        transformed[key] = value
+      }
+    }
+    
+    return transformed
+  }
+
+  // Private methods
+  private async apiCall(endpoint: string, params?: any): Promise<any> {
     try {
-      // Meta APIからキャンペーンデータを取得
-      const campaigns = await this.client.getCampaigns()
-
-      // Convex形式に変換
-      const transformedCampaigns = campaigns.map((campaign) => transformCampaignToConvex(campaign))
-
-      // Convexに保存
-      await this.convex.mutation(api.metaSync.syncMetaCampaigns, {
-        campaigns: transformedCampaigns.map((c) => ({
-          metaId: c.metaId,
-          accountId: c.accountId,
-          name: c.name,
-          objective: c.objective,
-          status: c.status,
-          dailyBudget: c.dailyBudget,
-          lifetimeBudget: c.lifetimeBudget,
-          startTime: c.startTime,
-          stopTime: c.stopTime,
-        })),
-      })
-
-      // インサイトデータも同期
-      for (const campaign of campaigns) {
-        const campaignWithInsights = await this.client.getCampaignWithInsights(campaign.id)
-
-        if (campaignWithInsights.insights.data.length > 0) {
-          const transformedInsights = campaignWithInsights.insights.data.map((insight) =>
-            transformInsightToConvex(insight, campaign.id)
-          )
-
-          await this.convex.mutation(api.metaSync.saveMetaInsights, {
-            insights: transformedInsights.map((i) => ({
-              campaignId: i.campaignId,
-              impressions: i.impressions,
-              clicks: i.clicks,
-              spend: i.spend,
-              conversions: i.conversions,
-              revenue: i.revenue,
-              dateStart: i.dateStart,
-              dateStop: i.dateStop,
-            })),
-          })
-        }
+      const url = new URL(`${this.baseUrl}${endpoint}`)
+      
+      if (params) {
+        Object.keys(params).forEach(key => {
+          url.searchParams.append(key, params[key])
+        })
       }
 
-      // Successfully synced Meta campaigns
+      const response = await fetch(url.toString(), {
+        headers: {
+          'Authorization': `Bearer ${this.config.accessToken}`
+        }
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        const errorCode = this.getErrorCode(response.status, error)
+        
+        throw new MetaApiError(
+          error.error?.message || 'API request failed',
+          errorCode,
+          response.status,
+          error
+        )
+      }
+
+      return await response.json()
     } catch (error) {
-      throw new Error(`Failed to sync Meta campaigns: ${error}`)
+      if (error instanceof MetaApiError) {
+        throw error
+      }
+      
+      throw new MetaApiError(
+        'Network error',
+        'NETWORK_ERROR',
+        undefined,
+        error
+      )
     }
+  }
+
+  private getErrorCode(status: number, error: any): string {
+    if (status === 401) {
+      return 'AUTH_ERROR'
+    }
+    if (status === 429) {
+      return 'RATE_LIMIT'
+    }
+    if (status === 403) {
+      return 'PERMISSION_ERROR'
+    }
+    if (status >= 500) {
+      return 'SERVER_ERROR'
+    }
+    
+    return 'API_ERROR'
   }
 }

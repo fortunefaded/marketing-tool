@@ -17,6 +17,11 @@ import { IntegratedDashboard } from './pages/IntegratedDashboard'
 import { PredictiveAnalysis } from './pages/PredictiveAnalysis'
 import { ABTestingAnalysis } from './pages/ABTestingAnalysis'
 import { ReportManagement } from './pages/ReportManagement'
+// import { RealtimeDashboard } from './pages/RealtimeDashboard'
+// import { RealtimeDashboardSimple } from './pages/RealtimeDashboardSimple'
+// import { RealtimeDashboardDebug } from './pages/RealtimeDashboardDebug'
+// import { RealtimeDashboardWrapper } from './pages/RealtimeDashboardWrapper'
+import { RealtimeDashboardMinimal } from './pages/RealtimeDashboardMinimal'
 import Sidebar from './components/Sidebar'
 import Header from './components/Header'
 import { vibe } from './lib/vibelogger'
@@ -66,6 +71,7 @@ function AppContent() {
             <Route path="/landing" element={<LandingPageAnalysis />} />
             <Route path="/cost-allocation" element={<CostAllocationAnalysis />} />
             <Route path="/reports" element={<ReportManagement />} />
+            <Route path="/realtime-dashboard" element={<RealtimeDashboardMinimal />} />
             <Route
               path="/media"
               element={
