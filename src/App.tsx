@@ -16,6 +16,7 @@ import { ECForceContainer } from './pages/ECForceContainer'
 import { IntegratedDashboard } from './pages/IntegratedDashboard'
 import { PredictiveAnalysis } from './pages/PredictiveAnalysis'
 import { ABTestingAnalysis } from './pages/ABTestingAnalysis'
+import { ReportManagement } from './pages/ReportManagement'
 import Sidebar from './components/Sidebar'
 import Header from './components/Header'
 import { vibe } from './lib/vibelogger'
@@ -64,14 +65,7 @@ function AppContent() {
             <Route path="/period" element={<PeriodAnalysis />} />
             <Route path="/landing" element={<LandingPageAnalysis />} />
             <Route path="/cost-allocation" element={<CostAllocationAnalysis />} />
-            <Route
-              path="/reports"
-              element={
-                <div className="p-6">
-                  <h1 className="text-2xl font-bold">レポート</h1>
-                </div>
-              }
-            />
+            <Route path="/reports" element={<ReportManagement />} />
             <Route
               path="/media"
               element={

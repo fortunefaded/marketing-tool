@@ -4,6 +4,7 @@ import { SalesPrediction } from '../components/predictions/SalesPrediction'
 import { ChurnPrediction } from '../components/predictions/ChurnPrediction'
 import { useECForceOrders } from '../hooks/useECForceOrders'
 import { LoadingSpinner } from '../components/common/LoadingSpinner'
+import { AddToFavoriteButton } from '../components/favorites/AddToFavoriteButton'
 
 export const PredictiveAnalysis: React.FC = () => {
   const { orders, loading, error } = useECForceOrders()
@@ -43,13 +44,24 @@ export const PredictiveAnalysis: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* ヘッダー */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-            <Brain className="h-8 w-8 mr-3 text-indigo-600" />
-            予測分析
-          </h1>
-          <p className="text-gray-600 mt-2">
-            機械学習モデルを使用した売上予測と顧客離脱リスク分析
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 flex items-center">
+                <Brain className="h-8 w-8 mr-3 text-indigo-600" />
+                予測分析
+              </h1>
+              <p className="text-gray-600 mt-2">
+                機械学習モデルを使用した売上予測と顧客離脱リスク分析
+              </p>
+            </div>
+            <AddToFavoriteButton
+              analysisName={activeTab === 'sales' ? '売上予測分析' : 'チャーン予測分析'}
+              analysisType="prediction"
+              route={`/predictive-analysis#${activeTab}`}
+              description={activeTab === 'sales' ? '30日間の売上予測とKPIトレンド' : '顧客離脱リスクの予測と対策'}
+              filters={{ activeTab }}
+            />
+          </div>
         </div>
 
         {/* タブ */}

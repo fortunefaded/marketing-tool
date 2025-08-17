@@ -80,6 +80,9 @@
     "lucide-react": "^0.539.0",
     "react-router-dom": "^7.8.0",
     "recharts": "^3.1.2",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "@hello-pangea/dnd": "^16.3.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   }
 }

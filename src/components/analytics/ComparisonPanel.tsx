@@ -55,7 +55,7 @@ export const ComparisonPanel: React.FC<ComparisonPanelProps> = ({
   data,
   selectedMetrics = Object.keys(METRIC_CONFIG),
   onPeriodChange,
-  onMetricsChange,
+  onMetricsChange: _onMetricsChange,
   onExport,
   isLoading = false,
   className = '',

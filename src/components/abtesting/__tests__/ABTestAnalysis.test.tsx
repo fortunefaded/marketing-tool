@@ -1,4 +1,3 @@
-import React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { ABTestAnalysis } from '../ABTestAnalysis'
@@ -20,6 +19,7 @@ const createMockOrder = (overrides: Partial<ECForceOrder>): ECForceOrder => ({
   送料: 500,
   合計: 1600,
   決済方法: 'クレジットカード',
+  定期受注番号: '',  // Required field
   定期ステータス: '無効',
   定期回数: 0,
   定期間隔: '',

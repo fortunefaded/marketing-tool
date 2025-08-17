@@ -10,6 +10,8 @@ import {
   Legend
 } from 'recharts'
 import { ECForceOrder } from '../../types/ecforce'
+import { usePagination } from '../../hooks/usePagination'
+import { Pagination } from '../common/Pagination'
 
 interface ECForceOfferAnalysisProps {
   orders: ECForceOrder[]
@@ -47,11 +49,25 @@ export const ECForceOfferAnalysis: React.FC<ECForceOfferAnalysisProps> = ({ orde
       stats.定期化率 = Math.round((stats.定期注文数 / stats.注文数) * 100)
     })
 
-    // 売上順にソートして上位10件を返す
+    // 売上順にソート
     return Object.values(offerStats)
       .sort((a: any, b: any) => b.売上 - a.売上)
-      .slice(0, 10)
   }, [orders])
+
+  // ページネーション設定
+  const {
+    currentPage,
+    setCurrentPage,
+    paginatedData: paginatedOfferData,
+    pageInfo,
+    setItemsPerPage
+  } = usePagination({ 
+    data: offerData, 
+    itemsPerPage: 10 
+  })
+
+  // グラフ用データ（上位10件のみ）
+  const chartData = offerData.slice(0, 10)
 
   const advertiserData = useMemo(() => {
     // 広告主別の集計
@@ -93,7 +109,7 @@ export const ECForceOfferAnalysis: React.FC<ECForceOfferAnalysisProps> = ({ orde
         <h3 className="text-base font-medium text-gray-700 mb-4">オファー別パフォーマンス</h3>
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={offerData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+            <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis 
                 dataKey="name" 
@@ -154,7 +170,7 @@ export const ECForceOfferAnalysis: React.FC<ECForceOfferAnalysisProps> = ({ orde
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {offerData.map((offer) => (
+              {paginatedOfferData.map((offer) => (
                 <tr key={offer.name} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {offer.name}
@@ -179,6 +195,16 @@ export const ECForceOfferAnalysis: React.FC<ECForceOfferAnalysisProps> = ({ orde
               ))}
             </tbody>
           </table>
+        </div>
+        {/* ページネーション */}
+        <div className="mt-4">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={pageInfo.totalPages}
+            onPageChange={setCurrentPage}
+            pageInfo={pageInfo}
+            onItemsPerPageChange={setItemsPerPage}
+          />
         </div>
       </div>
 

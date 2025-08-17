@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
 import { ECForceOrder } from '../../types/ecforce'
 import {
   ScatterChart,
@@ -10,6 +10,7 @@ import {
   ResponsiveContainer,
   Cell
 } from 'recharts'
+import { VirtualizedTable } from '../common/VirtualizedTable'
 
 interface RFMAnalysisProps {
   orders: ECForceOrder[]
@@ -26,6 +27,7 @@ interface CustomerRFM {
 }
 
 export const RFMAnalysis: React.FC<RFMAnalysisProps> = ({ orders }) => {
+  const [selectedSegment, setSelectedSegment] = useState<string | null>(null)
   const rfmData = useMemo(() => {
     const now = new Date()
     const customerData: Record<string, {
@@ -280,6 +282,89 @@ export const RFMAnalysis: React.FC<RFMAnalysisProps> = ({ orders }) => {
             </p>
           </div>
         </div>
+      </div>
+
+      {/* 顧客詳細テーブル */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          顧客詳細
+        </h3>
+        
+        {/* セグメントフィルター */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            セグメントでフィルター
+          </label>
+          <select
+            value={selectedSegment || ''}
+            onChange={(e) => setSelectedSegment(e.target.value || null)}
+            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+          >
+            <option value="">すべてのセグメント</option>
+            {Object.keys(segmentStats).map(segment => (
+              <option key={segment} value={segment}>
+                {segment} ({segmentStats[segment].count}人)
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* 仮想スクロールテーブル */}
+        <VirtualizedTable
+          data={selectedSegment ? rfmData.filter(c => c.segment === selectedSegment) : rfmData}
+          columns={[
+            {
+              key: 'email',
+              header: 'メールアドレス',
+              width: 250
+            },
+            {
+              key: 'segment',
+              header: 'セグメント',
+              width: 150,
+              render: (customer) => (
+                <span
+                  className="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
+                  style={{
+                    backgroundColor: `${segmentStats[customer.segment]?.color}20`,
+                    color: segmentStats[customer.segment]?.color
+                  }}
+                >
+                  {customer.segment}
+                </span>
+              )
+            },
+            {
+              key: 'recency',
+              header: '最終購入(日前)',
+              width: 120,
+              render: (customer) => `${customer.recency}日`
+            },
+            {
+              key: 'frequency',
+              header: '購入回数',
+              width: 100,
+              render: (customer) => `${customer.frequency}回`
+            },
+            {
+              key: 'monetary',
+              header: '総購入額',
+              width: 150,
+              render: (customer) => `¥${customer.monetary.toLocaleString()}`
+            },
+            {
+              key: 'score',
+              header: 'RFMスコア',
+              width: 100,
+              render: (customer) => (
+                <span className="font-mono text-sm">{customer.score}</span>
+              )
+            }
+          ]}
+          rowHeight={48}
+          height={400}
+          getRowKey={(item, index) => item.customerId}
+        />
       </div>
     </div>
   )

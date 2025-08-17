@@ -1,6 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import { Link, Filter } from 'lucide-react'
 import { ECForceOrder } from '../types/ecforce'
+import { AddToFavoriteButton } from '../components/favorites/AddToFavoriteButton'
+import { useMemoryOptimization } from '../hooks/useMemoryOptimization'
 import { ECForceStorage } from '../utils/ecforce-storage'
 import { AdvancedFilter } from '../components/filters/AdvancedFilter'
 import { ROASAnalysis } from '../components/integrated/ROASAnalysis'
@@ -13,23 +15,60 @@ import { LoadingSpinner } from '../components/common/LoadingSpinner'
 import { useDataLoader } from '../hooks/useDataLoader'
 
 export const IntegratedDashboard: React.FC = () => {
+  console.log('IntegratedDashboard component rendering')
   const [activeTab, setActiveTab] = useState<'overview' | 'roas' | 'cohort' | 'rfm' | 'basket' | 'ltv'>('overview')
   const [isTabLoading, setIsTabLoading] = useState(false)
   const [showAdvancedFilter, setShowAdvancedFilter] = useState(false)
+  const [ordersLoading, setOrdersLoading] = useState(true)
+  const [ecforceOrders, setEcforceOrders] = useState<ECForceOrder[]>([])
   
-  // データローダーを使用
-  const { data: rawOrders = [], loading: ordersLoading } = useDataLoader(
-    () => ECForceStorage.load(),
-    [],
-    { minLoadingTime: 500 }
-  )
+  const { 
+    processInBatches,
+    getCachedData,
+    setCachedData
+  } = useMemoryOptimization({
+    maxDataPoints: 10000,
+    enableCaching: true
+  })
   
-  const [ecforceOrders, setEcforceOrders] = useState<ECForceOrder[]>(rawOrders)
-  
-  // rawOrdersが変更されたらecforceOrdersも更新
+  // シンプルなデータ読み込み（バッチ処理付き）
   useEffect(() => {
-    setEcforceOrders(rawOrders)
-  }, [rawOrders])
+    const loadData = async () => {
+      try {
+        setOrdersLoading(true)
+        
+        // キャッシュチェック
+        const cached = getCachedData<ECForceOrder[]>('integrated_orders')
+        if (cached) {
+          setEcforceOrders(cached)
+          setOrdersLoading(false)
+          return
+        }
+        
+        const data = ECForceStorage.load()
+        
+        // 大量データの場合はバッチ処理
+        if (data.length > 10000) {
+          const batches = await processInBatches(
+            data,
+            async (batch) => batch,
+            5000
+          )
+          const processedData = batches.flat()
+          setEcforceOrders(processedData)
+          setCachedData('integrated_orders', processedData)
+        } else {
+          setEcforceOrders(data)
+          setCachedData('integrated_orders', data)
+        }
+      } catch (error) {
+        console.error('Error loading data:', error)
+      } finally {
+        setOrdersLoading(false)
+      }
+    }
+    loadData()
+  }, [getCachedData, setCachedData, processInBatches])
   
   // Meta広告データ（モック）
   const [metaAdData] = useState({
@@ -63,9 +102,11 @@ export const IntegratedDashboard: React.FC = () => {
     setActiveTab(tab)
     
     // タブ内容の描画完了を待つ
-    setTimeout(() => {
-      setIsTabLoading(false)
-    }, 300)
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        setIsTabLoading(false)
+      }, 100)
+    })
   }
 
   const tabs = [
@@ -77,16 +118,32 @@ export const IntegratedDashboard: React.FC = () => {
     { id: 'ltv', name: 'LTV分析', description: '顧客生涯価値' }
   ]
 
+  // デバッグ用に最初にシンプルな表示
+  if (!ecforceOrders) {
+    return <div>Loading initial data...</div>
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-          <Link className="mr-3 h-8 w-8 text-indigo-600" />
-          統合分析ダッシュボード
-        </h1>
-        <p className="mt-2 text-sm text-gray-600">
-          Meta広告とEC Forceデータを統合した高度な分析
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 flex items-center">
+              <Link className="mr-3 h-8 w-8 text-indigo-600" />
+              統合分析ダッシュボード
+            </h1>
+            <p className="mt-2 text-sm text-gray-600">
+              Meta広告とEC Forceデータを統合した高度な分析
+            </p>
+          </div>
+          <AddToFavoriteButton
+            analysisName={`統合分析ダッシュボード - ${tabs.find(t => t.id === activeTab)?.name || '統合概要'}`}
+            analysisType={activeTab === 'roas' ? 'roas' : activeTab === 'cohort' ? 'cohort' : activeTab === 'rfm' ? 'rfm' : activeTab === 'basket' ? 'basket' : activeTab === 'ltv' ? 'ltv' : 'custom'}
+            route={`/integrated-dashboard#${activeTab}`}
+            description={tabs.find(t => t.id === activeTab)?.description}
+            filters={{ activeTab, showAdvancedFilter }}
+          />
+        </div>
       </div>
 
       {/* フィルターボタン */}
@@ -104,7 +161,7 @@ export const IntegratedDashboard: React.FC = () => {
       {showAdvancedFilter && (
         <div className="mb-6">
           <AdvancedFilter
-            orders={rawOrders}
+            orders={ecforceOrders}
             onFilterChange={setEcforceOrders}
             onClose={() => setShowAdvancedFilter(false)}
           />

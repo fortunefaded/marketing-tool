@@ -86,35 +86,94 @@ vi.mock('../../hooks/useComparisonAnalytics', () => ({
   }),
 }))
 
+vi.mock('../../hooks/useRealtimeUpdates', () => ({
+  useRealtimeUpdates: () => ({
+    realtimeMetrics: {
+      impressions: 100,
+      clicks: 10,
+      conversions: 1,
+      spend: 500,
+      lastUpdated: new Date(),
+    },
+    alerts: [],
+    status: 'connected',
+  }),
+}))
+
+vi.mock('../../hooks/useMockData', () => ({
+  useMockDataInitializer: () => {},
+}))
+
+vi.mock('../../components/realtime/RealtimeStatus', () => ({
+  RealtimeStatus: () => <div data-testid="realtime-status">Realtime Status</div>,
+}))
+
+vi.mock('../../components/realtime/RealtimeMetricCard', () => ({
+  RealtimeMetricCard: ({ title }: { title: string }) => (
+    <div data-testid={`realtime-metric-${title}`}>{title}</div>
+  ),
+}))
+
+vi.mock('../../components/realtime/AlertsPanel', () => ({
+  AlertsPanel: () => <div data-testid="alerts-panel">Alerts Panel</div>,
+  FloatingAlerts: () => <div data-testid="floating-alerts">Floating Alerts</div>,
+}))
+
 // Mock convex hooks
 vi.mock('convex/react', () => ({
-  useQuery: vi.fn(() => {
-    // Return campaign data
-    return [
-      {
-        _id: '1',
-        name: 'Test Campaign',
-        status: 'active',
-        budget: 100000,
-        spent: 50000,
-        impressions: 100000,
-        clicks: 1000,
-        conversions: 50,
-        revenue: 200000,
-        startDate: '2024-01-01',
-        endDate: '2024-12-31',
-        dailyMetrics: [
+  useQuery: vi.fn((api: any) => {
+    // Return different data based on the API endpoint
+    if (api?.toString().includes('listMetaCampaigns')) {
+      return [
+        {
+          _id: '1',
+          name: 'Test Campaign',
+          status: 'active',
+          budget: 100000,
+          spent: 50000,
+          impressions: 100000,
+          clicks: 1000,
+          conversions: 50,
+          revenue: 200000,
+          startDate: '2024-01-01',
+          endDate: '2024-12-31',
+          dailyMetrics: [
+            {
+              date: '2024-01-01',
+              impressions: 100000,
+              clicks: 1000,
+              conversions: 50,
+              cost: 50000,
+              revenue: 200000,
+            },
+          ],
+        },
+      ]
+    } else if (api?.toString().includes('getCreativePerformance')) {
+      return {
+        creatives: [
           {
-            date: '2024-01-01',
-            impressions: 100000,
-            clicks: 1000,
-            conversions: 50,
-            cost: 50000,
-            revenue: 200000,
+            id: '1',
+            name: 'Test Creative',
+            imageUrl: 'https://example.com/image.jpg',
+            campaignName: 'Test Campaign',
+            impressions: 10000,
+            clicks: 100,
+            conversions: 10,
+            ctr: 1.0,
+            cvr: 10.0,
+            cpc: 50,
+            spend: 5000,
+            revenue: 50000,
+            roas: 10.0,
           },
         ],
-      },
-    ]
+        totalPages: 1,
+      }
+    } else if (api?.toString().includes('getAlerts')) {
+      return []
+    }
+    return null
   }),
   useMutation: vi.fn(() => vi.fn()),
 }))

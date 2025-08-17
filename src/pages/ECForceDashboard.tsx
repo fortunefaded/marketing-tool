@@ -1,6 +1,8 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { TrendingUp, Users, ShoppingCart, DollarSign, Calendar, Filter } from 'lucide-react'
 import { ECForceOrder } from '../types/ecforce'
+import { AddToFavoriteButton } from '../components/favorites/AddToFavoriteButton'
+import { useMemoryOptimization } from '../hooks/useMemoryOptimization'
 import { ECForceSalesChart } from '../components/ecforce/ECForceSalesChart'
 import { ECForceCustomerAnalysis } from '../components/ecforce/ECForceCustomerAnalysis'
 import { ECForceOfferAnalysis } from '../components/ecforce/ECForceOfferAnalysis'
@@ -16,6 +18,16 @@ interface ECForceDashboardProps {
 }
 
 export const ECForceDashboard: React.FC<ECForceDashboardProps> = ({ orders }) => {
+  const { 
+    optimizeAggregatedData, 
+    optimizeChartData,
+    getCachedData,
+    setCachedData
+  } = useMemoryOptimization({
+    maxDataPoints: 5000,
+    enableSampling: true,
+    enableCaching: true
+  })
   const [dateRange, setDateRange] = useState<{
     start: Date | null
     end: Date | null
@@ -27,26 +39,46 @@ export const ECForceDashboard: React.FC<ECForceDashboardProps> = ({ orders }) =>
   const [showAdvancedFilter, setShowAdvancedFilter] = useState(false)
   const [filteredOrders, setFilteredOrders] = useState<ECForceOrder[]>(orders)
 
-  // 日付範囲でフィルタリング
+  // 日付範囲でフィルタリング（メモリ最適化付き）
   const dateFilteredOrders = useMemo(() => {
     setIsProcessing(true)
+    
+    // キャッシュキーの生成
+    const cacheKey = `filtered_${dateRange.start?.toISOString()}_${dateRange.end?.toISOString()}`
+    
+    // キャッシュチェック
+    const cached = getCachedData<ECForceOrder[]>(cacheKey)
+    if (cached) {
+      setTimeout(() => setIsProcessing(false), 0)
+      return cached
+    }
     
     // 処理開始を遅延させてUIを更新
     setTimeout(() => {
       setIsProcessing(false)
     }, 100)
     
-    if (!dateRange.start && !dateRange.end) {
-      return orders
+    let filtered = orders
+    
+    if (dateRange.start || dateRange.end) {
+      filtered = orders.filter(order => {
+        const orderDate = new Date(order.受注日)
+        if (dateRange.start && orderDate < dateRange.start) return false
+        if (dateRange.end && orderDate > dateRange.end) return false
+        return true
+      })
     }
-
-    return orders.filter(order => {
-      const orderDate = new Date(order.受注日)
-      if (dateRange.start && orderDate < dateRange.start) return false
-      if (dateRange.end && orderDate > dateRange.end) return false
-      return true
-    })
-  }, [orders, dateRange])
+    
+    // 大量データの場合は最適化
+    if (filtered.length > 5000) {
+      filtered = optimizeAggregatedData(filtered)
+    }
+    
+    // キャッシュに保存
+    setCachedData(cacheKey, filtered)
+    
+    return filtered
+  }, [orders, dateRange, getCachedData, setCachedData, optimizeAggregatedData])
 
   // 高度なフィルターを適用
   const handleAdvancedFilterChange = (filtered: ECForceOrder[]) => {
@@ -94,10 +126,21 @@ export const ECForceDashboard: React.FC<ECForceDashboardProps> = ({ orders }) =>
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">EC Force ダッシュボード</h1>
-        <p className="mt-2 text-sm text-gray-600">
-          売上データと顧客分析の概要
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">EC Force ダッシュボード</h1>
+            <p className="mt-2 text-sm text-gray-600">
+              売上データと顧客分析の概要
+            </p>
+          </div>
+          <AddToFavoriteButton
+            analysisName="EC Force ダッシュボード"
+            analysisType="custom"
+            route="/ecforce-dashboard"
+            description="EC Forceの売上データと顧客分析の統合ビュー"
+            filters={{ dateRange, showAdvancedFilter }}
+          />
+        </div>
       </div>
 
       {/* フィルターセクション */}
@@ -147,7 +190,7 @@ export const ECForceDashboard: React.FC<ECForceDashboardProps> = ({ orders }) =>
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
               売上推移
             </h2>
-            <ECForceSalesChart orders={filteredOrders} />
+            <ECForceSalesChart orders={optimizeChartData(filteredOrders, 50)} />
           </div>
         )}
 
@@ -159,7 +202,7 @@ export const ECForceDashboard: React.FC<ECForceDashboardProps> = ({ orders }) =>
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
               顧客分析
             </h2>
-            <ECForceCustomerAnalysis orders={filteredOrders} />
+            <ECForceCustomerAnalysis orders={filteredOrders.slice(0, 1000)} />
           </div>
         )}
       </div>

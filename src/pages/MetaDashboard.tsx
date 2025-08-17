@@ -270,8 +270,8 @@ export const MetaDashboard: React.FC = () => {
         <section className="mb-8">
           <ComparisonPanel
             data={overallComparison}
-            onPeriodChange={setComparisonType}
-            onExport={exportData}
+            onPeriodChange={(period) => setComparisonType(period as any)}
+            onExport={(params) => exportData(params.format as 'csv' | 'json')}
             isLoading={comparisonLoading}
           />
         </section>

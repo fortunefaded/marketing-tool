@@ -9,7 +9,7 @@ import {
   ResponsiveContainer,
   Legend
 } from 'recharts'
-import { Flask, TrendingUp, Users, DollarSign, Percent, AlertCircle } from 'lucide-react'
+import { Beaker, TrendingUp, AlertCircle } from 'lucide-react'
 import { ECForceOrder } from '../../types/ecforce'
 
 interface ABTestAnalysisProps {
@@ -138,7 +138,7 @@ export const ABTestAnalysis: React.FC<ABTestAnalysisProps> = ({ orders }) => {
       <div className="bg-white rounded-lg shadow p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-            <Flask className="h-5 w-5 mr-2 text-indigo-600" />
+            <Beaker className="h-5 w-5 mr-2 text-indigo-600" />
             A/Bテスト分析
           </h3>
           <select
