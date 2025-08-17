@@ -10,11 +10,7 @@ import { ComparisonPanel } from '../components/analytics/ComparisonPanel'
 import { CreativePerformanceGrid } from '../components/creatives/CreativePerformanceGrid'
 import { CreativeDetailModal } from '../components/creatives/CreativeDetailModal'
 import { useComparisonAnalytics } from '../hooks/useComparisonAnalytics'
-import { useRealtimeUpdates } from '../hooks/useRealtimeUpdates'
 import { useMockDataInitializer } from '../hooks/useMockData'
-import { RealtimeStatus } from '../components/realtime/RealtimeStatus'
-import { RealtimeMetricCard } from '../components/realtime/RealtimeMetricCard'
-import { AlertsPanel } from '../components/realtime/AlertsPanel'
 import type { CreativeData } from '../components/creatives/CreativePerformanceGrid'
 import {
   CurrencyDollarIcon,
@@ -23,13 +19,11 @@ import {
   ArrowTrendingUpIcon,
   ArrowsRightLeftIcon,
   PhotoIcon,
-  BoltIcon,
 } from '@heroicons/react/24/outline'
 
 export const MetaDashboard: React.FC = () => {
   const [showComparison, setShowComparison] = useState(false)
   const [showCreatives, setShowCreatives] = useState(false)
-  const [showRealtime, setShowRealtime] = useState(false)
   const [selectedCreative, setSelectedCreative] = useState<CreativeData | null>(null)
   const [filters, setFilters] = useState<FilterState>({})
   
@@ -55,37 +49,6 @@ export const MetaDashboard: React.FC = () => {
     comparisonType: 'month-over-month',
   })
 
-  // Use real-time updates hook (always call it to follow React rules)
-  const realtimeData = useRealtimeUpdates({
-    enableAlerts: showRealtime,
-    alertThresholds: {
-      maxCpa: 5000,
-      minRoas: 2.0,
-      maxSpend: 100000,
-    },
-  })
-  
-  // Extract values based on whether realtime is enabled
-  const {
-    campaigns: realtimeCampaigns,
-    alerts,
-    stats: realtimeStats,
-    isConnected,
-    lastUpdate,
-  } = showRealtime ? realtimeData : {
-    campaigns: [],
-    alerts: [],
-    stats: {
-      totalCampaigns: 0,
-      totalCreatives: 0,
-      activeAlerts: 0,
-      criticalAlerts: 0,
-      lastUpdate: new Date(),
-      isConnected: false,
-    },
-    isConnected: false,
-    lastUpdate: new Date(),
-  }
 
   // Filter campaigns based on active filters
   const filteredCampaigns = useMemo(() => {
@@ -223,15 +186,6 @@ export const MetaDashboard: React.FC = () => {
       onFiltersChange={setFilters}
       campaignOptions={campaignOptions}
     >
-      {/* Real-time Status */}
-      <div className="mb-4">
-        <RealtimeStatus
-          isConnected={isConnected}
-          lastUpdate={lastUpdate}
-          activeAlerts={realtimeStats.activeAlerts}
-          criticalAlerts={realtimeStats.criticalAlerts}
-        />
-      </div>
 
       {/* Toggle Buttons */}
       <div className="mb-6 flex justify-end space-x-3">
@@ -249,21 +203,8 @@ export const MetaDashboard: React.FC = () => {
           <PhotoIcon className="h-5 w-5 mr-2" />
           {showCreatives ? 'クリエイティブを隠す' : 'クリエイティブを表示'}
         </button>
-        <button
-          onClick={() => setShowRealtime(!showRealtime)}
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-        >
-          <BoltIcon className="h-5 w-5 mr-2" />
-          {showRealtime ? 'リアルタイムを隠す' : 'リアルタイム表示'}
-        </button>
       </div>
 
-      {/* Alerts Panel */}
-      {alerts && alerts.length > 0 && (
-        <section className="mb-8">
-          <AlertsPanel alerts={alerts} />
-        </section>
-      )}
 
       {/* Comparison Panel */}
       {showComparison && (
@@ -280,33 +221,6 @@ export const MetaDashboard: React.FC = () => {
       <section className="mb-8">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">主要指標</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {showRealtime ? (
-            // Real-time metric cards
-            <>
-              <RealtimeMetricCard
-                title="広告費用"
-                metricType="spend"
-                icon={<CurrencyDollarIcon className="h-6 w-6 text-gray-400" />}
-              />
-              <RealtimeMetricCard
-                title="売上"
-                metricType="revenue"
-                icon={<ChartBarIcon className="h-6 w-6 text-gray-400" />}
-              />
-              <RealtimeMetricCard
-                title="インプレッション"
-                metricType="impressions"
-                icon={<ArrowTrendingUpIcon className="h-6 w-6 text-gray-400" />}
-              />
-              <RealtimeMetricCard
-                title="コンバージョン"
-                metricType="conversions"
-                icon={<ShoppingCartIcon className="h-6 w-6 text-gray-400" />}
-              />
-            </>
-          ) : (
-            // Standard metric cards
-            <>
               <MetricCard
             title="広告費用"
             value={metrics.totalSpent}
@@ -377,8 +291,6 @@ export const MetaDashboard: React.FC = () => {
             }
             trend="up"
           />
-            </>
-          )}
         </div>
       </section>
 
@@ -441,15 +353,6 @@ export const MetaDashboard: React.FC = () => {
         onClose={() => setSelectedCreative(null)}
       />
 
-      {/* Floating Alerts - TODO: FloatingAlertsコンポーネントを実装する */}
-      {/* {showRealtime && alerts && (
-        <FloatingAlerts
-          alerts={alerts}
-          position="top-right"
-          autoHide={true}
-          autoHideDelay={5000}
-        />
-      )} */}
     </DashboardLayoutWithFilters>
   )
 }

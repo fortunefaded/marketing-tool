@@ -5,14 +5,9 @@ import {
   PuzzlePieceIcon,
   MagnifyingGlassIcon,
   CalendarDaysIcon,
-  FolderIcon,
-  PlayIcon,
   ChartBarIcon,
   Cog6ToothIcon,
   CloudArrowUpIcon,
-  BeakerIcon,
-  SparklesIcon,
-  BoltIcon,
 } from '@heroicons/react/24/outline'
 import { ComponentType } from 'react'
 
@@ -61,16 +56,6 @@ export default function Sidebar() {
       icon: ChartBarIcon,
     },
     {
-      name: '予測分析',
-      path: '/predictive-analysis',
-      icon: SparklesIcon,
-    },
-    {
-      name: 'A/Bテスト分析',
-      path: '/ab-testing',
-      icon: BeakerIcon,
-    },
-    {
       name: 'カテゴリ分析',
       path: '/category-analysis',
       icon: PuzzlePieceIcon,
@@ -84,21 +69,6 @@ export default function Sidebar() {
       name: '期間分析',
       path: '/period',
       icon: CalendarDaysIcon,
-    },
-    {
-      name: 'ランディングページ分析',
-      path: '/landing',
-      icon: FolderIcon,
-    },
-    {
-      name: 'コストアロケーション分析',
-      path: '/cost-allocation',
-      icon: PlayIcon,
-    },
-    {
-      name: 'リアルタイムダッシュボード',
-      path: '/realtime-dashboard',
-      icon: BoltIcon,
     },
   ]
 
