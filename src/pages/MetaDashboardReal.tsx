@@ -22,10 +22,12 @@ export const MetaDashboardReal: React.FC = () => {
   const [apiService, setApiService] = useState<MetaApiService | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isInitialLoad, setIsInitialLoad] = useState(true)
   
   // データ状態
   const [campaigns, setCampaigns] = useState<MetaCampaignData[]>([])
   const [insights, setInsights] = useState<MetaInsightsData[]>([])
+  const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null)
   // const [dateRange, setDateRange] = useState({
   //   start: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
   //   end: new Date().toISOString().split('T')[0]
@@ -45,7 +47,7 @@ export const MetaDashboardReal: React.FC = () => {
     }
   }, [manager, navigate])
 
-  const loadData = async (service: MetaApiService) => {
+  const loadData = async (service: MetaApiService, isUpdate: boolean = false) => {
     setIsLoading(true)
     setError(null)
     
@@ -82,10 +84,35 @@ export const MetaDashboardReal: React.FC = () => {
       const campaignsData = await service.getCampaigns({ limit: 50 })
       setCampaigns(campaignsData)
 
-      // インサイトデータの取得
+      // 日付範囲の設定
+      let dateOptions: any = {}
+      if (isUpdate && lastUpdateTime) {
+        // 更新時：最後の更新から今日まで
+        const since = lastUpdateTime.toISOString().split('T')[0]
+        const until = new Date().toISOString().split('T')[0]
+        dateOptions = {
+          dateRange: { since, until }
+        }
+        console.log('更新データを取得:', since, 'から', until)
+      } else {
+        // 初回ロード：過去2年間のデータ
+        const until = new Date()
+        const since = new Date()
+        since.setFullYear(since.getFullYear() - 2) // 2年前
+        
+        dateOptions = {
+          dateRange: {
+            since: since.toISOString().split('T')[0],
+            until: until.toISOString().split('T')[0]
+          }
+        }
+        console.log('過去2年間のデータを取得:', dateOptions.dateRange.since, 'から', dateOptions.dateRange.until)
+      }
+      
+      // インサイトデータの取得（日別）
       const insightsData = await service.getInsights({
         level: 'account',
-        datePreset: 'last_30d',
+        ...dateOptions,
         fields: [
           'spend',
           'impressions',
@@ -93,10 +120,47 @@ export const MetaDashboardReal: React.FC = () => {
           'conversions',
           'cpm',
           'cpc',
-          'ctr'
-        ]
+          'ctr',
+          'date_start',
+          'date_stop'
+        ],
+        breakdowns: ['time_increment'], // 日別データを取得
+        time_increment: '1', // 1日単位
+        limit: 1000
       })
-      setInsights(insightsData)
+      console.log(`インサイトデータ取得完了: ${insightsData.length}件`)
+      
+      if (isUpdate && insights.length > 0) {
+        // 更新時：既存データとマージ
+        const existingDates = new Set(insights.map(i => i.dateStart))
+        const newData = insightsData.filter(i => !existingDates.has(i.dateStart))
+        setInsights([...insights, ...newData])
+        console.log(`新規データ${newData.length}件を追加`)
+      } else {
+        setInsights(insightsData)
+      }
+      
+      // キャンペーン別のインサイトデータも取得
+      const campaignInsights = await service.getInsights({
+        level: 'campaign',
+        ...dateOptions,
+        fields: [
+          'campaign_name',
+          'campaign_id',
+          'spend',
+          'impressions',
+          'clicks',
+          'conversions',
+          'cpm',
+          'cpc',
+          'ctr'
+        ],
+        limit: 1000
+      })
+      console.log(`キャンペーンインサイト取得完了: ${campaignInsights.length}件`)
+      
+      setLastUpdateTime(new Date())
+      setIsInitialLoad(false)
       
     } catch (err: any) {
       console.error('Failed to load data:', err)
@@ -126,7 +190,7 @@ export const MetaDashboardReal: React.FC = () => {
 
   const handleRefresh = () => {
     if (apiService) {
-      loadData(apiService)
+      loadData(apiService, true) // 更新フラグをtrueに
     }
   }
 
@@ -205,12 +269,18 @@ export const MetaDashboardReal: React.FC = () => {
               </p>
             </div>
             <div className="flex items-center space-x-4">
+              {lastUpdateTime && (
+                <span className="text-sm text-gray-500">
+                  最終更新: {lastUpdateTime.toLocaleString('ja-JP')}
+                </span>
+              )}
               <button
                 onClick={handleRefresh}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                disabled={isLoading}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <ArrowPathIcon className="h-5 w-5 mr-2" />
-                更新
+                <ArrowPathIcon className={`h-5 w-5 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                {isInitialLoad ? 'データをロード' : '最新データを取得'}
               </button>
               <a
                 href="/meta-api-setup"

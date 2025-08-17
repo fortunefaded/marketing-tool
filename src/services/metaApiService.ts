@@ -89,6 +89,7 @@ export interface MetaInsightsOptions {
   filtering?: any[]
   limit?: number
   after?: string
+  time_increment?: string
 }
 
 export interface MetaBatchRequest {
@@ -306,6 +307,10 @@ export class MetaApiService {
     if (options.breakdowns) {
       params.breakdowns = options.breakdowns.join(',')
     }
+    
+    if (options.time_increment) {
+      params.time_increment = options.time_increment
+    }
 
     if (options.filtering) {
       params.filtering = JSON.stringify(options.filtering)
@@ -317,6 +322,8 @@ export class MetaApiService {
     return (response.data || []).map((insight: any) => ({
       dateStart: insight.date_start,
       dateStop: insight.date_stop,
+      campaignName: insight.campaign_name,
+      campaignId: insight.campaign_id,
       impressions: parseInt(insight.impressions || '0'),
       clicks: parseInt(insight.clicks || '0'),
       spend: parseFloat(insight.spend || '0'),
