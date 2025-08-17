@@ -9,8 +9,9 @@ export interface MetaCampaignData {
   name: string
   status: string
   objective: string
-  daily_budget: string | null
-  lifetime_budget: string | null
+  dailyBudget: number
+  lifetimeBudget?: number
+  spend?: number
   created_time: string
   updated_time: string
 }
@@ -77,10 +78,12 @@ export interface MetaApiFilter {
 
 export interface MetaInsightsOptions {
   level: 'account' | 'campaign' | 'adset' | 'ad'
-  dateRange: {
+  dateRange?: {
     since: string
     until: string
   }
+  datePreset?: string
+  fields?: string[]
   metrics?: string[]
   breakdowns?: string[]
   filtering?: any[]
@@ -115,7 +118,7 @@ export class MetaApiService {
   constructor(config: MetaApiConfig) {
     this.config = {
       ...config,
-      apiVersion: config.apiVersion || 'v18.0'
+      apiVersion: config.apiVersion || 'v23.0'
     }
     this.baseUrl = `https://graph.facebook.com/${this.config.apiVersion}`
   }
@@ -146,10 +149,25 @@ export class MetaApiService {
     }
   }
 
+  // 権限の確認
+  async checkPermissions(): Promise<{ permission: string; status: string }[]> {
+    try {
+      const response = await this.apiCall('/me/permissions')
+      return response.data || []
+    } catch (error) {
+      throw new MetaApiError(
+        'Failed to check permissions',
+        'PERMISSION_CHECK_ERROR',
+        undefined,
+        error
+      )
+    }
+  }
+
   // キャンペーンデータ取得
   async getCampaigns(filter?: MetaApiFilter & { limit?: number; after?: string }): Promise<MetaCampaignData[]> {
     const params: any = {
-      fields: 'id,name,status,objective,daily_budget,lifetime_budget,created_time,updated_time',
+      fields: 'id,name,status,objective,daily_budget,lifetime_budget,created_time,updated_time,insights{spend}',
       limit: filter?.limit || 100
     }
 
@@ -181,7 +199,12 @@ export class MetaApiService {
     }
 
     const response = await this.apiCall(`/act_${this.config.accountId}/campaigns`, params)
-    return response.data || []
+    return (response.data || []).map((campaign: any) => ({
+      ...campaign,
+      dailyBudget: parseFloat(campaign.daily_budget || '0'),
+      lifetimeBudget: campaign.lifetime_budget ? parseFloat(campaign.lifetime_budget) : undefined,
+      spend: campaign.insights?.data?.[0]?.spend ? parseFloat(campaign.insights.data[0].spend) : 0
+    }))
   }
 
   // 広告セットデータ取得
@@ -247,13 +270,18 @@ export class MetaApiService {
     ]
 
     const params: any = {
-      fields: (options.metrics || defaultMetrics).join(','),
-      time_range: JSON.stringify({
-        since: options.dateRange.since,
-        until: options.dateRange.until
-      }),
+      fields: options.fields ? options.fields.join(',') : (options.metrics || defaultMetrics).join(','),
       level: options.level,
       limit: options.limit || 100
+    }
+
+    if (options.datePreset) {
+      params.date_preset = options.datePreset
+    } else if (options.dateRange) {
+      params.time_range = JSON.stringify({
+        since: options.dateRange.since,
+        until: options.dateRange.until
+      })
     }
 
     if (options.after) {
@@ -271,7 +299,22 @@ export class MetaApiService {
     let endpoint = `/act_${this.config.accountId}/insights`
     
     const response = await this.apiCall(endpoint, params)
-    return response.data || []
+    return (response.data || []).map((insight: any) => ({
+      dateStart: insight.date_start,
+      dateStop: insight.date_stop,
+      impressions: parseInt(insight.impressions || '0'),
+      clicks: parseInt(insight.clicks || '0'),
+      spend: parseFloat(insight.spend || '0'),
+      reach: parseInt(insight.reach || '0'),
+      frequency: parseFloat(insight.frequency || '0'),
+      cpm: parseFloat(insight.cpm || '0'),
+      cpc: parseFloat(insight.cpc || '0'),
+      ctr: parseFloat(insight.ctr || '0'),
+      conversions: parseInt(insight.conversions || '0'),
+      conversionValue: parseFloat(insight.conversion_value || '0'),
+      costPerConversion: parseFloat(insight.cost_per_conversion || '0'),
+      roas: parseFloat(insight.purchase_roas || '0')
+    }))
   }
 
   // バッチリクエスト
@@ -346,6 +389,7 @@ export class MetaApiService {
   // Private methods
   private async apiCall(endpoint: string, params?: any): Promise<any> {
     try {
+      console.log('Meta API - baseUrl:', this.baseUrl, 'apiVersion:', this.config.apiVersion)
       const url = new URL(`${this.baseUrl}${endpoint}`)
       
       if (params) {
@@ -387,7 +431,7 @@ export class MetaApiService {
     }
   }
 
-  private getErrorCode(status: number, error: any): string {
+  private getErrorCode(status: number, _error: any): string {
     if (status === 401) {
       return 'AUTH_ERROR'
     }

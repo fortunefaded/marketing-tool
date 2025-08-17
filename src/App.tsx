@@ -7,8 +7,8 @@ import Tasks from './routes/Tasks'
 import CategoryAnalysis from './routes/CategoryAnalysis'
 import DetailAnalysis from './routes/DetailAnalysis'
 import PeriodAnalysis from './routes/PeriodAnalysis'
-import { MetaDashboard } from './pages/MetaDashboard'
-import { MetaApiSetup } from './pages/MetaApiSetup'
+import { MetaDashboardReal } from './pages/MetaDashboardReal'
+import { MetaApiSetupUnified } from './pages/MetaApiSetupUnified'
 import { ECForceImporter } from './components/ecforce/ECForceImporter'
 import { ECForceContainer } from './pages/ECForceContainer'
 import { IntegratedDashboard } from './pages/IntegratedDashboard'
@@ -47,8 +47,8 @@ function AppContent() {
           <RouteLogger />
           <Routes>
             <Route path="/" element={<Dashboard />} />
-            <Route path="/meta-dashboard" element={<MetaDashboard />} />
-            <Route path="/meta-api-setup" element={<MetaApiSetup />} />
+            <Route path="/meta-dashboard" element={<MetaDashboardReal />} />
+            <Route path="/meta-api-setup" element={<MetaApiSetupUnified />} />
             <Route path="/ecforce-import" element={<ECForceImporter />} />
             <Route path="/ecforce-dashboard" element={<ECForceContainer />} />
             <Route path="/integrated-dashboard" element={<IntegratedDashboard />} />
