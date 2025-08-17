@@ -117,15 +117,15 @@ export const MetaDashboardReal: React.FC = () => {
           'spend',
           'impressions',
           'clicks',
-          'conversions',
+          'reach',
+          'frequency',
           'cpm',
           'cpc',
           'ctr',
           'date_start',
           'date_stop'
         ],
-        breakdowns: ['time_increment'], // 日別データを取得
-        time_increment: '1', // 1日単位
+        time_increment: '1', // 1日単位で集計
         limit: 1000
       })
       console.log(`インサイトデータ取得完了: ${insightsData.length}件`)
@@ -150,11 +150,12 @@ export const MetaDashboardReal: React.FC = () => {
           'spend',
           'impressions',
           'clicks',
-          'conversions',
+          'reach',
           'cpm',
           'cpc',
           'ctr'
         ],
+        time_increment: '1', // キャンペーン別も日毎に取得
         limit: 1000
       })
       console.log(`キャンペーンインサイト取得完了: ${campaignInsights.length}件`)
@@ -199,20 +200,27 @@ export const MetaDashboardReal: React.FC = () => {
     const totalSpend = insights.reduce((sum, insight) => sum + Number(insight.spend || 0), 0)
     const totalImpressions = insights.reduce((sum, insight) => sum + Number(insight.impressions || 0), 0)
     const totalClicks = insights.reduce((sum, insight) => sum + Number(insight.clicks || 0), 0)
-    const totalConversions = insights.reduce((sum, insight) => sum + Number(insight.conversions || 0), 0)
+    const totalReach = insights.reduce((sum, insight) => sum + Number(insight.reach || 0), 0)
     
-    const ctr = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0
-    const conversionRate = totalClicks > 0 ? (totalConversions / totalClicks) * 100 : 0
-    const cpc = totalClicks > 0 ? totalSpend / totalClicks : 0
+    // 平均値の計算
+    const avgCtr = insights.length > 0 
+      ? insights.reduce((sum, i) => sum + Number(i.ctr || 0), 0) / insights.length 
+      : 0
+    const avgCpc = insights.length > 0
+      ? insights.reduce((sum, i) => sum + Number(i.cpc || 0), 0) / insights.length
+      : 0
+    const avgCpm = insights.length > 0
+      ? insights.reduce((sum, i) => sum + Number(i.cpm || 0), 0) / insights.length
+      : 0
     
     return {
       totalSpend,
       totalImpressions,
       totalClicks,
-      totalConversions,
-      ctr,
-      conversionRate,
-      cpc
+      totalReach,
+      avgCtr,
+      avgCpc,
+      avgCpm
     }
   }
 
@@ -221,17 +229,17 @@ export const MetaDashboardReal: React.FC = () => {
   // チャートデータの準備
   const prepareChartData = () => {
     // 日付ごとにデータを集計
-    const dataByDate = new Map<string, { cost: number; impressions: number; clicks: number; conversions: number }>()
+    const dataByDate = new Map<string, { cost: number; impressions: number; clicks: number; reach: number }>()
     
     insights.forEach(insight => {
       const date = insight.dateStart || new Date().toISOString().split('T')[0]
-      const existing = dataByDate.get(date) || { cost: 0, impressions: 0, clicks: 0, conversions: 0 }
+      const existing = dataByDate.get(date) || { cost: 0, impressions: 0, clicks: 0, reach: 0 }
       
       dataByDate.set(date, {
         cost: existing.cost + Number(insight.spend || 0),
         impressions: existing.impressions + Number(insight.impressions || 0),
         clicks: existing.clicks + Number(insight.clicks || 0),
-        conversions: existing.conversions + Number(insight.conversions || 0)
+        reach: existing.reach + Number(insight.reach || 0)
       })
     })
     
@@ -340,8 +348,8 @@ export const MetaDashboardReal: React.FC = () => {
             icon={<ArrowTrendingUpIcon className="h-5 w-5 text-gray-400" />}
           />
           <MetricCard
-            title="コンバージョン"
-            value={metrics.totalConversions}
+            title="リーチ"
+            value={metrics.totalReach}
             format="number"
             icon={<ShoppingCartIcon className="h-5 w-5 text-gray-400" />}
           />
@@ -350,16 +358,16 @@ export const MetaDashboardReal: React.FC = () => {
         {/* 追加メトリクス */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           <div className="bg-white rounded-lg shadow-sm p-4">
-            <div className="text-sm text-gray-600">CTR (クリック率)</div>
-            <div className="mt-1 text-lg font-semibold text-gray-900">{metrics.ctr.toFixed(2)}%</div>
+            <div className="text-sm text-gray-600">平均CTR</div>
+            <div className="mt-1 text-lg font-semibold text-gray-900">{metrics.avgCtr.toFixed(2)}%</div>
           </div>
           <div className="bg-white rounded-lg shadow-sm p-4">
-            <div className="text-sm text-gray-600">CVR (コンバージョン率)</div>
-            <div className="mt-1 text-lg font-semibold text-gray-900">{metrics.conversionRate.toFixed(2)}%</div>
+            <div className="text-sm text-gray-600">平均CPC</div>
+            <div className="mt-1 text-lg font-semibold text-gray-900">¥{metrics.avgCpc.toFixed(0)}</div>
           </div>
           <div className="bg-white rounded-lg shadow-sm p-4">
-            <div className="text-sm text-gray-600">CPC (クリック単価)</div>
-            <div className="mt-1 text-lg font-semibold text-gray-900">¥{metrics.cpc.toFixed(0)}</div>
+            <div className="text-sm text-gray-600">平均CPM</div>
+            <div className="mt-1 text-lg font-semibold text-gray-900">¥{metrics.avgCpm.toFixed(0)}</div>
           </div>
         </div>
 
@@ -370,7 +378,7 @@ export const MetaDashboardReal: React.FC = () => {
           </h2>
           <PerformanceChart
             data={prepareChartData()}
-            metrics={['cost', 'clicks', 'conversions']}
+            metrics={['cost', 'impressions', 'clicks']}
             height={400}
           />
         </div>
