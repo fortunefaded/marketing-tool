@@ -64,7 +64,7 @@ function getDateRanges(comparisonType: string): { current: { start: Date; end: D
 }
 
 // Format period string for display
-function formatPeriod(start: Date, end: Date, comparisonType: string): string {
+function formatPeriod(start: Date, _end: Date, comparisonType: string): string {
   const year = start.getFullYear()
   const month = start.getMonth() + 1
   

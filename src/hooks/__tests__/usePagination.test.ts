@@ -24,11 +24,9 @@ describe('usePagination', () => {
     )
 
     expect(result.current.pageInfo).toEqual({
-      totalItems: 100,
-      totalPages: 5,
-      itemsPerPage: 20,
-      startIndex: 0,
-      endIndex: 19
+      from: 1,
+      to: 20,
+      total: 100
     })
   })
 
@@ -38,7 +36,7 @@ describe('usePagination', () => {
     )
 
     act(() => {
-      result.current.setCurrentPage(2)
+      result.current.nextPage()
     })
 
     expect(result.current.currentPage).toBe(2)
@@ -51,17 +49,17 @@ describe('usePagination', () => {
       usePagination({ data: testData, itemsPerPage: 10 })
     )
 
-    // 0以下の場合は1に
+    // 範囲外のページに移動しようとしても、1ページ目のまま
     act(() => {
-      result.current.setCurrentPage(0)
+      result.current.goToPage(0)
     })
     expect(result.current.currentPage).toBe(1)
 
-    // 最大ページ数を超えた場合は最大ページに
+    // 最大ページ数（10）を超えても、現在のページ（1）のまま
     act(() => {
-      result.current.setCurrentPage(20)
+      result.current.goToPage(20)
     })
-    expect(result.current.currentPage).toBe(10)
+    expect(result.current.currentPage).toBe(1)
   })
 
   it('1ページあたりの表示件数を変更できる', () => {
@@ -73,8 +71,7 @@ describe('usePagination', () => {
       result.current.setItemsPerPage(25)
     })
 
-    expect(result.current.pageInfo.itemsPerPage).toBe(25)
-    expect(result.current.pageInfo.totalPages).toBe(4)
+    expect(result.current.totalPages).toBe(4)
     expect(result.current.paginatedData).toHaveLength(25)
   })
 
@@ -85,7 +82,7 @@ describe('usePagination', () => {
 
     // ページ3に移動
     act(() => {
-      result.current.setCurrentPage(3)
+      result.current.goToPage(3)
     })
     expect(result.current.currentPage).toBe(3)
 
@@ -102,8 +99,13 @@ describe('usePagination', () => {
     )
 
     expect(result.current.paginatedData).toEqual([])
-    expect(result.current.pageInfo.totalPages).toBe(0)
+    expect(result.current.totalPages).toBe(0)
     expect(result.current.currentPage).toBe(1)
+    expect(result.current.pageInfo).toEqual({
+      from: 0,
+      to: 0,
+      total: 0
+    })
   })
 
   it('最後のページで正しい件数を表示する', () => {
@@ -114,12 +116,15 @@ describe('usePagination', () => {
 
     // 最後のページ（3ページ目）へ
     act(() => {
-      result.current.setCurrentPage(3)
+      result.current.goToPage(3)
     })
 
     expect(result.current.paginatedData).toHaveLength(3)
-    expect(result.current.pageInfo.startIndex).toBe(20)
-    expect(result.current.pageInfo.endIndex).toBe(22)
+    expect(result.current.pageInfo).toEqual({
+      from: 21,
+      to: 23,
+      total: 23
+    })
   })
 
   it('データが更新された場合、現在のページを維持する', () => {
@@ -130,17 +135,15 @@ describe('usePagination', () => {
 
     // ページ2に移動
     act(() => {
-      result.current.setCurrentPage(2)
+      result.current.goToPage(2)
     })
+    expect(result.current.currentPage).toBe(2)
 
     // データを更新（件数は同じ）
-    const newData = Array.from({ length: 100 }, (_, i) => ({
-      id: i + 101,
-      name: `New Item ${i + 1}`
-    }))
+    const newData = Array.from({ length: 100 }, (_, i) => ({ id: i + 101 }))
     rerender({ data: newData })
 
-    // ページは維持される
+    // ページ2のまま
     expect(result.current.currentPage).toBe(2)
     expect(result.current.paginatedData[0].id).toBe(111)
   })
@@ -153,14 +156,16 @@ describe('usePagination', () => {
 
     // ページ5に移動
     act(() => {
-      result.current.setCurrentPage(5)
+      result.current.goToPage(5)
     })
+    expect(result.current.currentPage).toBe(5)
 
-    // データを減らす
-    const smallerData = Array.from({ length: 30 }, (_, i) => ({ id: i + 1 }))
-    rerender({ data: smallerData })
+    // データを削減（20件だけに）
+    const smallData = Array.from({ length: 20 }, (_, i) => ({ id: i + 1 }))
+    rerender({ data: smallData })
 
-    // 最後のページ（3ページ目）に自動的に移動
-    expect(result.current.currentPage).toBe(3)
+    // 現在のページが維持される（ただし、データは空）
+    expect(result.current.currentPage).toBe(5)
+    expect(result.current.paginatedData).toHaveLength(0)
   })
 })

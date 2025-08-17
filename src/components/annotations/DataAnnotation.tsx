@@ -3,13 +3,11 @@ import {
   MessageSquare,
   Edit2,
   Trash2,
-  Save,
   X,
   Search,
   Download,
   ChevronUp,
-  ChevronDown,
-  Tag
+  ChevronDown
 } from 'lucide-react'
 
 export interface Annotation {

@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest'
 import { ECForceCSVParser } from '../ecforce-csv-parser'
-import { ECForceOrder } from '../../types/ecforce'
 
 describe('ECForceCSVParser', () => {
   describe('parse', () => {
@@ -153,11 +152,14 @@ describe('ECForceCSVParser', () => {
 
       vi.spyOn(window, 'FileReader').mockImplementation(() => mockFileReader as any)
 
-      const parsePromise = ECForceCSVParser.parseFile(file)
+      ECForceCSVParser.parseFile(file)
 
-      // FileReaderのonloadをトリガー
-      mockFileReader.result = '受注ID,受注番号\n1,2\n'
+      // FileReaderのonloadをトリガー - 必要なヘッダーを全て含める
+      const csvContent = '受注ID,受注番号,顧客番号,購入URL,購入オファー,定期受注番号,メールアドレス,小計,支払い合計,受注日,購入商品（商品コード）,広告URLグループ名,広告主名,顧客購入回数,定期ステータス,定期回数\n1,2,100,http://example.com,offer,sub-1,test@example.com,1000,1100,2024-01-01,item-1,group,広告主,1,active,1\n'
+      mockFileReader.result = csvContent
       mockFileReader.onload({ target: { result: mockFileReader.result } })
+
+      await expect(parsePromise).resolves.toBeTruthy()
 
       // モックをリストア
       vi.restoreAllMocks()

@@ -278,7 +278,7 @@ export const DrillDownAnalysis: React.FC<DrillDownAnalysisProps> = ({ orders }) 
                 <Bar 
                   dataKey="value" 
                   fill="#3B82F6"
-                  onClick={(data) => handleDrillDown(data.name, 'product')}
+                  onClick={(data) => handleDrillDown(data.name || '', 'product')}
                   style={{ cursor: 'pointer' }}
                 />
               </BarChart>
