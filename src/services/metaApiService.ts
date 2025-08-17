@@ -430,10 +430,13 @@ export class MetaApiService {
         const error = await response.json()
         console.error('Meta API Error Response:', {
           endpoint,
+          fullUrl: url.toString(),
           status: response.status,
+          statusText: response.statusText,
           error,
           accountId: this.config.accountId,
-          apiVersion: this.config.apiVersion
+          apiVersion: this.config.apiVersion,
+          requestParams: params
         })
         
         const errorCode = error.error?.code || this.getErrorCode(response.status, error)

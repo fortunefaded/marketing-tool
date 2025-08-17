@@ -162,8 +162,20 @@ export const MetaDashboardReal: React.FC = () => {
           limit: 1000
         })
         console.log(`キャンペーンインサイト取得完了: ${campaignInsights.length}件`)
-      } catch (campaignError) {
-        console.warn('キャンペーンインサイトの取得に失敗しましたが、メインデータは取得できました:', campaignError)
+      } catch (campaignError: any) {
+        console.error('キャンペーンインサイトの取得エラー:', campaignError)
+        console.error('キャンペーンエラー詳細:', {
+          code: campaignError.code,
+          message: campaignError.message,
+          details: campaignError.details,
+          statusCode: campaignError.statusCode
+        })
+        
+        // キャンペーンインサイトのエラーをメインエラーに追加
+        throw new Error(
+          `メインデータは取得できましたが、キャンペーンデータの取得に失敗しました。\n` +
+          `キャンペーンエラー: ${campaignError.message || campaignError.code || 'Unknown error'}`
+        )
       }
       
       setLastUpdateTime(new Date())
@@ -175,33 +187,62 @@ export const MetaDashboardReal: React.FC = () => {
         code: err.code,
         message: err.message,
         details: err.details,
-        statusCode: err.statusCode
+        statusCode: err.statusCode,
+        stack: err.stack
       })
       
-      // データが一部取得できている場合はエラーを表示しない
-      if (insights.length > 0) {
-        console.warn('一部データの取得に失敗しましたが、メインデータは表示できます')
-        return // エラーを表示せずに終了
+      // 詳細なエラー情報を構築
+      const errorDetails = []
+      
+      if (err.code) errorDetails.push(`エラーコード: ${err.code}`)
+      if (err.statusCode) errorDetails.push(`HTTPステータス: ${err.statusCode}`)
+      if (err.message) errorDetails.push(`メッセージ: ${err.message}`)
+      
+      // Meta APIの詳細エラー情報
+      if (err.details?.error) {
+        const apiError = err.details.error
+        if (apiError.code) errorDetails.push(`APIエラーコード: ${apiError.code}`)
+        if (apiError.message) errorDetails.push(`APIメッセージ: ${apiError.message}`)
+        if (apiError.error_subcode) errorDetails.push(`サブコード: ${apiError.error_subcode}`)
+        if (apiError.type) errorDetails.push(`エラータイプ: ${apiError.type}`)
+        if (apiError.fbtrace_id) errorDetails.push(`トレースID: ${apiError.fbtrace_id}`)
       }
       
-      // 権限エラーの場合はより分かりやすいメッセージを表示
+      // リクエスト情報
+      const accountInfo = manager.getActiveAccount()
+      if (accountInfo) {
+        errorDetails.push(`アカウント: ${accountInfo.fullAccountId}`)
+        errorDetails.push(`アカウント名: ${accountInfo.name}`)
+      }
+      
+      // コンテキスト情報
+      errorDetails.push(`更新フラグ: ${isUpdate ? 'true' : 'false'}`)
+      errorDetails.push(`取得済みデータ数: ${insights.length}件`)
+      
+      // 権限エラーの場合は特別なメッセージ
       if (err.code === 200 || err.code === 'PERMISSION_ERROR' || err.details?.error?.code === 200 || err.message?.includes('ads_management') || err.message?.includes('ads_read')) {
-        const accountInfo = manager.getActiveAccount()
         setError(
-          `広告データへのアクセス権限がありません。\n` +
-          `アカウント: ${accountInfo?.fullAccountId || 'Unknown'}\n` +
-          `Graph API Explorerで「ads_read」と「ads_management」権限を追加して新しいトークンを生成してください。\n` +
-          `エラー詳細: ${err.message || 'No details available'}`
+          `権限エラー: 広告データへのアクセス権限がありません。\n\n` +
+          `解決方法:\n` +
+          `1. Graph API Explorer (https://developers.facebook.com/tools/explorer/) で新しいアクセストークンを生成\n` +
+          `2. 必要な権限: ads_read, ads_management, business_management\n` +
+          `3. アカウントにBusiness Managerで管理者権限があるか確認\n\n` +
+          `詳細情報:\n${errorDetails.join('\n')}`
         )
       } else {
-        setError(err instanceof Error ? err.message : 'データの読み込みに失敗しました')
+        // 一般的なエラーの場合
+        setError(
+          `APIエラーが発生しました。\n\n` +
+          `詳細情報:\n${errorDetails.join('\n')}\n\n` +
+          `解決案:\n` +
+          `1. アクセストークンが有効か確認\n` +
+          `2. アカウントIDが正しいか確認\n` +
+          `3. ネットワーク接続を確認\n` +
+          `4. しばらく待ってから再試行（レートリミットの場合）`
+        )
       }
     } finally {
       setIsLoading(false)
-      // データが正常に取得できた場合はエラーをクリア
-      if (insights.length > 0) {
-        setError(null)
-      }
     }
   }
 
