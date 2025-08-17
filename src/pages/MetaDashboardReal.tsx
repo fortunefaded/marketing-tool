@@ -13,6 +13,7 @@ import {
   ArrowTopRightOnSquareIcon,
 } from '@heroicons/react/24/outline'
 import { MetaCampaignData, MetaInsightsData } from '../services/metaApiService'
+import { MetaDataCache, DataSyncStatus } from '../services/metaDataCache'
 import { MetricCard } from '../components/metrics/MetricCard'
 import { PerformanceChart } from '../components/charts/PerformanceChart'
 
@@ -29,6 +30,9 @@ export const MetaDashboardReal: React.FC = () => {
   const [campaigns, setCampaigns] = useState<MetaCampaignData[]>([])
   const [insights, setInsights] = useState<MetaInsightsData[]>([])
   const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null)
+  const [syncStatus, setSyncStatus] = useState<DataSyncStatus | null>(null)
+  const [isSyncing, setIsSyncing] = useState(false)
+  const [syncProgress, setSyncProgress] = useState({ current: 0, total: 0, message: '' })
   // const [dateRange, setDateRange] = useState({
   //   start: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
   //   end: new Date().toISOString().split('T')[0]
@@ -41,19 +45,38 @@ export const MetaDashboardReal: React.FC = () => {
       return
     }
     
+    // キャッシュされたデータを最初に読み込み
+    const cachedData = MetaDataCache.getInsights(activeAccount.accountId)
+    const status = MetaDataCache.getSyncStatus(activeAccount.accountId)
+    
+    if (cachedData.length > 0) {
+      setInsights(cachedData)
+      setIsLoading(false)
+      console.log(`キャッシュデータを表示: ${cachedData.length}件`)
+    }
+    
+    setSyncStatus(status)
+    
     const service = manager.getActiveApiService()
     if (service) {
       setApiService(service)
-      loadData(service)
+      
+      // キャッシュがない場合のみ初回データロード
+      if (cachedData.length === 0) {
+        loadData(service, false, 'initial')
+      }
     }
   }, [manager, navigate])
 
-  const loadData = async (service: MetaApiService, isUpdate: boolean = false) => {
+  const loadData = async (service: MetaApiService, isUpdate: boolean = false, syncType: 'initial' | 'incremental' | 'full' = 'incremental') => {
     setIsLoading(true)
     if (!isUpdate) {
-      setError(null) // 初回ロード時のみエラーをクリア
+      setError(null)
       setLoadingProgress({ current: 1, total: 4, message: '権限を確認中...' })
     }
+    
+    const accountId = manager.getActiveAccount()?.accountId
+    if (!accountId) return
     
     try {
       // まず権限を確認
@@ -91,60 +114,101 @@ export const MetaDashboardReal: React.FC = () => {
 
       // 日付範囲の設定
       let dateOptions: any = {}
-      if (isUpdate && lastUpdateTime) {
-        // 更新時：最後の更新から今日まで
-        const since = lastUpdateTime.toISOString().split('T')[0]
+      let missingRanges: Array<{start: string, end: string}> = []
+      
+      if (syncType === 'full') {
+        // 全同期：過去2年間すべて
         const until = new Date().toISOString().split('T')[0]
-        dateOptions = {
-          dateRange: { since, until }
-        }
-        console.log('更新データを取得:', since, 'から', until)
-      } else {
-        // 初回ロード：過去2年間のデータ
-        const until = new Date()
         const since = new Date()
-        since.setFullYear(since.getFullYear() - 2) // 2年前
+        since.setFullYear(since.getFullYear() - 2)
+        const sinceStr = since.toISOString().split('T')[0]
         
-        dateOptions = {
-          dateRange: {
-            since: since.toISOString().split('T')[0],
-            until: until.toISOString().split('T')[0]
-          }
-        }
-        console.log('過去2年間のデータを取得:', dateOptions.dateRange.since, 'から', dateOptions.dateRange.until)
-      }
-      
-      // インサイトデータの取得（日別）
-      setLoadingProgress({ current: 3, total: 4, message: 'インサイトデータを取得中...' })
-      const insightsData = await service.getInsights({
-        level: 'account',
-        ...dateOptions,
-        fields: [
-          'spend',
-          'impressions',
-          'clicks',
-          'reach',
-          'frequency',
-          'cpm',
-          'cpc',
-          'ctr',
-          'date_start',
-          'date_stop'
-        ],
-        time_increment: '1', // 1日単位で集計
-        limit: 1000
-      })
-      console.log(`インサイトデータ取得完了: ${insightsData.length}件`)
-      
-      if (isUpdate && insights.length > 0) {
-        // 更新時：既存データとマージ
-        const existingDates = new Set(insights.map(i => i.dateStart))
-        const newData = insightsData.filter(i => !existingDates.has(i.dateStart))
-        setInsights([...insights, ...newData])
-        console.log(`新規データ${newData.length}件を追加`)
+        missingRanges = [{ start: sinceStr, end: until }]
+        console.log('全同期モード:', sinceStr, 'から', until)
+      } else if (syncType === 'incremental') {
+        // 増分同期：欠損期間のみ
+        const until = new Date().toISOString().split('T')[0]
+        const since = lastUpdateTime ? 
+          lastUpdateTime.toISOString().split('T')[0] :
+          new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] // 30日前
+        
+        missingRanges = MetaDataCache.findMissingDateRanges(accountId, since, until)
+        console.log('増分同期モード:', missingRanges.length, '個の欠損期間を検出')
       } else {
-        setInsights(insightsData)
+        // 初回ロード：最近30日間
+        const until = new Date().toISOString().split('T')[0]
+        const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+        
+        missingRanges = [{ start: since, end: until }]
+        console.log('初回ロードモード:', since, 'から', until)
       }
+      
+      if (missingRanges.length === 0) {
+        console.log('取得すべきデータはありません')
+        setLoadingProgress({ current: 4, total: 4, message: 'データは最新です' })
+        return
+      }
+      
+      // 欠損期間ごとにデータを取得
+      setLoadingProgress({ current: 3, total: 4, message: `${missingRanges.length}個の期間のデータを取得中...` })
+      
+      let allNewData: MetaInsightsData[] = []
+      
+      for (let i = 0; i < missingRanges.length; i++) {
+        const range = missingRanges[i]
+        console.log(`期間 ${i + 1}/${missingRanges.length}: ${range.start} から ${range.end}`)
+        
+        try {
+          const rangeData = await service.getInsights({
+            level: 'account',
+            dateRange: {
+              since: range.start,
+              until: range.end
+            },
+            fields: [
+              'spend',
+              'impressions',
+              'clicks',
+              'reach',
+              'frequency',
+              'cpm',
+              'cpc',
+              'ctr',
+              'date_start',
+              'date_stop'
+            ],
+            time_increment: '1',
+            limit: 500
+          })
+          
+          allNewData.push(...rangeData)
+          console.log(`期間 ${i + 1} 完了: ${rangeData.length}件 (累計: ${allNewData.length}件)`)
+          
+          // 進捗更新
+          setLoadingProgress({ 
+            current: 3, 
+            total: 4, 
+            message: `${i + 1}/${missingRanges.length} 期間完了 (累計: ${allNewData.length}件)` 
+          })
+          
+        } catch (rangeError) {
+          console.error(`期間 ${range.start}-${range.end} の取得エラー:`, rangeError)
+          // エラーがあっても続行
+        }
+      }
+      
+      console.log(`全期間のデータ取得完了: ${allNewData.length}件`)
+      
+      // キャッシュされたデータとマージ
+      const cachedData = MetaDataCache.getInsights(accountId)
+      const mergedData = MetaDataCache.mergeInsights(cachedData, allNewData)
+      
+      // キャッシュに保存
+      MetaDataCache.saveInsights(accountId, mergedData)
+      MetaDataCache.updateDateRange(accountId, mergedData)
+      
+      // UIを更新
+      setInsights(mergedData)
       
       // キャンペーンデータは後で非同期取得（メインデータをブロックしない）
       console.log('メインデータ取得完了、キャンペーンデータはバックグラウンドで取得中...')
@@ -171,6 +235,21 @@ export const MetaDashboardReal: React.FC = () => {
           console.warn('キャンペーンデータの取得に失敗しました:', campaignError.message)
         }
       }, 2000) // 2秒後に実行
+      
+      // 同期ステータスを更新
+      const now = new Date().toISOString()
+      const statusUpdate: Partial<DataSyncStatus> = {
+        totalRecords: mergedData.length
+      }
+      
+      if (syncType === 'full') {
+        statusUpdate.lastFullSync = now
+      } else {
+        statusUpdate.lastIncrementalSync = now
+      }
+      
+      MetaDataCache.saveSyncStatus(accountId, statusUpdate)
+      setSyncStatus(MetaDataCache.getSyncStatus(accountId))
       
       setLoadingProgress({ current: 4, total: 4, message: 'データ取得完了!' })
       setLastUpdateTime(new Date())
@@ -243,7 +322,39 @@ export const MetaDashboardReal: React.FC = () => {
 
   const handleRefresh = () => {
     if (apiService) {
-      loadData(apiService, true) // 更新フラグをtrueに
+      loadData(apiService, true, 'incremental')
+    }
+  }
+  
+  // 全同期機能
+  const handleFullSync = async () => {
+    if (!apiService) return
+    
+    setIsSyncing(true)
+    setSyncProgress({ current: 0, total: 100, message: '全同期を開始しています...' })
+    
+    try {
+      await loadData(apiService, false, 'full')
+      setSyncProgress({ current: 100, total: 100, message: '全同期完了!' })
+    } catch (error) {
+      console.error('全同期エラー:', error)
+      setSyncProgress({ current: 0, total: 100, message: '同期に失敗しました' })
+    } finally {
+      setIsSyncing(false)
+      setTimeout(() => {
+        setSyncProgress({ current: 0, total: 0, message: '' })
+      }, 3000)
+    }
+  }
+  
+  // キャッシュクリア
+  const handleClearCache = () => {
+    const accountId = manager.getActiveAccount()?.accountId
+    if (accountId && window.confirm('キャッシュされたデータをすべて削除しますか？')) {
+      MetaDataCache.clearAccountCache(accountId)
+      setInsights([])
+      setSyncStatus(MetaDataCache.getSyncStatus(accountId))
+      console.log('キャッシュをクリアしました')
     }
   }
 
@@ -342,30 +453,71 @@ export const MetaDashboardReal: React.FC = () => {
               </p>
             </div>
             <div className="flex items-center space-x-4">
-              {lastUpdateTime && (
-                <span className="text-sm text-gray-500">
-                  最終更新: {lastUpdateTime.toLocaleString('ja-JP')}
-                </span>
+              {syncStatus && (
+                <div className="text-sm text-gray-500">
+                  <div>総レコード: {syncStatus.totalRecords.toLocaleString()}件</div>
+                  {syncStatus.lastFullSync && (
+                    <div>全同期: {new Date(syncStatus.lastFullSync).toLocaleDateString('ja-JP')}</div>
+                  )}
+                  {syncStatus.dateRange.earliest && syncStatus.dateRange.latest && (
+                    <div>期間: {syncStatus.dateRange.earliest} 〜 {syncStatus.dateRange.latest}</div>
+                  )}
+                </div>
               )}
+              
               <button
                 onClick={handleRefresh}
-                disabled={isLoading}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isLoading || isSyncing}
+                className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
               >
-                <ArrowPathIcon className={`h-5 w-5 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-                {isInitialLoad ? 'データをロード' : '最新データを取得'}
+                <ArrowPathIcon className={`h-4 w-4 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
+                更新
+              </button>
+              
+              <button
+                onClick={handleFullSync}
+                disabled={isLoading || isSyncing}
+                className="inline-flex items-center px-3 py-2 border border-indigo-300 text-sm font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 disabled:opacity-50"
+              >
+                <ArrowPathIcon className={`h-4 w-4 mr-1 ${isSyncing ? 'animate-spin' : ''}`} />
+                全同期
+              </button>
+              
+              <button
+                onClick={handleClearCache}
+                disabled={isLoading || isSyncing}
+                className="inline-flex items-center px-3 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100 disabled:opacity-50"
+              >
+                クリア
               </button>
               <a
                 href="/meta-api-setup"
-                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
               >
-                <UserGroupIcon className="h-5 w-5 mr-2" />
+                <UserGroupIcon className="h-4 w-4 mr-1" />
                 アカウント管理
               </a>
             </div>
           </div>
         </div>
 
+        {/* 同期進捗表示 */}
+        {isSyncing && syncProgress.total > 0 && (
+          <div className="mb-6 bg-blue-50 border border-blue-200 rounded-md p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-medium text-blue-800">データ同期中</h3>
+              <span className="text-sm text-blue-600">{syncProgress.current}%</span>
+            </div>
+            <div className="w-full bg-blue-200 rounded-full h-2 mb-2">
+              <div 
+                className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                style={{ width: `${syncProgress.current}%` }}
+              />
+            </div>
+            <p className="text-sm text-blue-700">{syncProgress.message}</p>
+          </div>
+        )}
+        
         {/* エラー表示 */}
         {error && (
           <div className="mb-6 bg-red-50 border border-red-200 rounded-md p-4">
