@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link, Filter } from 'lucide-react'
 import { ECForceOrder } from '../types/ecforce'
 import { AddToFavoriteButton } from '../components/favorites/AddToFavoriteButton'
@@ -12,7 +12,6 @@ import { BasketAnalysis } from '../components/integrated/BasketAnalysis'
 import { LTVAnalysis } from '../components/integrated/LTVAnalysis'
 import { CrossChannelKPIs } from '../components/integrated/CrossChannelKPIs'
 import { LoadingSpinner } from '../components/common/LoadingSpinner'
-import { useDataLoader } from '../hooks/useDataLoader'
 
 export const IntegratedDashboard: React.FC = () => {
   console.log('IntegratedDashboard component rendering')

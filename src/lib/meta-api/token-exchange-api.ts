@@ -11,9 +11,10 @@
  * - AWS Lambda
  */
 
-interface TokenExchangeRequest {
-  shortLivedToken: string
-}
+// Removed unused interface
+// interface TokenExchangeRequest {
+//   shortLivedToken: string
+// }
 
 interface TokenExchangeResponse {
   accessToken: string

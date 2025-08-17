@@ -118,11 +118,11 @@ describe('MetaAPIClient - Enhanced Features', () => {
       await promise1
       
       // Try to make another call immediately
-      const startTime = Date.now()
+      // Removed unused startTime
       const promise2 = client.getCampaigns()
       await vi.runAllTimersAsync()
       await promise2
-      const endTime = Date.now()
+      // Removed unused endTime
       
       // Should have waited due to rate limit
       expect((client as any).getRateLimitStatus()).toMatchObject({

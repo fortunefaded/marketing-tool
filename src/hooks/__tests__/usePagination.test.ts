@@ -162,7 +162,7 @@ describe('usePagination', () => {
 
     // データを削減（20件だけに）
     const smallData = Array.from({ length: 20 }, (_, i) => ({ id: i + 1 }))
-    rerender({ data: smallData })
+    rerender({ data: smallData, pageSize: 10 })
 
     // 現在のページが維持される（ただし、データは空）
     expect(result.current.currentPage).toBe(5)

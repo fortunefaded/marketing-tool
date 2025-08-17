@@ -89,15 +89,13 @@ export function ConnectionTester() {
       }
     })
 
-    // アカウント情報取得
+    // アカウント情報取得（アクセストークンの検証）
     await runTest(2, async () => {
-      const account = await client.getAccount()
+      const isValid = await client.validateAccessToken()
       return {
-        message: `${account.name} (${account.id})`,
+        message: isValid ? 'アカウント接続成功' : 'アカウント接続失敗',
         details: {
-          currency: account.currency,
-          timezone: account.timezone_name,
-          status: account.account_status,
+          status: isValid ? 'valid' : 'invalid'
         }
       }
     })

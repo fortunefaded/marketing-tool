@@ -163,6 +163,19 @@ export class MetaApiService {
       )
     }
   }
+  
+  // アカウント情報の確認
+  async getAccountInfo(): Promise<any> {
+    try {
+      const response = await this.apiCall(`/act_${this.config.accountId}`, {
+        fields: 'id,name,currency,timezone_name,account_status'
+      })
+      return response
+    } catch (error) {
+      console.error('Failed to get account info:', error)
+      throw error
+    }
+  }
 
   // キャンペーンデータ取得
   async getCampaigns(filter?: MetaApiFilter & { limit?: number; after?: string }): Promise<MetaCampaignData[]> {
@@ -170,6 +183,8 @@ export class MetaApiService {
       fields: 'id,name,status,objective,daily_budget,lifetime_budget,created_time,updated_time,insights{spend}',
       limit: filter?.limit || 100
     }
+    
+    console.log('Getting campaigns for account:', `act_${this.config.accountId}`)
 
     if (filter?.after) {
       params.after = filter.after
@@ -406,7 +421,15 @@ export class MetaApiService {
 
       if (!response.ok) {
         const error = await response.json()
-        const errorCode = this.getErrorCode(response.status, error)
+        console.error('Meta API Error Response:', {
+          endpoint,
+          status: response.status,
+          error,
+          accountId: this.config.accountId,
+          apiVersion: this.config.apiVersion
+        })
+        
+        const errorCode = error.error?.code || this.getErrorCode(response.status, error)
         
         throw new MetaApiError(
           error.error?.message || 'API request failed',

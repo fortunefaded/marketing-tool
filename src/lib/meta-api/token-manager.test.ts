@@ -347,7 +347,7 @@ describe('MetaTokenManager', () => {
       })
 
       // Trigger immediate refresh instead of waiting
-      await tokenManager['refreshToken']()
+      await (tokenManager as any).refreshToken()
       
       await autoRefreshedPromise
       
@@ -506,7 +506,7 @@ describe('MetaTokenManager', () => {
 
       // Trigger refresh directly
       try {
-        await tokenManager['refreshToken']()
+        await (tokenManager as any).refreshToken()
       } catch {
         // Expected to fail
       }

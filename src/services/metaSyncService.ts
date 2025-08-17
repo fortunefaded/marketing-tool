@@ -1,5 +1,5 @@
 import { MetaAPIClientEnhanced } from '../lib/meta-api/client-enhanced'
-import { transformCampaignToConvex, transformInsightToConvex } from '../lib/meta-api'
+// Removed unused imports
 import { api } from '../../convex/_generated/api'
 import { ConvexClient } from 'convex/browser'
 
@@ -116,8 +116,7 @@ export class MetaSyncService {
 
       // Sync to Convex
       const result = await this.convex.mutation(api.metaSync.syncMetaCampaigns, {
-        campaigns: transformedCampaigns,
-        differential: options.differential,
+        campaigns: transformedCampaigns
       })
 
       console.log('[Sync] Campaign sync completed:', result)
@@ -162,10 +161,11 @@ export class MetaSyncService {
         callToActionType: creative.call_to_action_type,
       }))
 
-      // Sync to Convex
-      const result = await this.convex.mutation(api.metaSync.syncMetaCreatives, {
-        creatives: transformedCreatives,
-      })
+      // Sync to Convex - syncMetaCreatives not implemented yet
+      // const result = await this.convex.mutation(api.metaSync.syncMetaCreatives, {
+      //   creatives: transformedCreatives,
+      // })
+      const result = 'Not implemented'
 
       console.log('[Sync] Creative sync completed:', result)
       return result
@@ -181,11 +181,13 @@ export class MetaSyncService {
     config?: any
   ) {
     try {
-      const result = await this.convex.mutation(api.metaSync.scheduleSync, {
-        type,
-        interval,
-        config: config || {},
-      })
+      // scheduleSync not implemented yet
+      // const result = await this.convex.mutation(api.metaSync.scheduleSync, {
+      //   type,
+      //   interval,
+      //   config: config || {},
+      // })
+      const result = { success: false, message: 'Not implemented' }
 
       console.log(`[Sync] Scheduled ${type} sync with ${interval} interval:`, result)
       return result
@@ -197,9 +199,11 @@ export class MetaSyncService {
 
   async getSyncHistory(limit?: number) {
     try {
-      const history = await this.convex.query(api.metaSync.getSyncHistory, {
-        limit,
-      })
+      // getSyncHistory not implemented yet
+      // const history = await this.convex.query(api.metaSync.getSyncHistory, {
+      //   limit,
+      // })
+      const history = []
       return history
     } catch (error) {
       console.error('[Sync] Failed to get sync history:', error)

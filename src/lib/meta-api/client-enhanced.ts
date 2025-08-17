@@ -342,7 +342,7 @@ export class MetaAPIClientEnhanced extends EventEmitter {
   } {
     const err = new Error(error.message) as any
     err.code = error.code
-    err.subcode = error.error_subcode
+    err.subcode = error.error_subcode || error.subcode
     err.type = error.type
     err.traceId = error.fbtrace_id
     return err

@@ -21,7 +21,7 @@ export async function processDataInChunks<T, R>(
   } = options
 
   const results: R[] = []
-  const totalChunks = Math.ceil(data.length / chunkSize)
+  // Removed unused totalChunks variable
 
   for (let i = 0; i < data.length; i += chunkSize) {
     const chunk = data.slice(i, i + chunkSize)

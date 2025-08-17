@@ -110,7 +110,12 @@ export const ScheduledReportManager: React.FC = () => {
       format: report.format,
       recipients: report.recipients.length > 0 ? report.recipients : [''],
       reportType: report.reportType,
-      schedule: report.schedule,
+      schedule: {
+        time: report.schedule.time,
+        dayOfWeek: report.schedule.dayOfWeek || 1,
+        dayOfMonth: report.schedule.dayOfMonth || 1,
+        timezone: report.schedule.timezone || 'Asia/Tokyo'
+      },
       isActive: report.isActive
     })
   }
@@ -141,9 +146,18 @@ export const ScheduledReportManager: React.FC = () => {
   const handleUseTemplate = (templateKey: keyof typeof reportTemplates) => {
     const template = reportTemplates[templateKey]
     setFormData({
-      ...formData,
-      ...template,
-      recipients: ['']
+      name: template.name,
+      type: template.type,
+      format: template.format,
+      recipients: [''],
+      reportType: template.reportType,
+      schedule: {
+        time: template.schedule.time,
+        dayOfWeek: template.schedule.dayOfWeek || 1,
+        dayOfMonth: template.schedule.dayOfMonth || 1,
+        timezone: template.schedule.timezone || 'Asia/Tokyo'
+      },
+      isActive: true
     })
   }
 

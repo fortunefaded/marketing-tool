@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useEffect } from 'react'
-import { TrendingUp, Users, ShoppingCart, DollarSign, Calendar, Filter } from 'lucide-react'
+import React, { useState, useMemo } from 'react'
+import { ShoppingCart, Filter } from 'lucide-react'
 import { ECForceOrder } from '../types/ecforce'
 import { AddToFavoriteButton } from '../components/favorites/AddToFavoriteButton'
 import { useMemoryOptimization } from '../hooks/useMemoryOptimization'
@@ -10,7 +10,6 @@ import { ECForceKPICards } from '../components/ecforce/ECForceKPICards'
 import { ECForceDateFilter } from '../components/ecforce/ECForceDateFilter'
 import { AdvancedFilter } from '../components/filters/AdvancedFilter'
 import { DataExporter } from '../components/export/DataExporter'
-import { LoadingSpinner } from '../components/common/LoadingSpinner'
 import { KPICardSkeleton, ChartSkeleton } from '../components/common/SkeletonLoader'
 
 interface ECForceDashboardProps {

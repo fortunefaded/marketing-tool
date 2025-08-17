@@ -119,9 +119,9 @@ const generateSalesCSV = (orders: ECForceOrder[]): string => {
 
     salesByDate.set(date, {
       count: current.count + 1,
-      revenue: current.revenue + order.小計,
-      tax: current.tax + order.消費税,
-      shipping: current.shipping + order.送料,
+      revenue: current.revenue + (order.小計 || 0),
+      tax: current.tax + (order.消費税 || 0),
+      shipping: current.shipping + (order.送料 || 0),
       total: current.total + order.合計
     })
   })
@@ -168,7 +168,7 @@ const generateCustomerCSV = (orders: ECForceOrder[]): string => {
     customerMap.set(order.顧客番号, {
       email: current.email,
       orderCount: current.orderCount + 1,
-      totalRevenue: current.totalRevenue + order.合計,
+      totalRevenue: current.totalRevenue + (order.合計 || 0),
       firstOrder: order.受注日 < current.firstOrder ? order.受注日 : current.firstOrder,
       lastOrder: order.受注日 > current.lastOrder ? order.受注日 : current.lastOrder,
       isSubscriber: current.isSubscriber || order.定期ステータス === '有効'

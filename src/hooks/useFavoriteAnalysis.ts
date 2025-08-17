@@ -123,14 +123,14 @@ export function useFavoriteAnalysis(): UseFavoriteAnalysisReturn {
   }
 
   // よくアクセスされる順にソート
-  const getMostAccessed = (limit: number = 5): FavoriteAnalysis[] => {
+  const getMostAccessed = (_limit: number = 5): FavoriteAnalysis[] => {
     return [...favorites]
       .sort((a, b) => b.accessCount - a.accessCount)
-      .slice(0, limit)
+      .slice(0, _limit)
   }
 
   // 最近アクセスした順にソート
-  const getRecentlyAccessed = (limit: number = 5): FavoriteAnalysis[] => {
+  const getRecentlyAccessed = (_limit: number = 5): FavoriteAnalysis[] => {
     return [...favorites]
       .filter(fav => fav.lastAccessedAt)
       .sort((a, b) => {
@@ -138,7 +138,7 @@ export function useFavoriteAnalysis(): UseFavoriteAnalysisReturn {
         const bTime = b.lastAccessedAt?.getTime() || 0
         return bTime - aTime
       })
-      .slice(0, limit)
+      .slice(0, _limit)
   }
 
   return {

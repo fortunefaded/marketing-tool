@@ -52,7 +52,7 @@ const generateSalesReport = (doc: jsPDF, orders: ECForceOrder[], dateStr: string
   doc.text(dateStr, 105, 30, { align: 'center' })
 
   // KPIサマリー
-  const totalRevenue = orders.reduce((sum, order) => sum + order.合計, 0)
+  const totalRevenue = orders.reduce((sum, order) => sum + (order.合計 || 0), 0)
   const avgOrderValue = totalRevenue / orders.length
   const uniqueCustomers = new Set(orders.map(order => order.顧客番号)).size
 
@@ -202,7 +202,7 @@ const generateFullReport = (doc: jsPDF, orders: ECForceOrder[], dateStr: string)
   doc.text(dateStr, 105, 65, { align: 'center' })
   
   // KPIサマリー
-  const totalRevenue = orders.reduce((sum, order) => sum + order.合計, 0)
+  const totalRevenue = orders.reduce((sum, order) => sum + (order.合計 || 0), 0)
   const avgOrderValue = totalRevenue / orders.length
   const uniqueCustomers = new Set(orders.map(order => order.顧客番号)).size
   const subscriptionRate = (orders.filter(order => order.定期ステータス === '有効').length / orders.length * 100).toFixed(1)

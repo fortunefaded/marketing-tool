@@ -19,6 +19,7 @@ import {
   ArrowTrendingUpIcon,
   ArrowsRightLeftIcon,
   PhotoIcon,
+  UserGroupIcon,
 } from '@heroicons/react/24/outline'
 
 export const MetaDashboard: React.FC = () => {
@@ -188,7 +189,17 @@ export const MetaDashboard: React.FC = () => {
     >
 
       {/* Toggle Buttons */}
-      <div className="mb-6 flex justify-end space-x-3">
+      <div className="mb-6 flex justify-between">
+        <div>
+          <a
+            href="/meta-api-setup"
+            className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            <UserGroupIcon className="h-5 w-5 mr-2" />
+            アカウント管理
+          </a>
+        </div>
+        <div className="flex space-x-3">
         <button
           onClick={() => setShowComparison(!showComparison)}
           className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
@@ -203,6 +214,7 @@ export const MetaDashboard: React.FC = () => {
           <PhotoIcon className="h-5 w-5 mr-2" />
           {showCreatives ? 'クリエイティブを隠す' : 'クリエイティブを表示'}
         </button>
+        </div>
       </div>
 
 

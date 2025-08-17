@@ -50,6 +50,34 @@ export const MetaDashboardReal: React.FC = () => {
     setError(null)
     
     try {
+      // まず権限を確認
+      console.log('Checking permissions...')
+      const permissions = await service.checkPermissions()
+      console.log('Current permissions:', permissions)
+      
+      const hasAdsRead = permissions.some(p => p.permission === 'ads_read' && p.status === 'granted')
+      const hasAdsManagement = permissions.some(p => p.permission === 'ads_management' && p.status === 'granted')
+      
+      if (!hasAdsRead || !hasAdsManagement) {
+        throw new Error(
+          `必要な権限が不足しています:\n` +
+          `ads_read: ${hasAdsRead ? '✓' : '✗'}\n` +
+          `ads_management: ${hasAdsManagement ? '✓' : '✗'}`
+        )
+      }
+      
+      // アカウント情報を確認
+      console.log('Checking account info...')
+      try {
+        const accountInfo = await service.getAccountInfo()
+        console.log('Account info:', accountInfo)
+      } catch (accountError) {
+        console.error('Account access error:', accountError)
+        throw new Error(
+          `アカウント ${manager.getActiveAccount()?.fullAccountId} にアクセスできません。\n` +
+          `アカウントIDが正しいか、アクセス権限があるか確認してください。`
+        )
+      }
       // キャンペーンデータの取得
       const campaignsData = await service.getCampaigns({ limit: 50 })
       setCampaigns(campaignsData)
@@ -72,12 +100,21 @@ export const MetaDashboardReal: React.FC = () => {
       
     } catch (err: any) {
       console.error('Failed to load data:', err)
+      console.error('Error details:', {
+        code: err.code,
+        message: err.message,
+        details: err.details,
+        statusCode: err.statusCode
+      })
       
       // 権限エラーの場合はより分かりやすいメッセージを表示
-      if (err.code === 200 || err.message?.includes('ads_management') || err.message?.includes('ads_read')) {
+      if (err.code === 200 || err.code === 'PERMISSION_ERROR' || err.details?.error?.code === 200 || err.message?.includes('ads_management') || err.message?.includes('ads_read')) {
+        const accountInfo = manager.getActiveAccount()
         setError(
-          '広告データへのアクセス権限がありません。' +
-          'Graph API Explorerで「ads_read」と「ads_management」権限を追加して新しいトークンを生成してください。'
+          `広告データへのアクセス権限がありません。\n` +
+          `アカウント: ${accountInfo?.fullAccountId || 'Unknown'}\n` +
+          `Graph API Explorerで「ads_read」と「ads_management」権限を追加して新しいトークンを生成してください。\n` +
+          `エラー詳細: ${err.message || 'No details available'}`
         )
       } else {
         setError(err instanceof Error ? err.message : 'データの読み込みに失敗しました')
