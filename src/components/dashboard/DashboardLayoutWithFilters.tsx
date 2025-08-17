@@ -76,9 +76,9 @@ export const DashboardLayoutWithFilters: React.FC<DashboardLayoutWithFiltersProp
           leave="transition-all duration-300"
           leaveFrom="translate-x-0"
           leaveTo="-translate-x-full"
-          className="fixed inset-y-0 left-0 z-40 w-80 bg-gray-50 border-r border-gray-200 overflow-y-auto lg:relative lg:translate-x-0"
         >
-          <div className="relative h-full">
+          <div className="fixed inset-y-0 left-0 z-40 w-80 bg-gray-50 border-r border-gray-200 overflow-y-auto lg:relative lg:translate-x-0">
+            <div className="relative h-full">
             <button
               onClick={() => setIsFilterPanelOpen(false)}
               className="absolute top-4 right-4 lg:hidden"
@@ -92,6 +92,7 @@ export const DashboardLayoutWithFilters: React.FC<DashboardLayoutWithFiltersProp
                 campaignOptions={campaignOptions}
                 showPresets={true}
               />
+            </div>
             </div>
           </div>
         </Transition>

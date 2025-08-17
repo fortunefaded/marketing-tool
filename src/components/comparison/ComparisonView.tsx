@@ -22,10 +22,6 @@ import {
   Calendar,
   Filter,
   Download,
-  ChevronDown,
-  BarChart3,
-  LineChart as LineChartIcon,
-  Target,
   AlertCircle
 } from 'lucide-react'
 import { ECForceOrder } from '../../types/ecforce'
@@ -398,7 +394,7 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ data }) => {
 
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
-            {chartType === 'bar' && (
+            {chartType === 'bar' ? (
               <BarChart data={comparisonType === 'segment' ? segmentData : chartData} data-testid="bar-chart-comparison">
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey={comparisonType === 'segment' ? 'segment' : 'metric'} />
@@ -417,9 +413,7 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ data }) => {
                   </>
                 )}
               </BarChart>
-            )}
-            
-            {chartType === 'line' && (
+            ) : chartType === 'line' ? (
               <LineChart data={chartData} data-testid="line-chart-comparison">
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="metric" />
@@ -429,9 +423,7 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ data }) => {
                 <Line type="monotone" dataKey={data.period1.label} stroke="#4F46E5" strokeWidth={2} />
                 <Line type="monotone" dataKey={data.period2.label} stroke="#10B981" strokeWidth={2} />
               </LineChart>
-            )}
-            
-            {chartType === 'radar' && (
+            ) : (
               <RadarChart data={radarData} data-testid="radar-chart-comparison">
                 <PolarGrid />
                 <PolarAngleAxis dataKey="metric" />

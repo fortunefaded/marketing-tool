@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   DragDropContext,
   Droppable,
@@ -54,8 +54,6 @@ export const InteractiveDashboard: React.FC<InteractiveDashboardProps> = ({
     layouts, 
     saveLayout, 
     loadLayout, 
-    deleteLayout, 
-    exportLayout, 
     importLayout,
     currentLayout 
   } = useDashboardSettings()
@@ -89,7 +87,7 @@ export const InteractiveDashboard: React.FC<InteractiveDashboardProps> = ({
   }
 
   // 位置計算
-  const calculatePosition = (index: number, columns: number) => {
+  const calculatePosition = (index: number, _columns: number) => {
     const row = Math.floor(index / 2)
     const col = (index % 2) * 6
     return { x: col, y: row * 4 }

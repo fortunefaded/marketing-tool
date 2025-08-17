@@ -363,7 +363,7 @@ export const RFMAnalysis: React.FC<RFMAnalysisProps> = ({ orders }) => {
           ]}
           rowHeight={48}
           height={400}
-          getRowKey={(item, index) => item.customerId}
+          getRowKey={(item, _index) => item.customerId}
         />
       </div>
     </div>

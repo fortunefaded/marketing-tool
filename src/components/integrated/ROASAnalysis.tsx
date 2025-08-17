@@ -1,6 +1,5 @@
 import React, { useMemo } from 'react'
 import {
-  LineChart,
   Line,
   BarChart,
   Bar,

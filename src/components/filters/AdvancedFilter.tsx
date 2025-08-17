@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Search, Filter, X, Save, FolderOpen } from 'lucide-react'
+import { Search, Filter, X, Save } from 'lucide-react'
 import { ECForceOrder } from '../../types/ecforce'
 
 export interface FilterCriteria {
@@ -188,11 +188,11 @@ export const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
   }
 
   // プリセットの削除
-  const deletePreset = (id: string) => {
-    const updatedPresets = presets.filter(p => p.id !== id)
-    setPresets(updatedPresets)
-    localStorage.setItem('filter_presets', JSON.stringify(updatedPresets))
-  }
+  // const deletePreset = (id: string) => {
+  //   const updatedPresets = presets.filter(p => p.id !== id)
+  //   setPresets(updatedPresets)
+  //   localStorage.setItem('filter_presets', JSON.stringify(updatedPresets))
+  // }
 
   // 初期化時にプリセットを読み込み
   useEffect(() => {

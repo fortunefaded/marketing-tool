@@ -136,7 +136,7 @@ describe('VirtualizedTable', () => {
       <VirtualizedTable
         data={[]}
         columns={columns}
-        getRowKey={(item, index) => index}
+        getRowKey={(_item, index) => index}
         height={400}
       />
     )

@@ -4,8 +4,6 @@ import {
   ShoppingCart, 
   Users, 
   TrendingUp, 
-  Calendar,
-  Package,
   DollarSign
 } from 'lucide-react'
 
@@ -239,7 +237,7 @@ export const ECForceDataSummary: React.FC<ECForceDataSummaryProps> = ({ data }) 
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-gray-900">
-                {data.filter(o => o.定期回数 > 1).length}
+                {data.filter(o => typeof o.定期回数 === 'number' && o.定期回数 > 1).length}
               </div>
               <div className="text-sm text-gray-500 mt-1">
                 継続購入者数

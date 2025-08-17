@@ -2,6 +2,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { AdvancedFilter } from '../AdvancedFilter'
 import { ECForceOrder } from '../../../types/ecforce'
+import { vi } from 'vitest'
 
 const createMockOrder = (overrides: Partial<ECForceOrder>): ECForceOrder => ({
   受注ID: 'TEST-001',
@@ -11,14 +12,18 @@ const createMockOrder = (overrides: Partial<ECForceOrder>): ECForceOrder => ({
   メールアドレス: 'test@example.com',
   購入商品: ['商品A'],
   購入オファー: 'オファー1',
+  広告URLグループ名: 'グループA',
   広告主名: '広告主A',
   ランディングページ: 'LP1',
+  顧客購入回数: 1,
   購入URL: 'https://example.com',
   小計: 1000,
   消費税: 100,
   送料: 500,
   合計: 1600,
+  支払い合計: 1600,
   決済方法: 'クレジットカード',
+  定期受注番号: '',
   定期ステータス: '無効',
   定期回数: 0,
   定期間隔: '',
@@ -32,18 +37,18 @@ const createMockOrder = (overrides: Partial<ECForceOrder>): ECForceOrder => ({
 
 // LocalStorageのモック
 const localStorageMock = {
-  getItem: jest.fn(),
-  setItem: jest.fn(),
-  clear: jest.fn()
+  getItem: vi.fn(),
+  setItem: vi.fn(),
+  clear: vi.fn()
 }
 Object.defineProperty(window, 'localStorage', { value: localStorageMock })
 
 describe('AdvancedFilter', () => {
-  const mockOnFilterChange = jest.fn()
-  const mockOnClose = jest.fn()
+  const mockOnFilterChange = vi.fn()
+  const mockOnClose = vi.fn()
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     localStorageMock.clear()
   })
 

@@ -1,10 +1,11 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { DataAnnotation } from '../DataAnnotation'
+import { vi } from 'vitest'
 
 describe('DataAnnotation', () => {
-  const mockOnSave = jest.fn()
-  const mockOnDelete = jest.fn()
+  const mockOnSave = vi.fn()
+  const mockOnDelete = vi.fn()
   
   const mockAnnotations = [
     {
@@ -26,7 +27,7 @@ describe('DataAnnotation', () => {
   ]
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('既存のアノテーションが表示される', () => {

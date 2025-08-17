@@ -57,10 +57,11 @@ export const ECForceOfferAnalysis: React.FC<ECForceOfferAnalysisProps> = ({ orde
   // ページネーション設定
   const {
     currentPage,
-    setCurrentPage,
+    goToPage,
     paginatedData: paginatedOfferData,
     pageInfo,
-    setItemsPerPage
+    setItemsPerPage,
+    totalPages
   } = usePagination({ 
     data: offerData, 
     itemsPerPage: 10 
@@ -200,8 +201,8 @@ export const ECForceOfferAnalysis: React.FC<ECForceOfferAnalysisProps> = ({ orde
         <div className="mt-4">
           <Pagination
             currentPage={currentPage}
-            totalPages={pageInfo.totalPages}
-            onPageChange={setCurrentPage}
+            totalPages={totalPages}
+            onPageChange={goToPage}
             pageInfo={pageInfo}
             onItemsPerPageChange={setItemsPerPage}
           />

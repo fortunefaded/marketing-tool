@@ -3,8 +3,6 @@ import { ECForceOrder } from '../../types/ecforce'
 import {
   LineChart,
   Line,
-  BarChart,
-  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -248,7 +246,7 @@ export const LTVAnalysis: React.FC<LTVAnalysisProps> = ({ orders }) => {
               <XAxis 
                 dataKey="month" 
                 tickFormatter={(value) => {
-                  const [year, month] = value.split('-')
+                  const [_year, month] = value.split('-')
                   return `${month}月`
                 }}
               />

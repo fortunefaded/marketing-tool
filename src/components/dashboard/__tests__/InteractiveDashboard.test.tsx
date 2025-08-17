@@ -1,15 +1,15 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { InteractiveDashboard } from '../InteractiveDashboard'
-import { DragDropContext, Droppable } from '@hello-pangea/dnd'
+import { vi } from 'vitest'
 
 // ドラッグ&ドロップのモック
-jest.mock('@hello-pangea/dnd', () => ({
+vi.mock('@hello-pangea/dnd', () => ({
   DragDropContext: ({ children }: any) => <div>{children}</div>,
   Droppable: ({ children }: any) => children({ 
     draggableProps: {}, 
     dragHandleProps: {},
-    innerRef: jest.fn(),
+    innerRef: vi.fn(),
     droppableProps: {
       'data-rbd-droppable-id': 'test',
       'data-rbd-droppable-context-id': 'test'
@@ -22,7 +22,7 @@ jest.mock('@hello-pangea/dnd', () => ({
       style: {}
     },
     dragHandleProps: {},
-    innerRef: jest.fn(),
+    innerRef: vi.fn(),
     isDragging: false
   })
 }))
@@ -113,7 +113,7 @@ describe('InteractiveDashboard', () => {
     expect(widgets).toHaveLength(3)
     
     // グリッドサイズが正しく適用されている
-    widgets.forEach((widget, index) => {
+    widgets.forEach((widget, _index) => {
       const style = window.getComputedStyle(widget)
       expect(style.position).toBe('absolute')
     })

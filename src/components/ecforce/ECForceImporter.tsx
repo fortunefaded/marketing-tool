@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react'
-import { Upload, FileText, AlertCircle, CheckCircle } from 'lucide-react'
+import { Upload, AlertCircle, CheckCircle } from 'lucide-react'
 import { ECForceOrder, ECForceImportProgress } from '../../types/ecforce'
 import { ECForceCSVParserV2 } from '../../utils/ecforce-csv-parser-v2'
 import { ECForceDuplicateHandler, DuplicateStrategy } from '../../utils/ecforce-duplicate-handler'
@@ -106,7 +106,7 @@ export const ECForceImporter: React.FC = () => {
         metadata: {
           uniqueCustomers: new Set(result.imported.map(o => o.顧客番号)).size,
           uniqueProducts: new Set(result.imported.flatMap(o => o.購入商品 || [])).size,
-          totalRevenue: result.imported.reduce((sum, o) => sum + o.合計, 0)
+          totalRevenue: result.imported.reduce((sum, o) => sum + (o.合計 ?? 0), 0)
         }
       })
 

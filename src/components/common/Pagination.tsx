@@ -28,8 +28,8 @@ export const Pagination: React.FC<PaginationProps> = ({
   const getPageNumbers = () => {
     const delta = 2 // 現在のページの前後に表示するページ数
     const range = []
-    const rangeWithDots = []
-    let l
+    const rangeWithDots: (number | string)[] = []
+    let l: number | undefined
 
     for (let i = 1; i <= totalPages; i++) {
       if (i === 1 || i === totalPages || (i >= currentPage - delta && i <= currentPage + delta)) {
