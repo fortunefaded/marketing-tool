@@ -167,48 +167,74 @@ export class MetaDataCache {
     console.log(`アカウントキャッシュをクリア: ${accountId}`)
   }
 
-  // 欠損期間を検出
+  // 欠損期間を検出（月単位で効率化）
   static findMissingDateRanges(accountId: string, requestedStart: string, requestedEnd: string): Array<{start: string, end: string}> {
     const cached = this.getInsights(accountId)
     if (cached.length === 0) {
-      return [{ start: requestedStart, end: requestedEnd }]
+      // キャッシュがない場合は月単位で分割
+      return this.splitIntoMonthlyRanges(requestedStart, requestedEnd)
     }
     
     const cachedDates = new Set(cached.map(item => item.dateStart).filter(Boolean))
+    
+    // 月単位で欠損をチェック
+    const monthlyRanges = this.splitIntoMonthlyRanges(requestedStart, requestedEnd)
     const missing: Array<{start: string, end: string}> = []
     
-    let start = new Date(requestedStart)
-    const end = new Date(requestedEnd)
-    let rangeStart: string | null = null
+    for (const range of monthlyRanges) {
+      const hasDataInRange = this.hasDataInDateRange(cachedDates, range.start, range.end)
+      if (!hasDataInRange) {
+        missing.push(range)
+      }
+    }
     
-    while (start <= end) {
-      const dateStr = start.toISOString().split('T')[0]
+    console.log(`欠損期間検出: ${missing.length}個の月範囲`, missing)
+    return missing
+  }
+  
+  // 日付範囲を月単位に分割
+  private static splitIntoMonthlyRanges(startDate: string, endDate: string): Array<{start: string, end: string}> {
+    const ranges: Array<{start: string, end: string}> = []
+    const start = new Date(startDate)
+    const end = new Date(endDate)
+    
+    let currentStart = new Date(start)
+    
+    while (currentStart < end) {
+      const currentEnd = new Date(currentStart.getFullYear(), currentStart.getMonth() + 1, 0) // 月末
       
-      if (!cachedDates.has(dateStr)) {
-        if (!rangeStart) {
-          rangeStart = dateStr
-        }
-      } else {
-        if (rangeStart) {
-          const prevDate = new Date(start)
-          prevDate.setDate(prevDate.getDate() - 1)
-          missing.push({ 
-            start: rangeStart, 
-            end: prevDate.toISOString().split('T')[0] 
-          })
-          rangeStart = null
-        }
+      if (currentEnd > end) {
+        currentEnd.setTime(end.getTime())
       }
       
-      start.setDate(start.getDate() + 1)
+      ranges.push({
+        start: currentStart.toISOString().split('T')[0],
+        end: currentEnd.toISOString().split('T')[0]
+      })
+      
+      currentStart.setMonth(currentStart.getMonth() + 1)
+      currentStart.setDate(1) // 月初にリセット
     }
     
-    // 最後の範囲が未完了の場合
-    if (rangeStart) {
-      missing.push({ start: rangeStart, end: requestedEnd })
-    }
+    return ranges
+  }
+  
+  // 指定期間にデータがあるかチェック
+  private static hasDataInDateRange(cachedDates: Set<string>, startDate: string, endDate: string): boolean {
+    const start = new Date(startDate)
+    const end = new Date(endDate)
     
-    console.log(`欠損期間検出: ${missing.length}個の範囲`, missing)
-    return missing
+    // 期間内のいくつかの日付をサンプルチェック
+    const sampleDates = [
+      start, 
+      new Date(start.getTime() + 7 * 24 * 60 * 60 * 1000), // 1週間後
+      new Date(start.getTime() + 15 * 24 * 60 * 60 * 1000), // 2週間後
+      end
+    ]
+    
+    return sampleDates.some(date => {
+      if (date > end) return false
+      return cachedDates.has(date.toISOString().split('T')[0])
+    })
   }
 }

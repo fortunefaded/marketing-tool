@@ -117,14 +117,35 @@ export const MetaDashboardReal: React.FC = () => {
       let missingRanges: Array<{start: string, end: string}> = []
       
       if (syncType === 'full') {
-        // 全同期：過去2年間すべて
+        // 全同期：過去5年間すべて
         const until = new Date().toISOString().split('T')[0]
         const since = new Date()
-        since.setFullYear(since.getFullYear() - 2)
+        since.setFullYear(since.getFullYear() - 5) // 5年前に変更
         const sinceStr = since.toISOString().split('T')[0]
         
-        missingRanges = [{ start: sinceStr, end: until }]
-        console.log('全同期モード:', sinceStr, 'から', until)
+        // 5年間を月単位に分割して取得
+        missingRanges = []
+        const startDate = new Date(sinceStr)
+        const endDate = new Date(until)
+        
+        let currentStart = new Date(startDate)
+        
+        while (currentStart < endDate) {
+          const currentEnd = new Date(currentStart)
+          currentEnd.setMonth(currentEnd.getMonth() + 1) // 1ヶ月間隔
+          
+          if (currentEnd > endDate) {
+            currentEnd.setTime(endDate.getTime())
+          }
+          
+          missingRanges.push({
+            start: currentStart.toISOString().split('T')[0],
+            end: currentEnd.toISOString().split('T')[0]
+          })
+          
+          currentStart.setMonth(currentStart.getMonth() + 1)
+        }
+        console.log(`全同期モード(過去5年): ${missingRanges.length}ヶ月に分割`, sinceStr, 'から', until)
       } else if (syncType === 'incremental') {
         // 増分同期：欠損期間のみ
         const until = new Date().toISOString().split('T')[0]
@@ -185,11 +206,17 @@ export const MetaDashboardReal: React.FC = () => {
           console.log(`期間 ${i + 1} 完了: ${rangeData.length}件 (累計: ${allNewData.length}件)`)
           
           // 進捗更新
+          const progressPercent = Math.round(((i + 1) / missingRanges.length) * 80) + 10 // 10-90%の範囲
           setLoadingProgress({ 
-            current: 3, 
-            total: 4, 
+            current: progressPercent, 
+            total: 100, 
             message: `${i + 1}/${missingRanges.length} 期間完了 (累計: ${allNewData.length}件)` 
           })
+          
+          // API負荷軽減のための待機（最後のリクエスト以外）
+          if (i < missingRanges.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 500)) // 0.5秒待機
+          }
           
         } catch (rangeError) {
           console.error(`期間 ${range.start}-${range.end} の取得エラー:`, rangeError)
@@ -330,12 +357,16 @@ export const MetaDashboardReal: React.FC = () => {
   const handleFullSync = async () => {
     if (!apiService) return
     
+    if (!window.confirm('過去5年間のデータを全同期しますか？\nこの処理には数分かかる場合があります。')) {
+      return
+    }
+    
     setIsSyncing(true)
-    setSyncProgress({ current: 0, total: 100, message: '全同期を開始しています...' })
+    setSyncProgress({ current: 0, total: 100, message: '全同期を開始しています(過去5年間)...' })
     
     try {
       await loadData(apiService, false, 'full')
-      setSyncProgress({ current: 100, total: 100, message: '全同期完了!' })
+      setSyncProgress({ current: 100, total: 100, message: '全同期完了! 過去5年間のデータを取得しました。' })
     } catch (error) {
       console.error('全同期エラー:', error)
       setSyncProgress({ current: 0, total: 100, message: '同期に失敗しました' })
@@ -343,7 +374,7 @@ export const MetaDashboardReal: React.FC = () => {
       setIsSyncing(false)
       setTimeout(() => {
         setSyncProgress({ current: 0, total: 0, message: '' })
-      }, 3000)
+      }, 5000) // 5秒間表示
     }
   }
   
