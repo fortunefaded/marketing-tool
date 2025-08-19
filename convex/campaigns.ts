@@ -82,17 +82,17 @@ export const listMetaCampaigns = query({
         // キャンペーンのインサイトを取得
         const insights = await ctx.db
           .query('metaInsights')
-          .withIndex('by_campaignId')
-          .filter((q) => q.eq(q.field('campaignId'), campaign.metaId))
+          .withIndex('by_campaign')
+          .filter((q) => q.eq(q.field('campaign_id'), campaign.metaId))
           .collect()
 
         // メトリクスを集計
         const aggregatedMetrics = insights.reduce(
           (acc, insight) => ({
-            impressions: acc.impressions + insight.impressions,
-            clicks: acc.clicks + insight.clicks,
-            spent: acc.spent + insight.spend,
-            conversions: acc.conversions + insight.conversions,
+            impressions: acc.impressions + (insight.impressions || 0),
+            clicks: acc.clicks + (insight.clicks || 0),
+            spent: acc.spent + (insight.spend || 0),
+            conversions: acc.conversions + (insight.conversions || 0),
             revenue: acc.revenue + (insight.revenue || 0),
           }),
           { impressions: 0, clicks: 0, spent: 0, conversions: 0, revenue: 0 }

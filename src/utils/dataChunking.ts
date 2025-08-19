@@ -53,7 +53,7 @@ export class LazyLoader<T> {
 
   constructor(
     private onLoad: (item: T) => void,
-    private options: IntersectionObserverInit = {}
+    options: IntersectionObserverInit = {}
   ) {
     if (typeof window !== 'undefined' && 'IntersectionObserver' in window) {
       this.observer = new IntersectionObserver(
@@ -120,7 +120,7 @@ export class VirtualList<T> {
   constructor(
     private items: T[],
     private containerHeight: number,
-    private defaultItemHeight: number = 50
+    defaultItemHeight: number = 50
   ) {
     this.averageItemHeight = defaultItemHeight
   }

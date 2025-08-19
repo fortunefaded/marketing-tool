@@ -18,7 +18,7 @@ import {
 
 export const MetaApiSetupUnified: React.FC = () => {
   const navigate = useNavigate()
-  const [manager] = useState(() => new MetaAccountManager())
+  const [manager] = useState(() => MetaAccountManager.getInstance())
   const [accounts, setAccounts] = useState<MetaAccount[]>([])
   const [selectedAccount, setSelectedAccount] = useState<MetaAccount | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
@@ -56,7 +56,7 @@ export const MetaApiSetupUnified: React.FC = () => {
         throw new Error('アクセストークンとアカウントIDを入力してください。')
       }
 
-      const account = await manager.addAccount({
+      await manager.addAccount({
         name: newAccountForm.name || `アカウント ${newAccountForm.accountId}`,
         accessToken: newAccountForm.accessToken,
         accountId: newAccountForm.accountId,
@@ -71,10 +71,6 @@ export const MetaApiSetupUnified: React.FC = () => {
       
       setShowAddForm(false)
       loadAccounts()
-      
-      // 追加後にアカウントをアクティブに設定
-      manager.setActiveAccount(account.id)
-      setSelectedAccount(account)
       
     } catch (error) {
       setError(error instanceof Error ? error.message : '接続に失敗しました')
@@ -91,7 +87,7 @@ export const MetaApiSetupUnified: React.FC = () => {
   }
 
   const handleSelectAccount = (account: MetaAccount) => {
-    manager.setActiveAccount(account.id)
+    manager.setActiveAccount(account.accountId)
     setSelectedAccount(account)
   }
 
@@ -126,9 +122,9 @@ export const MetaApiSetupUnified: React.FC = () => {
             <div className="space-y-3">
               {accounts.map((account) => (
                 <div
-                  key={account.id}
+                  key={account.accountId}
                   className={`border rounded-lg p-4 cursor-pointer transition-all ${
-                    selectedAccount?.id === account.id
+                    selectedAccount?.accountId === account.accountId
                       ? 'border-indigo-500 bg-indigo-50'
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
@@ -145,14 +141,14 @@ export const MetaApiSetupUnified: React.FC = () => {
                           {account.fullAccountId}
                         </div>
                       </div>
-                      {selectedAccount?.id === account.id && (
+                      {selectedAccount?.accountId === account.accountId && (
                         <CheckCircleIcon className="h-5 w-5 text-indigo-500 ml-auto mr-3" />
                       )}
                     </div>
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
-                        handleRemoveAccount(account.id)
+                        handleRemoveAccount(account.accountId)
                       }}
                       className="p-2 text-gray-400 hover:text-red-600 transition-colors"
                       title="削除"

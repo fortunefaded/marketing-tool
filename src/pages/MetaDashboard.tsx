@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { useQuery } from 'convex/react'
-import { api } from '../../convex/_generated/api'
+import { useState, useMemo } from 'react'
 import { DashboardLayoutWithFilters } from '../components/dashboard/DashboardLayoutWithFilters'
 import type { FilterState } from '../components/filters/CustomFilterPanel'
 import { MetricCard } from '../components/metrics/MetricCard'
@@ -27,17 +26,21 @@ export const MetaDashboard: React.FC = () => {
   const [showCreatives, setShowCreatives] = useState(false)
   const [selectedCreative, setSelectedCreative] = useState<CreativeData | null>(null)
   const [filters, setFilters] = useState<FilterState>({})
+  const [creativeAggregationPeriod, setCreativeAggregationPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily')
+  const [selectedCreativeIds, setSelectedCreativeIds] = useState<string[]>([])
   
   // Initialize mock data
   useMockDataInitializer()
   
-  // Fetch campaigns data from Convex
-  const campaigns = useQuery(api.campaigns.listMetaCampaigns)
+  // TODO: ローカルストレージから取得するように変更
+  const campaigns: any[] = []
   
-  // Fetch creative performance data
-  const creatives = useQuery(api.creatives.getCreativePerformance, {
-    limit: 20,
-  })
+  // Fetch creative performance data with period aggregation
+  const startDate = filters.dateRange?.start || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+  const endDate = filters.dateRange?.end || new Date().toISOString().split('T')[0]
+  
+  // TODO: ローカルストレージから取得するように変更
+  const creatives: any[] = []
   
   // Use comparison analytics hook
   const {
@@ -323,6 +326,10 @@ export const MetaDashboard: React.FC = () => {
           <CreativePerformanceGrid
             creatives={creatives}
             onCreativeClick={setSelectedCreative}
+            aggregationPeriod={creativeAggregationPeriod}
+            onPeriodChange={setCreativeAggregationPeriod}
+            selectedCreativeIds={selectedCreativeIds}
+            onSelectionChange={setSelectedCreativeIds}
           />
         </section>
       )}

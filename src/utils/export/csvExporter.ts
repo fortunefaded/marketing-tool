@@ -122,7 +122,7 @@ const generateSalesCSV = (orders: ECForceOrder[]): string => {
       revenue: current.revenue + (order.小計 || 0),
       tax: current.tax + (order.消費税 || 0),
       shipping: current.shipping + (order.送料 || 0),
-      total: current.total + order.合計
+      total: current.total + (order.合計 || 0)
     })
   })
 

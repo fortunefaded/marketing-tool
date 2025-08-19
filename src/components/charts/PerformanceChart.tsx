@@ -25,7 +25,7 @@ interface ChartDataPoint {
   [key: string]: number | string | undefined
 }
 
-type MetricType = 'impressions' | 'clicks' | 'conversions' | 'cost' | 'revenue'
+type MetricType = 'impressions' | 'clicks' | 'conversions' | 'cost' | 'revenue' | 'roas' | 'orders'
 
 interface PerformanceChartProps {
   data: ChartDataPoint[]
@@ -65,6 +65,16 @@ const metricConfig = {
     label: '売上',
     color: '#8B5CF6',
     yAxisId: 'right',
+  },
+  roas: {
+    label: 'ROAS',
+    color: '#06B6D4',
+    yAxisId: 'right',
+  },
+  orders: {
+    label: '注文数',
+    color: '#EC4899',
+    yAxisId: 'left',
   },
 }
 

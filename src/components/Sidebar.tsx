@@ -8,6 +8,8 @@ import {
   ChartBarIcon,
   Cog6ToothIcon,
   CloudArrowUpIcon,
+  ExclamationTriangleIcon,
+  AcademicCapIcon,
 } from '@heroicons/react/24/outline'
 import { ComponentType } from 'react'
 
@@ -26,33 +28,28 @@ export default function Sidebar() {
 
   const menuItems: MenuItem[] = [
     {
-      name: 'ダッシュボード',
+      name: '統合ダッシュボード',
       path: '/',
       icon: Squares2X2Icon,
     },
     {
-      name: 'Meta広告ダッシュボード',
+      name: 'Meta広告詳細',
       path: '/meta-dashboard',
       icon: ChartBarIcon,
     },
     {
-      name: 'Meta API設定',
-      path: '/meta-api-setup',
-      icon: Cog6ToothIcon,
+      name: '広告疲労度分析',
+      path: '/ad-fatigue',
+      icon: ExclamationTriangleIcon,
     },
     {
-      name: 'EC Forceインポート',
-      path: '/ecforce-import',
-      icon: CloudArrowUpIcon,
+      name: '疲労度教育センター',
+      path: '/fatigue-education',
+      icon: AcademicCapIcon,
     },
     {
-      name: 'EC Forceダッシュボード',
-      path: '/ecforce-dashboard',
-      icon: ChartBarIcon,
-    },
-    {
-      name: '統合分析ダッシュボード',
-      path: '/integrated-dashboard',
+      name: 'ECForce詳細',
+      path: '/ecforce',
       icon: ChartBarIcon,
     },
     {

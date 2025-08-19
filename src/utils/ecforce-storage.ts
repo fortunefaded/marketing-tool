@@ -53,3 +53,10 @@ export class ECForceStorage {
     return localStorage.getItem(STORAGE_KEY) !== null
   }
 }
+
+/**
+ * 互換性のための関数エクスポート
+ */
+export const loadStoredOrders = (): ECForceOrder[] => {
+  return ECForceStorage.load()
+}

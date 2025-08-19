@@ -14,16 +14,23 @@ import {
 } from '@heroicons/react/24/outline'
 import { MetaCampaignData, MetaInsightsData } from '../services/metaApiService'
 import { MetaDataCache, DataSyncStatus } from '../services/metaDataCache'
+import { useECForceData } from '../hooks/useECForceData'
 import { MetricCard } from '../components/metrics/MetricCard'
 import { PerformanceChart } from '../components/charts/PerformanceChart'
+import { KPIDashboard } from '../components/analytics/KPIDashboard'
+import { CreativePerformance } from '../components/analytics/CreativePerformance'
+import { DataHistoryViewer } from '../components/debug/DataHistoryViewer'
+import { ComparisonDashboard } from '../components/analytics/ComparisonDashboard'
+import { SyncSettings, type SyncSettings as SyncSettingsType } from '../components/settings/SyncSettings'
+import { FatigueDashboard } from '../components/AdFatigue/FatigueDashboard'
+import { FatigueDashboardErrorBoundary } from '../components/AdFatigue/FatigueDashboardErrorBoundary'
 
 export const MetaDashboardReal: React.FC = () => {
   const navigate = useNavigate()
-  const [manager] = useState(() => new MetaAccountManager())
+  const [manager] = useState(() => MetaAccountManager.getInstance())
   const [apiService, setApiService] = useState<MetaApiService | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [isInitialLoad, setIsInitialLoad] = useState(true)
   const [loadingProgress, setLoadingProgress] = useState({ current: 0, total: 0, message: '' })
   
   // データ状態
@@ -33,10 +40,13 @@ export const MetaDashboardReal: React.FC = () => {
   const [syncStatus, setSyncStatus] = useState<DataSyncStatus | null>(null)
   const [isSyncing, setIsSyncing] = useState(false)
   const [syncProgress, setSyncProgress] = useState({ current: 0, total: 0, message: '' })
-  // const [dateRange, setDateRange] = useState({
-  //   start: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-  //   end: new Date().toISOString().split('T')[0]
-  // })
+  const [cacheInfo, setCacheInfo] = useState({ sizeKB: 0, records: 0 })
+  const [activeTab, setActiveTab] = useState<'overview' | 'kpi' | 'creative' | 'comparison' | 'fatigue'>('overview')
+  const [creativeAggregationPeriod, setCreativeAggregationPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily')
+  const [syncSettings, setSyncSettings] = useState<SyncSettingsType | null>(null)
+  
+  // ConvexからECForceデータを取得
+  const { orders: ecforceOrders } = useECForceData()
 
   useEffect(() => {
     const activeAccount = manager.getActiveAccount()
@@ -57,18 +67,57 @@ export const MetaDashboardReal: React.FC = () => {
     
     setSyncStatus(status)
     
+    // キャッシュ使用量を更新
+    const cacheUsage = MetaDataCache.getCacheUsage(activeAccount.accountId)
+    setCacheInfo(cacheUsage)
+    
     const service = manager.getActiveApiService()
     if (service) {
       setApiService(service)
       
-      // キャッシュがない場合のみ初回データロード
+      // 全期間同期が一度も行われていない場合、かつキャッシュが空の場合のみ推奨メッセージを表示
+      if ((!status || !status.lastFullSync) && cachedData.length === 0) {
+        setTimeout(async () => {
+          let maxMonths = syncSettings?.maxMonths || 37
+          try {
+            if (!syncSettings || syncSettings.maxMonths <= 0) {
+              const dateLimit = await service.detectDateLimit()
+              maxMonths = dateLimit.maxMonths
+            }
+          } catch (error) {
+            console.warn('日付制限の検出に失敗:', error)
+          }
+          setError(`初回アクセスです。「全同期」ボタンをクリックして過去${maxMonths}ヶ月間のデータを取得することを推奨します。`)
+        }, 1000)
+      }
+      
+      // キャッシュがない場合の処理
       if (cachedData.length === 0) {
-        loadData(service, false, 'initial')
+        // 初回アクセスの場合は自動でデータを取得しない（ユーザーの明示的なアクションを待つ）
+        setIsLoading(false)
+        console.log('キャッシュが空です。ユーザーのアクションを待機します。')
+      } else {
+        // キャッシュがある場合は最新データのみ取得（増分更新）
+        const today = new Date().toISOString().split('T')[0]
+        const lastSync = status.lastIncrementalSync || status.lastFullSync
+        if (lastSync) {
+          const lastSyncDate = new Date(lastSync).toISOString().split('T')[0]
+          if (lastSyncDate < today) {
+            // 最後の同期から日付が変わっている場合のみ増分更新
+            loadData(service, true, 'incremental')
+          }
+        }
       }
     }
   }, [manager, navigate])
 
   const loadData = async (service: MetaApiService, isUpdate: boolean = false, syncType: 'initial' | 'incremental' | 'full' = 'incremental') => {
+    // 全期間同期中の場合は他の処理をブロック
+    if (isSyncing && syncType !== 'full') {
+      console.log('全期間同期中のため、処理をスキップします')
+      return
+    }
+    
     setIsLoading(true)
     if (!isUpdate) {
       setError(null)
@@ -113,15 +162,39 @@ export const MetaDashboardReal: React.FC = () => {
       setCampaigns(campaignsData)
 
       // 日付範囲の設定
-      let dateOptions: any = {}
       let missingRanges: Array<{start: string, end: string}> = []
       
       if (syncType === 'full') {
-        // 全同期：過去5年間すべて
+        // 全同期：Meta APIの実際の制限まで
         const until = new Date().toISOString().split('T')[0]
-        const since = new Date()
-        since.setFullYear(since.getFullYear() - 5) // 5年前に変更
-        const sinceStr = since.toISOString().split('T')[0]
+        
+        // 実際の日付制限を検出（設定で上書き可能）
+        let sinceStr: string
+        let maxMonths = syncSettings?.maxMonths || 37 // 設定値またはデフォルト
+        
+        // 設定値が指定されている場合はそれを使用
+        if (syncSettings && syncSettings.maxMonths > 0) {
+          const since = new Date()
+          since.setMonth(since.getMonth() - Math.floor(syncSettings.maxMonths))
+          since.setDate(1) // 月初に設定
+          sinceStr = since.toISOString().split('T')[0]
+          console.log(`同期設定に基づく期間: 過去${syncSettings.maxMonths}ヶ月まで`)
+        } else {
+          // 設定がない場合はAPI制限を検出
+          try {
+            setLoadingProgress({ current: 2, total: 4, message: 'API制限を確認中...' })
+            const dateLimit = await service.detectDateLimit()
+            maxMonths = dateLimit.maxMonths
+            sinceStr = dateLimit.oldestDate
+            console.log(`実際のAPI制限を検出: 過去${maxMonths}ヶ月まで`)
+          } catch (error) {
+            console.warn('日付制限の検出に失敗、デフォルトの37ヶ月を使用:', error)
+            const since = new Date()
+            since.setMonth(since.getMonth() - 36) // 36ヶ月（3年）に安全マージンを設定
+            since.setDate(1) // 月初に設定
+            sinceStr = since.toISOString().split('T')[0]
+          }
+        }
         
         // 5年間を月単位に分割して取得
         missingRanges = []
@@ -145,7 +218,7 @@ export const MetaDashboardReal: React.FC = () => {
           
           currentStart.setMonth(currentStart.getMonth() + 1)
         }
-        console.log(`全同期モード(過去5年): ${missingRanges.length}ヶ月に分割`, sinceStr, 'から', until)
+        console.log(`全同期モード(過去${maxMonths}ヶ月): ${missingRanges.length}ヶ月に分割`, sinceStr, 'から', until)
       } else if (syncType === 'incremental') {
         // 増分同期：欠損期間のみ
         const until = new Date().toISOString().split('T')[0]
@@ -156,12 +229,14 @@ export const MetaDashboardReal: React.FC = () => {
         missingRanges = MetaDataCache.findMissingDateRanges(accountId, since, until)
         console.log('増分同期モード:', missingRanges.length, '個の欠損期間を検出')
       } else {
-        // 初回ロード：最近30日間
+        // 初回ロード：最近30日間（全期間同期を推奨）
         const until = new Date().toISOString().split('T')[0]
         const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
         
         missingRanges = [{ start: since, end: until }]
         console.log('初回ロードモード:', since, 'から', until)
+        
+
       }
       
       if (missingRanges.length === 0) {
@@ -177,6 +252,7 @@ export const MetaDashboardReal: React.FC = () => {
       
       for (let i = 0; i < missingRanges.length; i++) {
         const range = missingRanges[i]
+        const rangeStartTime = performance.now()
         console.log(`期間 ${i + 1}/${missingRanges.length}: ${range.start} から ${range.end}`)
         
         try {
@@ -199,11 +275,21 @@ export const MetaDashboardReal: React.FC = () => {
               'date_stop'
             ],
             time_increment: '1',
-            limit: 500
+            limit: syncSettings?.limitPerRequest || 500
           })
           
           allNewData.push(...rangeData)
-          console.log(`期間 ${i + 1} 完了: ${rangeData.length}件 (累計: ${allNewData.length}件)`)
+          const rangeEndTime = performance.now()
+          const rangeDuration = rangeEndTime - rangeStartTime
+          console.log(`期間 ${i + 1} 完了: ${rangeData.length}件 (累計: ${allNewData.length}件) - 処理時間: ${(rangeDuration / 1000).toFixed(2)}秒`)
+          
+          // 10期間ごとに中間キャッシュを保存（データ保護）
+          if ((i + 1) % 10 === 0 || i === missingRanges.length - 1) {
+            const cachedData = MetaDataCache.getInsights(accountId)
+            const partialMerged = MetaDataCache.mergeInsights(cachedData, allNewData)
+            MetaDataCache.saveInsights(accountId, partialMerged)
+            console.log(`中間キャッシュ保存: ${partialMerged.length}件 (期間 ${i + 1}/${missingRanges.length})`)
+          }
           
           // 進捗更新
           const progressPercent = Math.round(((i + 1) / missingRanges.length) * 80) + 10 // 10-90%の範囲
@@ -213,22 +299,159 @@ export const MetaDashboardReal: React.FC = () => {
             message: `${i + 1}/${missingRanges.length} 期間完了 (累計: ${allNewData.length}件)` 
           })
           
+          // 全期間同期の場合は追加の進捗情報
+          if (syncType === 'full') {
+            setSyncProgress({
+              current: Math.round(((i + 1) / missingRanges.length) * 100),
+              total: 100,
+              message: `${i + 1}/${missingRanges.length} ヶ月分を処理中... (${allNewData.length}件取得済み)`
+            })
+          }
+          
           // API負荷軽減のための待機（最後のリクエスト以外）
           if (i < missingRanges.length - 1) {
             await new Promise(resolve => setTimeout(resolve, 500)) // 0.5秒待機
           }
           
-        } catch (rangeError) {
+        } catch (rangeError: any) {
           console.error(`期間 ${range.start}-${range.end} の取得エラー:`, rangeError)
-          // エラーがあっても続行
+          
+          // 37ヶ月制限エラーの場合はスキップ
+          if (rangeError.code === 3018 || rangeError.message?.includes('37 months')) {
+            console.log(`期間 ${range.start}-${range.end} はMeta APIの37ヶ月制限を超えているためスキップします`)
+            
+            // 実際に取得可能な最古の日付を記録
+            const today = new Date()
+            const requestedDate = new Date(range.start)
+            const monthsDiff = (today.getFullYear() - requestedDate.getFullYear()) * 12 + 
+                             (today.getMonth() - requestedDate.getMonth())
+            console.log(`要求した期間は現在から${monthsDiff}ヶ月前です`)
+          }
+          // その他のエラーでも続行
         }
       }
       
       console.log(`全期間のデータ取得完了: ${allNewData.length}件`)
       
+      // 広告レベルのデータも取得（クリエイティブ情報のため）
+      console.log('広告レベルのデータ取得を開始...')
+      const adLevelData: MetaInsightsData[] = []
+      
+      for (let i = 0; i < missingRanges.length; i++) {
+        const range = missingRanges[i]
+        try {
+          const adData = await service.getInsights({
+            level: 'ad',
+            dateRange: {
+              since: range.start,
+              until: range.end
+            },
+            fields: [
+              'spend',
+              'impressions',
+              'clicks',
+              'conversions',
+              'ctr',
+              'cpc',
+              'cpm',
+              'date_start',
+              'date_stop',
+              'ad_id',
+              'ad_name',
+              'campaign_id',
+              'campaign_name',
+              'adset_id',
+              'adset_name'
+            ],
+            time_increment: '1',
+            limit: syncSettings?.limitPerRequest || 500
+          })
+          
+          adLevelData.push(...adData)
+          console.log(`広告レベル期間 ${i + 1}/${missingRanges.length} 完了: ${adData.length}件`)
+          
+          // 進捗更新
+          if (syncType === 'full') {
+            setSyncProgress({
+              current: Math.round(((i + 1) / missingRanges.length) * 50) + 50, // 50-100%
+              total: 100,
+              message: `広告データ取得中... ${i + 1}/${missingRanges.length} 期間完了`
+            })
+          }
+          
+        } catch (error) {
+          console.warn(`広告レベルデータ取得エラー (${range.start}-${range.end}):`, error)
+        }
+      }
+      
+      // クリエイティブ情報を取得（設定でスキップ可能）
+      const uniqueAdIds = [...new Set(adLevelData.map(d => d.ad_id).filter(Boolean))]
+      console.log(`${uniqueAdIds.length}個の広告を検出`)
+      
+      let creatives: any[] = []
+      
+      if (!syncSettings?.skipCreatives && uniqueAdIds.length > 0) {
+        console.log(`${uniqueAdIds.length}個の広告のクリエイティブ情報を取得します...`)
+        console.log('広告IDサンプル:', uniqueAdIds.slice(0, 5))
+        
+        // バッチで処理（一度に50個ずつ）
+        const batchSize = 50
+        
+        for (let i = 0; i < uniqueAdIds.length; i += batchSize) {
+          const batch = uniqueAdIds.slice(i, i + batchSize)
+          console.log(`クリエイティブ情報取得中: ${i + 1}-${Math.min(i + batchSize, uniqueAdIds.length)}/${uniqueAdIds.length}`)
+          
+          try {
+            const batchCreatives = await service.getAdCreatives(batch)
+            creatives.push(...batchCreatives)
+            
+            // 進捗更新
+            if (syncType === 'full') {
+              const progress = Math.round(((i + batch.length) / uniqueAdIds.length) * 10) + 90 // 90-100%
+              setSyncProgress({
+                current: progress,
+                total: 100,
+                message: `クリエイティブ情報取得中... ${i + batch.length}/${uniqueAdIds.length}`
+              })
+            }
+          } catch (error) {
+            console.warn(`バッチ ${i / batchSize + 1} のクリエイティブ取得エラー:`, error)
+          }
+        }
+        
+        console.log(`クリエイティブ情報取得完了: ${creatives.length}件`)
+        console.log('クリエイティブサンプル:', creatives.slice(0, 2))
+        
+        // クリエイティブ情報をマージ
+        let mergedCount = 0
+        let videoCount = 0
+        adLevelData.forEach(ad => {
+          const creative = creatives.find(c => c.ad_id === ad.ad_id)
+          if (creative) {
+            ad.creative_id = creative.creative_id
+            ad.creative_name = creative.creative_name
+            ad.creative_type = creative.creative_type
+            ad.thumbnail_url = creative.thumbnail_url || creative.image_url
+            ad.video_url = creative.video_url || (creative.video_id ? `https://www.facebook.com/${creative.video_id}` : undefined)
+            ad.carousel_cards = creative.carousel_cards
+            mergedCount++
+            
+            if (creative.creative_type === 'video') {
+              videoCount++
+            }
+          }
+        })
+        console.log(`${mergedCount}件の広告にクリエイティブ情報をマージしました（動画: ${videoCount}件）`)
+      } else if (syncSettings?.skipCreatives) {
+        console.log('設定によりクリエイティブ情報の取得をスキップしました')
+      }
+      
+      // アカウントレベルと広告レベルのデータをマージ
+      const allMergedData = [...allNewData, ...adLevelData]
+      
       // キャッシュされたデータとマージ
       const cachedData = MetaDataCache.getInsights(accountId)
-      const mergedData = MetaDataCache.mergeInsights(cachedData, allNewData)
+      const mergedData = MetaDataCache.mergeInsights(cachedData, allMergedData)
       
       // キャッシュに保存
       MetaDataCache.saveInsights(accountId, mergedData)
@@ -237,31 +460,19 @@ export const MetaDashboardReal: React.FC = () => {
       // UIを更新
       setInsights(mergedData)
       
+      // キャッシュ使用量を更新
+      const cacheUsage = MetaDataCache.getCacheUsage(accountId)
+      setCacheInfo(cacheUsage)
+      
       // キャンペーンデータは後で非同期取得（メインデータをブロックしない）
       console.log('メインデータ取得完了、キャンペーンデータはバックグラウンドで取得中...')
       
-      // バックグラウンドでキャンペーンデータを取得
-      setTimeout(async () => {
-        try {
-          console.log('キャンペーンデータの取得を開始...')
-          const campaignInsights = await service.getInsights({
-            level: 'campaign',
-            datePreset: 'last_30d', // 短い期間でテスト
-            fields: [
-              'campaign_name',
-              'campaign_id',
-              'spend',
-              'impressions',
-              'clicks',
-              'reach'
-            ],
-            limit: 50 // 小さなバッチサイズ
-          })
-          console.log(`キャンペーンインサイト取得完了: ${campaignInsights.length}件`)
-        } catch (campaignError: any) {
-          console.warn('キャンペーンデータの取得に失敗しました:', campaignError.message)
-        }
-      }, 2000) // 2秒後に実行
+      // バックグラウンドでキャンペーンデータを取得（初回のみ）
+      // 注意: これは追加のデータ取得であり、既存のデータを上書きしません
+      if (!isUpdate && syncType === 'initial') {
+        // 初回のみ、キャンペーンレベルの追加情報を取得
+        console.log('バックグラウンドでキャンペーン情報を取得予定（既存データは保持）')
+      }
       
       // 同期ステータスを更新
       const now = new Date().toISOString()
@@ -280,7 +491,6 @@ export const MetaDashboardReal: React.FC = () => {
       
       setLoadingProgress({ current: 4, total: 4, message: 'データ取得完了!' })
       setLastUpdateTime(new Date())
-      setIsInitialLoad(false)
       
     } catch (err: any) {
       console.error('Failed to load data:', err)
@@ -348,8 +558,12 @@ export const MetaDashboardReal: React.FC = () => {
   }
 
   const handleRefresh = () => {
-    if (apiService) {
+    if (apiService && insights.length > 0) {
+      // データがある場合のみ増分更新
       loadData(apiService, true, 'incremental')
+    } else if (apiService) {
+      // データがない場合は警告を表示
+      setError('データがありません。「全同期」ボタンをクリックしてデータを取得してください。')
     }
   }
   
@@ -357,16 +571,70 @@ export const MetaDashboardReal: React.FC = () => {
   const handleFullSync = async () => {
     if (!apiService) return
     
-    if (!window.confirm('過去5年間のデータを全同期しますか？\nこの処理には数分かかる場合があります。')) {
+    // パフォーマンス計測開始
+    const startTime = performance.now()
+    console.log('=== 全期間同期パフォーマンステスト開始 ===')
+    console.log('開始時刻:', new Date().toISOString())
+    
+    // まず制限を検出
+    let maxMonths = 37
+    try {
+      const dateLimit = await apiService.detectDateLimit()
+      maxMonths = dateLimit.maxMonths
+    } catch (error) {
+      console.warn('日付制限の検出に失敗:', error)
+    }
+    
+    if (!window.confirm(`過去${maxMonths}ヶ月間のデータを全同期しますか？\n（Meta APIの制限により${maxMonths}ヶ月以上前のデータは取得できません）\nこの処理には数分かかる場合があります。`)) {
       return
     }
     
+    // メモリ使用量（初期）
+    if (performance.memory) {
+      console.log('初期メモリ使用量:', {
+        usedJSHeapSize: `${(performance.memory.usedJSHeapSize / 1024 / 1024).toFixed(2)} MB`,
+        totalJSHeapSize: `${(performance.memory.totalJSHeapSize / 1024 / 1024).toFixed(2)} MB`
+      })
+    }
+    
     setIsSyncing(true)
-    setSyncProgress({ current: 0, total: 100, message: '全同期を開始しています(過去5年間)...' })
+    setSyncProgress({ current: 0, total: 100, message: `全同期を開始しています(過去${maxMonths}ヶ月間)...` })
     
     try {
       await loadData(apiService, false, 'full')
-      setSyncProgress({ current: 100, total: 100, message: '全同期完了! 過去5年間のデータを取得しました。' })
+      
+      // パフォーマンス計測完了
+      const endTime = performance.now()
+      const duration = endTime - startTime
+      
+      console.log('=== 全期間同期パフォーマンステスト完了 ===')
+      console.log('終了時刻:', new Date().toISOString())
+      console.log('処理時間:', {
+        total: `${(duration / 1000).toFixed(2)}秒`,
+        totalMinutes: `${(duration / 1000 / 60).toFixed(2)}分`
+      })
+      
+      // メモリ使用量（最終）
+      if (performance.memory) {
+        console.log('最終メモリ使用量:', {
+          usedJSHeapSize: `${(performance.memory.usedJSHeapSize / 1024 / 1024).toFixed(2)} MB`,
+          totalJSHeapSize: `${(performance.memory.totalJSHeapSize / 1024 / 1024).toFixed(2)} MB`
+        })
+      }
+      
+      // 取得したデータの統計
+      const accountId = manager.getActiveAccount()?.accountId
+      if (accountId) {
+        const finalData = MetaDataCache.getInsights(accountId)
+        const cacheInfo = MetaDataCache.getCacheUsage(accountId)
+        console.log('データ統計:', {
+          totalRecords: finalData.length,
+          cacheSize: `${cacheInfo.sizeKB} KB`,
+          averageRecordSize: `${(cacheInfo.sizeKB / finalData.length).toFixed(2)} KB/record`
+        })
+      }
+      
+      setSyncProgress({ current: 100, total: 100, message: `全同期完了! 過去${maxMonths}ヶ月間のデータを取得しました。` })
     } catch (error) {
       console.error('全同期エラー:', error)
       setSyncProgress({ current: 0, total: 100, message: '同期に失敗しました' })
@@ -382,9 +650,39 @@ export const MetaDashboardReal: React.FC = () => {
   const handleClearCache = () => {
     const accountId = manager.getActiveAccount()?.accountId
     if (accountId && window.confirm('キャッシュされたデータをすべて削除しますか？')) {
+      // キャッシュをクリア
       MetaDataCache.clearAccountCache(accountId)
+      
+      // 状態をリセット
       setInsights([])
-      setSyncStatus(MetaDataCache.getSyncStatus(accountId))
+      setSyncStatus({
+        accountId,
+        lastFullSync: null,
+        lastIncrementalSync: null,
+        totalRecords: 0,
+        dateRange: {
+          earliest: null,
+          latest: null
+        }
+      })
+      setCacheInfo({ sizeKB: 0, records: 0 })
+      setError(null)
+      setIsLoading(false)
+      
+      // 初回アクセスメッセージを表示
+      if (apiService) {
+        setTimeout(async () => {
+          let maxMonths = 37
+          try {
+            const dateLimit = await apiService.detectDateLimit()
+            maxMonths = dateLimit.maxMonths
+          } catch (error) {
+            console.warn('日付制限の検出に失敗:', error)
+          }
+          setError(`初回アクセスです。「全同期」ボタンをクリックして過去${maxMonths}ヶ月間のデータを取得することを推奨します。`)
+        }, 100)
+      }
+      
       console.log('キャッシュをクリアしました')
     }
   }
@@ -426,7 +724,7 @@ export const MetaDashboardReal: React.FC = () => {
     const dataByDate = new Map<string, { cost: number; impressions: number; clicks: number; reach: number }>()
     
     insights.forEach(insight => {
-      const date = insight.dateStart || new Date().toISOString().split('T')[0]
+      const date = insight.date_start || insight.dateStart || new Date().toISOString().split('T')[0]
       const existing = dataByDate.get(date) || { cost: 0, impressions: 0, clicks: 0, reach: 0 }
       
       dataByDate.set(date, {
@@ -445,23 +743,37 @@ export const MetaDashboardReal: React.FC = () => {
       }))
   }
 
-  if (isLoading) {
+
+  // 全期間同期中は専用のローディング画面を表示
+  if (isSyncing) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center max-w-md">
           <ArrowPathIcon className="h-12 w-12 text-gray-400 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600 mb-4">データを読み込んでいます...</p>
-          {loadingProgress.total > 0 && (
+          <p className="text-gray-600 mb-4">
+            {isSyncing ? 'データを同期しています...' : 'データを読み込んでいます...'}
+          </p>
+          {(loadingProgress.total > 0 || syncProgress.total > 0) && (
             <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
               <div 
                 className="bg-indigo-600 h-2 rounded-full transition-all duration-300" 
-                style={{ width: `${(loadingProgress.current / loadingProgress.total) * 100}%` }}
+                style={{ 
+                  width: `${isSyncing 
+                    ? syncProgress.current 
+                    : (loadingProgress.current / loadingProgress.total) * 100
+                  }%` 
+                }}
               />
             </div>
           )}
-          {loadingProgress.message && (
+          {(loadingProgress.message || syncProgress.message) && (
             <p className="text-sm text-gray-500">
-              {loadingProgress.message} ({loadingProgress.current}/{loadingProgress.total})
+              {isSyncing ? syncProgress.message : loadingProgress.message}
+            </p>
+          )}
+          {isSyncing && (
+            <p className="text-xs text-gray-400 mt-2">
+              この処理には数分かかる場合があります。ページを閉じないでください。
             </p>
           )}
         </div>
@@ -493,8 +805,11 @@ export const MetaDashboardReal: React.FC = () => {
                   {syncStatus.dateRange.earliest && syncStatus.dateRange.latest && (
                     <div>期間: {syncStatus.dateRange.earliest} 〜 {syncStatus.dateRange.latest}</div>
                   )}
+                  <div>キャッシュ: {cacheInfo.sizeKB}KB ({cacheInfo.records}件)</div>
                 </div>
               )}
+              
+              <SyncSettings onSettingsChange={setSyncSettings} />
               
               <button
                 onClick={handleRefresh}
@@ -549,14 +864,53 @@ export const MetaDashboardReal: React.FC = () => {
           </div>
         )}
         
+        {/* データ減少警告 */}
+        {(() => {
+          const history = manager.getActiveAccount() ? MetaDataCache.getDataHistory(manager.getActiveAccount()!.accountId) : []
+          const recentReduction = history.slice(-5).find(h => 
+            h.operation === 'save' && 
+            h.beforeCount > 100 && 
+            h.afterCount < h.beforeCount * 0.5
+          )
+          
+          if (recentReduction) {
+            const timeDiff = Date.now() - new Date(recentReduction.timestamp).getTime()
+            const minutesAgo = Math.floor(timeDiff / (1000 * 60))
+            
+            if (minutesAgo < 30) {
+              return (
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <ExclamationTriangleIcon className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <h3 className="text-sm font-medium text-red-800">データ減少を検出</h3>
+                      <p className="text-sm text-red-700 mt-1">
+                        {minutesAgo}分前にデータが{recentReduction.beforeCount}件から{recentReduction.afterCount}件に減少しました。
+                      </p>
+                      <p className="text-xs text-red-600 mt-2">
+                        ストレージ容量が不足している可能性があります。不要なブラウザキャッシュをクリアするか、
+                        全同期を再実行してください。
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )
+            }
+          }
+          
+          return null
+        })()}
+        
         {/* エラー表示 */}
         {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 rounded-md p-4">
+          <div className={`mb-6 ${error.includes('初回アクセス') ? 'bg-blue-50 border-blue-200' : 'bg-red-50 border-red-200'} border rounded-md p-4`}>
             <div className="flex">
-              <ExclamationTriangleIcon className="h-5 w-5 text-red-400 mr-3" />
+              <ExclamationTriangleIcon className={`h-5 w-5 ${error.includes('初回アクセス') ? 'text-blue-400' : 'text-red-400'} mr-3`} />
               <div>
-                <h3 className="text-sm font-medium text-red-800">エラーが発生しました</h3>
-                <p className="text-sm text-red-700 mt-1">{error}</p>
+                <h3 className={`text-sm font-medium ${error.includes('初回アクセス') ? 'text-blue-800' : 'text-red-800'}`}>
+                  {error.includes('初回アクセス') ? '推奨アクション' : 'エラーが発生しました'}
+                </h3>
+                <p className={`text-sm ${error.includes('初回アクセス') ? 'text-blue-700' : 'text-red-700'} mt-1`}>{error}</p>
                 {error.includes('権限') && (
                   <div className="mt-3">
                     <a
@@ -619,82 +973,182 @@ export const MetaDashboardReal: React.FC = () => {
           </div>
         </div>
 
-        {/* パフォーマンスチャート */}
-        <div className="bg-white rounded-lg shadow p-6 mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            パフォーマンス推移
-          </h2>
-          <PerformanceChart
-            data={prepareChartData()}
-            metrics={['cost', 'impressions', 'clicks']}
-            height={400}
-          />
+        {/* タブナビゲーション */}
+        <div className="border-b border-gray-200 mb-8">
+          <nav className="-mb-px flex space-x-8" aria-label="Tabs">
+            <button
+              onClick={() => setActiveTab('overview')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'overview'
+                  ? 'border-indigo-500 text-indigo-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              概要
+            </button>
+            <button
+              onClick={() => setActiveTab('kpi')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'kpi'
+                  ? 'border-indigo-500 text-indigo-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              KPI分析
+            </button>
+            <button
+              onClick={() => setActiveTab('creative')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'creative'
+                  ? 'border-indigo-500 text-indigo-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              クリエイティブ分析
+            </button>
+            <button
+              onClick={() => setActiveTab('comparison')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'comparison'
+                  ? 'border-indigo-500 text-indigo-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              比較分析
+            </button>
+            <button
+              onClick={() => setActiveTab('fatigue')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'fatigue'
+                  ? 'border-indigo-500 text-indigo-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              疲労度分析
+            </button>
+          </nav>
         </div>
 
-        {/* キャンペーン一覧 */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">
-              アクティブキャンペーン
-            </h2>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    キャンペーン名
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    ステータス
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    目的
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    日予算
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    消化額
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {campaigns.map((campaign) => (
-                  <tr key={campaign.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {campaign.name}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        campaign.status === 'ACTIVE' 
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {campaign.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {campaign.objective}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                      ¥{(campaign.dailyBudget || 0).toLocaleString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                      ¥{(campaign.spend || 0).toLocaleString()}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {campaigns.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
-                アクティブなキャンペーンがありません
+        {/* タブコンテンツ */}
+        {activeTab === 'overview' && (
+          <>
+            {/* パフォーマンスチャート */}
+            <div className="bg-white rounded-lg shadow p-6 mb-8">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                パフォーマンス推移
+              </h2>
+              <PerformanceChart
+                data={prepareChartData()}
+                metrics={['cost', 'impressions', 'clicks']}
+                height={400}
+              />
+            </div>
+
+            {/* キャンペーン一覧 */}
+            <div className="bg-white rounded-lg shadow">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h2 className="text-lg font-semibold text-gray-900">
+                  アクティブキャンペーン
+                </h2>
               </div>
-            )}
-          </div>
-        </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        キャンペーン名
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        ステータス
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        目的
+                      </th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        日予算
+                      </th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        消化額
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {campaigns.map((campaign) => (
+                      <tr key={campaign.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {campaign.name}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            campaign.status === 'ACTIVE' 
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            {campaign.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {campaign.objective}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
+                          ¥{(campaign.dailyBudget || 0).toLocaleString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
+                          ¥{(campaign.spend || 0).toLocaleString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {campaigns.length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    アクティブなキャンペーンがありません
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+
+        {activeTab === 'kpi' && (
+          <KPIDashboard 
+            insights={insights}
+            ecforceOrders={ecforceOrders}
+            conversionValue={10000} // 1CV = 10,000円（後で設定可能にする）
+            dateRange={syncStatus?.dateRange}
+            showComparison={false}
+          />
+        )}
+
+        {activeTab === 'creative' && (
+          <CreativePerformance 
+            insights={insights}
+            dateRange={syncStatus?.dateRange ? {
+              start: syncStatus.dateRange.earliest || '',
+              end: syncStatus.dateRange.latest || ''
+            } : undefined}
+            aggregationPeriod={creativeAggregationPeriod}
+            onPeriodChange={setCreativeAggregationPeriod}
+          />
+        )}
+
+        {activeTab === 'comparison' && (
+          <ComparisonDashboard insights={insights} />
+        )}
+
+        {activeTab === 'fatigue' && (
+          <FatigueDashboardErrorBoundary>
+            <FatigueDashboard 
+              accountId={manager.getActiveAccount()?.accountId || 'test-account-001'} 
+            />
+          </FatigueDashboardErrorBoundary>
+        )}
       </div>
+      
+      {/* デバッグツール（開発環境のみ） */}
+      {process.env.NODE_ENV === 'development' && manager.getActiveAccount() && (
+        <DataHistoryViewer accountId={manager.getActiveAccount()!.accountId} />
+      )}
     </div>
   )
 }

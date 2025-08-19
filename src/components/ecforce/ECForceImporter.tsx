@@ -1,13 +1,15 @@
 import React, { useState, useCallback } from 'react'
 import { Upload, AlertCircle, CheckCircle } from 'lucide-react'
+import { useMutation } from 'convex/react'
+import { api } from '../../../convex/_generated/api'
 import { ECForceOrder, ECForceImportProgress } from '../../types/ecforce'
 import { ECForceCSVParserV2 } from '../../utils/ecforce-csv-parser-v2'
 import { ECForceDuplicateHandler, DuplicateStrategy } from '../../utils/ecforce-duplicate-handler'
-import { ECForceStorage } from '../../utils/ecforce-storage'
 import { ECForceDataSummary } from './ECForceDataSummary'
 import { ProgressBar } from '../common/ProgressBar'
 import { ImportHistoryManager } from '../../utils/import-history'
 import { ImportHistoryComponent } from './ImportHistory'
+import { useECForceDataPaginated } from '../../hooks/useECForceDataPaginated'
 
 export const ECForceImporter: React.FC = () => {
   const [importProgress, setImportProgress] = useState<ECForceImportProgress>({
@@ -15,10 +17,12 @@ export const ECForceImporter: React.FC = () => {
     progress: 0,
     message: ''
   })
-  // 初期データをストレージから読み込む
-  const [importedData, setImportedData] = useState<ECForceOrder[]>(() => {
-    return ECForceStorage.load()
-  })
+  
+  // Convexからデータを取得（ページネーション対応）
+  const { orders: importedData, totalCount, loadMore, hasMore } = useECForceDataPaginated({ pageSize: 100 })
+  const importOrders = useMutation(api.ecforce.importOrders)
+  const clearAllOrders = useMutation(api.ecforce.clearAllOrders)
+  
   const [errors, setErrors] = useState<string[]>([])
   const [isDragging, setIsDragging] = useState(false)
   const [duplicateStrategy, setDuplicateStrategy] = useState<DuplicateStrategy>('skip')
@@ -53,60 +57,92 @@ export const ECForceImporter: React.FC = () => {
       })
 
       const orders = await ECForceCSVParserV2.parseFile(file)
-
-      // 現在の保存済みデータを取得
-      const existingOrders = ECForceStorage.load()
-      
-      // 重複チェック
-      const stats = ECForceDuplicateHandler.getDuplicateStats(existingOrders, orders)
       
       setImportProgress({
         status: 'importing',
         progress: 80,
-        message: `${orders.length}件のデータを処理しています（${stats.duplicates}件の重複を検出）...`
+        message: `${orders.length}件のデータをインポート中...`
       })
 
-      // 重複処理
-      const result = ECForceDuplicateHandler.handleDuplicates(
-        existingOrders,
-        orders,
-        duplicateStrategy
-      )
-
-      // ストレージに保存
-      ECForceStorage.save(result.imported)
-      
-      setImportedData(result.imported)
-      setDuplicateStats({
-        skipped: result.skipped.length,
-        replaced: result.replaced.length,
-        imported: stats.unique
-      })
-      
-      // データ更新イベントを発火
-      window.dispatchEvent(new CustomEvent('ecforce-data-updated', {
-        detail: result.imported
+      // Convexに送信するためのデータを準備（日本語フィールドを英語に変換）
+      const ordersForConvex = orders.map(order => ({
+        orderId: order.受注ID || '',
+        orderDate: order.受注日 || order.注文日 || '',
+        purchaseDate: order.注文日 || order.受注日 || '',
+        customerId: order.顧客ID || order.顧客番号 || '',
+        customerNumber: order.顧客番号 || '',
+        email: order.メールアドレス || '',
+        postalCode: order.郵便番号,
+        address: order.住所,
+        subtotal: order.小計 || 0,
+        discount: order.値引額,
+        tax: order.消費税,
+        shipping: order.送料,
+        fee: order.手数料,
+        pointsUsed: order.ポイント利用額,
+        total: order.合計 || order.小計 || 0,
+        products: order.購入商品,
+        offer: order.購入オファー,
+        subscriptionStatus: order.定期ステータス,
+        deliveryStatus: order.配送ステータス,
+        adCode: order.広告コード,
+        advertiserName: order.広告主名,
+        adMedia: order.広告媒体,
       }))
+
+      // バッチサイズを設定（一度に大量のデータを送信しないように）
+      const batchSize = 100
+      let totalImported = 0
+      let totalSkipped = 0
+      let totalReplaced = 0
+
+      for (let i = 0; i < ordersForConvex.length; i += batchSize) {
+        const batch = ordersForConvex.slice(i, i + batchSize)
+        
+        // Convexにインポート
+        const result = await importOrders({
+          orders: batch,
+          strategy: duplicateStrategy,
+        })
+
+        totalImported += result.imported
+        totalSkipped += result.skipped
+        totalReplaced += result.replaced
+
+        // プログレスを更新
+        const progress = 80 + (20 * (i + batch.length) / ordersForConvex.length)
+        setImportProgress({
+          status: 'importing',
+          progress,
+          message: `${i + batch.length}/${ordersForConvex.length}件を処理中...`
+        })
+      }
+      
+      setDuplicateStats({
+        skipped: totalSkipped,
+        replaced: totalReplaced,
+        imported: totalImported
+      })
 
       setImportProgress({
         status: 'complete',
         progress: 100,
-        message: `${stats.unique}件の新規データをインポートしました${stats.duplicates > 0 ? `（${stats.duplicates}件の重複を${duplicateStrategy === 'skip' ? 'スキップ' : '置換'}）` : ''}`
+        message: `${totalImported}件の新規データをインポートしました${totalSkipped > 0 || totalReplaced > 0 ? `（${totalSkipped}件スキップ、${totalReplaced}件置換）` : ''}`
       })
 
       // インポート履歴を保存
       ImportHistoryManager.addHistory({
         filename,
         recordCount: orders.length,
-        duplicatesFound: stats.duplicates,
-        duplicatesSkipped: duplicateStrategy === 'skip' ? result.skipped.length : 0,
-        totalProcessed: stats.unique,
+        duplicatesFound: totalSkipped + totalReplaced,
+        duplicatesSkipped: totalSkipped,
+        totalProcessed: totalImported,
         fileSize,
         status: 'success',
         metadata: {
-          uniqueCustomers: new Set(result.imported.map(o => o.顧客番号)).size,
-          uniqueProducts: new Set(result.imported.flatMap(o => o.購入商品 || [])).size,
-          totalRevenue: result.imported.reduce((sum, o) => sum + (o.合計 ?? 0), 0)
+          uniqueCustomers: new Set(ordersForConvex.map(o => o.customerNumber)).size,
+          uniqueProducts: new Set(ordersForConvex.flatMap(o => o.products || [])).size,
+          totalRevenue: ordersForConvex.reduce((sum, o) => sum + (o.total ?? 0), 0)
         }
       })
 
@@ -306,16 +342,23 @@ export const ECForceImporter: React.FC = () => {
         <div className="mt-8">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold text-gray-900">
-              データサマリー（全{importedData.length}件）
+              データサマリー（{totalCount ? `全${totalCount.toLocaleString()}件中` : ''}{importedData.length.toLocaleString()}件表示）
             </h2>
             <button
-              onClick={() => {
+              onClick={async () => {
                 if (window.confirm('すべてのデータを削除しますか？')) {
-                  ECForceStorage.clear()
-                  setImportedData([])
-                  window.dispatchEvent(new CustomEvent('ecforce-data-updated', {
-                    detail: []
-                  }))
+                  try {
+                    await clearAllOrders()
+                    setDuplicateStats(null)
+                    setImportProgress({
+                      status: 'idle',
+                      progress: 0,
+                      message: ''
+                    })
+                  } catch (error) {
+                    console.error('データクリアエラー:', error)
+                    setErrors(['データのクリアに失敗しました'])
+                  }
                 }
               }}
               className="text-sm text-red-600 hover:text-red-700"
@@ -331,7 +374,7 @@ export const ECForceImporter: React.FC = () => {
       {importedData.length > 0 && (
         <div className="mt-8">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            インポートデータ ({importedData.length}件)
+            インポートデータ ({importedData.length.toLocaleString()}件 / {totalCount?.toLocaleString() || '?'}件)
           </h2>
           
           <div className="bg-white shadow overflow-hidden sm:rounded-lg">
@@ -381,7 +424,7 @@ export const ECForceImporter: React.FC = () => {
                         {order.メールアドレス}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        ¥{order.小計.toLocaleString()}
+                        ¥{(order.小計 || 0).toLocaleString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {order.購入オファー}
@@ -404,9 +447,20 @@ export const ECForceImporter: React.FC = () => {
               </table>
             </div>
             
-            {importedData.length > 20 && (
-              <div className="bg-gray-50 px-6 py-3 text-sm text-gray-500">
-                他 {importedData.length - 20} 件のデータ
+            {(importedData.length > 20 || hasMore) && (
+              <div className="bg-gray-50 px-6 py-3 text-sm text-gray-500 flex justify-between items-center">
+                <span>
+                  {importedData.length > 20 && `最初の20件を表示中`}
+                  {totalCount && ` (全${totalCount.toLocaleString()}件)`}
+                </span>
+                {hasMore && (
+                  <button
+                    onClick={loadMore}
+                    className="text-indigo-600 hover:text-indigo-900 font-medium"
+                  >
+                    もっと読み込む
+                  </button>
+                )}
               </div>
             )}
           </div>

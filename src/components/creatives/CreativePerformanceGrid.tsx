@@ -15,7 +15,17 @@ export interface CreativeData {
   type: 'IMAGE' | 'VIDEO' | 'CAROUSEL'
   thumbnailUrl?: string
   videoUrl?: string
+  videoId?: string
   campaignName: string
+  campaignId?: string
+  adId?: string // Meta APIの広告ID
+  creativeId?: string // Meta APIのクリエイティブID
+  carouselCards?: Array<{
+    name: string
+    description: string
+    image_url: string
+    link: string
+  }>
   metrics: {
     impressions: number
     clicks: number
@@ -26,6 +36,8 @@ export interface CreativeData {
     cpc: number
     cpa: number
     roas: number
+    reach?: number
+    cpm?: number
   }
   status: 'ACTIVE' | 'PAUSED' | 'DELETED'
 }
@@ -36,6 +48,10 @@ interface CreativePerformanceGridProps {
   viewMode?: 'grid' | 'list'
   isLoading?: boolean
   className?: string
+  aggregationPeriod?: 'daily' | 'weekly' | 'monthly'
+  onPeriodChange?: (period: 'daily' | 'weekly' | 'monthly') => void
+  selectedCreativeIds?: string[]
+  onSelectionChange?: (ids: string[]) => void
 }
 
 const CREATIVE_TYPE_LABELS = {
@@ -65,10 +81,15 @@ export const CreativePerformanceGrid: React.FC<CreativePerformanceGridProps> = (
   viewMode = 'grid',
   isLoading = false,
   className = '',
+  aggregationPeriod = 'daily',
+  onPeriodChange,
+  selectedCreativeIds = [],
+  onSelectionChange,
 }) => {
   const [filterType, setFilterType] = useState<string>('all')
   const [sortBy, setSortBy] = useState<string>('revenue')
   const [hoveredId, setHoveredId] = useState<string | null>(null)
+  const [showSelection, setShowSelection] = useState(false)
 
   const filteredAndSortedCreatives = useMemo(() => {
     let filtered = creatives
@@ -86,6 +107,41 @@ export const CreativePerformanceGrid: React.FC<CreativePerformanceGridProps> = (
     })
   }, [creatives, filterType, sortBy])
 
+  // Calculate type summary
+  const typeSummary = useMemo(() => {
+    const summary = {
+      IMAGE: { count: 0, spend: 0, revenue: 0, conversions: 0 },
+      VIDEO: { count: 0, spend: 0, revenue: 0, conversions: 0 },
+      CAROUSEL: { count: 0, spend: 0, revenue: 0, conversions: 0 },
+    }
+
+    creatives.forEach((creative) => {
+      const type = creative.type
+      summary[type].count++
+      summary[type].spend += creative.metrics.spend
+      summary[type].revenue += creative.metrics.revenue
+      summary[type].conversions += creative.metrics.conversions
+    })
+
+    return summary
+  }, [creatives])
+
+  // Calculate selected creatives totals
+  const selectedTotals = useMemo(() => {
+    const selected = creatives.filter((c) => selectedCreativeIds.includes(c.id))
+    return selected.reduce(
+      (acc, creative) => ({
+        count: acc.count + 1,
+        impressions: acc.impressions + creative.metrics.impressions,
+        clicks: acc.clicks + creative.metrics.clicks,
+        spend: acc.spend + creative.metrics.spend,
+        revenue: acc.revenue + creative.metrics.revenue,
+        conversions: acc.conversions + creative.metrics.conversions,
+      }),
+      { count: 0, impressions: 0, clicks: 0, spend: 0, revenue: 0, conversions: 0 }
+    )
+  }, [creatives, selectedCreativeIds])
+
   const formatNumber = (num: number): string => {
     return new Intl.NumberFormat('ja-JP').format(num)
   }
@@ -95,6 +151,26 @@ export const CreativePerformanceGrid: React.FC<CreativePerformanceGridProps> = (
       style: 'currency',
       currency: 'JPY',
     }).format(num)
+  }
+
+  const handleCreativeSelect = (id: string, isSelected: boolean) => {
+    if (!onSelectionChange) return
+    
+    if (isSelected) {
+      onSelectionChange([...selectedCreativeIds, id])
+    } else {
+      onSelectionChange(selectedCreativeIds.filter((cid) => cid !== id))
+    }
+  }
+
+  const handleSelectAll = (isSelected: boolean) => {
+    if (!onSelectionChange) return
+    
+    if (isSelected) {
+      onSelectionChange(filteredAndSortedCreatives.map((c) => c.id))
+    } else {
+      onSelectionChange([])
+    }
   }
 
   if (isLoading) {
@@ -134,6 +210,20 @@ export const CreativePerformanceGrid: React.FC<CreativePerformanceGridProps> = (
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-medium text-gray-900">クリエイティブパフォーマンス</h3>
           <div className="flex items-center space-x-4">
+            {/* Period Selection */}
+            {onPeriodChange && (
+              <select
+                aria-label="集計期間"
+                value={aggregationPeriod}
+                onChange={(e) => onPeriodChange(e.target.value as 'daily' | 'weekly' | 'monthly')}
+                className="block rounded-md border-gray-300 py-1.5 pr-10 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+              >
+                <option value="daily">日別</option>
+                <option value="weekly">週別</option>
+                <option value="monthly">月別</option>
+              </select>
+            )}
+
             {/* Type Filter */}
             <select
               aria-label="タイプで絞り込み"
@@ -160,7 +250,51 @@ export const CreativePerformanceGrid: React.FC<CreativePerformanceGridProps> = (
                 </option>
               ))}
             </select>
+
+            {/* Selection Toggle */}
+            {onSelectionChange && (
+              <button
+                onClick={() => setShowSelection(!showSelection)}
+                className={`px-3 py-1.5 text-sm rounded-md border ${
+                  showSelection
+                    ? 'bg-indigo-50 text-indigo-700 border-indigo-300'
+                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                選択モード
+              </button>
+            )}
           </div>
+        </div>
+
+        {/* Type Summary */}
+        <div className="mt-4 grid grid-cols-3 gap-4">
+          {Object.entries(typeSummary).map(([type, data]) => (
+            <div key={type} className="bg-gray-50 rounded-lg p-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-700">
+                  {CREATIVE_TYPE_LABELS[type as keyof typeof CREATIVE_TYPE_LABELS]}
+                </span>
+                <span className="text-sm text-gray-500">{data.count}件</span>
+              </div>
+              <div className="space-y-1 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">広告費:</span>
+                  <span className="font-medium">{formatCurrency(data.spend)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">売上:</span>
+                  <span className="font-medium">{formatCurrency(data.revenue)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">ROAS:</span>
+                  <span className="font-medium">
+                    {data.spend > 0 ? (data.revenue / data.spend).toFixed(2) : '0.00'}x
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -178,7 +312,12 @@ export const CreativePerformanceGrid: React.FC<CreativePerformanceGridProps> = (
                   key={creative.id}
                   data-testid={`creative-card-${creative.id}`}
                   className="relative bg-gray-50 rounded-lg overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
-                  onClick={() => onCreativeClick?.(creative)}
+                  onClick={(e) => {
+                    if (showSelection && e.target instanceof HTMLInputElement) {
+                      return
+                    }
+                    onCreativeClick?.(creative)
+                  }}
                   onMouseEnter={() => setHoveredId(creative.id)}
                   onMouseLeave={() => setHoveredId(null)}
                 >
@@ -214,7 +353,18 @@ export const CreativePerformanceGrid: React.FC<CreativePerformanceGridProps> = (
                     )}
                     
                     {/* Type Badge */}
-                    <div className="absolute top-2 left-2">
+                    <div className="absolute top-2 left-2 flex items-center gap-2">
+                      {showSelection && onSelectionChange && (
+                        <input
+                          type="checkbox"
+                          checked={selectedCreativeIds.includes(creative.id)}
+                          onChange={(e) => {
+                            e.stopPropagation()
+                            handleCreativeSelect(creative.id, e.target.checked)
+                          }}
+                          className="h-4 w-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                        />
+                      )}
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-gray-900 text-white">
                         {CREATIVE_TYPE_LABELS[creative.type]}
                       </span>
@@ -321,6 +471,58 @@ export const CreativePerformanceGrid: React.FC<CreativePerformanceGridProps> = (
           </div>
         )}
       </div>
+
+      {/* Footer with selected totals */}
+      {showSelection && selectedCreativeIds.length > 0 && (
+        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-gray-700">
+                選択中: {selectedTotals.count}件
+              </span>
+              <button
+                onClick={() => handleSelectAll(true)}
+                className="text-sm text-indigo-600 hover:text-indigo-700"
+              >
+                すべて選択
+              </button>
+              <button
+                onClick={() => handleSelectAll(false)}
+                className="text-sm text-gray-600 hover:text-gray-700"
+              >
+                選択解除
+              </button>
+            </div>
+            <div className="flex items-center gap-6 text-sm">
+              <div>
+                <span className="text-gray-600">表示回数:</span>
+                <span className="ml-1 font-medium">{formatNumber(selectedTotals.impressions)}</span>
+              </div>
+              <div>
+                <span className="text-gray-600">クリック:</span>
+                <span className="ml-1 font-medium">{formatNumber(selectedTotals.clicks)}</span>
+              </div>
+              <div>
+                <span className="text-gray-600">広告費:</span>
+                <span className="ml-1 font-medium">{formatCurrency(selectedTotals.spend)}</span>
+              </div>
+              <div>
+                <span className="text-gray-600">売上:</span>
+                <span className="ml-1 font-medium">{formatCurrency(selectedTotals.revenue)}</span>
+              </div>
+              <div>
+                <span className="text-gray-600">ROAS:</span>
+                <span className="ml-1 font-medium">
+                  {selectedTotals.spend > 0
+                    ? (selectedTotals.revenue / selectedTotals.spend).toFixed(2)
+                    : '0.00'}
+                  x
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

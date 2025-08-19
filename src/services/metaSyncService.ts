@@ -203,7 +203,7 @@ export class MetaSyncService {
       // const history = await this.convex.query(api.metaSync.getSyncHistory, {
       //   limit,
       // })
-      const history = []
+      const history: any[] = []
       return history
     } catch (error) {
       console.error('[Sync] Failed to get sync history:', error)

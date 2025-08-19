@@ -28,21 +28,21 @@ export const subscribeToCampaignUpdates = query({
       filteredCampaigns.map(async (campaign) => {
         const allInsights = await ctx.db
           .query('metaInsights')
-          .withIndex('by_campaignId', (q) => q.eq('campaignId', campaign.metaId))
+          .withIndex('by_campaign', (q) => q.eq('accountId', campaign.accountId).eq('campaign_id', campaign.metaId))
           .collect()
         
         // Sort by date and take last 7
         const recentInsights = allInsights
-          .sort((a, b) => new Date(b.dateStart).getTime() - new Date(a.dateStart).getTime())
+          .sort((a, b) => new Date(b.date_start || '').getTime() - new Date(a.date_start || '').getTime())
           .slice(0, 7)
         
         // Calculate current metrics
         const currentMetrics = recentInsights.reduce(
           (acc, insight) => ({
-            impressions: acc.impressions + insight.impressions,
-            clicks: acc.clicks + insight.clicks,
-            spend: acc.spend + insight.spend,
-            conversions: acc.conversions + insight.conversions,
+            impressions: acc.impressions + (insight.impressions || 0),
+            clicks: acc.clicks + (insight.clicks || 0),
+            spend: acc.spend + (insight.spend || 0),
+            conversions: acc.conversions + (insight.conversions || 0),
             revenue: acc.revenue + (insight.revenue || 0),
           }),
           { impressions: 0, clicks: 0, spend: 0, conversions: 0, revenue: 0 }
@@ -82,12 +82,12 @@ export const subscribeToCreativeUpdates = query({
       limitedCreatives.map(async (creative) => {
         const allInsights = await ctx.db
           .query('metaInsights')
-          .withIndex('by_creativeId', (q) => q.eq('creativeId', creative.metaId))
+          .filter((q) => q.eq(q.field('creative_id'), creative.metaId))
           .collect()
         
         // Get most recent
         const recentInsights = allInsights
-          .sort((a, b) => new Date(b.dateStart).getTime() - new Date(a.dateStart).getTime())
+          .sort((a, b) => new Date(b.date_start || '').getTime() - new Date(a.date_start || '').getTime())
           .slice(0, 1)
         
         const latestInsight = recentInsights[0]
@@ -120,7 +120,7 @@ export const subscribeToAlerts = query({
     
     // Sort by date and take recent 100
     const recentInsights = allInsights
-      .sort((a, b) => new Date(b.dateStart).getTime() - new Date(a.dateStart).getTime())
+      .sort((a, b) => new Date(b.date_start || '').getTime() - new Date(a.date_start || '').getTime())
       .slice(0, 100)
     
     const alerts: Array<{
@@ -135,20 +135,20 @@ export const subscribeToAlerts = query({
     // Group by campaign
     const byCampaign = new Map<string, Doc<'metaInsights'>[]>()
     recentInsights.forEach((insight) => {
-      if (!insight.campaignId) return
+      if (!insight.campaign_id) return
       
-      if (!byCampaign.has(insight.campaignId)) {
-        byCampaign.set(insight.campaignId, [])
+      if (!byCampaign.has(insight.campaign_id)) {
+        byCampaign.set(insight.campaign_id, [])
       }
-      byCampaign.get(insight.campaignId)!.push(insight)
+      byCampaign.get(insight.campaign_id)!.push(insight)
     })
     
     // Check thresholds for each campaign
     for (const [campaignId, insights] of byCampaign) {
       const totals = insights.reduce(
         (acc, insight) => ({
-          spend: acc.spend + insight.spend,
-          conversions: acc.conversions + insight.conversions,
+          spend: acc.spend + (insight.spend || 0),
+          conversions: acc.conversions + (insight.conversions || 0),
           revenue: acc.revenue + (insight.revenue || 0),
         }),
         { spend: 0, conversions: 0, revenue: 0 }

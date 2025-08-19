@@ -1,7 +1,8 @@
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom'
 import { ConvexProvider, ConvexReactClient } from 'convex/react'
 import { useEffect } from 'react'
-import Dashboard from './routes/Dashboard'
+import { UnifiedDashboard } from './pages/UnifiedDashboard'
+import { UnifiedDashboardSimple } from './pages/UnifiedDashboardSimple'
 import Campaigns from './routes/Campaigns'
 import Tasks from './routes/Tasks'
 import CategoryAnalysis from './routes/CategoryAnalysis'
@@ -9,13 +10,22 @@ import DetailAnalysis from './routes/DetailAnalysis'
 import PeriodAnalysis from './routes/PeriodAnalysis'
 import { MetaDashboardReal } from './pages/MetaDashboardReal'
 import { MetaApiSetupUnified } from './pages/MetaApiSetupUnified'
+import { MetaApiSetupSteps } from './pages/MetaApiSetupSteps'
+import { ConnectStep } from './pages/meta-setup/ConnectStep'
+import { PermissionsStep } from './pages/meta-setup/PermissionsStep'
+import { TestStep } from './pages/meta-setup/TestStep'
+import { CompleteStep } from './pages/meta-setup/CompleteStep'
 import { ECForceImporter } from './components/ecforce/ECForceImporter'
 import { ECForceContainer } from './pages/ECForceContainer'
 import { IntegratedDashboard } from './pages/IntegratedDashboard'
 import { ReportManagement } from './pages/ReportManagement'
+import { SettingsManagement } from './pages/SettingsManagement'
+import { FatigueDashboard } from './components/AdFatigue/FatigueDashboard'
+import { FatigueEducation } from './pages/FatigueEducation'
 import Sidebar from './components/Sidebar'
 import Header from './components/Header'
 import { vibe } from './lib/vibelogger'
+import { setupTestAccount } from './services/testAccountSetup'
 
 // Convex URLのフォールバック処理を追加
 const convexUrl = import.meta.env.VITE_CONVEX_URL || 'https://temporary-convex-url.convex.cloud'
@@ -46,11 +56,17 @@ function AppContent() {
         <main className="flex-1 overflow-auto">
           <RouteLogger />
           <Routes>
-            <Route path="/" element={<Dashboard />} />
+            <Route path="/" element={<UnifiedDashboard />} />
             <Route path="/meta-dashboard" element={<MetaDashboardReal />} />
-            <Route path="/meta-api-setup" element={<MetaApiSetupUnified />} />
+            <Route path="/meta-api-setup" element={<MetaApiSetupSteps />}>
+              <Route index element={<ConnectStep />} />
+              <Route path="connect" element={<ConnectStep />} />
+              <Route path="permissions" element={<PermissionsStep />} />
+              <Route path="test" element={<TestStep />} />
+              <Route path="complete" element={<CompleteStep />} />
+            </Route>
             <Route path="/ecforce-import" element={<ECForceImporter />} />
-            <Route path="/ecforce-dashboard" element={<ECForceContainer />} />
+            <Route path="/ecforce" element={<ECForceContainer />} />
             <Route path="/integrated-dashboard" element={<IntegratedDashboard />} />
             <Route path="/campaigns" element={<Campaigns />} />
             <Route path="/tasks" element={<Tasks />} />
@@ -58,6 +74,9 @@ function AppContent() {
             <Route path="/details" element={<DetailAnalysis />} />
             <Route path="/period" element={<PeriodAnalysis />} />
             <Route path="/reports" element={<ReportManagement />} />
+            <Route path="/settings" element={<SettingsManagement />} />
+            <Route path="/ad-fatigue" element={<FatigueDashboard accountId="test-account-001" />} />
+            <Route path="/fatigue-education" element={<FatigueEducation />} />
             <Route
               path="/media"
               element={
@@ -82,6 +101,15 @@ function AppContent() {
                 </div>
               }
             />
+            <Route
+              path="*"
+              element={
+                <div className="p-6">
+                  <h1 className="text-2xl font-bold text-red-600">404 - ページが見つかりません</h1>
+                  <p className="mt-2">リクエストされたページは存在しません。</p>
+                </div>
+              }
+            />
           </Routes>
         </main>
       </div>
@@ -90,6 +118,15 @@ function AppContent() {
 }
 
 function App() {
+  useEffect(() => {
+    // 開発環境でテストアカウントをセットアップ
+    if (import.meta.env.DEV) {
+      setupTestAccount().then((account) => {
+        console.log('Test account setup completed:', account)
+      }).catch(console.error)
+    }
+  }, [])
+
   return (
     <ConvexProvider client={convex}>
       <Router>

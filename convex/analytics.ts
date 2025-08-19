@@ -91,10 +91,10 @@ function aggregateInsights(insights: Doc<'metaInsights'>[]): {
 } {
   return insights.reduce(
     (acc, insight) => ({
-      impressions: acc.impressions + insight.impressions,
-      clicks: acc.clicks + insight.clicks,
-      spend: acc.spend + insight.spend,
-      conversions: acc.conversions + insight.conversions,
+      impressions: acc.impressions + (insight.impressions || 0),
+      clicks: acc.clicks + (insight.clicks || 0),
+      spend: acc.spend + (insight.spend || 0),
+      conversions: acc.conversions + (insight.conversions || 0),
       revenue: acc.revenue + (insight.revenue || 0),
     }),
     {

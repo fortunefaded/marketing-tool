@@ -3,7 +3,7 @@ import { Link, Filter } from 'lucide-react'
 import { ECForceOrder } from '../types/ecforce'
 import { AddToFavoriteButton } from '../components/favorites/AddToFavoriteButton'
 import { useMemoryOptimization } from '../hooks/useMemoryOptimization'
-import { ECForceStorage } from '../utils/ecforce-storage'
+import { useECForceData } from '../hooks/useECForceData'
 import { AdvancedFilter } from '../components/filters/AdvancedFilter'
 import { ROASAnalysis } from '../components/integrated/ROASAnalysis'
 import { CohortAnalysis } from '../components/integrated/CohortAnalysis'
@@ -18,56 +18,15 @@ export const IntegratedDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'roas' | 'cohort' | 'rfm' | 'basket' | 'ltv'>('overview')
   const [isTabLoading, setIsTabLoading] = useState(false)
   const [showAdvancedFilter, setShowAdvancedFilter] = useState(false)
-  const [ordersLoading, setOrdersLoading] = useState(true)
-  const [ecforceOrders, setEcforceOrders] = useState<ECForceOrder[]>([])
+  const [filteredOrders, setFilteredOrders] = useState<ECForceOrder[]>([])
   
-  const { 
-    processInBatches,
-    getCachedData,
-    setCachedData
-  } = useMemoryOptimization({
-    maxDataPoints: 10000,
-    enableCaching: true
-  })
+  // ConvexからECForceデータを取得
+  const { orders: ecforceOrders, isLoading: ordersLoading } = useECForceData()
   
-  // シンプルなデータ読み込み（バッチ処理付き）
+  // フィルター適用時の処理
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        setOrdersLoading(true)
-        
-        // キャッシュチェック
-        const cached = getCachedData<ECForceOrder[]>('integrated_orders')
-        if (cached) {
-          setEcforceOrders(cached)
-          setOrdersLoading(false)
-          return
-        }
-        
-        const data = ECForceStorage.load()
-        
-        // 大量データの場合はバッチ処理
-        if (data.length > 10000) {
-          const batches = await processInBatches(
-            data,
-            async (batch) => batch,
-            5000
-          )
-          const processedData = batches.flat()
-          setEcforceOrders(processedData)
-          setCachedData('integrated_orders', processedData)
-        } else {
-          setEcforceOrders(data)
-          setCachedData('integrated_orders', data)
-        }
-      } catch (error) {
-        console.error('Error loading data:', error)
-      } finally {
-        setOrdersLoading(false)
-      }
-    }
-    loadData()
-  }, [getCachedData, setCachedData, processInBatches])
+    setFilteredOrders(ecforceOrders)
+  }, [ecforceOrders])
   
   // Meta広告データ（モック）
   const [metaAdData] = useState({
@@ -161,7 +120,7 @@ export const IntegratedDashboard: React.FC = () => {
         <div className="mb-6">
           <AdvancedFilter
             orders={ecforceOrders}
-            onFilterChange={setEcforceOrders}
+            onFilterChange={setFilteredOrders}
             onClose={() => setShowAdvancedFilter(false)}
           />
         </div>
@@ -203,32 +162,32 @@ export const IntegratedDashboard: React.FC = () => {
           <>
             {activeTab === 'overview' && (
               <CrossChannelKPIs
-                ecforceOrders={ecforceOrders}
+                ecforceOrders={filteredOrders}
                 metaAdData={metaAdData}
               />
             )}
             
             {activeTab === 'roas' && (
               <ROASAnalysis
-                ecforceOrders={ecforceOrders}
+                ecforceOrders={filteredOrders}
                 metaAdData={metaAdData}
               />
             )}
             
             {activeTab === 'cohort' && (
-              <CohortAnalysis orders={ecforceOrders} />
+              <CohortAnalysis orders={filteredOrders} />
             )}
             
             {activeTab === 'rfm' && (
-              <RFMAnalysis orders={ecforceOrders} />
+              <RFMAnalysis orders={filteredOrders} />
             )}
             
             {activeTab === 'basket' && (
-              <BasketAnalysis orders={ecforceOrders} />
+              <BasketAnalysis orders={filteredOrders} />
             )}
             
             {activeTab === 'ltv' && (
-              <LTVAnalysis orders={ecforceOrders} />
+              <LTVAnalysis orders={filteredOrders} />
             )}
           </>
         )}

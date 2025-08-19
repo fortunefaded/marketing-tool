@@ -137,6 +137,24 @@ export const CreativeDetailModal: React.FC<CreativeDetailModalProps> = ({
                             controls
                             className="w-full h-full object-contain"
                           />
+                        ) : creative.type === 'CAROUSEL' && creative.carouselCards && creative.carouselCards.length > 0 ? (
+                          <div className="flex overflow-x-auto gap-2 p-4 h-full">
+                            {creative.carouselCards.map((card, index) => (
+                              <div key={index} className="flex-shrink-0 w-48 bg-white rounded-lg shadow-sm">
+                                {card.image_url && (
+                                  <img
+                                    src={card.image_url}
+                                    alt={card.name}
+                                    className="w-full h-32 object-cover rounded-t-lg"
+                                  />
+                                )}
+                                <div className="p-2">
+                                  <h5 className="text-xs font-medium text-gray-900 truncate">{card.name}</h5>
+                                  <p className="text-xs text-gray-500 mt-1 line-clamp-2">{card.description}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
                         ) : creative.thumbnailUrl ? (
                           <img
                             src={creative.thumbnailUrl}
