@@ -103,11 +103,8 @@ describe('AdvancedFilter', () => {
 
     render(<AdvancedFilter orders={orders} onFilterChange={mockOnFilterChange} />)
 
-    const dateInputs = screen
-      .getAllByRole('textbox', { name: '' })
-      .filter((input) => input.getAttribute('type') === 'date')
-    const startDateInput = dateInputs[0]
-    const endDateInput = dateInputs[1]
+    const startDateInput = screen.getByTestId('start-date-input')
+    const endDateInput = screen.getByTestId('end-date-input')
 
     // 開始日のみ設定
     fireEvent.change(startDateInput, { target: { value: '2024-01-10' } })

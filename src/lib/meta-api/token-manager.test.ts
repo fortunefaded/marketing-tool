@@ -500,8 +500,13 @@ describe('MetaTokenManager', () => {
       mockFetch.mockClear()
       mockFetch.mockRejectedValueOnce(new Error('Refresh failed'))
 
-      const errorPromise = new Promise<Error>((resolve) => {
+      const errorPromise = new Promise<Error>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('Test timed out waiting for token:refresh-failed event'))
+        }, 1000)
+
         tokenManager.once('token:refresh-failed', (error) => {
+          clearTimeout(timeout)
           resolve(error)
         })
       })
@@ -518,7 +523,7 @@ describe('MetaTokenManager', () => {
       expect(error.message).toBe('Refresh failed')
 
       vi.useRealTimers()
-    })
+    }, 2000)
 
     it('should emit tokens:cleared event', () => {
       tokenManager = new MetaTokenManager({

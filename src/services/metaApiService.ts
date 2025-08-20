@@ -1272,7 +1272,7 @@ export class MetaApiService {
           })
         }
 
-        const errorCode = error.error?.code || this.getErrorCode(response.status, error)
+        const errorCode = this.getErrorCode(response.status, error)
 
         throw new MetaApiError(
           error.error?.message || 'API request failed',

@@ -3,7 +3,6 @@ import {
   MetaApiService,
   MetaApiError,
   MetaApiConfig,
-  MetaCampaignData,
   MetaAdSetData,
   MetaAdData,
   MetaInsightsData,
@@ -41,7 +40,7 @@ describe('MetaApiService', () => {
         accessToken: 'test-token',
         accountId: 'test-account',
       })
-      expect(serviceWithoutVersion.getConfig().apiVersion).toBe('v18.0')
+      expect(serviceWithoutVersion.getConfig().apiVersion).toBe('v23.0')
     })
   })
 
@@ -98,37 +97,70 @@ describe('MetaApiService', () => {
 
   describe('キャンペーンデータ取得', () => {
     it('キャンペーン一覧を取得できる', async () => {
-      const mockCampaigns: MetaCampaignData[] = [
+      const mockCampaignsFromAPI = [
         {
           id: 'campaign-1',
           name: 'Test Campaign 1',
           status: 'ACTIVE',
           objective: 'CONVERSIONS',
-          dailyBudget: 10000,
-          lifetimeBudget: undefined,
+          daily_budget: '10000',
+          lifetime_budget: undefined,
           created_time: '2024-01-01T00:00:00Z',
           updated_time: '2024-01-02T00:00:00Z',
+          insights: { data: [{ spend: '100' }] },
         },
         {
           id: 'campaign-2',
           name: 'Test Campaign 2',
           status: 'PAUSED',
           objective: 'TRAFFIC',
-          dailyBudget: 5000,
-          lifetimeBudget: undefined,
+          daily_budget: '5000',
+          lifetime_budget: undefined,
           created_time: '2024-01-01T00:00:00Z',
           updated_time: '2024-01-02T00:00:00Z',
+          insights: { data: [{ spend: '50' }] },
+        },
+      ]
+
+      const expectedCampaigns = [
+        {
+          id: 'campaign-1',
+          name: 'Test Campaign 1',
+          status: 'ACTIVE',
+          objective: 'CONVERSIONS',
+          daily_budget: '10000',
+          lifetime_budget: undefined,
+          created_time: '2024-01-01T00:00:00Z',
+          updated_time: '2024-01-02T00:00:00Z',
+          insights: { data: [{ spend: '100' }] },
+          dailyBudget: 10000,
+          lifetimeBudget: undefined,
+          spend: 100,
+        },
+        {
+          id: 'campaign-2',
+          name: 'Test Campaign 2',
+          status: 'PAUSED',
+          objective: 'TRAFFIC',
+          daily_budget: '5000',
+          lifetime_budget: undefined,
+          created_time: '2024-01-01T00:00:00Z',
+          updated_time: '2024-01-02T00:00:00Z',
+          insights: { data: [{ spend: '50' }] },
+          dailyBudget: 5000,
+          lifetimeBudget: undefined,
+          spend: 50,
         },
       ]
 
       ;(global.fetch as any).mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ data: mockCampaigns }),
+        json: async () => ({ data: mockCampaignsFromAPI }),
       })
 
       const result = await service.getCampaigns()
 
-      expect(result).toEqual(mockCampaigns)
+      expect(result).toEqual(expectedCampaigns)
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringContaining(`/act_${mockConfig.accountId}/campaigns`),
         expect.objectContaining({
@@ -272,7 +304,23 @@ describe('MetaApiService', () => {
         },
       })
 
-      expect(result).toEqual(mockInsights)
+      expect(result).toHaveLength(1)
+      expect(result[0]).toMatchObject({
+        date_start: '2024-01-01',
+        date_stop: '2024-01-01',
+        impressions: '10000',
+        clicks: '500',
+        spend: '5000',
+        reach: '8000',
+        frequency: '1.25',
+        cpm: '625',
+        cpc: '10',
+        ctr: '5',
+        conversions: '50',
+        conversion_value: '50000',
+        cost_per_conversion: '100',
+        roas: '10',
+      })
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringContaining('/insights'),
         expect.any(Object)

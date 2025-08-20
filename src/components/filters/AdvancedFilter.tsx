@@ -241,6 +241,7 @@ export const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
           <div className="flex items-center space-x-2">
             <input
               type="date"
+              data-testid="start-date-input"
               value={formatDateForInput(criteria.dateRange.start)}
               onChange={(e) =>
                 setCriteria({
@@ -256,6 +257,7 @@ export const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
             <span className="text-gray-500">〜</span>
             <input
               type="date"
+              data-testid="end-date-input"
               value={formatDateForInput(criteria.dateRange.end)}
               onChange={(e) =>
                 setCriteria({

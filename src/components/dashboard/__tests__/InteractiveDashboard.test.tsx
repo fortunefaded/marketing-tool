@@ -20,14 +20,22 @@ vi.mock('@hello-pangea/dnd', () => ({
       isDraggingOver: false,
     }),
   Draggable: ({ children }: any) =>
-    children({
-      draggableProps: {
-        style: {},
+    children(
+      {
+        draggableProps: {
+          style: {},
+        },
+        dragHandleProps: {},
+        innerRef: vi.fn(),
       },
-      dragHandleProps: {},
-      innerRef: vi.fn(),
-      isDragging: false,
-    }),
+      {
+        isDragging: false,
+        isDropAnimating: false,
+        combineWith: null,
+        combineTargetFor: null,
+        mode: null,
+      }
+    ),
 }))
 
 describe('InteractiveDashboard', () => {
