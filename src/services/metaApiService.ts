@@ -758,16 +758,12 @@ export class MetaApiService {
       'conversion_values', // コンバージョン価値
       'cost_per_action_type', // アクションタイプ別CPA
       'cost_per_conversion', // CPA
-      'website_purchases', // ウェブサイト購入
       'purchase_roas', // 購入ROAS（配列形式）
       'website_purchase_roas', // ウェブサイト購入ROAS（配列形式）
 
       // アトリビューション設定
       'inline_link_clicks',
       'outbound_clicks',
-      'landing_page_views',
-      'omni_purchase',
-      'purchase',
     ]
 
     // レベルに応じて追加フィールドを決定
