@@ -80,7 +80,7 @@ export const CompleteStepConvex: React.FC = () => {
 
       <div className="flex justify-center space-x-4">
         <button
-          onClick={() => navigate('/dashboard')}
+          onClick={() => navigate('/meta-dashboard')}
           className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
         >
           <ChartBarIcon className="h-5 w-5 mr-2" />

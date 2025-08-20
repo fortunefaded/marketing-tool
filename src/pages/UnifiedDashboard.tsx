@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { MetaAccountManager } from '../services/metaAccountManager'
+import { useConvex } from 'convex/react'
+import { MetaAccountManagerConvex } from '../services/metaAccountManagerConvex'
 import { MetaInsightsData } from '../services/metaApiService'
 import { MetaDataCache } from '../services/metaDataCache'
 import { useECForceData } from '../hooks/useECForceData'
@@ -31,10 +32,12 @@ import { RFMAnalysis } from '../components/integrated/RFMAnalysis'
 
 export const UnifiedDashboard: React.FC = () => {
   const navigate = useNavigate()
-  const [manager] = useState(() => MetaAccountManager.getInstance())
+  const convexClient = useConvex()
+  const [manager] = useState(() => MetaAccountManagerConvex.getInstance(convexClient))
   // const [apiService, setApiService] = useState<MetaApiService | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [activeAccount, setActiveAccount] = useState<any>(null)
 
   // Metaデータ
   const [metaInsights, setMetaInsights] = useState<MetaInsightsData[]>([])
@@ -63,37 +66,42 @@ export const UnifiedDashboard: React.FC = () => {
   )
 
   useEffect(() => {
-    try {
-      // Meta広告データの初期化
-      const activeAccount = manager.getActiveAccount()
-      if (!activeAccount) {
-        // Metaアカウントが設定されていない場合でも続行
+    const initialize = async () => {
+      try {
+        // Meta広告データの初期化
+        const account = await manager.getActiveAccount()
+        setActiveAccount(account)
+        if (!account) {
+          // Metaアカウントが設定されていない場合でも続行
+          setIsLoading(false)
+          return
+        }
+
+        // キャッシュされたデータを読み込み
+        const cachedData = MetaDataCache.getInsights(account.accountId)
+        const status = MetaDataCache.getSyncStatus(account.accountId)
+
+        if (cachedData.length > 0) {
+          setMetaInsights(cachedData)
+          setMetaSyncStatus(status)
+          // const cacheUsage = MetaDataCache.getCacheUsage(activeAccount.accountId)
+          // setMetaCacheInfo(cacheUsage)
+        }
+
+        const service = await manager.getActiveApiService()
+        if (service) {
+          // setApiService(service)
+        }
+
         setIsLoading(false)
-        return
+      } catch (err) {
+        console.error('Dashboard initialization error:', err)
+        setError('ダッシュボードの初期化中にエラーが発生しました')
+        setIsLoading(false)
       }
-
-      // キャッシュされたデータを読み込み
-      const cachedData = MetaDataCache.getInsights(activeAccount.accountId)
-      const status = MetaDataCache.getSyncStatus(activeAccount.accountId)
-
-      if (cachedData.length > 0) {
-        setMetaInsights(cachedData)
-        setMetaSyncStatus(status)
-        // const cacheUsage = MetaDataCache.getCacheUsage(activeAccount.accountId)
-        // setMetaCacheInfo(cacheUsage)
-      }
-
-      const service = manager.getActiveApiService()
-      if (service) {
-        // setApiService(service)
-      }
-
-      setIsLoading(false)
-    } catch (err) {
-      console.error('Dashboard initialization error:', err)
-      setError('ダッシュボードの初期化中にエラーが発生しました')
-      setIsLoading(false)
     }
+
+    initialize()
   }, [])
 
   // ECForceデータはすでにフィルタリング済みなので、そのまま使用
@@ -212,7 +220,7 @@ export const UnifiedDashboard: React.FC = () => {
               </p>
             </div>
             <div className="flex gap-3">
-              {!manager.getActiveAccount() && (
+              {!activeAccount && (
                 <button
                   onClick={() => navigate('/meta-api-setup')}
                   className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
@@ -378,7 +386,7 @@ export const UnifiedDashboard: React.FC = () => {
             </div>
 
             {/* Meta広告詳細メトリクス */}
-            {manager.getActiveAccount() && (
+            {activeAccount && (
               <div className="bg-white rounded-lg shadow p-6">
                 <h3 className="text-lg font-semibold mb-4">詳細メトリクス</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
@@ -459,7 +467,7 @@ export const UnifiedDashboard: React.FC = () => {
               </div>
             )}
 
-            {!manager.getActiveAccount() && (
+            {!activeAccount && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
                 <p className="text-blue-800 mb-4">Meta広告アカウントが接続されていません</p>
                 <button

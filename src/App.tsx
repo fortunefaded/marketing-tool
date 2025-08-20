@@ -7,7 +7,7 @@ import Tasks from './routes/Tasks'
 import CategoryAnalysis from './routes/CategoryAnalysis'
 import DetailAnalysis from './routes/DetailAnalysis'
 import PeriodAnalysis from './routes/PeriodAnalysis'
-import { MetaDashboardReal } from './pages/MetaDashboardReal'
+// import { MetaDashboardReal } from './pages/MetaDashboardReal'
 import { MetaApiSetupSteps } from './pages/MetaApiSetupSteps'
 import { ConnectStepConvex } from './pages/meta-setup/ConnectStepConvex'
 import { PermissionsStepConvex } from './pages/meta-setup/PermissionsStepConvex'
@@ -55,7 +55,7 @@ function AppContent() {
           <RouteLogger />
           <Routes>
             <Route path="/" element={<UnifiedDashboard />} />
-            <Route path="/meta-dashboard" element={<MetaDashboardReal />} />
+            <Route path="/meta-dashboard" element={<UnifiedDashboard />} />
             <Route path="/meta-api-setup" element={<MetaApiSetupSteps />}>
               <Route index element={<ConnectStepConvex />} />
               <Route path="connect" element={<ConnectStepConvex />} />
