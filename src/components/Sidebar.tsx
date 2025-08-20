@@ -6,8 +6,6 @@ import {
   MagnifyingGlassIcon,
   CalendarDaysIcon,
   ChartBarIcon,
-  Cog6ToothIcon,
-  CloudArrowUpIcon,
   ExclamationTriangleIcon,
   AcademicCapIcon,
 } from '@heroicons/react/24/outline'

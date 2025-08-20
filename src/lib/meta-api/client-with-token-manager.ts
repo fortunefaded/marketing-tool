@@ -4,7 +4,8 @@ import type {
   MetaCampaign, 
   MetaCreative, 
   MetaInsight,
-  MetaAdSet 
+  MetaAdSet,
+  MetaAd 
 } from './types'
 
 export interface TokenManagedApiConfig extends Omit<MetaApiConfig, 'accessToken' | 'apiVersion'> {

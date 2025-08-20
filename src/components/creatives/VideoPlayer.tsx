@@ -37,7 +37,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
   // Facebook SDK を初期化
   useEffect(() => {
-    if (typeof window !== 'undefined' && !window.FB) {
+    if (typeof window !== 'undefined' && !(window as any).FB) {
       const script = document.createElement('script')
       script.async = true
       script.defer = true

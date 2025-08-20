@@ -1,4 +1,3 @@
-import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { vi } from 'vitest'
 import { MetaDashboardReal } from '../MetaDashboardReal'
@@ -36,22 +35,25 @@ describe('MetaDashboardReal - キャッシュクリア機能', () => {
 
   beforeEach(() => {
     // Mocks setup
-    MetaAccountManager.prototype.getActiveAccount = vi.fn().mockReturnValue(mockAccount)
-    MetaAccountManager.prototype.getActiveApiService = vi.fn().mockReturnValue(mockApiService)
+    const mockInstance = {
+      getActiveAccount: vi.fn().mockReturnValue(mockAccount),
+      getActiveApiService: vi.fn().mockReturnValue(mockApiService),
+    }
+    vi.mocked(MetaAccountManager.getInstance).mockReturnValue(mockInstance as any)
     
     // MetaDataCache mocks
-    MetaDataCache.getInsights = vi.fn().mockReturnValue([])
-    MetaDataCache.getSyncStatus = vi.fn().mockReturnValue({
+    vi.mocked(MetaDataCache.getInsights).mockReturnValue([])
+    vi.mocked(MetaDataCache.getSyncStatus).mockReturnValue({
       accountId: mockAccountId,
       lastFullSync: null,
       lastIncrementalSync: null,
       totalRecords: 0,
       dateRange: { earliest: null, latest: null }
     })
-    MetaDataCache.getCacheUsage = vi.fn().mockReturnValue({ sizeKB: 0, records: 0 })
-    MetaDataCache.clearAccountCache = vi.fn()
-    MetaDataCache.saveInsights = vi.fn()
-    MetaDataCache.saveSyncStatus = vi.fn()
+    vi.mocked(MetaDataCache.getCacheUsage).mockReturnValue({ sizeKB: 0, records: 0 })
+    vi.mocked(MetaDataCache.clearAccountCache).mockImplementation(vi.fn())
+    vi.mocked(MetaDataCache.saveInsights).mockImplementation(vi.fn())
+    vi.mocked(MetaDataCache.saveSyncStatus).mockImplementation(vi.fn())
     
     // window mocks
     window.confirm = vi.fn().mockReturnValue(true)
@@ -67,11 +69,37 @@ describe('MetaDashboardReal - キャッシュクリア機能', () => {
 
   it('キャッシュクリアボタンを押すとデータがクリアされてページがリロードされる', async () => {
     // Given: データが存在する状態
-    MetaDataCache.getInsights.mockReturnValue([
-      { dateStart: '2025-07-18', spend: '100' },
-      { dateStart: '2025-08-11', spend: '200' }
-    ])
-    MetaDataCache.getCacheUsage.mockReturnValue({ sizeKB: 10, records: 2 })
+    vi.mocked(MetaDataCache.getInsights).mockReturnValue([
+      {
+        syncedAt: Date.now(),
+        date_start: '2025-07-18',
+        date_stop: '2025-07-18',
+        impressions: '1000',
+        clicks: '50',
+        spend: '100',
+        reach: '500',
+        frequency: '2.0',
+        cpm: '200',
+        cpc: '2.0',
+        ctr: '5.0',
+        dateStart: '2025-07-18'
+      },
+      {
+        syncedAt: Date.now(),
+        date_start: '2025-08-11',
+        date_stop: '2025-08-11',
+        impressions: '2000',
+        clicks: '100',
+        spend: '200',
+        reach: '1000',
+        frequency: '2.0',
+        cpm: '200',
+        cpc: '2.0',
+        ctr: '5.0',
+        dateStart: '2025-08-11'
+      }
+    ] as any)
+    vi.mocked(MetaDataCache.getCacheUsage).mockReturnValue({ sizeKB: 10, records: 2 })
 
     render(<MetaDashboardReal />)
 
@@ -95,7 +123,7 @@ describe('MetaDashboardReal - キャッシュクリア機能', () => {
 
   it('初回アクセス時に推奨メッセージが表示される', async () => {
     // Given: 全期間同期が一度も行われていない
-    MetaDataCache.getSyncStatus.mockReturnValue({
+    vi.mocked(MetaDataCache.getSyncStatus).mockReturnValue({
       accountId: mockAccountId,
       lastFullSync: null,
       lastIncrementalSync: null,
@@ -113,10 +141,23 @@ describe('MetaDashboardReal - キャッシュクリア機能', () => {
 
   it('データが存在しても全期間同期がされていない場合は推奨メッセージが表示される', async () => {
     // Given: データは存在するが全期間同期されていない
-    MetaDataCache.getInsights.mockReturnValue([
-      { dateStart: '2025-07-18', spend: '100' }
-    ])
-    MetaDataCache.getSyncStatus.mockReturnValue({
+    vi.mocked(MetaDataCache.getInsights).mockReturnValue([
+      {
+        syncedAt: Date.now(),
+        date_start: '2025-07-18',
+        date_stop: '2025-07-18',
+        impressions: '1000',
+        clicks: '50',
+        spend: '100',
+        reach: '500',
+        frequency: '2.0',
+        cpm: '200',
+        cpc: '2.0',
+        ctr: '5.0',
+        dateStart: '2025-07-18'
+      }
+    ] as any)
+    vi.mocked(MetaDataCache.getSyncStatus).mockReturnValue({
       accountId: mockAccountId,
       lastFullSync: null, // 全期間同期されていない
       lastIncrementalSync: '2025-08-11T10:00:00Z',

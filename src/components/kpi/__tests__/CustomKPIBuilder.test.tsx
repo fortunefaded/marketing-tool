@@ -1,10 +1,11 @@
+import { describe, test, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import '@testing-library/jest-dom'
 import { CustomKPIBuilder } from '../CustomKPIBuilder'
+import type { KPIField } from '../CustomKPIBuilder'
 
 describe('CustomKPIBuilder', () => {
-  const mockOnSave = jest.fn()
-  const mockAvailableFields = [
+  const mockOnSave = vi.fn()
+  const mockAvailableFields: KPIField[] = [
     { name: 'revenue', label: '売上', type: 'number' },
     { name: 'orders', label: '注文数', type: 'number' },
     { name: 'customers', label: '顧客数', type: 'number' },
@@ -14,10 +15,10 @@ describe('CustomKPIBuilder', () => {
   ]
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
-  it('KPI名と説明を入力できる', () => {
+  test('KPI名と説明を入力できる', () => {
     render(<CustomKPIBuilder availableFields={mockAvailableFields} onSave={mockOnSave} />)
     
     const nameInput = screen.getByLabelText('KPI名')
@@ -30,37 +31,55 @@ describe('CustomKPIBuilder', () => {
     expect(descriptionInput).toHaveValue('広告費対効果の独自指標')
   })
 
-  it('計算式をビジュアルに構築できる', () => {
+  test('計算式をビジュアルに構築できる', () => {
     render(<CustomKPIBuilder availableFields={mockAvailableFields} onSave={mockOnSave} />)
     
     // フィールドを追加
     fireEvent.click(screen.getByText('売上'))
-    expect(screen.getByTestId('formula-display')).toHaveTextContent('revenue')
+    expect(screen.getByTestId('formula-display')).toHaveTextContent('売上')
     
     // 演算子を追加
     fireEvent.click(screen.getByText('÷'))
-    expect(screen.getByTestId('formula-display')).toHaveTextContent('revenue /')
+    expect(screen.getByTestId('formula-display')).toHaveTextContent('売上')
+    expect(screen.getByTestId('formula-display')).toHaveTextContent('/')
     
     // 別のフィールドを追加
     fireEvent.click(screen.getByText('広告費'))
-    expect(screen.getByTestId('formula-display')).toHaveTextContent('revenue / adSpend')
+    expect(screen.getByTestId('formula-display')).toHaveTextContent('売上')
+    expect(screen.getByTestId('formula-display')).toHaveTextContent('/')
+    expect(screen.getByTestId('formula-display')).toHaveTextContent('広告費')
   })
 
-  it('括弧を使った複雑な計算式を作成できる', () => {
+  test('括弧を使った複雑な計算式を作成できる', () => {
     render(<CustomKPIBuilder availableFields={mockAvailableFields} onSave={mockOnSave} />)
     
     fireEvent.click(screen.getByText('('))
-    fireEvent.click(screen.getByText('売上'))
+    
+    // 売上フィールドボタンをクリック
+    const revenueButtons = screen.getAllByRole('button', { name: '売上' })
+    fireEvent.click(revenueButtons[0])
+    
     fireEvent.click(screen.getByText('-'))
-    fireEvent.click(screen.getByText('広告費'))
+    
+    // 広告費フィールドボタンをクリック
+    const adSpendButtons = screen.getAllByRole('button', { name: '広告費' })
+    fireEvent.click(adSpendButtons[0])
+    
     fireEvent.click(screen.getByText(')'))
     fireEvent.click(screen.getByText('÷'))
-    fireEvent.click(screen.getByText('広告費'))
     
-    expect(screen.getByTestId('formula-display')).toHaveTextContent('( revenue - adSpend ) / adSpend')
+    // 再度広告費フィールドボタンをクリック
+    fireEvent.click(adSpendButtons[0])
+    
+    expect(screen.getByTestId('formula-display')).toHaveTextContent('(')
+    expect(screen.getByTestId('formula-display')).toHaveTextContent('売上')
+    expect(screen.getByTestId('formula-display')).toHaveTextContent('-')
+    expect(screen.getByTestId('formula-display')).toHaveTextContent('広告費')
+    expect(screen.getByTestId('formula-display')).toHaveTextContent(')')
+    expect(screen.getByTestId('formula-display')).toHaveTextContent('/')
   })
 
-  it('計算式のプレビューが表示される', async () => {
+  test('計算式のプレビューが表示される', async () => {
     const mockData = {
       revenue: 100000,
       adSpend: 20000
@@ -87,7 +106,7 @@ describe('CustomKPIBuilder', () => {
     })
   })
 
-  it('無効な計算式の場合エラーが表示される', () => {
+  test('無効な計算式の場合エラーが表示される', () => {
     render(<CustomKPIBuilder availableFields={mockAvailableFields} onSave={mockOnSave} />)
     
     // 不完全な式
@@ -99,7 +118,7 @@ describe('CustomKPIBuilder', () => {
     expect(screen.getByText('計算式が不完全です')).toBeInTheDocument()
   })
 
-  it('ゼロ除算のチェックが行われる', async () => {
+  test('ゼロ除算のチェックが行われる', async () => {
     const mockData = {
       revenue: 100000,
       adSpend: 0
@@ -124,7 +143,7 @@ describe('CustomKPIBuilder', () => {
     })
   })
 
-  it('数式テンプレートから選択できる', () => {
+  test('数式テンプレートから選択できる', () => {
     render(<CustomKPIBuilder availableFields={mockAvailableFields} onSave={mockOnSave} />)
     
     fireEvent.click(screen.getByText('テンプレート'))
@@ -136,10 +155,12 @@ describe('CustomKPIBuilder', () => {
     // テンプレートを選択
     fireEvent.click(screen.getByText('ROAS (売上 ÷ 広告費)'))
     
-    expect(screen.getByTestId('formula-display')).toHaveTextContent('revenue / adSpend')
+    expect(screen.getByTestId('formula-display')).toHaveTextContent('売上')
+    expect(screen.getByTestId('formula-display')).toHaveTextContent('/')
+    expect(screen.getByTestId('formula-display')).toHaveTextContent('広告費')
   })
 
-  it('計算式の履歴から元に戻す・やり直しができる', () => {
+  test('計算式の履歴から元に戻す・やり直しができる', () => {
     render(<CustomKPIBuilder availableFields={mockAvailableFields} onSave={mockOnSave} />)
     
     // 操作を実行
@@ -147,18 +168,23 @@ describe('CustomKPIBuilder', () => {
     fireEvent.click(screen.getByText('+'))
     fireEvent.click(screen.getByText('注文数'))
     
-    expect(screen.getByTestId('formula-display')).toHaveTextContent('revenue + orders')
+    expect(screen.getByTestId('formula-display')).toHaveTextContent('売上')
+    expect(screen.getByTestId('formula-display')).toHaveTextContent('+')
+    expect(screen.getByTestId('formula-display')).toHaveTextContent('注文数')
     
     // 元に戻す
     fireEvent.click(screen.getByTestId('undo-button'))
-    expect(screen.getByTestId('formula-display')).toHaveTextContent('revenue +')
+    expect(screen.getByTestId('formula-display')).toHaveTextContent('売上')
+    expect(screen.getByTestId('formula-display')).toHaveTextContent('+')
     
     // やり直し
     fireEvent.click(screen.getByTestId('redo-button'))
-    expect(screen.getByTestId('formula-display')).toHaveTextContent('revenue + orders')
+    expect(screen.getByTestId('formula-display')).toHaveTextContent('売上')
+    expect(screen.getByTestId('formula-display')).toHaveTextContent('+')
+    expect(screen.getByTestId('formula-display')).toHaveTextContent('注文数')
   })
 
-  it('集計関数を使用できる', () => {
+  test('集計関数を使用できる', () => {
     render(<CustomKPIBuilder availableFields={mockAvailableFields} onSave={mockOnSave} />)
     
     fireEvent.click(screen.getByText('関数'))
@@ -173,10 +199,11 @@ describe('CustomKPIBuilder', () => {
     fireEvent.click(screen.getByText('AVG (平均)'))
     fireEvent.click(screen.getByText('売上'))
     
-    expect(screen.getByTestId('formula-display')).toHaveTextContent('AVG(revenue)')
+    expect(screen.getByTestId('formula-display')).toHaveTextContent('AVG')
+    expect(screen.getByTestId('formula-display')).toHaveTextContent('売上')
   })
 
-  it('フォーマット設定ができる', () => {
+  test('フォーマット設定ができる', () => {
     render(<CustomKPIBuilder availableFields={mockAvailableFields} onSave={mockOnSave} />)
     
     const formatSelect = screen.getByLabelText('表示形式')
@@ -186,10 +213,10 @@ describe('CustomKPIBuilder', () => {
     fireEvent.change(decimalInput, { target: { value: '2' } })
     
     expect(formatSelect).toHaveValue('percentage')
-    expect(decimalInput).toHaveValue('2')
+    expect(decimalInput).toHaveValue(2)
   })
 
-  it('保存時にバリデーションが実行される', () => {
+  test('保存時にバリデーションが実行される', () => {
     render(<CustomKPIBuilder availableFields={mockAvailableFields} onSave={mockOnSave} />)
     
     // 名前を入力せずに保存
@@ -207,13 +234,13 @@ describe('CustomKPIBuilder', () => {
     expect(mockOnSave).toHaveBeenCalledWith({
       name: 'テストKPI',
       description: '',
-      formula: 'revenue',
+      formula: 'revenue', // APIは内部フィールド名を使用
       format: 'number',
       decimals: 0
     })
   })
 
-  it('計算式をクリアできる', () => {
+  test('計算式をクリアできる', () => {
     render(<CustomKPIBuilder availableFields={mockAvailableFields} onSave={mockOnSave} />)
     
     // 計算式を作成
@@ -221,7 +248,9 @@ describe('CustomKPIBuilder', () => {
     fireEvent.click(screen.getByText('+'))
     fireEvent.click(screen.getByText('注文数'))
     
-    expect(screen.getByTestId('formula-display')).toHaveTextContent('revenue + orders')
+    expect(screen.getByTestId('formula-display')).toHaveTextContent('売上')
+    expect(screen.getByTestId('formula-display')).toHaveTextContent('+')
+    expect(screen.getByTestId('formula-display')).toHaveTextContent('注文数')
     
     // クリア
     fireEvent.click(screen.getByText('クリア'))

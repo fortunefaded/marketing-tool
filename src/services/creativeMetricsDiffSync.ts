@@ -1,4 +1,4 @@
-import { MetaApiService } from './metaApiService'
+// import { MetaApiService } from './metaApiService' // @deprecated unused
 import { CreativeMetrics, CreativeAggregator, AggregationOptions } from './creativeAggregator'
 import { CreativeMetricsCache } from './creativeMetricsCache'
 
@@ -20,7 +20,7 @@ export class CreativeMetricsDiffSync {
   private static LAST_SYNC_KEY = 'creative_metrics_last_sync_'
   
   constructor(
-    private apiService: MetaApiService,
+    // private ___apiService: any // @deprecated 未使用,
     private aggregator: CreativeAggregator
   ) {}
   
@@ -121,7 +121,7 @@ export class CreativeMetricsDiffSync {
    * キャッシュを使わずにメトリクスを取得
    */
   private async fetchMetricsWithoutCache(
-    accountId: string,
+    _accountId: string,
     options: AggregationOptions
   ): Promise<CreativeMetrics[]> {
     // 一時的にキャッシュを無効化してデータを取得

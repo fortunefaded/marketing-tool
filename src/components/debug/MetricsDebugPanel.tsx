@@ -1,5 +1,3 @@
-import React from 'react'
-
 interface MetricsDebugPanelProps {
   data: any
   title?: string

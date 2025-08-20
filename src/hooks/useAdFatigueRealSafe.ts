@@ -137,7 +137,7 @@ export function useAdFatigueRealSafe(accountId: string, adId?: string) {
       }
 
       if (calculateFatigue) {
-        setFatigueData(calculateFatigue)
+        setFatigueData(calculateFatigue as AdFatigueData)
         setError(null)
       } else if (savedAnalysis && savedAnalysis.adId) {
         // 保存された分析結果をフォーマット（全プロパティの存在を確認）

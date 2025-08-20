@@ -12,6 +12,7 @@ import { PlayIcon } from '@heroicons/react/24/solid'
 export interface CreativeData {
   id: string
   name: string
+  creative_name?: string // Meta APIのクリエイティブ名
   type: 'IMAGE' | 'VIDEO' | 'CAROUSEL'
   thumbnailUrl?: string
   videoUrl?: string

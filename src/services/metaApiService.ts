@@ -112,6 +112,7 @@ export interface MetaInsightsData {
   creative_url?: string
   thumbnail_url?: string
   video_url?: string
+  video_id?: string
   carousel_cards?: Array<{
     name: string
     description: string
@@ -251,9 +252,7 @@ export class MetaApiService {
     this.detectingDateLimit = true
     console.log('Meta APIの日付制限を検出中...')
     
-    const today = new Date()
     let maxMonths = 37 // デフォルトは37ヶ月
-    let oldestDate = new Date()
     
     // 二分探索で実際の制限を見つける
     let low = 1
@@ -282,7 +281,7 @@ export class MetaApiService {
         
         // 成功したら、もっと古い日付を試す
         maxMonths = mid
-        oldestDate = testDate
+        // 成功したので、もっと古い日付を試す
         low = mid + 1
       } catch (error: any) {
         // エラーコード3018は日付制限エラー
@@ -1053,7 +1052,7 @@ export class MetaApiService {
     startDate?: string,
     endDate?: string,
     options: {
-      level?: 'account' | 'campaign' | 'ad' | 'creative',
+      level?: 'account' | 'campaign' | 'adset' | 'ad',
       limit?: number,
       fields?: string[],
       timeIncrement?: number | 'monthly',
@@ -1061,7 +1060,19 @@ export class MetaApiService {
       breakdowns?: string[]
     } = {}
   ): Promise<MetaInsightsData[]> {
-    const insights = await this.getInsights(startDate, endDate, options)
+    const insights = await this.getInsights({
+      level: options.level || 'ad',
+      dateRange: {
+        since: startDate || '',
+        until: endDate || ''
+      },
+      fields: options.fields,
+      metrics: options.fields, // Map fields to metrics for backward compatibility
+      breakdowns: options.breakdowns,
+      filtering: options.filtering,
+      limit: options.limit,
+      time_increment: options.timeIncrement ? String(options.timeIncrement) : undefined
+    })
     
     // Convexに保存
     if (this.convexClient && insights.length > 0) {
@@ -1297,8 +1308,8 @@ export class MetaApiService {
       }))
 
       try {
-        const responses = await this.executeBatch(requests)
-        const validResponses = responses.filter(r => r.code === 200).map(r => r.body)
+        const responses = await this.batch(requests)
+        const validResponses = responses.filter((r: any) => r.code === 200).map((r: any) => r.body)
         creatives.push(...validResponses)
       } catch (error) {
         console.error('クリエイティブ取得エラー:', error)

@@ -466,8 +466,10 @@ export const EnhancedCreativeDetailModal: React.FC<CreativeDetailModalProps> = (
                               {/* 疲労度アラート */}
                               {fatigueData.fatigueScore.status === 'critical' && (
                                 <FatigueAlert
+                                  adName={creative.creative_name || ''}
                                   level="critical"
-                                  message={fatigueData.recommendedAction}
+                                  primaryIssue="広告疲労"
+                                  recommendedAction={fatigueData.recommendedAction}
                                   metrics={fatigueData.metrics}
                                 />
                               )}

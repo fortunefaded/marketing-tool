@@ -1,5 +1,5 @@
 import { MetaApiService, MetaInsightsData } from './metaApiService'
-import { MetaDataCache } from './metaDataCache'
+// import { MetaDataCache } from './metaDataCache' // @deprecated unused
 import { MetaDataParser } from '../utils/metaDataParser'
 import { CreativeMetricsCache } from './creativeMetricsCache'
 
@@ -12,6 +12,7 @@ export interface CreativeMetrics {
   creative_type: CreativeType
   thumbnail_url?: string
   video_url?: string
+  video_id?: string
   carousel_cards?: Array<{
     name: string
     description: string
@@ -35,6 +36,7 @@ export interface CreativeMetrics {
   cpc: number
   cpm: number
   cvr: number
+  frequency?: number
   
   // 期間情報
   period_start: string
@@ -82,7 +84,7 @@ export class CreativeAggregator {
     const enrichedData = insights.map(item => ({
       ...item,
       // パーサーで正確なメトリクスを抽出
-      conversions: MetaDataParser.extractConversions(item.actions),
+      conversions: MetaDataParser.extractConversions(Array.isArray(item.actions) ? item.actions : []),
       roas: MetaDataParser.calculateROAS(item),
       cpa: MetaDataParser.calculateCPA(item),
       
@@ -112,7 +114,7 @@ export class CreativeAggregator {
     
     // クリエイティブごとにメトリクスを集計（強化されたデータを使用）
     const aggregatedMetrics = this.aggregateByCreative(
-      enrichedData,
+      insights, // 元のデータを使用
       creativeDetails,
       options
     )
@@ -140,8 +142,10 @@ export class CreativeAggregator {
 
   /**
    * インサイトデータを取得
+   * @deprecated 未使用
    */
-  private async getInsightsData(
+  /*
+  private async ___getInsightsData(
     accountId: string,
     startDate: string,
     endDate: string
@@ -159,12 +163,14 @@ export class CreativeAggregator {
     
     // データが不足している場合は追加取得
     if (filteredData.length === 0) {
-      const newData = await this.apiService.getInsights(
-        'ad',
-        startDate,
-        endDate,
-        ['creative']
-      )
+      const newData = await this.apiService.getInsights({
+        level: 'ad',
+        dateRange: {
+          since: startDate,
+          until: endDate
+        },
+        breakdowns: ['creative']
+      })
       
       // キャッシュに保存
       const existingData = MetaDataCache.getInsights(accountId)
@@ -179,6 +185,7 @@ export class CreativeAggregator {
     
     return filteredData
   }
+  */
 
   /**
    * クリエイティブの詳細情報を取得
@@ -234,10 +241,12 @@ export class CreativeAggregator {
           creative_name: creativeDetail.creative_name || firstInsight.creative_name || 'Unknown',
           creative_type: this.determineCreativeType(creativeDetail, firstInsight),
           thumbnail_url: creativeDetail.thumbnail_url || firstInsight.thumbnail_url,
-          video_url: creativeDetail.video_url || firstInsight.video_url,
-          carousel_cards: creativeDetail.carousel_cards || firstInsight.carousel_cards,
-          campaign_id: firstInsight.campaign_id || firstInsight.campaignId,
-          campaign_name: firstInsight.campaign_name || firstInsight.campaignName,
+          video_url: typeof creativeDetail.video_url === 'string' ? creativeDetail.video_url : 
+                    typeof firstInsight.video_url === 'string' ? firstInsight.video_url : undefined,
+          carousel_cards: Array.isArray(creativeDetail.carousel_cards) ? creativeDetail.carousel_cards : 
+                         Array.isArray(firstInsight.carousel_cards) ? firstInsight.carousel_cards : undefined,
+          campaign_id: (typeof firstInsight.campaign_id === 'string' ? firstInsight.campaign_id : typeof firstInsight.campaignId === 'string' ? firstInsight.campaignId : undefined),
+          campaign_name: (typeof firstInsight.campaign_name === 'string' ? firstInsight.campaign_name : typeof firstInsight.campaignName === 'string' ? firstInsight.campaignName : undefined),
           ad_id: firstInsight.ad_id,
           ad_name: firstInsight.ad_name,
           ...metrics,
@@ -265,7 +274,7 @@ export class CreativeAggregator {
     
     insights.forEach(insight => {
       const date = insight.date_start || insight.dateStart
-      if (!date) return
+      if (!date || typeof date !== 'string') return
       
       const periodKey = this.getPeriodKey(date, period)
       

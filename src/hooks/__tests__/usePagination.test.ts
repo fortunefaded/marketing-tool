@@ -140,7 +140,7 @@ describe('usePagination', () => {
     expect(result.current.currentPage).toBe(2)
 
     // データを更新（件数は同じ）
-    const newData = Array.from({ length: 100 }, (_, i) => ({ id: i + 101 }))
+    const newData = Array.from({ length: 100 }, (_, i) => ({ id: i + 101, name: `Item ${i + 101}` }))
     rerender({ data: newData })
 
     // ページ2のまま
@@ -161,8 +161,8 @@ describe('usePagination', () => {
     expect(result.current.currentPage).toBe(5)
 
     // データを削減（20件だけに）
-    const smallData = Array.from({ length: 20 }, (_, i) => ({ id: i + 1 }))
-    rerender({ data: smallData, pageSize: 10 })
+    const smallData = Array.from({ length: 20 }, (_, i) => ({ id: i + 1, name: `Item ${i + 1}` }))
+    rerender({ data: smallData })
 
     // 現在のページが維持される（ただし、データは空）
     expect(result.current.currentPage).toBe(5)

@@ -14,9 +14,9 @@ interface CachedCreativeMetrics {
   }
 }
 
-interface CreativeCache {
-  [key: string]: CachedCreativeMetrics
-}
+// interface CreativeCache {
+//   [key: string]: CachedCreativeMetrics
+// }
 
 export class CreativeMetricsCache {
   private static CACHE_KEY_PREFIX = 'creative_metrics_cache_'

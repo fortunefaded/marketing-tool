@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect } from 'react'
 import { MetaInsightsData } from '../../services/metaApiService'
 import {
   PhotoIcon,
@@ -6,14 +6,11 @@ import {
   DocumentTextIcon,
   ViewColumnsIcon,
   PlayIcon,
-  ChartBarIcon,
   ExclamationTriangleIcon
 } from '@heroicons/react/24/outline'
 import { EnhancedCreativeDetailModal } from '../creatives/EnhancedCreativeDetailModal'
 import { CreativeData } from '../creatives/CreativePerformanceGrid'
-import { CreativeFatigueAnalyzer } from '../../services/creativeFatigueAnalyzer'
 import { VideoPlayer } from '../creatives/VideoPlayer'
-import { FatigueAlert } from '../AdFatigue'
 
 interface CreativePerformanceProps {
   insights: MetaInsightsData[]
@@ -29,6 +26,7 @@ interface CreativeMetrics {
   creative_url?: string
   thumbnail_url?: string
   video_url?: string
+  video_id?: string
   campaign_name?: string
   ad_id?: string
   carousel_cards?: Array<{
@@ -46,11 +44,12 @@ interface CreativeMetrics {
   cpc: number
   cpa: number
   roas: number
+  frequency?: number
 }
 
 export const CreativePerformance: React.FC<CreativePerformanceProps> = ({
   insights,
-  dateRange,
+  dateRange: _dateRange, // 未使用パラメータ
   aggregationPeriod = 'daily',
   onPeriodChange
 }) => {
@@ -87,6 +86,7 @@ export const CreativePerformance: React.FC<CreativePerformanceProps> = ({
         creative_url: insight.creative_url,
         thumbnail_url: insight.thumbnail_url,
         video_url: insight.video_url,
+        video_id: insight.video_id,
         campaign_name: insight.campaign_name,
         ad_id: insight.ad_id,
         carousel_cards: insight.carousel_cards,
@@ -347,7 +347,7 @@ export const CreativePerformance: React.FC<CreativePerformanceProps> = ({
                   </span>
                 </div>
                 {/* 疲労度インジケーター（仮実装） */}
-                {metric.ctr < 0.5 && metric.frequency > 3.0 && (
+                {metric.ctr < 0.5 && metric.frequency && metric.frequency > 3.0 && (
                   <div className="absolute top-2 right-2">
                     <div className="bg-red-100 p-1.5 rounded-full">
                       <ExclamationTriangleIcon className="h-4 w-4 text-red-600" />

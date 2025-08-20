@@ -131,7 +131,7 @@ export const analyzeAdFatigue = internalMutation({
 
 // 高度な疲労度分析（内部関数）
 async function calculateAdvancedFatigueAnalysis(
-  ctx: any,
+  _ctx: any,
   args: {
     accountId: string
     adId: string

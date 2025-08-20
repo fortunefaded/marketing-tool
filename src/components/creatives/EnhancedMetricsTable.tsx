@@ -8,10 +8,6 @@ import {
   ChevronDownIcon,
   ChevronRightIcon,
   PlayIcon,
-  ChartBarIcon,
-  UserGroupIcon,
-  MapPinIcon,
-  CursorArrowRaysIcon,
 } from '@heroicons/react/24/outline'
 import { EnhancedCreativeData } from '../../services/creativeDataAggregator'
 
@@ -46,8 +42,8 @@ export const EnhancedMetricsTable: React.FC<EnhancedMetricsTableProps> = ({
   isLoading = false,
   onCreativeClick,
   showVideoMetrics = true,
-  showDemographics = false,
-  showPlacements = false,
+  showDemographics: _showDemographics = false,
+  showPlacements: _showPlacements = false,
   showTargeting = false,
 }) => {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())

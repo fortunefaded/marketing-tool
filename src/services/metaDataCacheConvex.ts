@@ -1,6 +1,6 @@
 import { ConvexClient } from 'convex/browser'
 import { api } from '../../convex/_generated/api'
-import { MetaInsightsData } from '../types/meta'
+import { MetaInsightsData } from './metaApiService'
 
 export interface CachedInsightsData extends MetaInsightsData {
   syncedAt: string // データが同期された日時
@@ -77,8 +77,10 @@ export class MetaDataCacheConvex {
     await this.updateSyncStatus(accountId, {
       lastIncrementalSync: new Date().toISOString(),
       totalRecords: data.length,
-      earliestDate: dates[0],
-      latestDate: dates[dates.length - 1]
+      dateRange: {
+        earliest: dates[0] || null,
+        latest: dates[dates.length - 1] || null
+      }
     })
   }
 
@@ -94,7 +96,7 @@ export class MetaDataCacheConvex {
     let cursor: string | null = null
     
     do {
-      const result = await this.convexClient.query(api.metaInsights.getInsights, {
+      const result: { items: any[], nextCursor: string | null } = await this.convexClient.query(api.metaInsights.getInsights, {
         accountId,
         startDate: options?.startDate,
         endDate: options?.endDate,
@@ -154,11 +156,11 @@ export class MetaDataCacheConvex {
   async updateSyncStatus(accountId: string, status: Partial<DataSyncStatus>): Promise<void> {
     await this.convexClient.mutation(api.metaInsights.saveSyncStatus, {
       accountId,
-      lastFullSync: status.lastFullSync,
-      lastIncrementalSync: status.lastIncrementalSync,
+      lastFullSync: status.lastFullSync || undefined,
+      lastIncrementalSync: status.lastIncrementalSync || undefined,
       totalRecords: status.totalRecords,
-      earliestDate: status.dateRange?.earliest,
-      latestDate: status.dateRange?.latest
+      earliestDate: status.dateRange?.earliest || undefined,
+      latestDate: status.dateRange?.latest || undefined
     })
   }
 

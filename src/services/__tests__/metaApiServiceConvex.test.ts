@@ -33,6 +33,8 @@ describe('MetaApiService with Convex', () => {
         impressions: `${1000 + i}`,
         clicks: `${50 + i}`,
         spend: `${100 + i}`,
+        reach: `${500 + i}`,
+        frequency: '2.0',
         conversions: `${5 + i}`,
         campaign_id: `campaign_${i}`,
         campaign_name: `Campaign ${i}`,
@@ -65,6 +67,8 @@ describe('MetaApiService with Convex', () => {
         impressions: '1000',
         clicks: '50',
         spend: '100.50',
+        reach: '500',
+        frequency: '2.0',
         conversions: '5',
         campaign_id: 'campaign_123',
         campaign_name: 'Test Campaign',
@@ -109,7 +113,15 @@ describe('MetaApiService with Convex', () => {
     it('should handle Convex errors gracefully', async () => {
       const mockInsights = [{
         date_start: '2024-01-01',
+        date_stop: '2024-01-01',
         impressions: '1000',
+        clicks: '50',
+        spend: '100',
+        reach: '500',
+        frequency: '2.0',
+        cpm: '200',
+        cpc: '2.0',
+        ctr: '5.0',
       }]
 
       ;(mockConvexClient.mutation as any).mockRejectedValueOnce(
@@ -130,7 +142,15 @@ describe('MetaApiService with Convex', () => {
       
       await serviceWithoutConvex.saveInsightsToConvex([{
         date_start: '2024-01-01',
+        date_stop: '2024-01-01',
         impressions: '1000',
+        clicks: '50',
+        spend: '100',
+        reach: '500',
+        frequency: '2.0',
+        cpm: '200',
+        cpc: '2.0',
+        ctr: '5.0',
       }])
 
       expect(consoleSpy).toHaveBeenCalledWith(

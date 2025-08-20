@@ -5,23 +5,25 @@ describe('MetaDataCache', () => {
   const mockAccountId = 'test-account-123'
   const mockInsightsData: MetaInsightsData[] = [
     {
-      dateStart: '2025-07-18',
-      dateStop: '2025-07-18',
+      date_start: '2025-07-18',
+      date_stop: '2025-07-18',
       spend: '100',
       impressions: '1000',
       clicks: '50',
       reach: '500',
+      frequency: '1.0',
       cpm: '100',
       cpc: '2',
       ctr: '5'
     },
     {
-      dateStart: '2025-08-11',
-      dateStop: '2025-08-11',
+      date_start: '2025-08-11',
+      date_stop: '2025-08-11',
       spend: '200',
       impressions: '2000',
       clicks: '100',
       reach: '1000',
+      frequency: '2.0',
       cpm: '100',
       cpc: '2',
       ctr: '5'
@@ -47,8 +49,8 @@ describe('MetaDataCache', () => {
         lastIncrementalSync: '2025-08-11T10:00:00Z',
         totalRecords: 2,
         dateRange: {
-          start: '2025-07-18',
-          end: '2025-08-11'
+          earliest: '2025-07-18',
+          latest: '2025-08-11'
         }
       })
 
@@ -112,8 +114,8 @@ describe('MetaDataCache', () => {
 
       // Then: 保存したデータが取得できる
       expect(insights.length).toBe(2)
-      expect(insights[0].dateStart).toBe('2025-07-18')
-      expect(insights[1].dateStart).toBe('2025-08-11')
+      expect(insights[0].date_start).toBe('2025-07-18')
+      expect(insights[1].date_start).toBe('2025-08-11')
     })
   })
 

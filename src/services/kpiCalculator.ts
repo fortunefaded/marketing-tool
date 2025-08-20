@@ -167,7 +167,7 @@ export class KPICalculator {
     // 日付ごとにデータを集計
     data.forEach(item => {
       const date = item.date_start || item.dateStart || ''
-      if (!date) return
+      if (!date || typeof date !== 'string') return
 
       const existing = dateMap.get(date) || {
         revenue: 0,
@@ -217,8 +217,9 @@ export class KPICalculator {
     }>()
 
     data.forEach(item => {
-      const date = item.date_start || item.dateStart || ''
-      if (!date) return
+      const dateValue = item.date_start || item.dateStart || ''
+      if (!dateValue || typeof dateValue !== 'string') return
+      const date = dateValue
 
       const weekKey = this.getWeekKey(date)
       const existing = weekMap.get(weekKey) || {
@@ -269,8 +270,9 @@ export class KPICalculator {
     }>()
 
     data.forEach(item => {
-      const date = item.date_start || item.dateStart || ''
-      if (!date) return
+      const dateValue = item.date_start || item.dateStart || ''
+      if (!dateValue || typeof dateValue !== 'string') return
+      const date = dateValue
 
       const monthKey = date.substring(0, 7) // YYYY-MM形式
       const existing = monthMap.get(monthKey) || {

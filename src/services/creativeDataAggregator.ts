@@ -1,5 +1,5 @@
 import { MetaApiService, MetaInsightsData } from './metaApiService'
-import { MetaDataCache } from './metaDataCache'
+// import { MetaDataCache } from './metaDataCache' // @deprecated unused
 
 export interface EnhancedCreativeData {
   // 基本情報
@@ -110,12 +110,12 @@ export interface AggregationOptions {
 
 export class CreativeDataAggregator {
   private metaApi: MetaApiService
-  private cache: MetaDataCache
+  // private __cache: any // @deprecated 未使用
 
   constructor(metaApi: MetaApiService) {
     this.metaApi = metaApi
     // MetaDataCacheの代わりにローカルストレージを直接使用
-    this.cache = {
+    /* this.__cache = {
       get: <T>(key: string): T | null => {
         try {
           const item = localStorage.getItem(key)
@@ -132,18 +132,18 @@ export class CreativeDataAggregator {
           console.error('Cache set error:', error)
         }
       }
-    }
+    } */
   }
 
   async getCompleteCreativeData(options: AggregationOptions): Promise<EnhancedCreativeData[]> {
     try {
       // キャッシュチェック
-      const cacheKey = this.getCacheKey(options)
-      const cached = this.cache.get<EnhancedCreativeData[]>(cacheKey)
-      if (cached) {
-        console.log('キャッシュからデータを返却')
-        return cached
-      }
+      // const cacheKey = this.getCacheKey(options)
+      // const cached = this.cache.get<EnhancedCreativeData[]>(cacheKey)
+      // if (cached) {
+      //   console.log('キャッシュからデータを返却')
+      //   return cached
+      // }
 
       console.log('包括的なクリエイティブデータを取得中...')
       console.log('dateRange:', options.dateRange)
@@ -190,7 +190,7 @@ export class CreativeDataAggregator {
       )
 
       // キャッシュに保存
-      this.cache.set(cacheKey, enhancedData)
+      // this.cache.set(cacheKey, enhancedData)
 
       return enhancedData
     } catch (error) {
@@ -202,7 +202,7 @@ export class CreativeDataAggregator {
   private mergeCreativeData(
     insights: MetaInsightsData[],
     creatives: any[],
-    accountMetrics: any,
+    _accountMetrics: any,
     videoData: any[],
     options: AggregationOptions
   ): EnhancedCreativeData[] {
@@ -379,12 +379,12 @@ export class CreativeDataAggregator {
     }
   }
 
-  private processDemographics(insights: MetaInsightsData[]): any {
+  private processDemographics(_insights: MetaInsightsData[]): any {
     // TODO: デモグラフィック別データの処理
     return undefined
   }
 
-  private processPlacements(insights: MetaInsightsData[]): any {
+  private processPlacements(_insights: MetaInsightsData[]): any {
     // TODO: 配置面別データの処理
     return undefined
   }
@@ -418,7 +418,9 @@ export class CreativeDataAggregator {
     }
   }
 
-  private getCacheKey(options: AggregationOptions): string {
+  /*
+  private ___getCacheKey(options: AggregationOptions): string {
     return `creative-data-${options.dateRange.since}-${options.dateRange.until}-${JSON.stringify(options)}`
   }
+  */
 }

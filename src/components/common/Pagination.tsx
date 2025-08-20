@@ -27,7 +27,7 @@ export const Pagination: React.FC<PaginationProps> = ({
   // ページ番号の配列を生成
   const getPageNumbers = () => {
     const delta = 2 // 現在のページの前後に表示するページ数
-    const range = []
+    const range: number[] = []
     const rangeWithDots: (number | string)[] = []
     let l: number | undefined
 
@@ -38,7 +38,7 @@ export const Pagination: React.FC<PaginationProps> = ({
     }
 
     range.forEach((i) => {
-      if (l) {
+      if (l !== undefined) {
         if (i - l === 2) {
           rangeWithDots.push(l + 1)
         } else if (i - l !== 1) {

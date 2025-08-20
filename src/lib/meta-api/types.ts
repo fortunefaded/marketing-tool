@@ -25,6 +25,26 @@ export interface MetaInsight {
   date_stop: string
 }
 
+export interface MetaAdSet {
+  id: string
+  name: string
+  campaign_id: string
+  status: string
+  targeting?: any
+  budget_remaining?: string
+  daily_budget?: string
+  lifetime_budget?: string
+}
+
+export interface MetaAd {
+  id: string
+  name: string
+  adset_id: string
+  campaign_id: string
+  creative_id: string
+  status: string
+}
+
 export interface MetaCreative {
   id: string
   name: string

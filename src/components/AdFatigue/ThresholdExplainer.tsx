@@ -116,14 +116,14 @@ export const ThresholdExplainer: React.FC<ThresholdExplainerProps> = ({
                 <h4 className="font-medium text-gray-900 mb-3">科学的根拠</h4>
                 <div className="bg-gray-50 rounded-lg p-4">
                   <p className="text-sm text-gray-700 mb-2">
-                    {metricData.evidence || '業界標準および実証研究に基づく'}
+                    {'evidence' in metricData ? metricData.evidence : '業界標準および実証研究に基づく'}
                   </p>
-                  {metricData.mathematical && (
+                  {'mathematical' in metricData && metricData.mathematical && (
                     <p className="text-sm text-gray-600 italic">
                       {metricData.mathematical}
                     </p>
                   )}
-                  {metricData.mechanism && (
+                  {'mechanism' in metricData && metricData.mechanism && (
                     <p className="text-sm text-gray-600 mt-2">
                       {metricData.mechanism}
                     </p>
@@ -132,14 +132,14 @@ export const ThresholdExplainer: React.FC<ThresholdExplainerProps> = ({
               </div>
               
               {/* 段階説明（CTR減少率の場合） */}
-              {metric === 'ctrDecline' && metricData.stages && (
+              {metric === 'ctrDecline' && 'stages' in metricData && metricData.stages && (
                 <div>
                   <h4 className="font-medium text-gray-900 mb-3">疲労の段階</h4>
                   <div className="space-y-2">
                     {Object.entries(metricData.stages).map(([range, description]) => (
                       <div key={range} className="flex items-center justify-between py-2">
                         <span className="font-mono text-sm">{range}</span>
-                        <span className="text-sm text-gray-600">{description}</span>
+                        <span className="text-sm text-gray-600">{description as string}</span>
                       </div>
                     ))}
                   </div>
@@ -147,7 +147,7 @@ export const ThresholdExplainer: React.FC<ThresholdExplainerProps> = ({
               )}
               
               {/* 業界ベンチマーク */}
-              {metricData.industryBenchmarks && (
+              {'industryBenchmarks' in metricData && metricData.industryBenchmarks && (
                 <div>
                   <h4 className="font-medium text-gray-900 mb-3">業界別ベンチマーク</h4>
                   <div className="grid grid-cols-3 gap-4">
@@ -156,7 +156,7 @@ export const ThresholdExplainer: React.FC<ThresholdExplainerProps> = ({
                         <div className="text-xs text-gray-600 mb-1">
                           {industry.replace(/_/g, ' ').toUpperCase()}
                         </div>
-                        <div className="font-semibold">{benchmark}</div>
+                        <div className="font-semibold">{String(benchmark)}</div>
                       </div>
                     ))}
                   </div>

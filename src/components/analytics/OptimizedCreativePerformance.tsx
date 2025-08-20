@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, memo } from 'react'
+import React, { useState, useMemo, useCallback, memo } from 'react'
 import { MetaInsightsData } from '../../services/metaApiService'
 import {
   PhotoIcon,
@@ -46,6 +46,7 @@ interface CreativeMetrics {
   cpc: number
   cpa: number
   roas: number
+  frequency?: number
 }
 
 // メモ化されたクリエイティブカード
@@ -318,7 +319,7 @@ FilterButtons.displayName = 'FilterButtons'
 
 export const OptimizedCreativePerformance: React.FC<CreativePerformanceProps> = ({
   insights,
-  dateRange,
+  dateRange: _dateRange, // 未使用パラメータ
   aggregationPeriod = 'daily',
   onPeriodChange
 }) => {

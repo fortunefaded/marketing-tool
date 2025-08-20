@@ -6,7 +6,6 @@ import {
   LightBulbIcon,
   CogIcon,
   DocumentTextIcon,
-  PlayIcon,
   ArrowRightIcon,
   CheckCircleIcon
 } from '@heroicons/react/24/outline'
@@ -117,7 +116,7 @@ export const FatigueEducation: React.FC = () => {
              metric === 'crossPlatform' ? 'クロスプラットフォーム' : metric}
           </h3>
 
-          {data.thresholds && (
+          {'thresholds' in data && data.thresholds && (
             <div className="mb-6">
               <h4 className="text-sm font-medium text-gray-700 mb-3">閾値設定</h4>
               <div className="grid grid-cols-3 gap-4">
@@ -131,7 +130,7 @@ export const FatigueEducation: React.FC = () => {
                       {typeof value === 'number' ? 
                         (metric.includes('Ratio') || metric.includes('Decline') || metric.includes('Increase') || metric.includes('Feedback') ? 
                           `${(value * 100).toFixed(1)}%` : value.toFixed(1)) : 
-                        value}
+                        String(value)}
                     </div>
                     <div className="text-sm text-gray-600 capitalize">{level}</div>
                   </div>
@@ -140,7 +139,7 @@ export const FatigueEducation: React.FC = () => {
             </div>
           )}
 
-          {data.rationale && (
+          {'rationale' in data && data.rationale && (
             <div className="mb-6">
               <h4 className="text-sm font-medium text-gray-700 mb-3">科学的根拠</h4>
               {typeof data.rationale === 'object' ? (
@@ -161,13 +160,13 @@ export const FatigueEducation: React.FC = () => {
             </div>
           )}
 
-          {data.evidence && (
+          {'evidence' in data && data.evidence && (
             <div className="bg-gray-50 rounded-lg p-4">
               <p className="text-sm text-gray-700">{data.evidence}</p>
             </div>
           )}
 
-          {data.mathematical && (
+          {'mathematical' in data && data.mathematical && (
             <div className="mt-4 bg-blue-50 rounded-lg p-4">
               <p className="text-sm text-blue-800 font-mono">{data.mathematical}</p>
             </div>
@@ -232,8 +231,9 @@ export const FatigueEducation: React.FC = () => {
 
   const renderSimulator = () => {
     const calculateStatus = (metric: string, value: number) => {
-      const thresholds = THRESHOLD_RATIONALE[metric as keyof typeof THRESHOLD_RATIONALE]?.thresholds
-      if (!thresholds) return 'safe'
+      const rationale = THRESHOLD_RATIONALE[metric as keyof typeof THRESHOLD_RATIONALE]
+      if (!rationale || !('thresholds' in rationale)) return 'safe'
+      const thresholds = rationale.thresholds
       
       if (metric === 'firstTimeRatio') {
         if (value <= (thresholds as any).critical) return 'critical'

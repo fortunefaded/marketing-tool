@@ -169,7 +169,7 @@ export class ECForceCSVParser {
                 try {
                   const orders = this.parse(text)
                   resolve(orders)
-                } catch (e) {
+                } catch {
                   reject(error)
                 }
               }

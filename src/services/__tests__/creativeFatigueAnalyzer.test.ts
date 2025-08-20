@@ -1,9 +1,7 @@
 import { describe, expect, it, beforeEach } from 'vitest'
 import { 
   CreativeFatigueAnalyzer, 
-  CreativePerformanceData,
-  FatigueAnalysis,
-  RecommendedAction 
+  CreativePerformanceData
 } from '../creativeFatigueAnalyzer'
 
 describe('CreativeFatigueAnalyzer', () => {

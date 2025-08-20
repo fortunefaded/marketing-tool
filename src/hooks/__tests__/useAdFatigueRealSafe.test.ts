@@ -39,7 +39,7 @@ describe('useAdFatigueRealSafe', () => {
     const { useQuery } = require('convex/react')
     
     // Mock different return values for different queries
-    useQuery.mockImplementation((query) => {
+    useQuery.mockImplementation((query: any) => {
       if (query === 'getSavedFatigueAnalysis') {
         // Return incomplete savedAnalysis
         return {

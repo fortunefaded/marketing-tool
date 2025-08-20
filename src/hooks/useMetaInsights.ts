@@ -1,7 +1,7 @@
 import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import { useMemo, useState, useCallback } from 'react'
-import { MetaInsightsData } from '../types/meta'
+import { MetaInsightsData } from '../services/metaApiService'
 
 interface UseMetaInsightsOptions {
   accountId: string
@@ -91,7 +91,23 @@ export function useMetaInsights(options: UseMetaInsightsOptions): UseMetaInsight
   // 新しいページのデータが来たら追加
   useMemo(() => {
     if (latestPageData?.items) {
-      const newInsights = latestPageData.items as MetaInsightsData[]
+      // Convexのデータ型をMetaInsightsDataに変換
+      const newInsights = latestPageData.items.map((item: any) => ({
+        ...item,
+        impressions: String(item.impressions || 0),
+        clicks: String(item.clicks || 0),
+        spend: String(item.spend || 0),
+        reach: String(item.reach || 0),
+        frequency: String(item.frequency || 0),
+        cpm: String(item.cpm || 0),
+        cpc: String(item.cpc || 0),
+        ctr: String(item.ctr || 0),
+        conversions: item.conversions ? String(item.conversions) : undefined,
+        conversion_value: item.conversion_value ? String(item.conversion_value) : undefined,
+        cost_per_conversion: item.cost_per_conversion ? String(item.cost_per_conversion) : undefined,
+        roas: item.roas ? String(item.roas) : undefined,
+      })) as MetaInsightsData[]
+      
       const existingIds = new Set(allInsights.map(i => 
         `${i.date_start}_${i.campaign_id || 'account'}_${i.ad_id || ''}`
       ))
@@ -109,7 +125,7 @@ export function useMetaInsights(options: UseMetaInsightsOptions): UseMetaInsight
   // 次のページを読み込む
   const loadMore = useCallback(() => {
     if (latestPageData?.hasMore && latestPageData.nextCursor) {
-      setPages(prev => [...prev, latestPageData.nextCursor])
+      setPages(prev => [...prev, latestPageData.nextCursor!])
     }
   }, [latestPageData])
   

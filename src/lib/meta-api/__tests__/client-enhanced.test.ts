@@ -72,7 +72,7 @@ describe('MetaAPIClient - Enhanced Features', () => {
       // Advance timers to allow any delays
       await vi.runAllTimersAsync()
       
-      const result = await promise
+      await promise
 
       expect(onTokenRefresh).toHaveBeenCalled()
       expect(mockFetch).toHaveBeenCalledTimes(2)
@@ -270,7 +270,7 @@ describe('MetaAPIClient - Enhanced Features', () => {
         { relative_url: 'campaign3/insights', method: 'GET' },
       ]
 
-      const results = await client.batch(requests)
+      const results = await (client as any).batch(requests)
       console.log('🔧 Batch results:', results)
 
       // Should make single batch request

@@ -5,7 +5,6 @@ import { XMarkIcon } from '@heroicons/react/24/outline'
 import {
   ChartBarIcon,
   ExclamationTriangleIcon,
-  ArrowTrendingDownIcon,
   SparklesIcon,
   FireIcon,
   BoltIcon,
@@ -231,7 +230,7 @@ export const MobileCreativeInsights: React.FC<MobileCreativeInsightsProps> = ({
                                 analysis.fatigueLevel === 'healthy' ? '健全' :
                                 analysis.fatigueLevel === 'warning' ? '警告' :
                                 analysis.fatigueLevel === 'critical' ? '危険' : '不明'
-                              } ({analysis.score.toFixed(0)}%)
+                              } ({(analysis.score ?? 0).toFixed(0)}%)
                             </span>
                           </div>
                         </div>

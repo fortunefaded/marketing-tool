@@ -1,5 +1,6 @@
 import { MetaInsightsData } from './metaApiService'
-import { ECForceOrder, ECForceSalesData } from './ecforceApiService'
+import { ECForceOrder } from '../types/ecforce'
+import { ECForceSalesData } from './ecforceApiService'
 
 export interface UnifiedKPIMetrics {
   // 総合指標
@@ -171,11 +172,11 @@ export class KPIAggregator {
     }
     
     // 注文データから集計
-    const revenue = orders.reduce((sum, order) => sum + (order.total_amount || order.小計 || 0), 0)
+    const revenue = orders.reduce((sum, order) => sum + (order.合計 || order.小計 || 0), 0)
     const orderCount = orders.length
     
     // ユニーク顧客数を計算
-    const uniqueCustomers = new Set(orders.map(o => o.customer?.id || o.顧客ID || o.ID))
+    const uniqueCustomers = new Set(orders.map(o => o.顧客ID || o.顧客番号 || ''))
     
     return {
       revenue,
@@ -209,7 +210,7 @@ export class KPIAggregator {
     })
     
     const currentOrders = ecforceOrders.filter(o => {
-      const date = new Date(o.created_at || o.注文日 || '')
+      const date = new Date(o.受注日 || '')
       return date >= startDate && date <= endDate
     })
     
@@ -220,13 +221,13 @@ export class KPIAggregator {
     })
     
     const previousOrders = ecforceOrders.filter(o => {
-      const date = new Date(o.created_at || o.注文日 || '')
+      const date = new Date(o.受注日 || '')
       return date >= previousStart && date <= previousEnd
     })
     
     // メトリクスを計算
     const currentMetrics = {
-      revenue: currentOrders.reduce((sum, o) => sum + (o.total_amount || o.小計 || 0), 0),
+      revenue: currentOrders.reduce((sum, o) => sum + (o.合計 || o.小計 || 0), 0),
       adSpend: currentMetaData.reduce((sum, i) => sum + Number(i.spend || 0), 0),
       orders: currentOrders.length,
       roas: 0
@@ -236,7 +237,7 @@ export class KPIAggregator {
       : 0
     
     const previousMetrics = {
-      revenue: previousOrders.reduce((sum, o) => sum + (o.total_amount || o.小計 || 0), 0),
+      revenue: previousOrders.reduce((sum, o) => sum + (o.合計 || o.小計 || 0), 0),
       adSpend: previousMetaData.reduce((sum, i) => sum + Number(i.spend || 0), 0),
       orders: previousOrders.length,
       roas: 0
@@ -308,11 +309,11 @@ export class KPIAggregator {
     
     // ECForceデータを日別に集計
     ecforceOrders.forEach(order => {
-      const dateStr = order.created_at || order.注文日 || ''
+      const dateStr = order.注文日 || ''
       const date = dateStr.split('T')[0]
       if (dailyData.has(date)) {
         const day = dailyData.get(date)
-        day.ecforce.revenue += (order.total_amount || order.小計 || 0)
+        day.ecforce.revenue += (order.小計 || 0)
         day.ecforce.orders += 1
       }
     })
@@ -353,8 +354,7 @@ export class KPIAggregator {
   // アトリビューション分析
   analyzeAttribution(
     metaInsights: MetaInsightsData[],
-    ecforceOrders: ECForceOrder[],
-    attributionWindow: number = 7 // デフォルト7日間
+    ecforceOrders: ECForceOrder[]
   ): {
     direct: number      // fbclidによる直接紐付け
     utm: number        // UTMパラメータによる紐付け
@@ -366,9 +366,10 @@ export class KPIAggregator {
     let unknown = 0
     
     ecforceOrders.forEach(order => {
-      if (order.fbclid) {
+      // ECForceの日本語フィールドでは広告URLグループ名で判定
+      if (order.広告URLグループ名?.includes('facebook') || order.広告URLグループ名?.includes('meta')) {
         direct++
-      } else if (order.utm_source === 'facebook' || order.utm_source === 'meta') {
+      } else if (order.広告主名?.includes('Facebook') || order.広告主名?.includes('Meta')) {
         utm++
       } else {
         unknown++

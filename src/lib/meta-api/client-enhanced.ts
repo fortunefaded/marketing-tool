@@ -127,6 +127,19 @@ export class MetaAPIClientEnhanced extends EventEmitter {
     return { ...this.metrics }
   }
 
+  async validateAccessToken(): Promise<boolean> {
+    try {
+      // アクセストークンの有効性を確認するために、meエンドポイントを呼び出す
+      const response = await this.makeRequest<{ id: string }>('me', {
+        fields: 'id',
+      })
+      return !!response.id
+    } catch (error) {
+      console.error('Access token validation failed:', error)
+      return false
+    }
+  }
+
   private async checkCircuitBreaker(): Promise<void> {
     if (this.circuitBreaker.isOpen) {
       if (Date.now() < this.circuitBreaker.nextAttemptTime) {
@@ -342,7 +355,7 @@ export class MetaAPIClientEnhanced extends EventEmitter {
   } {
     const err = new Error(error.message) as any
     err.code = error.code
-    err.subcode = error.error_subcode || error.subcode
+    err.subcode = (error as any).error_subcode || (error as any).subcode
     err.type = error.type
     err.traceId = error.fbtrace_id
     return err

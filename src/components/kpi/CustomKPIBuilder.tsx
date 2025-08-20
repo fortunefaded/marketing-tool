@@ -84,25 +84,25 @@ export const CustomKPIBuilder: React.FC<CustomKPIBuilderProps> = ({
 
   // フィールドを追加
   const addField = (field: KPIField) => {
-    const newFormula: FormulaToken[] = [...formula, { type: 'field' as const, value: field.name, label: field.label }]
+    const newFormula = [...formula, { type: 'field' as const, value: field.name, label: field.label }]
     updateFormula(newFormula)
   }
 
   // 演算子を追加
   const addOperator = (operator: string) => {
-    const newFormula: FormulaToken[] = [...formula, { type: 'operator' as const, value: operator }]
+    const newFormula = [...formula, { type: 'operator' as const, value: operator }]
     updateFormula(newFormula)
   }
 
   // 括弧を追加
   const addParenthesis = (paren: string) => {
-    const newFormula: FormulaToken[] = [...formula, { type: 'parenthesis' as const, value: paren }]
+    const newFormula = [...formula, { type: 'parenthesis' as const, value: paren }]
     updateFormula(newFormula)
   }
 
   // 関数を追加
   const addFunction = (func: string) => {
-    const newFormula: FormulaToken[] = [...formula, { type: 'function' as const, value: func }]
+    const newFormula = [...formula, { type: 'function' as const, value: func }]
     updateFormula(newFormula)
   }
 

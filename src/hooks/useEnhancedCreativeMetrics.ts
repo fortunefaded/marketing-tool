@@ -39,13 +39,17 @@ export const useEnhancedCreativeMetrics = (
   const [data, setData] = useState<EnhancedCreativeData[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [progress, setProgress] = useState({
-    stage: 'idle' as const,
+  const [progress, setProgress] = useState<{
+    stage: 'idle' | 'basic' | 'details' | 'analytics' | 'complete'
+    percentage: number
+    message: string
+  }>({
+    stage: 'idle',
     percentage: 0,
     message: ''
   })
   
-  const [manager] = useState(() => new MetaAccountManager())
+  const manager = MetaAccountManager.getInstance()
   const aggregatorRef = useRef<CreativeDataAggregator | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
 

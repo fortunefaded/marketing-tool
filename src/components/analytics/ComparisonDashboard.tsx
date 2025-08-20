@@ -1,8 +1,6 @@
 import React, { useState, useMemo } from 'react'
 import { MetaInsightsData } from '../../services/metaApiService'
 import {
-  ArrowUpIcon,
-  ArrowDownIcon,
   FunnelIcon
 } from '@heroicons/react/24/outline'
 
@@ -176,19 +174,6 @@ export const ComparisonDashboard: React.FC<ComparisonDashboardProps> = ({ insigh
     }
   }
 
-  const getMetricLabel = (metric: MetricType) => {
-    const labels: Record<MetricType, string> = {
-      spend: '費用',
-      impressions: 'インプレッション',
-      clicks: 'クリック数',
-      conversions: 'コンバージョン',
-      ctr: 'CTR',
-      cpc: 'CPC',
-      cpa: 'CPA',
-      roas: 'ROAS'
-    }
-    return labels[metric]
-  }
 
   const data = getCurrentData()
   const sortedData = [...data].sort((a, b) => b[selectedMetric] - a[selectedMetric])

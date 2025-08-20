@@ -148,18 +148,19 @@ export class MetaSyncService {
       console.log(`[Sync] Fetched ${allCreatives.length} creatives from Meta API`)
 
       // Transform creatives for Convex
-      const transformedCreatives = allCreatives.map((creative) => ({
-        metaId: creative.id,
-        name: creative.name,
-        campaignId: creative.campaign_id,
-        adsetId: creative.adset_id,
-        creativeType: creative.creative_type,
-        thumbnailUrl: creative.thumbnail_url,
-        videoUrl: creative.video_url,
-        body: creative.body,
-        title: creative.title,
-        callToActionType: creative.call_to_action_type,
-      }))
+      // TODO: Implement when syncMetaCreatives is available
+      // const transformedCreatives = allCreatives.map((creative) => ({
+      //   metaId: creative.id,
+      //   name: creative.name,
+      //   campaignId: creative.campaign_id,
+      //   adsetId: creative.adset_id,
+      //   creativeType: creative.creative_type,
+      //   thumbnailUrl: creative.thumbnail_url,
+      //   videoUrl: creative.video_url,
+      //   body: creative.body,
+      //   title: creative.title,
+      //   callToActionType: creative.call_to_action_type,
+      // }))
 
       // Sync to Convex - syncMetaCreatives not implemented yet
       // const result = await this.convex.mutation(api.metaSync.syncMetaCreatives, {
@@ -176,9 +177,9 @@ export class MetaSyncService {
   }
 
   async scheduleSync(
-    type: 'campaigns' | 'creatives' | 'insights',
-    interval: 'hourly' | 'daily' | 'weekly',
-    config?: any
+    _type: 'campaigns' | 'creatives' | 'insights',
+    _interval: 'hourly' | 'daily' | 'weekly',
+    _config?: any
   ) {
     try {
       // scheduleSync not implemented yet
@@ -189,7 +190,7 @@ export class MetaSyncService {
       // })
       const result = { success: false, message: 'Not implemented' }
 
-      console.log(`[Sync] Scheduled ${type} sync with ${interval} interval:`, result)
+      console.log(`[Sync] Scheduled ${_type} sync with ${_interval} interval:`, result)
       return result
     } catch (error) {
       console.error('[Sync] Failed to schedule sync:', error)
@@ -197,7 +198,7 @@ export class MetaSyncService {
     }
   }
 
-  async getSyncHistory(limit?: number) {
+  async getSyncHistory(_limit?: number) {
     try {
       // getSyncHistory not implemented yet
       // const history = await this.convex.query(api.metaSync.getSyncHistory, {

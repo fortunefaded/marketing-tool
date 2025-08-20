@@ -76,7 +76,7 @@ export const TestStep: React.FC = () => {
 
     // インサイトデータ取得テスト
     try {
-      const endDate = new Date()
+      // const endDate = new Date()
       const startDate = new Date()
       startDate.setDate(startDate.getDate() - 7)
       
@@ -161,7 +161,7 @@ export const TestStep: React.FC = () => {
       </div>
 
       <div className="space-y-3">
-        {testResults.map((result, index) => (
+        {testResults.map((result) => (
           <div
             key={result.name}
             className={`border rounded-lg p-4 transition-all ${

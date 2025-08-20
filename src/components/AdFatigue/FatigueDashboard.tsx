@@ -22,10 +22,10 @@ export const FatigueDashboard: React.FC<FatigueDashboardProps> = ({ accountId })
   
   
   // 実際のMeta APIデータから全広告の疲労度分析を取得
-  const { allAdsAnalysis, error: apiError } = useAdFatigueReal(accountId)
+  const { error: apiError } = useAdFatigueReal(accountId)
   
   // 選択された広告の疲労度データ
-  const { fatigueData, isCalculating, error: fatigueError } = useAdFatigueReal(accountId, selectedAdId || undefined)
+  const { error: fatigueError } = useAdFatigueReal(accountId, selectedAdId || undefined)
   
   // エラーをコンソールに出力
   useEffect(() => {

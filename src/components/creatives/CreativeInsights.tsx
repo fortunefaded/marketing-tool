@@ -30,7 +30,7 @@ export const CreativeInsights: React.FC<CreativeInsightsProps> = ({
   analysis,
   performanceHistory,
   creativeName,
-  compact = false
+  compact: _compact = false
 }) => {
   // アクションに基づくアイコンとスタイル
   const getActionDisplay = () => {

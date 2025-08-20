@@ -104,8 +104,8 @@ describe('MetaApiService', () => {
           name: 'Test Campaign 1',
           status: 'ACTIVE',
           objective: 'CONVERSIONS',
-          daily_budget: '10000',
-          lifetime_budget: null,
+          dailyBudget: 10000,
+          lifetimeBudget: undefined,
           created_time: '2024-01-01T00:00:00Z',
           updated_time: '2024-01-02T00:00:00Z'
         },
@@ -114,8 +114,8 @@ describe('MetaApiService', () => {
           name: 'Test Campaign 2',
           status: 'PAUSED',
           objective: 'TRAFFIC',
-          daily_budget: '5000',
-          lifetime_budget: null,
+          dailyBudget: 5000,
+          lifetimeBudget: undefined,
           created_time: '2024-01-01T00:00:00Z',
           updated_time: '2024-01-02T00:00:00Z'
         }

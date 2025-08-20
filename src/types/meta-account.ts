@@ -6,6 +6,8 @@ export interface MetaAccount {
   name: string
   accessToken: string
   currency?: string
+  timezone?: string
+  permissions?: string[]
   isActive: boolean
   createdAt: Date
   lastUsedAt?: Date

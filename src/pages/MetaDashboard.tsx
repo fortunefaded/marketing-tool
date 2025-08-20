@@ -1,5 +1,4 @@
 import React, { useMemo, useState } from 'react'
-import { useState, useMemo } from 'react'
 import { DashboardLayoutWithFilters } from '../components/dashboard/DashboardLayoutWithFilters'
 import type { FilterState } from '../components/filters/CustomFilterPanel'
 import { MetricCard } from '../components/metrics/MetricCard'
@@ -36,8 +35,8 @@ export const MetaDashboard: React.FC = () => {
   const campaigns: any[] = []
   
   // Fetch creative performance data with period aggregation
-  const startDate = filters.dateRange?.start || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-  const endDate = filters.dateRange?.end || new Date().toISOString().split('T')[0]
+  // const _startDate = filters.dateRange?.start || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+  // const _endDate = filters.dateRange?.end || new Date().toISOString().split('T')[0]
   
   // TODO: ローカルストレージから取得するように変更
   const creatives: any[] = []
@@ -45,7 +44,7 @@ export const MetaDashboard: React.FC = () => {
   // Use comparison analytics hook
   const {
     overallComparison,
-    selectedComparison,
+    selectedComparison: _selectedComparison,
     setComparisonType,
     exportData,
     isLoading: comparisonLoading,
@@ -146,7 +145,7 @@ export const MetaDashboard: React.FC = () => {
     campaigns.forEach((campaign) => {
       if (!campaign.dailyMetrics) return
 
-      campaign.dailyMetrics.forEach((metric) => {
+      campaign.dailyMetrics.forEach((metric: any) => {
         const existing = dataByDate.get(metric.date) || {
           date: metric.date,
           impressions: 0,

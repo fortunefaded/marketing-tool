@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { MetaAccountManager } from '../services/metaAccountManager'
-import { MetaApiService, MetaInsightsData } from '../services/metaApiService'
+import { MetaInsightsData } from '../services/metaApiService'
 import { MetaDataCache } from '../services/metaDataCache'
-import { ECForceOrder } from '../types/ecforce'
 import { useECForceData } from '../hooks/useECForceData'
 import {
   ChartBarIcon,
@@ -32,18 +31,18 @@ import { RFMAnalysis } from '../components/integrated/RFMAnalysis'
 
 export const UnifiedDashboard: React.FC = () => {
   const navigate = useNavigate()
-  const [manager] = useState(() => new MetaAccountManager())
-  const [apiService, setApiService] = useState<MetaApiService | null>(null)
+  const [manager] = useState(() => MetaAccountManager.getInstance())
+  // const [apiService, setApiService] = useState<MetaApiService | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   
   // Metaデータ
   const [metaInsights, setMetaInsights] = useState<MetaInsightsData[]>([])
   const [metaSyncStatus, setMetaSyncStatus] = useState<any>(null)
-  const [metaCacheInfo, setMetaCacheInfo] = useState({ sizeKB: 0, records: 0 })
+  // const [metaCacheInfo, setMetaCacheInfo] = useState({ sizeKB: 0, records: 0 })
   
   // ECForceデータ
-  const [selectedPeriod, setSelectedPeriod] = useState('last_30_days')
+  // const [selectedPeriod, setSelectedPeriod] = useState('last_30_days')
   const [ecforceDateRange, setEcforceDateRange] = useState<{
     start: Date | null
     end: Date | null
@@ -78,13 +77,13 @@ export const UnifiedDashboard: React.FC = () => {
     if (cachedData.length > 0) {
       setMetaInsights(cachedData)
       setMetaSyncStatus(status)
-      const cacheUsage = MetaDataCache.getCacheUsage(activeAccount.accountId)
-      setMetaCacheInfo(cacheUsage)
+      // const cacheUsage = MetaDataCache.getCacheUsage(activeAccount.accountId)
+      // setMetaCacheInfo(cacheUsage)
     }
     
     const service = manager.getActiveApiService()
     if (service) {
-      setApiService(service)
+      // setApiService(service)
     }
     
     setIsLoading(false)
@@ -145,7 +144,8 @@ export const UnifiedDashboard: React.FC = () => {
     
     // Meta広告データを集計
     metaInsights.forEach(insight => {
-      const date = insight.date_start || insight.dateStart || ''
+      const dateValue = insight.date_start || insight.dateStart || ''
+      const date = String(dateValue)
       if (!date) return
       
       const existing = dataByDate.get(date) || { adSpend: 0, revenue: 0, orders: 0 }
@@ -491,7 +491,7 @@ export const UnifiedDashboard: React.FC = () => {
                       </div>
                     </div>
                     <p className="text-2xl font-bold text-gray-900">
-                      {new Intl.NumberFormat('ja-JP').format(new Set(filteredEcforceOrders.map(o => o.顧客ID || o.customer?.id || o.ID)).size)}
+                      {new Intl.NumberFormat('ja-JP').format(new Set(filteredEcforceOrders.map(o => o.顧客番号)).size)}
                     </p>
                   </div>
                   {/* 最高注文額 */}
@@ -506,7 +506,7 @@ export const UnifiedDashboard: React.FC = () => {
                     </div>
                     <p className="text-2xl font-bold text-gray-900">
                       {new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY' }).format(
-                        Math.max(...filteredEcforceOrders.map(o => o.小計 || o.total_amount || 0))
+                        Math.max(...filteredEcforceOrders.map(o => o.小計 || 0))
                       )}
                     </p>
                   </div>
@@ -522,7 +522,7 @@ export const UnifiedDashboard: React.FC = () => {
                     </div>
                     <p className="text-2xl font-bold text-gray-900">
                       {new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY' }).format(
-                        Math.min(...filteredEcforceOrders.map(o => o.小計 || o.total_amount || 0))
+                        Math.min(...filteredEcforceOrders.map(o => o.小計 || 0))
                       )}
                     </p>
                   </div>
@@ -576,7 +576,7 @@ export const UnifiedDashboard: React.FC = () => {
                     </div>
                     <p className="text-2xl font-bold text-gray-900">
                       {(() => {
-                        const customerIds = filteredEcforceOrders.map(o => o.顧客ID || o.customer?.id || o.ID);
+                        const customerIds = filteredEcforceOrders.map(o => o.顧客番号);
                         const uniqueCustomers = new Set(customerIds).size;
                         const repeatRate = uniqueCustomers > 0 ? ((filteredEcforceOrders.length - uniqueCustomers) / filteredEcforceOrders.length) * 100 : 0;
                         return `${repeatRate.toFixed(1)}%`;
@@ -595,7 +595,7 @@ export const UnifiedDashboard: React.FC = () => {
                     </div>
                     <p className="text-2xl font-bold text-gray-900">
                       {(() => {
-                        const uniqueCustomers = new Set(filteredEcforceOrders.map(o => o.顧客ID || o.customer?.id || o.ID)).size;
+                        const uniqueCustomers = new Set(filteredEcforceOrders.map(o => o.顧客番号)).size;
                         return uniqueCustomers > 0 ? (filteredEcforceOrders.length / uniqueCustomers).toFixed(1) : '0';
                       })()}
                       <span className="text-base font-normal text-gray-600 ml-1">回</span>
@@ -613,7 +613,7 @@ export const UnifiedDashboard: React.FC = () => {
                     </div>
                     <p className="text-2xl font-bold text-gray-900">
                       {(() => {
-                        const uniqueCustomers = new Set(filteredEcforceOrders.map(o => o.顧客ID || o.customer?.id || o.ID)).size;
+                        const uniqueCustomers = new Set(filteredEcforceOrders.map(o => o.顧客番号)).size;
                         return new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY' }).format(
                           uniqueCustomers > 0 ? metrics.totalRevenue / uniqueCustomers : 0
                         );

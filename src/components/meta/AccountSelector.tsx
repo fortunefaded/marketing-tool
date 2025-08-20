@@ -18,7 +18,7 @@ export const AccountSelector: React.FC<AccountSelectorProps> = ({
   onAccountChange,
   onAddAccount
 }) => {
-  const [manager] = useState(() => new MetaAccountManager())
+  const [manager] = useState(() => MetaAccountManager.getInstance())
   const [accounts, setAccounts] = useState<MetaAccount[]>([])
   const [activeAccount, setActiveAccount] = useState<MetaAccount | null>(null)
   const [showDropdown, setShowDropdown] = useState(false)

@@ -94,7 +94,18 @@ class LocalDataStore extends Dexie {
     const toSave = data.map(item => ({
       ...item,
       accountId,
-      fetchedAt: new Date()
+      fetchedAt: new Date(),
+      // 数値フィールドを変換
+      impressions: Number(item.impressions) || 0,
+      clicks: Number(item.clicks) || 0,
+      spend: Number(item.spend) || 0,
+      reach: item.reach ? Number(item.reach) : undefined,
+      frequency: item.frequency ? Number(item.frequency) : undefined,
+      cpm: item.cpm ? Number(item.cpm) : undefined,
+      cpc: item.cpc ? Number(item.cpc) : undefined,
+      ctr: item.ctr ? Number(item.ctr) : undefined,
+      conversions: item.conversions ? Number(item.conversions) : undefined,
+      conversion_value: item.conversion_value ? Number(item.conversion_value) : undefined
     }))
     
     // バッチ処理で重複を避けて保存

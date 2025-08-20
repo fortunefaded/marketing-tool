@@ -402,7 +402,7 @@ export const MetaDashboardReal: React.FC = () => {
           console.log(`クリエイティブ情報取得中: ${i + 1}-${Math.min(i + batchSize, uniqueAdIds.length)}/${uniqueAdIds.length}`)
           
           try {
-            const batchCreatives = await service.getAdCreatives(batch)
+            const batchCreatives = await service.getAdCreatives(batch.filter((id): id is string => id !== undefined))
             creatives.push(...batchCreatives)
             
             // 進捗更新
@@ -590,10 +590,10 @@ export const MetaDashboardReal: React.FC = () => {
     }
     
     // メモリ使用量（初期）
-    if (performance.memory) {
+    if ('memory' in performance) {
       console.log('初期メモリ使用量:', {
-        usedJSHeapSize: `${(performance.memory.usedJSHeapSize / 1024 / 1024).toFixed(2)} MB`,
-        totalJSHeapSize: `${(performance.memory.totalJSHeapSize / 1024 / 1024).toFixed(2)} MB`
+        usedJSHeapSize: `${((performance as any).memory.usedJSHeapSize / 1024 / 1024).toFixed(2)} MB`,
+        totalJSHeapSize: `${((performance as any).memory.totalJSHeapSize / 1024 / 1024).toFixed(2)} MB`
       })
     }
     
@@ -615,10 +615,10 @@ export const MetaDashboardReal: React.FC = () => {
       })
       
       // メモリ使用量（最終）
-      if (performance.memory) {
+      if ('memory' in performance) {
         console.log('最終メモリ使用量:', {
-          usedJSHeapSize: `${(performance.memory.usedJSHeapSize / 1024 / 1024).toFixed(2)} MB`,
-          totalJSHeapSize: `${(performance.memory.totalJSHeapSize / 1024 / 1024).toFixed(2)} MB`
+          usedJSHeapSize: `${((performance as any).memory.usedJSHeapSize / 1024 / 1024).toFixed(2)} MB`,
+          totalJSHeapSize: `${((performance as any).memory.totalJSHeapSize / 1024 / 1024).toFixed(2)} MB`
         })
       }
       
@@ -724,7 +724,8 @@ export const MetaDashboardReal: React.FC = () => {
     const dataByDate = new Map<string, { cost: number; impressions: number; clicks: number; reach: number }>()
     
     insights.forEach(insight => {
-      const date = insight.date_start || insight.dateStart || new Date().toISOString().split('T')[0]
+      const dateValue = insight.date_start || insight.dateStart || new Date().toISOString().split('T')[0]
+      const date = String(dateValue)
       const existing = dataByDate.get(date) || { cost: 0, impressions: 0, clicks: 0, reach: 0 }
       
       dataByDate.set(date, {
@@ -1115,7 +1116,10 @@ export const MetaDashboardReal: React.FC = () => {
             insights={insights}
             ecforceOrders={ecforceOrders}
             conversionValue={10000} // 1CV = 10,000円（後で設定可能にする）
-            dateRange={syncStatus?.dateRange}
+            dateRange={syncStatus?.dateRange ? {
+              start: syncStatus.dateRange.earliest || '',
+              end: syncStatus.dateRange.latest || ''
+            } : undefined}
             showComparison={false}
           />
         )}

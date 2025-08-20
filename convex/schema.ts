@@ -589,8 +589,10 @@ export default defineSchema({
 
   ecforceOrders: defineTable({
     orderId: v.string(), // 受注ID
+    orderNumber: v.optional(v.string()), // 受注番号
     orderDate: v.string(), // 受注日
     purchaseDate: v.string(), // 注文日
+    purchaseUrl: v.optional(v.string()), // 購入URL
     customerId: v.string(), // 顧客ID
     customerNumber: v.string(), // 顧客番号
     email: v.string(), // メールアドレス
@@ -609,11 +611,15 @@ export default defineSchema({
     offer: v.optional(v.string()), // 購入オファー
     // 状態
     subscriptionStatus: v.optional(v.string()), // 定期ステータス
+    subscriptionOrderNumber: v.optional(v.string()), // 定期受注番号
     deliveryStatus: v.optional(v.string()), // 配送ステータス
     // 広告関連
     adCode: v.optional(v.string()), // 広告コード
     advertiserName: v.optional(v.string()), // 広告主名
     adMedia: v.optional(v.string()), // 広告媒体
+    adUrlGroupName: v.optional(v.string()), // 広告URLグループ名
+    adType: v.optional(v.string()), // 広告種別
+    adTrackingUrl: v.optional(v.string()), // 広告計測URL
     // メタデータ
     importedAt: v.string(),
     updatedAt: v.string(),

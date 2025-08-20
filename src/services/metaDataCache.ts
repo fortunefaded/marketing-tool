@@ -138,8 +138,8 @@ export class MetaDataCache {
         if (cachedData.length > 100) {
           // 日付でソートしてから削除
           const sortedData = [...cachedData].sort((a, b) => {
-            const dateA = a.date_start || a.dateStart || ''
-            const dateB = b.date_start || b.dateStart || ''
+            const dateA = String(a.date_start || a.dateStart || '')
+            const dateB = String(b.date_start || b.dateStart || '')
             return dateA.localeCompare(dateB)
           })
           const retainCount = Math.floor(sortedData.length * 0.7) // 70%を保持
@@ -159,9 +159,11 @@ export class MetaDataCache {
             // それでも失敗したら、最新の90日分のみ保存
             const ninetyDaysAgo = new Date()
             ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
-            const recentData = cachedData.filter(item => 
-              new Date(item.date_start || item.dateStart || '') > ninetyDaysAgo
-            )
+            const recentData = cachedData.filter(item => {
+              const dateStr = String(item.date_start || item.dateStart || '')
+              if (!dateStr) return false
+              return new Date(dateStr) > ninetyDaysAgo
+            })
             
             if (recentData.length > 0) {
               try {
@@ -310,13 +312,16 @@ export class MetaDataCache {
   static updateDateRange(accountId: string, data: CachedInsightsData[]): void {
     if (data.length === 0) return
     
-    const dates = data.map(item => item.date_start || item.dateStart).filter(Boolean).sort()
+    const dates = data.map(item => String(item.date_start || item.dateStart || '')).filter(Boolean).sort()
     const earliest = dates[0] || null
     const latest = dates[dates.length - 1] || null
     
     this.saveSyncStatus(accountId, {
       totalRecords: data.length,
-      dateRange: { earliest, latest }
+      dateRange: { 
+        earliest: earliest ? String(earliest) : null, 
+        latest: latest ? String(latest) : null 
+      }
     })
   }
 

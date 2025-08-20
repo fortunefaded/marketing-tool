@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate, useLocation, Link, Outlet } from 'react-router-dom'
-import { MetaAccountManager } from '../services/metaAccountManager'
+import { useLocation, Link, Outlet } from 'react-router-dom'
 import { CheckIcon } from '@heroicons/react/24/solid'
 
 interface Step {
@@ -11,10 +10,10 @@ interface Step {
 }
 
 export const MetaApiSetupSteps: React.FC = () => {
-  const navigate = useNavigate()
+  // const navigate = useNavigate()
   const location = useLocation()
-  const [manager] = useState(() => MetaAccountManager.getInstance())
-  const [hasAccount, setHasAccount] = useState(false)
+  // const [manager] = useState(() => MetaAccountManager.getInstance())
+  // const [hasAccount, setHasAccount] = useState(false)
 
   // ステップの定義
   const [steps, setSteps] = useState<Step[]>([
@@ -25,8 +24,8 @@ export const MetaApiSetupSteps: React.FC = () => {
   ])
 
   useEffect(() => {
-    const accounts = manager.getAccounts()
-    setHasAccount(accounts.length > 0)
+    // const accounts = manager.getAccounts()
+    // setHasAccount(accounts.length > 0)
     updateStepStatus()
   }, [location])
 

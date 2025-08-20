@@ -153,8 +153,8 @@ export const ScheduledReportManager: React.FC = () => {
       reportType: template.reportType,
       schedule: {
         time: template.schedule.time,
-        dayOfWeek: template.schedule.dayOfWeek || 1,
-        dayOfMonth: template.schedule.dayOfMonth || 1,
+        dayOfWeek: 'dayOfWeek' in template.schedule ? template.schedule.dayOfWeek : 1,
+        dayOfMonth: 'dayOfMonth' in template.schedule ? template.schedule.dayOfMonth : 1,
         timezone: template.schedule.timezone || 'Asia/Tokyo'
       },
       isActive: true

@@ -66,13 +66,13 @@ export function useAdFatigueReal(accountId: string, adId?: string) {
   // Meta Insightsデータから疲労度を計算
   const calculateFatigue = useQuery(
     api.adFatigueCalculator.calculateFatigueFromInsights,
-    adId ? { accountId, adId, lookbackDays: 21 } : undefined
+    adId ? { accountId, adId, lookbackDays: 21 } : "skip"
   ) as AdFatigueData | null | undefined
 
   // 保存された疲労度分析結果を取得
   const savedAnalysis = useQuery(
     api.adFatigueCalculator.getSavedFatigueAnalysis,
-    adId ? { accountId, adId } : undefined
+    adId ? { accountId, adId } : "skip"
   )
 
   // 疲労度分析結果の保存
@@ -169,7 +169,7 @@ export function useAdFatigueReal(accountId: string, adId?: string) {
 export function useFatigueTrends(adId: string, days: number = 30) {
   const trends = useQuery(
     api.adFatigueCalculator.getFatigueTrends,
-    adId ? { adId, days } : undefined
+    adId ? { adId, days } : "skip"
   )
 
   return {

@@ -10,11 +10,8 @@ import {
   UserGroupIcon,
   ExclamationTriangleIcon,
   ArrowPathIcon,
-  ArrowTopRightOnSquareIcon,
 } from '@heroicons/react/24/outline'
-import { MetaCampaignData, MetaInsightsData } from '../services/metaApiService'
-import { ECForceOrder } from '../services/ecforceApiService'
-import { useECForceData } from '../hooks/useECForceData'
+import { MetaInsightsData } from '../services/metaApiService'
 import { useMetaInsights } from '../hooks/useMetaInsights'
 import { MetricCard } from '../components/metrics/MetricCard'
 import { PerformanceChart } from '../components/charts/PerformanceChart'
@@ -25,19 +22,19 @@ import { SyncSettings, type SyncSettings as SyncSettingsType } from '../componen
 
 export const MetaDashboardRealV2: React.FC = () => {
   const navigate = useNavigate()
-  const [manager] = useState(() => new MetaAccountManager())
+  const [manager] = useState(() => MetaAccountManager.getInstance())
   const [apiService, setApiService] = useState<MetaApiService | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [loadingProgress, setLoadingProgress] = useState({ current: 0, total: 0, message: '' })
   
   // データ状態
-  const [campaigns, setCampaigns] = useState<MetaCampaignData[]>([])
+  // const [campaigns, setCampaigns] = useState<MetaCampaignData[]>([])
   const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null)
   const [isSyncing, setIsSyncing] = useState(false)
   const [syncProgress, setSyncProgress] = useState({ current: 0, total: 0, message: '' })
   const [activeTab, setActiveTab] = useState<'overview' | 'kpi' | 'creative' | 'comparison'>('overview')
-  const [creativeAggregationPeriod, setCreativeAggregationPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily')
+  const [creativeAggregationPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily')
   const [syncSettings, setSyncSettings] = useState<SyncSettingsType | null>(null)
   
   // アクティブアカウントを取得
@@ -45,15 +42,13 @@ export const MetaDashboardRealV2: React.FC = () => {
   const accountId = activeAccount?.accountId || ''
   
   // ConvexからECForceデータを取得
-  const { orders: ecforceOrders } = useECForceData()
+  // const { orders: ecforceOrders } = useECForceData()
   
   // ConvexからMetaデータを取得
   const {
     insights,
-    isLoading: isLoadingInsights,
     hasMore,
     loadMore,
-    stats,
     syncStatus,
     importInsights,
     clearAccountData,
@@ -163,8 +158,8 @@ export const MetaDashboardRealV2: React.FC = () => {
       }
       
       // キャンペーンデータの取得
-      const campaignsData = await service.getCampaigns({ limit: 50 })
-      setCampaigns(campaignsData)
+      // const campaignsData = await service.getCampaigns({ limit: 50 })
+      // setCampaigns(campaignsData)
 
       // 日付範囲の設定
       let missingRanges: Array<{start: string, end: string}> = []
@@ -407,7 +402,7 @@ export const MetaDashboardRealV2: React.FC = () => {
           console.log(`クリエイティブ情報取得中: ${i + 1}-${Math.min(i + batchSize, uniqueAdIds.length)}/${uniqueAdIds.length}`)
           
           try {
-            const batchCreatives = await service.getAdCreatives(batch)
+            const batchCreatives = await service.getAdCreatives(batch.filter((id): id is string => id !== undefined))
             creatives.push(...batchCreatives)
             
             // 進捗更新
@@ -601,7 +596,8 @@ export const MetaDashboardRealV2: React.FC = () => {
     const dataByDate = new Map<string, { cost: number; impressions: number; clicks: number; reach: number }>()
     
     insights.forEach(insight => {
-      const date = insight.date_start || insight.dateStart || new Date().toISOString().split('T')[0]
+      const dateValue = insight.date_start || insight.dateStart || new Date().toISOString().split('T')[0]
+      const date = String(dateValue)
       const existing = dataByDate.get(date) || { cost: 0, impressions: 0, clicks: 0, reach: 0 }
       
       dataByDate.set(date, {
@@ -763,27 +759,27 @@ export const MetaDashboardRealV2: React.FC = () => {
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
               <MetricCard
                 title="総広告費"
-                value={`¥${metrics.totalSpend.toLocaleString()}`}
-                icon={CurrencyDollarIcon}
-                change={0}
+                value={metrics.totalSpend}
+                format="currency"
+                icon={<CurrencyDollarIcon className="h-5 w-5" />}
               />
               <MetricCard
                 title="総インプレッション"
-                value={metrics.totalImpressions.toLocaleString()}
-                icon={ChartBarIcon}
-                change={0}
+                value={metrics.totalImpressions}
+                format="number"
+                icon={<ChartBarIcon className="h-5 w-5" />}
               />
               <MetricCard
                 title="総クリック数"
-                value={metrics.totalClicks.toLocaleString()}
-                icon={ShoppingCartIcon}
-                change={0}
+                value={metrics.totalClicks}
+                format="number"
+                icon={<ShoppingCartIcon className="h-5 w-5" />}
               />
               <MetricCard
                 title="平均CTR"
-                value={`${metrics.avgCtr.toFixed(2)}%`}
-                icon={ArrowTrendingUpIcon}
-                change={0}
+                value={metrics.avgCtr}
+                format="percentage"
+                icon={<ArrowTrendingUpIcon className="h-5 w-5" />}
               />
             </div>
 
@@ -818,21 +814,19 @@ export const MetaDashboardRealV2: React.FC = () => {
             )}
 
             {activeTab === 'kpi' && (
-              <KPIDashboard insights={insights} campaigns={campaigns} />
+              <KPIDashboard insights={insights} />
             )}
 
             {activeTab === 'creative' && (
               <CreativePerformance 
                 insights={insights} 
                 aggregationPeriod={creativeAggregationPeriod}
-                onAggregationPeriodChange={setCreativeAggregationPeriod}
               />
             )}
 
             {activeTab === 'comparison' && (
               <ComparisonDashboard 
-                metaInsights={insights} 
-                ecforceOrders={ecforceOrders} 
+                insights={insights} 
               />
             )}
 

@@ -69,6 +69,13 @@ export function useECForceData(options: UseECForceDataOptions = {}): UseECForceD
       広告コード: order.adCode,
       広告主名: order.advertiserName,
       広告媒体: order.adMedia,
+      // 必須フィールドの追加
+      受注番号: order.orderNumber || order.orderId,
+      購入URL: order.purchaseUrl || '',
+      定期受注番号: order.subscriptionOrderNumber || '',
+      広告URLグループ名: order.adUrlGroupName || '',
+      広告種別: order.adType || '',
+      広告計測URL: order.adTrackingUrl || '',
       // 互換性のための追加フィールド
       ID: order.orderId,
       customer: {
@@ -77,7 +84,7 @@ export function useECForceData(options: UseECForceDataOptions = {}): UseECForceD
         email: order.email,
       },
       total_amount: order.total,
-    } as ECForceOrder))
+    } as unknown as ECForceOrder))
   }, [ordersResponse])
 
   // 統計情報を整形

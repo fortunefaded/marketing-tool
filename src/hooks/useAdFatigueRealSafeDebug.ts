@@ -1,6 +1,4 @@
 import { useState, useEffect } from 'react'
-import { useQuery, useMutation } from 'convex/react'
-import { api } from '../../convex/_generated/api'
 
 interface AdFatigueData {
   adId: string
@@ -57,10 +55,10 @@ export function useAdFatigueRealSafeDebug(accountId: string, adId?: string) {
   }, [accountId, adId])
 
   // すべてのConvexクエリを無効化
-  const calculateFatigue = null
-  const savedAnalysis = null
-  const allAdsAnalysis = null
-  const saveFatigueAnalysis = null
+  // const _calculateFatigue = null
+  // const _savedAnalysis = null
+  // const _allAdsAnalysis = null
+  // const _saveFatigueAnalysis = null
 
   // 手動で疲労度分析を実行
   const analyzeFatigue = async (targetAdId: string) => {

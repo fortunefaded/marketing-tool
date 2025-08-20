@@ -1,7 +1,12 @@
-import { useState, useEffect } from 'react'
-import { useQuery, useMutation } from 'convex/react'
-import { api } from '../../convex/_generated/api'
-import { FatigueScore, FatigueLevel, FatigueType } from '../../convex/adFatigue'
+import { useState } from 'react'
+
+interface FatigueScore {
+  overall: number
+  frequency: number
+  firstTimeRatio: number
+  ctrDecline: number
+  cpmIncrease: number
+}
 
 interface AdFatigueData {
   adId: string
@@ -24,7 +29,7 @@ interface AdFatigueData {
   dataRangeEnd: string
 }
 
-export function useAdFatigue(accountId: string, adId?: string) {
+export function useAdFatigue(_accountId: string, _adId?: string) {
   const [isCalculating, setIsCalculating] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -98,7 +103,7 @@ export function useAdFatigue(accountId: string, adId?: string) {
   }
 
   return {
-    fatigueData: calculateFatigue as AdFatigueData | undefined,
+    fatigueData: (calculateFatigue as unknown) as AdFatigueData | undefined,
     fatigueStatus,
     isCalculating,
     error,
@@ -106,15 +111,28 @@ export function useAdFatigue(accountId: string, adId?: string) {
   }
 }
 
+interface RecommendedAction {
+  adId: string
+  adName: string
+  totalScore: number
+  fatigueLevel: 'critical' | 'warning' | 'caution' | 'healthy'
+  recommendedAction: string
+  metrics?: {
+    frequency?: number
+    ctrDeclineRate?: number
+    firstTimeRatio?: number
+  }
+}
+
 // 疲労度タイプ別の分析
-export function useFatigueAnalysis(accountId: string) {
+export function useFatigueAnalysis(_accountId: string) {
   // TODO: これらの関数を実装するまで無効化
-  const analysis = null // useQuery(
+  // const _analysis = null // useQuery(
   //   api.adFatigue.analyzeFatigueType,
   //   { accountId }
   // )
 
-  const recommendedActions = null // useQuery(
+  // const _recommendedActions = null // useQuery(
   //   api.adFatigue.getRecommendedActions,
   //   { accountId }
   // )
@@ -133,12 +151,12 @@ export function useFatigueAnalysis(accountId: string) {
       healthy: { count: 2, percentage: 18 }
     },
     criticalAds: [],
-    recommendedActions: []
+    recommendedActions: [] as RecommendedAction[]
   }
 }
 
 // 疲労度アラートの管理
-export function useFatigueAlerts(accountId: string) {
+export function useFatigueAlerts(_accountId: string) {
   const [alerts, setAlerts] = useState<any[]>([])
 
   // アラートの取得（実際のConvex関数が必要）

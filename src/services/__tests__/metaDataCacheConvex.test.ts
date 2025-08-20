@@ -29,9 +29,15 @@ describe('MetaDataCacheConvex', () => {
     it('should save data to Convex in batches', async () => {
       const mockData = Array.from({ length: 150 }, (_, i) => ({
         date_start: `2024-01-${String(i + 1).padStart(2, '0')}`,
+        date_stop: `2024-01-${String(i + 1).padStart(2, '0')}`,
         impressions: `${1000 + i}`,
         clicks: `${50 + i}`,
         spend: `${100 + i}`,
+        reach: `${500 + i}`,
+        frequency: '2.0',
+        cpm: '10.0',
+        cpc: '2.0',
+        ctr: '5.0',
         campaign_id: `campaign_${i}`,
         campaign_name: `Campaign ${i}`,
       }))
@@ -53,9 +59,15 @@ describe('MetaDataCacheConvex', () => {
     it('should update sync status after saving data', async () => {
       const mockData = [{
         date_start: '2024-01-01',
+        date_stop: '2024-01-01',
         impressions: '1000',
         clicks: '50',
         spend: '100',
+        reach: '500',
+        frequency: '2.0',
+        cpm: '10.0',
+        cpc: '2.0',
+        ctr: '5.0',
       }]
 
       await cache.saveData('test-account', mockData)
@@ -83,6 +95,11 @@ describe('MetaDataCacheConvex', () => {
         impressions: '1000',
         clicks: '50',
         spend: '100.50',
+        reach: '500',
+        frequency: '2.0',
+        cpm: '10.0',
+        cpc: '2.01',
+        ctr: '5.0',
         conversions: '5',
         cvr: '10.0',
         cpa: '20.10',

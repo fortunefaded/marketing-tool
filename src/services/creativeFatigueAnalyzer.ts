@@ -30,7 +30,7 @@ export interface CreativeFatigueAnalysis extends FatigueAnalysis {}
 export class CreativeFatigueAnalyzer {
   private readonly MIN_DATA_POINTS = 3
   private readonly CTR_THRESHOLD = 0.5 // Minimum acceptable CTR
-  private readonly FREQUENCY_THRESHOLD = 5.0 // High frequency threshold
+  // private readonly _FREQUENCY_THRESHOLD = 5.0 // High frequency threshold
   private readonly FATIGUE_THRESHOLD_LOW = 30
   private readonly FATIGUE_THRESHOLD_MEDIUM = 50
   private readonly FATIGUE_THRESHOLD_HIGH = 70

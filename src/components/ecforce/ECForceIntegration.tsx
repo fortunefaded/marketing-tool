@@ -41,6 +41,7 @@ export const ECForceIntegration: React.FC<ECForceIntegrationProps> = ({
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [orders, setOrders] = useState<ECForceOrder[]>([])
+  console.log('Orders:', orders) // TODO: ordersを使用する実装を追加
   const [salesData, setSalesData] = useState<ECForceSalesData[]>([])
   const [attributionResult, setAttributionResult] = useState<AttributionResult | null>(null)
   const [showSettings, setShowSettings] = useState(false)
@@ -150,7 +151,7 @@ export const ECForceIntegration: React.FC<ECForceIntegrationProps> = ({
       if (order.utm_source === 'facebook' && order.utm_campaign) {
         // キャンペーン名でマッチング
         const matchingInsights = metaInsights.filter(insight => 
-          insight.campaign_name?.toLowerCase().includes(order.utm_campaign.toLowerCase())
+          insight.campaign_name?.toLowerCase().includes(order.utm_campaign?.toLowerCase() || '')
         )
         
         if (matchingInsights.length > 0) {
