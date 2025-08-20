@@ -19,7 +19,9 @@ vi.mock('convex/react', async () => {
 
 describe('useAdFatigueReal', () => {
   const wrapper = ({ children }: { children: React.ReactNode }) => {
-    const client = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL || '')
+    const client = new ConvexReactClient(
+      import.meta.env.VITE_CONVEX_URL || 'https://test.convex.cloud'
+    )
     return <ConvexProvider client={client}>{children}</ConvexProvider>
   }
 

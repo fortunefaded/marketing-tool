@@ -1,5 +1,7 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { vi } from 'vitest'
+import { ConvexProvider } from 'convex/react'
+import { ConvexReactClient } from 'convex/react'
 import { MetaDashboardReal } from '../MetaDashboardReal'
 import { MetaDataCache } from '../../services/metaDataCache'
 import { MetaAccountManager } from '../../services/metaAccountManager'
@@ -20,6 +22,15 @@ describe('MetaDashboardReal - キャッシュクリア機能', () => {
     fullAccountId: 'act_123456789',
     name: 'Test Account',
     accessToken: 'test-token',
+  }
+
+  // Create a mock Convex client
+  const mockConvexClient = new ConvexReactClient(
+    process.env.NEXT_PUBLIC_CONVEX_URL || 'https://test.convex.cloud'
+  )
+
+  const renderWithConvex = (component: React.ReactElement) => {
+    return render(<ConvexProvider client={mockConvexClient}>{component}</ConvexProvider>)
   }
 
   const mockApiService = {
@@ -101,7 +112,7 @@ describe('MetaDashboardReal - キャッシュクリア機能', () => {
     ] as any)
     vi.mocked(MetaDataCache.getCacheUsage).mockReturnValue({ sizeKB: 10, records: 2 })
 
-    render(<MetaDashboardReal />)
+    renderWithConvex(<MetaDashboardReal />)
 
     // クリアボタンを探す
     await waitFor(() => {
@@ -131,7 +142,7 @@ describe('MetaDashboardReal - キャッシュクリア機能', () => {
       dateRange: { earliest: null, latest: null },
     })
 
-    render(<MetaDashboardReal />)
+    renderWithConvex(<MetaDashboardReal />)
 
     // Then: 推奨メッセージが表示される
     await waitFor(
@@ -172,7 +183,7 @@ describe('MetaDashboardReal - キャッシュクリア機能', () => {
       dateRange: { earliest: '2025-07-18', latest: '2025-08-11' },
     })
 
-    render(<MetaDashboardReal />)
+    renderWithConvex(<MetaDashboardReal />)
 
     // Then: 推奨メッセージが表示される
     await waitFor(

@@ -342,8 +342,8 @@ describe('MetaTokenManager', () => {
         })
       })
 
-      // Trigger immediate refresh instead of waiting
-      await (tokenManager as any).refreshToken()
+      // Trigger immediate refresh by calling exchangeToken
+      await tokenManager.exchangeToken('test-short-token')
 
       await autoRefreshedPromise
 
@@ -511,9 +511,9 @@ describe('MetaTokenManager', () => {
         })
       })
 
-      // Trigger refresh directly
+      // Trigger refresh directly by calling exchangeToken
       try {
-        await (tokenManager as any).refreshToken()
+        await tokenManager.exchangeToken('test-short-token')
       } catch {
         // Expected to fail
       }
