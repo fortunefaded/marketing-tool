@@ -10,9 +10,9 @@ import PeriodAnalysis from './routes/PeriodAnalysis'
 import { MetaDashboardReal } from './pages/MetaDashboardReal'
 import { MetaApiSetupSteps } from './pages/MetaApiSetupSteps'
 import { ConnectStepConvex } from './pages/meta-setup/ConnectStepConvex'
-import { PermissionsStep } from './pages/meta-setup/PermissionsStep'
-import { TestStep } from './pages/meta-setup/TestStep'
-import { CompleteStep } from './pages/meta-setup/CompleteStep'
+import { PermissionsStepConvex } from './pages/meta-setup/PermissionsStepConvex'
+import { TestStepConvex } from './pages/meta-setup/TestStepConvex'
+import { CompleteStepConvex } from './pages/meta-setup/CompleteStepConvex'
 import { ECForceImporter } from './components/ecforce/ECForceImporter'
 import { ECForceContainer } from './pages/ECForceContainer'
 import { IntegratedDashboard } from './pages/IntegratedDashboard'
@@ -59,9 +59,9 @@ function AppContent() {
             <Route path="/meta-api-setup" element={<MetaApiSetupSteps />}>
               <Route index element={<ConnectStepConvex />} />
               <Route path="connect" element={<ConnectStepConvex />} />
-              <Route path="permissions" element={<PermissionsStep />} />
-              <Route path="test" element={<TestStep />} />
-              <Route path="complete" element={<CompleteStep />} />
+              <Route path="permissions" element={<PermissionsStepConvex />} />
+              <Route path="test" element={<TestStepConvex />} />
+              <Route path="complete" element={<CompleteStepConvex />} />
             </Route>
             <Route path="/ecforce-import" element={<ECForceImporter />} />
             <Route path="/ecforce" element={<ECForceContainer />} />
