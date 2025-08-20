@@ -44,7 +44,6 @@ export interface MetaAd {
   creative_id: string
   status: string
 }
-
 export interface MetaCreative {
   id: string
   name: string

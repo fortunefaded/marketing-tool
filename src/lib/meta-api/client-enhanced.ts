@@ -596,8 +596,5 @@ export class MetaAPIClientEnhanced extends EventEmitter {
   // Public method to set token refresh handler (remove duplicate)
 
   // Event emitter methods are inherited from EventEmitter
-  // Override emit to make it private
-  private emit(event: string, data?: any): void {
-    super.emit(event, data)
-  }
+  // Use emit from parent class directly, no need to override
 }
