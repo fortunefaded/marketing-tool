@@ -254,13 +254,7 @@ describe('MetaApiService with Convex', () => {
     })
 
     it('should handle API errors', async () => {
-      ;(global.fetch as any).mockResolvedValueOnce({
-        ok: false,
-        status: 400,
-        json: async () => ({
-          error: { message: 'Invalid request' },
-        }),
-      })
+      ;(global.fetch as any).mockRejectedValueOnce(new Error('Invalid request'))
 
       await expect(service.getInsightsWithConvexSave('2024-01-01', '2024-01-31')).rejects.toThrow(
         'Invalid request'

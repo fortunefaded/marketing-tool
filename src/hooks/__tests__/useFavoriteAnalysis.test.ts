@@ -211,16 +211,16 @@ describe('useFavoriteAnalysis', () => {
   it('複数のお気に入りを同時に管理できる', () => {
     const { result } = renderHook(() => useFavoriteAnalysis())
 
-    // 5つのお気に入りを個別に追加
-    for (let i = 1; i <= 5; i++) {
-      act(() => {
+    // 5つのお気に入りを一度に追加
+    act(() => {
+      for (let i = 1; i <= 5; i++) {
         result.current.addFavorite({
           name: `分析${i}`,
           type: i % 2 === 0 ? 'roas' : 'rfm',
           route: `/analysis-${i}`,
         })
-      })
-    }
+      }
+    })
 
     expect(result.current.favorites).toHaveLength(5)
 

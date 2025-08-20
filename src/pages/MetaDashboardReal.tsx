@@ -933,7 +933,7 @@ export const MetaDashboardReal: React.FC = () => {
         {/* データ減少警告 */}
         {(() => {
           const history = manager.getActiveAccount()
-            ? MetaDataCache.getDataHistory(manager.getActiveAccount()!.accountId)
+            ? MetaDataCache.getDataHistory(manager.getActiveAccount()!.accountId) || []
             : []
           const recentReduction = history
             .slice(-5)
