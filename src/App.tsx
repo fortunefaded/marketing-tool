@@ -9,7 +9,7 @@ import DetailAnalysis from './routes/DetailAnalysis'
 import PeriodAnalysis from './routes/PeriodAnalysis'
 import { MetaDashboardReal } from './pages/MetaDashboardReal'
 import { MetaApiSetupSteps } from './pages/MetaApiSetupSteps'
-import { ConnectStep } from './pages/meta-setup/ConnectStep'
+import { ConnectStepConvex } from './pages/meta-setup/ConnectStepConvex'
 import { PermissionsStep } from './pages/meta-setup/PermissionsStep'
 import { TestStep } from './pages/meta-setup/TestStep'
 import { CompleteStep } from './pages/meta-setup/CompleteStep'
@@ -57,8 +57,8 @@ function AppContent() {
             <Route path="/" element={<UnifiedDashboard />} />
             <Route path="/meta-dashboard" element={<MetaDashboardReal />} />
             <Route path="/meta-api-setup" element={<MetaApiSetupSteps />}>
-              <Route index element={<ConnectStep />} />
-              <Route path="connect" element={<ConnectStep />} />
+              <Route index element={<ConnectStepConvex />} />
+              <Route path="connect" element={<ConnectStepConvex />} />
               <Route path="permissions" element={<PermissionsStep />} />
               <Route path="test" element={<TestStep />} />
               <Route path="complete" element={<CompleteStep />} />

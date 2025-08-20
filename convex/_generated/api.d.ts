@@ -27,6 +27,7 @@ import type * as ecforce from "../ecforce.js";
 import type * as functions_metaSync from "../functions/metaSync.js";
 import type * as functions_realtime from "../functions/realtime.js";
 import type * as instagramValueMetrics from "../instagramValueMetrics.js";
+import type * as metaAccounts from "../metaAccounts.js";
 import type * as metaInsights from "../metaInsights.js";
 import type * as metaSync from "../metaSync.js";
 import type * as reporting_fatigueReport from "../reporting/fatigueReport.js";
@@ -58,6 +59,7 @@ declare const fullApi: ApiFromModules<{
   "functions/metaSync": typeof functions_metaSync;
   "functions/realtime": typeof functions_realtime;
   instagramValueMetrics: typeof instagramValueMetrics;
+  metaAccounts: typeof metaAccounts;
   metaInsights: typeof metaInsights;
   metaSync: typeof metaSync;
   "reporting/fatigueReport": typeof reporting_fatigueReport;

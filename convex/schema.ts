@@ -669,6 +669,38 @@ export default defineSchema({
     .index('by_orderDate', ['orderDate'])
     .index('by_email', ['email']),
 
+  // Metaアカウント管理
+  metaAccounts: defineTable({
+    // アカウント識別子
+    accountId: v.string(), // Meta APIのアカウントID (数字のみ)
+    fullAccountId: v.string(), // フルアカウントID (act_XXXXX形式)
+    name: v.string(), // アカウント名
+
+    // 認証情報
+    accessToken: v.string(), // アクセストークン
+    permissions: v.optional(v.array(v.string())), // 権限リスト
+
+    // アカウント情報
+    currency: v.optional(v.string()), // 通貨
+    timezone: v.optional(v.string()), // タイムゾーン
+
+    // ステータス
+    isActive: v.boolean(), // アクティブフラグ
+
+    // タイムスタンプ
+    createdAt: v.string(), // 作成日時
+    lastUsedAt: v.optional(v.string()), // 最終使用日時
+    updatedAt: v.string(), // 更新日時
+  })
+    .index('by_accountId', ['accountId'])
+    .index('by_active', ['isActive']),
+
+  // Metaアカウント設定
+  metaAccountSettings: defineTable({
+    activeAccountId: v.optional(v.string()), // アクティブなアカウントID
+    updatedAt: v.string(), // 更新日時
+  }),
+
   // 疲労度分析スケジュール
   fatigueAnalysisSchedules: defineTable({
     accountId: v.string(),
