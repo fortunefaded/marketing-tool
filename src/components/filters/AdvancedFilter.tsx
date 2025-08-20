@@ -315,6 +315,7 @@ export const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">顧客タイプ</label>
           <select
+            data-testid="customer-type-select"
             value={criteria.customerType}
             onChange={(e) =>
               setCriteria({
@@ -335,6 +336,7 @@ export const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">定期ステータス</label>
           <select
+            data-testid="order-status-select"
             value={criteria.orderStatus}
             onChange={(e) =>
               setCriteria({

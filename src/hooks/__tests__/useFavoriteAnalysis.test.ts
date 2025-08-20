@@ -118,7 +118,7 @@ describe('useFavoriteAnalysis', () => {
         route: '/roas-1',
       })
     })
-    
+
     act(() => {
       result.current.addFavorite({
         name: 'ROAS分析2',
@@ -126,7 +126,7 @@ describe('useFavoriteAnalysis', () => {
         route: '/roas-2',
       })
     })
-    
+
     act(() => {
       result.current.addFavorite({
         name: 'コホート分析',
@@ -137,7 +137,7 @@ describe('useFavoriteAnalysis', () => {
 
     // Wait for state to update
     expect(result.current.favorites).toHaveLength(3)
-    
+
     const roasFavorites = result.current.getFavoritesByType('roas')
     expect(roasFavorites).toHaveLength(2)
     expect(roasFavorites.every((f) => f.type === 'roas')).toBe(true)
@@ -170,7 +170,7 @@ describe('useFavoriteAnalysis', () => {
   it('お気に入りを検索できる', () => {
     const { result } = renderHook(() => useFavoriteAnalysis())
 
-    // 複数のお気に入りを追加
+    // 複数のお気に入りを追加 - 個別に追加
     act(() => {
       result.current.addFavorite({
         name: 'ROAS最適化分析',
@@ -179,6 +179,9 @@ describe('useFavoriteAnalysis', () => {
         route: '/roas-optimization',
         tags: ['広告', '最適化'],
       })
+    })
+
+    act(() => {
       result.current.addFavorite({
         name: 'コホート分析',
         description: '顧客セグメント分析',
@@ -187,6 +190,9 @@ describe('useFavoriteAnalysis', () => {
         tags: ['顧客', 'セグメント'],
       })
     })
+
+    // 状態の更新を確認
+    expect(result.current.favorites).toHaveLength(2)
 
     // 名前で検索
     const roasResults = result.current.searchFavorites('ROAS')
@@ -205,16 +211,16 @@ describe('useFavoriteAnalysis', () => {
   it('複数のお気に入りを同時に管理できる', () => {
     const { result } = renderHook(() => useFavoriteAnalysis())
 
-    // 5つのお気に入りを追加
-    act(() => {
-      for (let i = 1; i <= 5; i++) {
+    // 5つのお気に入りを個別に追加
+    for (let i = 1; i <= 5; i++) {
+      act(() => {
         result.current.addFavorite({
           name: `分析${i}`,
           type: i % 2 === 0 ? 'roas' : 'rfm',
           route: `/analysis-${i}`,
         })
-      }
-    })
+      })
+    }
 
     expect(result.current.favorites).toHaveLength(5)
 
