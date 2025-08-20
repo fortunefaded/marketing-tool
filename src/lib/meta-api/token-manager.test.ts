@@ -43,7 +43,7 @@ describe('MetaTokenManager', () => {
 
     it('should initialize with long-lived token', () => {
       const expiresAt = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000) // 60 days
-      
+
       tokenManager = new MetaTokenManager({
         ...mockConfig,
         longLivedToken: 'long-token-123',
@@ -73,12 +73,12 @@ describe('MetaTokenManager', () => {
       })
 
       // Wait for async initialization
-      await new Promise(resolve => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 100))
 
       expect(mockFetch).toHaveBeenCalledWith(
         expect.stringContaining('https://graph.facebook.com/v23.0/oauth/access_token')
       )
-      
+
       expect(tokenManager['currentToken']).toMatchObject({
         token: 'long-token-456',
         type: 'long',
@@ -100,14 +100,12 @@ describe('MetaTokenManager', () => {
     it('should throw error if no token available', async () => {
       tokenManager = new MetaTokenManager(mockConfig)
 
-      await expect(tokenManager.getAccessToken()).rejects.toThrow(
-        'No access token available'
-      )
+      await expect(tokenManager.getAccessToken()).rejects.toThrow('No access token available')
     })
 
     it('should refresh expired long-lived token', async () => {
       const expiredDate = new Date(Date.now() - 1000) // Already expired
-      
+
       tokenManager = new MetaTokenManager({
         ...mockConfig,
         longLivedToken: 'expired-token',
@@ -123,14 +121,14 @@ describe('MetaTokenManager', () => {
       } as Response)
 
       const token = await tokenManager.getAccessToken()
-      
+
       expect(mockFetch).toHaveBeenCalled()
       expect(token).toBe('refreshed-token')
     })
 
     it('should throw error for expired non-refreshable token', async () => {
       tokenManager = new MetaTokenManager(mockConfig)
-      
+
       // Manually set an expired short token
       tokenManager.setToken({
         token: 'short-expired',
@@ -161,12 +159,12 @@ describe('MetaTokenManager', () => {
       expect(mockFetch).toHaveBeenCalledWith(
         expect.stringContaining('fb_exchange_token=short-token-456')
       )
-      
+
       expect(tokenInfo).toMatchObject({
         token: 'long-token-789',
         type: 'long',
       })
-      
+
       expect(tokenInfo.expiresAt).toBeInstanceOf(Date)
     })
 
@@ -205,11 +203,9 @@ describe('MetaTokenManager', () => {
       } as Response)
 
       const isValid = await tokenManager.validateToken()
-      
+
       expect(isValid).toBe(true)
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('debug_token')
-      )
+      expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('debug_token'))
     })
 
     it('should return false for invalid token', async () => {
@@ -228,7 +224,7 @@ describe('MetaTokenManager', () => {
       } as Response)
 
       const isValid = await tokenManager.validateToken()
-      
+
       expect(isValid).toBe(false)
     })
 
@@ -242,7 +238,7 @@ describe('MetaTokenManager', () => {
       mockFetch.mockRejectedValueOnce(new Error('Network error'))
 
       const isValid = await tokenManager.validateToken()
-      
+
       expect(isValid).toBe(false)
     })
   })
@@ -267,14 +263,14 @@ describe('MetaTokenManager', () => {
       } as Response)
 
       const info = await tokenManager.getTokenInfo()
-      
+
       expect(info).toMatchObject({
         isValid: true,
         type: 'system',
         scopes: ['ads_read', 'ads_management'],
         userId: '123456',
       })
-      
+
       expect(info.expiresAt).toBeInstanceOf(Date)
     })
 
@@ -282,7 +278,7 @@ describe('MetaTokenManager', () => {
       tokenManager = new MetaTokenManager(mockConfig)
 
       const info = await tokenManager.getTokenInfo()
-      
+
       expect(info).toEqual({ isValid: false })
     })
   })
@@ -290,9 +286,9 @@ describe('MetaTokenManager', () => {
   describe('auto-refresh', () => {
     it('should setup auto-refresh for expiring tokens', () => {
       vi.useFakeTimers()
-      
+
       const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000) // 48 hours
-      
+
       tokenManager = new MetaTokenManager({
         ...mockConfig,
         longLivedToken: 'refresh-token',
@@ -303,7 +299,7 @@ describe('MetaTokenManager', () => {
 
       // Should have a refresh timer set
       expect(tokenManager['refreshTimer']).toBeDefined()
-      
+
       vi.useRealTimers()
     })
 
@@ -320,9 +316,9 @@ describe('MetaTokenManager', () => {
 
     it('should emit event on successful auto-refresh', async () => {
       vi.useFakeTimers()
-      
+
       const expiresAt = new Date(Date.now() + 12 * 60 * 60 * 1000) // 12 hours
-      
+
       tokenManager = new MetaTokenManager({
         ...mockConfig,
         longLivedToken: 'soon-expiring',
@@ -348,11 +344,11 @@ describe('MetaTokenManager', () => {
 
       // Trigger immediate refresh instead of waiting
       await (tokenManager as any).refreshToken()
-      
+
       await autoRefreshedPromise
-      
+
       expect(mockFetch).toHaveBeenCalled()
-      
+
       vi.useRealTimers()
     })
   })
@@ -366,7 +362,7 @@ describe('MetaTokenManager', () => {
 
       const stored = localStorage.getItem('meta_token_system')
       expect(stored).toBeTruthy()
-      
+
       const parsed = JSON.parse(stored!)
       expect(parsed.token).toBe('storage-token')
       expect(parsed.type).toBe('system')
@@ -374,31 +370,37 @@ describe('MetaTokenManager', () => {
 
     it('should load tokens from localStorage', async () => {
       // Pre-populate storage
-      localStorage.setItem('meta_token_long', JSON.stringify({
-        token: 'loaded-token',
-        type: 'long',
-        expiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
-      }))
+      localStorage.setItem(
+        'meta_token_long',
+        JSON.stringify({
+          token: 'loaded-token',
+          type: 'long',
+          expiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+        })
+      )
 
       tokenManager = new MetaTokenManager(mockConfig)
-      
+
       const loaded = await tokenManager.loadFromStorage()
       expect(loaded).toBe(true)
-      
+
       const token = await tokenManager.getAccessToken()
       expect(token).toBe('loaded-token')
     })
 
     it('should not load expired tokens from storage', async () => {
       // Pre-populate with expired token
-      localStorage.setItem('meta_token_long', JSON.stringify({
-        token: 'expired-stored',
-        type: 'long',
-        expiresAt: new Date(Date.now() - 1000).toISOString(),
-      }))
+      localStorage.setItem(
+        'meta_token_long',
+        JSON.stringify({
+          token: 'expired-stored',
+          type: 'long',
+          expiresAt: new Date(Date.now() - 1000).toISOString(),
+        })
+      )
 
       tokenManager = new MetaTokenManager(mockConfig)
-      
+
       const loaded = await tokenManager.loadFromStorage()
       expect(loaded).toBe(false)
     })
@@ -410,7 +412,7 @@ describe('MetaTokenManager', () => {
       })
 
       tokenManager.clearTokens()
-      
+
       expect(tokenManager['currentToken']).toBeNull()
       expect(localStorage.getItem('meta_token_system')).toBeNull()
     })
@@ -419,7 +421,7 @@ describe('MetaTokenManager', () => {
   describe('utility methods', () => {
     it('should calculate time until expiry', () => {
       const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
-      
+
       tokenManager = new MetaTokenManager({
         ...mockConfig,
         longLivedToken: 'timed-token',
@@ -443,7 +445,7 @@ describe('MetaTokenManager', () => {
 
     it('should check if token is expiring soon', () => {
       const expiresAt = new Date(Date.now() + 12 * 60 * 60 * 1000) // 12 hours
-      
+
       tokenManager = new MetaTokenManager({
         ...mockConfig,
         longLivedToken: 'expiring-soon',
@@ -468,12 +470,12 @@ describe('MetaTokenManager', () => {
         }),
       } as Response)
 
-      const eventPromise = new Promise(resolve => {
+      const eventPromise = new Promise((resolve) => {
         tokenManager.once('token:exchanged', resolve)
       })
 
       await tokenManager.exchangeToken('short-token')
-      
+
       const eventData = await eventPromise
       expect(eventData).toMatchObject({
         token: expect.any(String),
@@ -483,9 +485,9 @@ describe('MetaTokenManager', () => {
 
     it('should emit token:refresh-failed on refresh error', async () => {
       vi.useFakeTimers()
-      
+
       const expiresAt = new Date(Date.now() + 1000) // 1 second
-      
+
       tokenManager = new MetaTokenManager({
         ...mockConfig,
         longLivedToken: 'fail-refresh',
@@ -510,11 +512,11 @@ describe('MetaTokenManager', () => {
       } catch {
         // Expected to fail
       }
-      
+
       const error = await errorPromise
       expect(error).toBeInstanceOf(Error)
       expect(error.message).toBe('Refresh failed')
-      
+
       vi.useRealTimers()
     })
 
@@ -524,12 +526,12 @@ describe('MetaTokenManager', () => {
         systemUserToken: 'clear-token',
       })
 
-      const eventPromise = new Promise(resolve => {
+      const eventPromise = new Promise((resolve) => {
         tokenManager.once('tokens:cleared', resolve)
       })
 
       tokenManager.clearTokens()
-      
+
       return expect(eventPromise).resolves.toBeUndefined()
     })
   })

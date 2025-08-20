@@ -85,7 +85,7 @@ export function useComparisonAnalytics(options: UseComparisonAnalyticsOptions = 
           'CPA',
           'ROAS',
         ]
-        
+
         const rows = [
           headers.join(','),
           [
@@ -132,15 +132,17 @@ export function useComparisonAnalytics(options: UseComparisonAnalyticsOptions = 
   // Calculate insights
   const insights = {
     topPerformer: campaignBreakdown?.[0]?.campaign?.name || null,
-    biggestGrowth: campaignBreakdown?.reduce((best, current) => {
-      if (!best || (current?.change?.revenue > best?.change?.revenue)) {
-        return current
-      }
-      return best
-    }, null as typeof campaignBreakdown[0] | null),
-    needsAttention: campaignBreakdown?.filter(
-      (c) => c?.current?.roas < 1 || c?.change?.roas < -10
-    ) || [],
+    biggestGrowth: campaignBreakdown?.reduce(
+      (best, current) => {
+        if (!best || current?.change?.revenue > best?.change?.revenue) {
+          return current
+        }
+        return best
+      },
+      null as (typeof campaignBreakdown)[0] | null
+    ),
+    needsAttention:
+      campaignBreakdown?.filter((c) => c?.current?.roas < 1 || c?.change?.roas < -10) || [],
   }
 
   return {
@@ -148,16 +150,16 @@ export function useComparisonAnalytics(options: UseComparisonAnalyticsOptions = 
     overallComparison,
     campaignBreakdown,
     insights,
-    
+
     // State
     selectedComparison,
     isLoading: overallComparison === undefined || campaignBreakdown === undefined,
     error,
-    
+
     // Actions
     setComparisonType: setSelectedComparison,
     exportData,
-    
+
     // Utilities
     formatChange: (current: number, previous: number) => {
       if (previous === 0) return current > 0 ? '+100%' : '0%'

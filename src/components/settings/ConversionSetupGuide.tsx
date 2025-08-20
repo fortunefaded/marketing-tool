@@ -1,5 +1,10 @@
 import { useState } from 'react'
-import { CheckCircleIcon, XCircleIcon, ExclamationTriangleIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline'
+import {
+  CheckCircleIcon,
+  XCircleIcon,
+  ExclamationTriangleIcon,
+  ArrowTopRightOnSquareIcon,
+} from '@heroicons/react/24/outline'
 
 interface ChecklistItem {
   id: string
@@ -18,7 +23,7 @@ export function ConversionSetupGuide() {
       description: 'ウェブサイトにMeta Pixel（Facebook Pixel）が正しく設置されていますか？',
       isCompleted: false,
       priority: 'high',
-      helpUrl: 'https://developers.facebook.com/docs/facebook-pixel/implementation'
+      helpUrl: 'https://developers.facebook.com/docs/facebook-pixel/implementation',
     },
     {
       id: 'purchase_event',
@@ -26,7 +31,8 @@ export function ConversionSetupGuide() {
       description: '購入完了時にPurchaseイベントがMetaに送信されていますか？',
       isCompleted: false,
       priority: 'high',
-      helpUrl: 'https://developers.facebook.com/docs/facebook-pixel/implementation/conversion-tracking'
+      helpUrl:
+        'https://developers.facebook.com/docs/facebook-pixel/implementation/conversion-tracking',
     },
     {
       id: 'conversion_api',
@@ -34,7 +40,7 @@ export function ConversionSetupGuide() {
       description: 'サーバーサイドからのコンバージョンAPI（CAPI）は設定済みですか？',
       isCompleted: false,
       priority: 'high',
-      helpUrl: 'https://developers.facebook.com/docs/marketing-api/conversions-api'
+      helpUrl: 'https://developers.facebook.com/docs/marketing-api/conversions-api',
     },
     {
       id: 'event_verification',
@@ -42,15 +48,16 @@ export function ConversionSetupGuide() {
       description: 'イベントマネージャーで購入イベントが正常に受信されていますか？',
       isCompleted: false,
       priority: 'high',
-      helpUrl: 'https://business.facebook.com/events_manager'
+      helpUrl: 'https://business.facebook.com/events_manager',
     },
     {
       id: 'attribution_settings',
       title: 'アトリビューション設定',
-      description: 'アトリビューションウィンドウ設定は適切ですか？（通常7日間クリック、1日間ビュー）',
+      description:
+        'アトリビューションウィンドウ設定は適切ですか？（通常7日間クリック、1日間ビュー）',
       isCompleted: false,
       priority: 'medium',
-      helpUrl: 'https://www.facebook.com/business/help/458681590974355'
+      helpUrl: 'https://www.facebook.com/business/help/458681590974355',
     },
     {
       id: 'test_events',
@@ -58,7 +65,8 @@ export function ConversionSetupGuide() {
       description: 'テストイベントツールで実際の購入フローをテストしましたか？',
       isCompleted: false,
       priority: 'medium',
-      helpUrl: 'https://developers.facebook.com/docs/facebook-pixel/implementation/conversion-tracking'
+      helpUrl:
+        'https://developers.facebook.com/docs/facebook-pixel/implementation/conversion-tracking',
     },
     {
       id: 'domain_verification',
@@ -66,7 +74,7 @@ export function ConversionSetupGuide() {
       description: 'ウェブサイトのドメイン認証は完了していますか？',
       isCompleted: false,
       priority: 'medium',
-      helpUrl: 'https://www.facebook.com/business/help/286768115176155'
+      helpUrl: 'https://www.facebook.com/business/help/286768115176155',
     },
     {
       id: 'ios14_setup',
@@ -74,29 +82,31 @@ export function ConversionSetupGuide() {
       description: 'SKAdNetworkやAggregated Event Measurementの設定は完了していますか？',
       isCompleted: false,
       priority: 'low',
-      helpUrl: 'https://www.facebook.com/business/help/331612538028890'
-    }
+      helpUrl: 'https://www.facebook.com/business/help/331612538028890',
+    },
   ])
 
   const toggleItem = (id: string) => {
-    setChecklist(prev => prev.map(item => 
-      item.id === id ? { ...item, isCompleted: !item.isCompleted } : item
-    ))
+    setChecklist((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, isCompleted: !item.isCompleted } : item))
+    )
   }
 
   const getCompletionStatus = () => {
     const total = checklist.length
-    const completed = checklist.filter(item => item.isCompleted).length
-    const highPriorityTotal = checklist.filter(item => item.priority === 'high').length
-    const highPriorityCompleted = checklist.filter(item => item.priority === 'high' && item.isCompleted).length
-    
+    const completed = checklist.filter((item) => item.isCompleted).length
+    const highPriorityTotal = checklist.filter((item) => item.priority === 'high').length
+    const highPriorityCompleted = checklist.filter(
+      (item) => item.priority === 'high' && item.isCompleted
+    ).length
+
     return {
       total,
       completed,
       percentage: Math.round((completed / total) * 100),
       highPriorityTotal,
       highPriorityCompleted,
-      highPriorityPercentage: Math.round((highPriorityCompleted / highPriorityTotal) * 100)
+      highPriorityPercentage: Math.round((highPriorityCompleted / highPriorityTotal) * 100),
     }
   }
 
@@ -104,19 +114,27 @@ export function ConversionSetupGuide() {
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'high': return 'text-red-600 bg-red-50 border-red-200'
-      case 'medium': return 'text-yellow-600 bg-yellow-50 border-yellow-200'
-      case 'low': return 'text-blue-600 bg-blue-50 border-blue-200'
-      default: return 'text-gray-600 bg-gray-50 border-gray-200'
+      case 'high':
+        return 'text-red-600 bg-red-50 border-red-200'
+      case 'medium':
+        return 'text-yellow-600 bg-yellow-50 border-yellow-200'
+      case 'low':
+        return 'text-blue-600 bg-blue-50 border-blue-200'
+      default:
+        return 'text-gray-600 bg-gray-50 border-gray-200'
     }
   }
 
   const getPriorityLabel = (priority: string) => {
     switch (priority) {
-      case 'high': return '必須'
-      case 'medium': return '推奨'
-      case 'low': return '任意'
-      default: return ''
+      case 'high':
+        return '必須'
+      case 'medium':
+        return '推奨'
+      case 'low':
+        return '任意'
+      default:
+        return ''
     }
   }
 
@@ -126,11 +144,9 @@ export function ConversionSetupGuide() {
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-3">
           <ExclamationTriangleIcon className="h-6 w-6 text-yellow-600" />
-          <h3 className="text-lg font-semibold text-gray-900">
-            コンバージョン設定チェックリスト
-          </h3>
+          <h3 className="text-lg font-semibold text-gray-900">コンバージョン設定チェックリスト</h3>
         </div>
-        
+
         <p className="text-sm text-gray-600 mb-4">
           Meta APIでCV/ROAS/CPAデータを正しく取得するために、以下の設定を確認してください。
         </p>
@@ -139,22 +155,26 @@ export function ConversionSetupGuide() {
         <div className="bg-white p-4 rounded-lg border">
           <div className="flex justify-between items-center mb-2">
             <span className="text-sm font-medium text-gray-700">全体進捗</span>
-            <span className="text-sm text-gray-600">{status.completed}/{status.total} 完了</span>
+            <span className="text-sm text-gray-600">
+              {status.completed}/{status.total} 完了
+            </span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
-            <div 
-              className="bg-green-600 h-2 rounded-full transition-all duration-300" 
+            <div
+              className="bg-green-600 h-2 rounded-full transition-all duration-300"
               style={{ width: `${status.percentage}%` }}
             />
           </div>
-          
+
           <div className="flex justify-between items-center">
             <span className="text-sm font-medium text-red-700">必須項目</span>
-            <span className="text-sm text-red-600">{status.highPriorityCompleted}/{status.highPriorityTotal} 完了</span>
+            <span className="text-sm text-red-600">
+              {status.highPriorityCompleted}/{status.highPriorityTotal} 完了
+            </span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
-            <div 
-              className="bg-red-600 h-2 rounded-full transition-all duration-300" 
+            <div
+              className="bg-red-600 h-2 rounded-full transition-all duration-300"
               style={{ width: `${status.highPriorityPercentage}%` }}
             />
           </div>
@@ -164,18 +184,17 @@ export function ConversionSetupGuide() {
       {/* チェックリスト */}
       <div className="space-y-3 mb-6">
         {checklist.map((item) => (
-          <div 
+          <div
             key={item.id}
             className={`p-4 bg-white rounded-lg border transition-all duration-200 ${
-              item.isCompleted ? 'border-green-200 bg-green-50' : 'border-gray-200 hover:border-gray-300'
+              item.isCompleted
+                ? 'border-green-200 bg-green-50'
+                : 'border-gray-200 hover:border-gray-300'
             }`}
           >
             <div className="flex items-start gap-3">
               {/* チェックボックス */}
-              <button
-                onClick={() => toggleItem(item.id)}
-                className="mt-1 flex-shrink-0"
-              >
+              <button onClick={() => toggleItem(item.id)} className="mt-1 flex-shrink-0">
                 {item.isCompleted ? (
                   <CheckCircleIcon className="h-5 w-5 text-green-600" />
                 ) : (
@@ -186,14 +205,18 @@ export function ConversionSetupGuide() {
               {/* コンテンツ */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <h4 className={`font-medium ${item.isCompleted ? 'text-green-800 line-through' : 'text-gray-900'}`}>
+                  <h4
+                    className={`font-medium ${item.isCompleted ? 'text-green-800 line-through' : 'text-gray-900'}`}
+                  >
                     {item.title}
                   </h4>
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full border ${getPriorityColor(item.priority)}`}>
+                  <span
+                    className={`px-2 py-1 text-xs font-medium rounded-full border ${getPriorityColor(item.priority)}`}
+                  >
                     {getPriorityLabel(item.priority)}
                   </span>
                 </div>
-                
+
                 <p className={`text-sm ${item.isCompleted ? 'text-green-700' : 'text-gray-600'}`}>
                   {item.description}
                 </p>

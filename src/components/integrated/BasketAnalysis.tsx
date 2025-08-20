@@ -21,18 +21,18 @@ export const BasketAnalysis: React.FC<BasketAnalysisProps> = ({ orders }) => {
     // 商品の購入回数を集計
     const productCount: Record<string, number> = {}
     const transactionCount = orders.length
-    
+
     // 商品ペアの同時購入を記録
     const pairCount: Record<string, number> = {}
-    
-    orders.forEach(order => {
+
+    orders.forEach((order) => {
       const products = order.購入商品 || []
-      
+
       // 各商品の購入回数をカウント
-      products.forEach(product => {
+      products.forEach((product) => {
         productCount[product] = (productCount[product] || 0) + 1
       })
-      
+
       // 商品ペアの同時購入をカウント
       for (let i = 0; i < products.length; i++) {
         for (let j = i + 1; j < products.length; j++) {
@@ -41,21 +41,22 @@ export const BasketAnalysis: React.FC<BasketAnalysisProps> = ({ orders }) => {
         }
       }
     })
-    
+
     // アソシエーション分析
     const associations: ProductAssociation[] = []
-    
+
     Object.entries(pairCount).forEach(([pair, count]) => {
       const [productA, productB] = pair.split('::')
       const supportA = productCount[productA] || 0
       const supportB = productCount[productB] || 0
-      
-      if (count >= 2 && supportA > 0 && supportB > 0) { // 最小サポート数2
+
+      if (count >= 2 && supportA > 0 && supportB > 0) {
+        // 最小サポート数2
         const confidence = count / supportA
         const expectedSupport = (supportA / transactionCount) * (supportB / transactionCount)
         const actualSupport = count / transactionCount
         const lift = actualSupport / expectedSupport
-        
+
         associations.push({
           productA,
           productB,
@@ -63,14 +64,14 @@ export const BasketAnalysis: React.FC<BasketAnalysisProps> = ({ orders }) => {
           supportA,
           supportB,
           confidence: confidence * 100,
-          lift
+          lift,
         })
       }
     })
-    
+
     // リフト値でソート
     associations.sort((a, b) => b.lift - a.lift)
-    
+
     // 頻出商品セット
     const frequentProducts = Object.entries(productCount)
       .sort((a, b) => b[1] - a[1])
@@ -78,21 +79,22 @@ export const BasketAnalysis: React.FC<BasketAnalysisProps> = ({ orders }) => {
       .map(([product, count]) => ({
         product,
         count,
-        percentage: (count / transactionCount) * 100
+        percentage: (count / transactionCount) * 100,
       }))
-    
+
     // 商品統計
     const stats = {
       totalProducts: Object.keys(productCount).length,
-      avgProductsPerOrder: orders.reduce((sum, order) => sum + (order.購入商品?.length || 0), 0) / orders.length,
-      singleProductOrders: orders.filter(order => (order.購入商品?.length || 0) === 1).length,
-      multiProductOrders: orders.filter(order => (order.購入商品?.length || 0) > 1).length
+      avgProductsPerOrder:
+        orders.reduce((sum, order) => sum + (order.購入商品?.length || 0), 0) / orders.length,
+      singleProductOrders: orders.filter((order) => (order.購入商品?.length || 0) === 1).length,
+      multiProductOrders: orders.filter((order) => (order.購入商品?.length || 0) > 1).length,
     }
-    
+
     return {
       productStats: stats,
       associations: associations.slice(0, 20), // 上位20件
-      frequentSets: frequentProducts
+      frequentSets: frequentProducts,
     }
   }, [orders])
 
@@ -155,15 +157,11 @@ export const BasketAnalysis: React.FC<BasketAnalysisProps> = ({ orders }) => {
 
       {/* 頻出商品 */}
       <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          人気商品TOP10
-        </h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">人気商品TOP10</h3>
         <div className="space-y-3">
           {frequentSets.map((item, index) => (
             <div key={item.product} className="flex items-center">
-              <div className="w-8 text-sm font-medium text-gray-500">
-                {index + 1}
-              </div>
+              <div className="w-8 text-sm font-medium text-gray-500">{index + 1}</div>
               <div className="flex-1">
                 <div className="flex items-center">
                   <div className="flex-1">
@@ -224,15 +222,20 @@ export const BasketAnalysis: React.FC<BasketAnalysisProps> = ({ orders }) => {
                     {assoc.confidence.toFixed(1)}%
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getLiftColor(assoc.lift)}`}>
+                    <span
+                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getLiftColor(assoc.lift)}`}
+                    >
                       {assoc.lift.toFixed(2)}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-600">
-                    {assoc.lift >= 3 ? 'バンドル販売推奨' :
-                     assoc.lift >= 2 ? 'クロスセル推奨' :
-                     assoc.lift >= 1.5 ? 'レコメンド候補' :
-                     '関連性あり'}
+                    {assoc.lift >= 3
+                      ? 'バンドル販売推奨'
+                      : assoc.lift >= 2
+                        ? 'クロスセル推奨'
+                        : assoc.lift >= 1.5
+                          ? 'レコメンド候補'
+                          : '関連性あり'}
                   </td>
                 </tr>
               ))}
@@ -247,9 +250,7 @@ export const BasketAnalysis: React.FC<BasketAnalysisProps> = ({ orders }) => {
 
       {/* インサイト */}
       <div className="bg-blue-50 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">
-          バスケット分析のインサイト
-        </h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">バスケット分析のインサイト</h3>
         <ul className="space-y-2 text-sm text-gray-700">
           <li className="flex items-start">
             <span className="text-blue-600 mr-2">•</span>

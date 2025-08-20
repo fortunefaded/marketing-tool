@@ -1,12 +1,12 @@
 import React, { useState, useMemo } from 'react'
-import { 
-  PhotoIcon, 
-  VideoCameraIcon, 
+import {
+  PhotoIcon,
+  VideoCameraIcon,
   ViewColumnsIcon,
   DocumentTextIcon,
   ChevronUpIcon,
   ChevronDownIcon,
-  FunnelIcon
+  FunnelIcon,
 } from '@heroicons/react/24/outline'
 import { CreativeMetrics, CreativeType } from '../../services/creativeAggregator'
 
@@ -15,13 +15,15 @@ interface CreativeMetricsTableProps {
   isLoading?: boolean
 }
 
-type SortField = keyof Pick<CreativeMetrics, 
-  'impressions' | 'clicks' | 'ctr' | 'conversions' | 'cpa' | 'roas' | 'spend' | 'creative_name'>
+type SortField = keyof Pick<
+  CreativeMetrics,
+  'impressions' | 'clicks' | 'ctr' | 'conversions' | 'cpa' | 'roas' | 'spend' | 'creative_name'
+>
 type SortDirection = 'asc' | 'desc'
 
 export const CreativeMetricsTable: React.FC<CreativeMetricsTableProps> = ({
   metrics,
-  isLoading = false
+  isLoading = false,
 }) => {
   const [selectedTypes, setSelectedTypes] = useState<CreativeType[]>([])
   const [sortField, setSortField] = useState<SortField>('impressions')
@@ -50,7 +52,7 @@ export const CreativeMetricsTable: React.FC<CreativeMetricsTableProps> = ({
 
     // タイプフィルター
     if (selectedTypes.length > 0) {
-      filtered = filtered.filter(metric => selectedTypes.includes(metric.creative_type))
+      filtered = filtered.filter((metric) => selectedTypes.includes(metric.creative_type))
     }
 
     // ソート
@@ -59,9 +61,7 @@ export const CreativeMetricsTable: React.FC<CreativeMetricsTableProps> = ({
       const bValue = b[sortField]
 
       if (typeof aValue === 'string' && typeof bValue === 'string') {
-        return sortDirection === 'asc' 
-          ? aValue.localeCompare(bValue)
-          : bValue.localeCompare(aValue)
+        return sortDirection === 'asc' ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue)
       }
 
       const aNum = Number(aValue) || 0
@@ -85,10 +85,8 @@ export const CreativeMetricsTable: React.FC<CreativeMetricsTableProps> = ({
 
   // タイプフィルター切り替え
   const toggleTypeFilter = (type: CreativeType) => {
-    setSelectedTypes(prev => 
-      prev.includes(type)
-        ? prev.filter(t => t !== type)
-        : [...prev, type]
+    setSelectedTypes((prev) =>
+      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
     )
   }
 
@@ -110,9 +108,11 @@ export const CreativeMetricsTable: React.FC<CreativeMetricsTableProps> = ({
     if (sortField !== field) {
       return <div className="w-4 h-4" />
     }
-    return sortDirection === 'asc' 
-      ? <ChevronUpIcon className="h-4 w-4" />
-      : <ChevronDownIcon className="h-4 w-4" />
+    return sortDirection === 'asc' ? (
+      <ChevronUpIcon className="h-4 w-4" />
+    ) : (
+      <ChevronDownIcon className="h-4 w-4" />
+    )
   }
 
   if (isLoading) {
@@ -147,7 +147,7 @@ export const CreativeMetricsTable: React.FC<CreativeMetricsTableProps> = ({
           <div className="mt-4 p-4 bg-gray-50 rounded-lg">
             <h4 className="text-sm font-medium text-gray-700 mb-3">クリエイティブタイプ</h4>
             <div className="flex gap-2 flex-wrap">
-              {(['image', 'video', 'carousel', 'text'] as CreativeType[]).map(type => (
+              {(['image', 'video', 'carousel', 'text'] as CreativeType[]).map((type) => (
                 <button
                   key={type}
                   onClick={() => toggleTypeFilter(type)}
@@ -259,7 +259,10 @@ export const CreativeMetricsTable: React.FC<CreativeMetricsTableProps> = ({
               </tr>
             ) : (
               processedMetrics.map((metric) => (
-                <tr key={`${metric.creative_id}_${metric.period_start}`} className="hover:bg-gray-50">
+                <tr
+                  key={`${metric.creative_id}_${metric.period_start}`}
+                  className="hover:bg-gray-50"
+                >
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       {metric.thumbnail_url ? (
@@ -277,9 +280,7 @@ export const CreativeMetricsTable: React.FC<CreativeMetricsTableProps> = ({
                         <div className="text-sm font-medium text-gray-900">
                           {metric.creative_name}
                         </div>
-                        <div className="text-xs text-gray-500">
-                          {metric.campaign_name}
-                        </div>
+                        <div className="text-xs text-gray-500">{metric.campaign_name}</div>
                       </div>
                     </div>
                   </td>

@@ -16,17 +16,15 @@ export default function Header() {
               <span className="text-gray-700"> Marketing Dashboard</span>
             </h1>
           </div>
-
         </div>
 
         <div className="flex items-center space-x-4">
-          <button 
+          <button
             onClick={() => navigate('/settings')}
             className="flex items-center space-x-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
           >
             <span className="text-sm font-medium text-gray-700">設定/管理</span>
           </button>
-
 
           <div className="flex items-center space-x-3 pl-4 border-l border-gray-200">
             <button className="p-2 hover:bg-gray-100 rounded-full">

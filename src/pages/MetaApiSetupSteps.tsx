@@ -18,9 +18,14 @@ export const MetaApiSetupSteps: React.FC = () => {
   // ステップの定義
   const [steps, setSteps] = useState<Step[]>([
     { id: 'connect', name: 'アカウント接続', href: '/meta-api-setup/connect', status: 'current' },
-    { id: 'permissions', name: '権限確認', href: '/meta-api-setup/permissions', status: 'upcoming' },
+    {
+      id: 'permissions',
+      name: '権限確認',
+      href: '/meta-api-setup/permissions',
+      status: 'upcoming',
+    },
     { id: 'test', name: '接続テスト', href: '/meta-api-setup/test', status: 'upcoming' },
-    { id: 'complete', name: '完了', href: '/meta-api-setup/complete', status: 'upcoming' }
+    { id: 'complete', name: '完了', href: '/meta-api-setup/complete', status: 'upcoming' },
   ])
 
   useEffect(() => {
@@ -32,10 +37,10 @@ export const MetaApiSetupSteps: React.FC = () => {
   const updateStepStatus = () => {
     const currentPath = location.pathname
     const newSteps = steps.map((step, index) => {
-      const currentIndex = steps.findIndex(s => currentPath.includes(s.id))
-      
+      const currentIndex = steps.findIndex((s) => currentPath.includes(s.id))
+
       if (currentIndex === -1) return step
-      
+
       if (index < currentIndex) {
         return { ...step, status: 'complete' as const }
       } else if (index === currentIndex) {
@@ -51,9 +56,7 @@ export const MetaApiSetupSteps: React.FC = () => {
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Meta広告API設定
-          </h1>
+          <h1 className="text-3xl font-bold text-gray-900">Meta広告API設定</h1>
           <p className="mt-2 text-lg text-gray-600">
             Meta広告データにアクセスするための設定を行います
           </p>
@@ -71,8 +74,8 @@ export const MetaApiSetupSteps: React.FC = () => {
                       step.status === 'complete'
                         ? 'bg-indigo-600 hover:bg-indigo-700'
                         : step.status === 'current'
-                        ? 'bg-indigo-600'
-                        : 'bg-gray-300'
+                          ? 'bg-indigo-600'
+                          : 'bg-gray-300'
                     } h-10 w-10 rounded-full flex items-center justify-center text-white transition-colors`}
                   >
                     {step.status === 'complete' ? (

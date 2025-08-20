@@ -47,10 +47,10 @@ describe('ComparisonPanel', () => {
 
     // Spend increased by 11.11%
     expect(screen.getByText('+11.1%')).toBeInTheDocument()
-    
+
     // Revenue increased by 25%
     expect(screen.getByText('+25.0%')).toBeInTheDocument()
-    
+
     // CTR increased from 4.44% to 5.0%
     expect(screen.getByText('+12.6%')).toBeInTheDocument()
   })
@@ -60,10 +60,10 @@ describe('ComparisonPanel', () => {
 
     // CPC decreased (improvement)
     expect(screen.getByTestId('cpc-improvement')).toHaveClass('text-green-600')
-    
+
     // CPA decreased (improvement)
     expect(screen.getByTestId('cpa-improvement')).toHaveClass('text-green-600')
-    
+
     // ROAS increased (improvement)
     expect(screen.getByTestId('roas-improvement')).toHaveClass('text-green-600')
   })
@@ -92,7 +92,7 @@ describe('ComparisonPanel', () => {
     expect(screen.getByText('広告費用')).toBeInTheDocument()
     expect(screen.getByText('売上')).toBeInTheDocument()
     expect(screen.getByText('ROAS')).toBeInTheDocument()
-    
+
     // Non-selected metrics should not be visible
     expect(screen.queryByText('インプレッション')).not.toBeInTheDocument()
   })

@@ -11,7 +11,7 @@ export function useDataLoader<T>(
   options: UseDataLoaderOptions = {}
 ) {
   const { initialLoading = true, minLoadingTime = 300 } = options
-  
+
   const [data, setData] = useState<T | null>(null)
   const [loading, setLoading] = useState(initialLoading)
   const [error, setError] = useState<Error | null>(null)
@@ -19,18 +19,18 @@ export function useDataLoader<T>(
   const loadData = useCallback(async () => {
     setLoading(true)
     setError(null)
-    
+
     const startTime = Date.now()
-    
+
     try {
       const result = await Promise.resolve(loadFunction())
-      
+
       // 最小ローディング時間を確保（UXのため）
       const elapsedTime = Date.now() - startTime
       if (elapsedTime < minLoadingTime) {
-        await new Promise(resolve => setTimeout(resolve, minLoadingTime - elapsedTime))
+        await new Promise((resolve) => setTimeout(resolve, minLoadingTime - elapsedTime))
       }
-      
+
       setData(result)
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Unknown error'))

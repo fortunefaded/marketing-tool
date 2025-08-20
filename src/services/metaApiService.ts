@@ -63,31 +63,31 @@ export interface MetaInsightsData {
   cpm: string
   cpc: string
   ctr: string
-  
+
   // 主要コンバージョンメトリクス
   conversions?: string
   conversion_value?: string
   cost_per_conversion?: string
   roas?: string
-  
+
   // 詳細コンバージョンデータ
   purchase_conversions?: number
   website_purchase_conversions?: number
   offsite_conversions?: number
   omni_purchase_conversions?: number
-  
+
   purchase_value?: number
   website_purchase_value?: number
   offsite_conversion_value?: number
   omni_purchase_value?: number
-  
+
   purchase_cpa?: number
   website_purchase_cpa?: number
   offsite_conversion_cpa?: number
-  
+
   purchase_roas_value?: number
   website_purchase_roas_value?: number
-  
+
   // 生データ（デバッグ用）
   actions_raw?: any[]
   action_values_raw?: any[]
@@ -95,7 +95,7 @@ export interface MetaInsightsData {
   purchase_roas_raw?: any
   website_purchase_roas_raw?: any
   parser_debug?: any
-  
+
   // キャンペーン情報
   campaign_id?: string
   campaign_name?: string
@@ -175,34 +175,34 @@ export class MetaApiService {
   private requestCount: number = 0
   private lastRequestTime: number = 0
   private readonly MIN_REQUEST_INTERVAL = 100 // 100ms間隔
-  private cachedDateLimit: { maxMonths: number, oldestDate: string } | null = null
+  private cachedDateLimit: { maxMonths: number; oldestDate: string } | null = null
   private detectingDateLimit: boolean = false
   private convexClient?: ConvexClient
 
   constructor(config: MetaApiConfig, convexClient?: ConvexClient) {
     this.config = {
       ...config,
-      apiVersion: config.apiVersion || 'v23.0'
+      apiVersion: config.apiVersion || 'v23.0',
     }
     this.baseUrl = `https://graph.facebook.com/${this.config.apiVersion}`
     this.convexClient = convexClient
   }
-  
+
   // レート制限対応のための待機
   private async rateLimit(): Promise<void> {
     const now = Date.now()
     const timeSinceLastRequest = now - this.lastRequestTime
-    
+
     if (timeSinceLastRequest < this.MIN_REQUEST_INTERVAL) {
       const waitTime = this.MIN_REQUEST_INTERVAL - timeSinceLastRequest
       console.log(`レート制限対応: ${waitTime}ms待機`)
-      await new Promise(resolve => setTimeout(resolve, waitTime))
+      await new Promise((resolve) => setTimeout(resolve, waitTime))
     }
-    
+
     this.lastRequestTime = Date.now()
     this.requestCount++
   }
-  
+
   // 指数バックオフでリトライ
   private async retryWithBackoff<T>(fn: () => Promise<T>, maxRetries: number = 3): Promise<T> {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -212,14 +212,14 @@ export class MetaApiService {
         if (attempt === maxRetries) {
           throw error
         }
-        
+
         // レート制限エラーの場合はより長く待機
         const isRateLimit = error.statusCode === 429 || error.code === 'RATE_LIMIT'
         const baseDelay = isRateLimit ? 5000 : 1000 // レート制限なら5秒、その他1秒
         const delay = baseDelay * Math.pow(2, attempt - 1) // 指数バックオフ
-        
+
         console.log(`リトライ ${attempt}/${maxRetries}: ${delay}ms待機 (${error.message})`)
-        await new Promise(resolve => setTimeout(resolve, delay))
+        await new Promise((resolve) => setTimeout(resolve, delay))
       }
     }
     throw new Error('Max retries exceeded')
@@ -228,45 +228,45 @@ export class MetaApiService {
   getConfig(): MetaApiConfig {
     return this.config
   }
-  
+
   // Meta APIの日付制限を動的に検出
-  async detectDateLimit(): Promise<{ maxMonths: number, oldestDate: string }> {
+  async detectDateLimit(): Promise<{ maxMonths: number; oldestDate: string }> {
     // キャッシュがあれば返す
     if (this.cachedDateLimit) {
       console.log('キャッシュされた日付制限を使用:', this.cachedDateLimit)
       return this.cachedDateLimit
     }
-    
+
     // 既に検出中の場合は待機
     if (this.detectingDateLimit) {
       console.log('日付制限の検出が既に進行中です。待機中...')
       // 最大10秒待機
       for (let i = 0; i < 100; i++) {
-        await new Promise(resolve => setTimeout(resolve, 100))
+        await new Promise((resolve) => setTimeout(resolve, 100))
         if (this.cachedDateLimit) {
           return this.cachedDateLimit
         }
       }
     }
-    
+
     this.detectingDateLimit = true
     console.log('Meta APIの日付制限を検出中...')
-    
+
     let maxMonths = 37 // デフォルトは37ヶ月
-    
+
     // 二分探索で実際の制限を見つける
     let low = 1
     let high = 36 // 安全のため36ヶ月から開始
-    
+
     while (low <= high) {
       const mid = Math.floor((low + high) / 2)
       const testDate = new Date()
       testDate.setDate(1) // 月初に設定
       testDate.setMonth(testDate.getMonth() - mid)
       testDate.setDate(1) // 再度月初に設定（月跨ぎの問題を回避）
-      
+
       const testDateStr = testDate.toISOString().split('T')[0]
-      
+
       try {
         // 1日分だけテスト取得（リトライなしで高速化）
         await this.apiCall(`/act_${this.config.accountId}/insights`, {
@@ -275,23 +275,23 @@ export class MetaApiService {
           limit: 1,
           time_range: JSON.stringify({
             since: testDateStr,
-            until: testDateStr
-          })
+            until: testDateStr,
+          }),
         })
-        
+
         // 成功したら、もっと古い日付を試す
         maxMonths = mid
         // 成功したので、もっと古い日付を試す
         low = mid + 1
       } catch (error: any) {
         // エラーコード3018は日付制限エラー
-        const isDateLimitError = 
-          error.code === 3018 || 
+        const isDateLimitError =
+          error.code === 3018 ||
           error.code === '3018' ||
           error.details?.error?.code === 3018 ||
-          error.message?.includes('37 months') || 
+          error.message?.includes('37 months') ||
           error.message?.includes('beyond')
-        
+
         if (isDateLimitError) {
           // 失敗したら、もっと新しい日付を試す
           high = mid - 1
@@ -302,19 +302,21 @@ export class MetaApiService {
         }
       }
     }
-    
+
     // 正しい日付を計算（月末の日付調整を考慮）
     const correctOldestDate = new Date()
     correctOldestDate.setMonth(correctOldestDate.getMonth() - maxMonths + 1) // 1ヶ月分の余裕を持たせる
     correctOldestDate.setDate(1) // 月初に設定して日付の問題を回避
-    console.log(`Meta APIの実際の制限: 過去${maxMonths}ヶ月まで (${correctOldestDate.toISOString().split('T')[0]}以降)`)
-    
+    console.log(
+      `Meta APIの実際の制限: 過去${maxMonths}ヶ月まで (${correctOldestDate.toISOString().split('T')[0]}以降)`
+    )
+
     // 結果をキャッシュ
     this.cachedDateLimit = {
       maxMonths,
-      oldestDate: correctOldestDate.toISOString().split('T')[0]
+      oldestDate: correctOldestDate.toISOString().split('T')[0],
     }
-    
+
     this.detectingDateLimit = false
     return this.cachedDateLimit
   }
@@ -324,9 +326,9 @@ export class MetaApiService {
     try {
       const response = await this.apiCall('/debug_token', {
         input_token: this.config.accessToken,
-        access_token: this.config.accessToken
+        access_token: this.config.accessToken,
       })
-      
+
       return response.data?.is_valid === true
     } catch (error) {
       if (error instanceof MetaApiError) {
@@ -355,12 +357,12 @@ export class MetaApiService {
       )
     }
   }
-  
+
   // アカウント情報の確認
   async getAccountInfo(): Promise<any> {
     try {
       const response = await this.apiCall(`/act_${this.config.accountId}`, {
-        fields: 'id,name,currency,timezone_name,account_status'
+        fields: 'id,name,currency,timezone_name,account_status',
       })
       return response
     } catch (error) {
@@ -370,12 +372,15 @@ export class MetaApiService {
   }
 
   // キャンペーンデータ取得
-  async getCampaigns(filter?: MetaApiFilter & { limit?: number; after?: string }): Promise<MetaCampaignData[]> {
+  async getCampaigns(
+    filter?: MetaApiFilter & { limit?: number; after?: string }
+  ): Promise<MetaCampaignData[]> {
     const params: any = {
-      fields: 'id,name,status,objective,daily_budget,lifetime_budget,created_time,updated_time,insights{spend}',
-      limit: filter?.limit || 100
+      fields:
+        'id,name,status,objective,daily_budget,lifetime_budget,created_time,updated_time,insights{spend}',
+      limit: filter?.limit || 100,
     }
-    
+
     console.log('Getting campaigns for account:', `act_${this.config.accountId}`)
 
     if (filter?.after) {
@@ -383,48 +388,54 @@ export class MetaApiService {
     }
 
     if (filter?.campaignIds) {
-      params.filtering = JSON.stringify([{
-        field: 'id',
-        operator: 'IN',
-        value: filter.campaignIds
-      }])
+      params.filtering = JSON.stringify([
+        {
+          field: 'id',
+          operator: 'IN',
+          value: filter.campaignIds,
+        },
+      ])
     }
 
     if (filter?.dateRange) {
       params.time_range = JSON.stringify({
         since: filter.dateRange.since,
-        until: filter.dateRange.until
+        until: filter.dateRange.until,
       })
     }
 
     if (filter?.status) {
-      params.filtering = JSON.stringify([{
-        field: 'status',
-        operator: 'IN',
-        value: filter.status
-      }])
+      params.filtering = JSON.stringify([
+        {
+          field: 'status',
+          operator: 'IN',
+          value: filter.status,
+        },
+      ])
     }
 
     try {
       const response = await this.apiCall(`/act_${this.config.accountId}/campaigns`, params)
-      
+
       // APIレスポンスの形式を確認
       console.log('Campaigns API Response:', {
         hasData: !!response.data,
         isArray: Array.isArray(response),
         dataIsArray: Array.isArray(response.data),
         responseKeys: Object.keys(response),
-        sampleResponse: response.data ? response.data[0] : response[0]
+        sampleResponse: response.data ? response.data[0] : response[0],
       })
-      
+
       // レスポンスが配列か、dataプロパティを持つオブジェクトかを判定
-      const campaigns = Array.isArray(response) ? response : (response.data || [])
-      
+      const campaigns = Array.isArray(response) ? response : response.data || []
+
       return campaigns.map((campaign: any) => ({
         ...campaign,
         dailyBudget: parseFloat(campaign.daily_budget || '0'),
         lifetimeBudget: campaign.lifetime_budget ? parseFloat(campaign.lifetime_budget) : undefined,
-        spend: campaign.insights?.data?.[0]?.spend ? parseFloat(campaign.insights.data[0].spend) : 0
+        spend: campaign.insights?.data?.[0]?.spend
+          ? parseFloat(campaign.insights.data[0].spend)
+          : 0,
       }))
     } catch (error) {
       console.error('Error fetching campaigns:', error)
@@ -433,10 +444,13 @@ export class MetaApiService {
   }
 
   // 広告セットデータ取得
-  async getAdSets(filter?: MetaApiFilter & { limit?: number; after?: string }): Promise<MetaAdSetData[]> {
+  async getAdSets(
+    filter?: MetaApiFilter & { limit?: number; after?: string }
+  ): Promise<MetaAdSetData[]> {
     const params: any = {
-      fields: 'id,name,campaign_id,status,daily_budget,lifetime_budget,optimization_goal,billing_event,bid_amount,created_time,updated_time',
-      limit: filter?.limit || 100
+      fields:
+        'id,name,campaign_id,status,daily_budget,lifetime_budget,optimization_goal,billing_event,bid_amount,created_time,updated_time',
+      limit: filter?.limit || 100,
     }
 
     if (filter?.after) {
@@ -444,30 +458,35 @@ export class MetaApiService {
     }
 
     if (filter?.adSetIds) {
-      params.filtering = JSON.stringify([{
-        field: 'id',
-        operator: 'IN',
-        value: filter.adSetIds
-      }])
+      params.filtering = JSON.stringify([
+        {
+          field: 'id',
+          operator: 'IN',
+          value: filter.adSetIds,
+        },
+      ])
     }
 
     if (filter?.campaignIds) {
-      params.filtering = JSON.stringify([{
-        field: 'campaign_id',
-        operator: 'IN',
-        value: filter.campaignIds
-      }])
+      params.filtering = JSON.stringify([
+        {
+          field: 'campaign_id',
+          operator: 'IN',
+          value: filter.campaignIds,
+        },
+      ])
     }
 
     const response = await this.apiCall(`/act_${this.config.accountId}/adsets`, params)
-    return Array.isArray(response) ? response : (response.data || [])
+    return Array.isArray(response) ? response : response.data || []
   }
 
   // 広告データ取得
   async getAds(filter?: MetaApiFilter & { limit?: number; after?: string }): Promise<MetaAdData[]> {
     const params: any = {
-      fields: 'id,name,adset_id,campaign_id,status,creative{id,name,title,body,image_url},created_time,updated_time',
-      limit: filter?.limit || 100
+      fields:
+        'id,name,adset_id,campaign_id,status,creative{id,name,title,body,image_url},created_time,updated_time',
+      limit: filter?.limit || 100,
     }
 
     if (filter?.after) {
@@ -475,28 +494,31 @@ export class MetaApiService {
     }
 
     if (filter?.adIds) {
-      params.filtering = JSON.stringify([{
-        field: 'id',
-        operator: 'IN',
-        value: filter.adIds
-      }])
+      params.filtering = JSON.stringify([
+        {
+          field: 'id',
+          operator: 'IN',
+          value: filter.adIds,
+        },
+      ])
     }
 
     const response = await this.apiCall(`/act_${this.config.accountId}/ads`, params)
-    return Array.isArray(response) ? response : (response.data || [])
+    return Array.isArray(response) ? response : response.data || []
   }
 
   // 広告クリエイティブの詳細取得
   async getAdCreatives(adIds: string[]): Promise<any[]> {
     if (!adIds.length) return []
-    
+
     const creatives = []
     for (const adId of adIds) {
       try {
         const adData = await this.apiCall(`/${adId}`, {
-          fields: 'id,name,creative{id,name,title,body,image_url,video_id,thumbnail_url,object_type,link_url,object_story_spec,asset_feed_spec,image_hash,effective_object_story_id}'
+          fields:
+            'id,name,creative{id,name,title,body,image_url,video_id,thumbnail_url,object_type,link_url,object_story_spec,asset_feed_spec,image_hash,effective_object_story_id}',
         })
-        
+
         console.log(`Ad Creative API Response for ${adId}:`, {
           ad_id: adData.id,
           ad_name: adData.name,
@@ -507,10 +529,10 @@ export class MetaApiService {
             image_url: adData.creative?.image_url,
             thumbnail_url: adData.creative?.thumbnail_url,
             object_type: adData.creative?.object_type,
-            effective_object_story_id: adData.creative?.effective_object_story_id
-          }
+            effective_object_story_id: adData.creative?.effective_object_story_id,
+          },
         })
-        
+
         if (adData.creative) {
           // クリエイティブタイプを判定
           let creativeType = 'text'
@@ -521,7 +543,7 @@ export class MetaApiService {
           } else if (adData.creative.object_type === 'SHARE') {
             creativeType = 'carousel'
           }
-          
+
           // カルーセルの場合、追加情報を取得
           let carouselCards = []
           if (creativeType === 'carousel' && adData.creative.object_story_spec) {
@@ -533,32 +555,38 @@ export class MetaApiService {
                 if (card.image_hash) {
                   imageUrl = `https://scontent.xx.fbcdn.net/v/t45.1600-4/${card.image_hash}_n.jpg`
                 }
-                
+
                 return {
                   name: card.name || '',
                   description: card.description || '',
                   image_url: imageUrl,
-                  link: card.link || ''
+                  link: card.link || '',
                 }
               })
             }
           }
-          
+
           // ビデオ情報の取得
           let videoThumbnail = adData.creative.thumbnail_url
           let videoUrl = null
           let actualVideoId = adData.creative.video_id
-          
+
           if (creativeType === 'video') {
             // effective_object_story_idがある場合、そこから動画情報を取得
             if (adData.creative.effective_object_story_id) {
               try {
-                const storyData = await this.apiCall(`/${adData.creative.effective_object_story_id}`, {
-                  fields: 'attachments{media{source,image{src}},type,url,subattachments}'
-                })
-                
-                console.log(`Story data for ${adData.creative.effective_object_story_id}:`, storyData)
-                
+                const storyData = await this.apiCall(
+                  `/${adData.creative.effective_object_story_id}`,
+                  {
+                    fields: 'attachments{media{source,image{src}},type,url,subattachments}',
+                  }
+                )
+
+                console.log(
+                  `Story data for ${adData.creative.effective_object_story_id}:`,
+                  storyData
+                )
+
                 if (storyData.attachments && storyData.attachments.data) {
                   for (const attachment of storyData.attachments.data) {
                     if (attachment.media) {
@@ -583,40 +611,47 @@ export class MetaApiService {
                   }
                 }
               } catch (error) {
-                console.warn(`Failed to get story data for ${adData.creative.effective_object_story_id}:`, error)
+                console.warn(
+                  `Failed to get story data for ${adData.creative.effective_object_story_id}:`,
+                  error
+                )
               }
             }
-            
+
             // video_idから直接動画情報を取得
             if (actualVideoId && !videoUrl) {
               try {
                 const videoData = await this.apiCall(`/${actualVideoId}`, {
-                  fields: 'id,thumbnails,source,permalink_url,embeddable,format,from,description'
+                  fields: 'id,thumbnails,source,permalink_url,embeddable,format,from,description',
                 })
-                
+
                 console.log(`Video data for ${actualVideoId}:`, {
                   id: videoData.id,
                   has_source: !!videoData.source,
                   has_permalink: !!videoData.permalink_url,
-                  format_count: videoData.format?.length || 0
+                  format_count: videoData.format?.length || 0,
                 })
-                
+
                 // より高画質なサムネイルを選択
-                if (videoData.thumbnails && videoData.thumbnails.data && videoData.thumbnails.data.length > 0) {
+                if (
+                  videoData.thumbnails &&
+                  videoData.thumbnails.data &&
+                  videoData.thumbnails.data.length > 0
+                ) {
                   // 最も高解像度のサムネイルを選択
-                  const sortedThumbnails = videoData.thumbnails.data.sort((a: any, b: any) => 
-                    (b.width * b.height) - (a.width * a.height)
+                  const sortedThumbnails = videoData.thumbnails.data.sort(
+                    (a: any, b: any) => b.width * b.height - a.width * a.height
                   )
                   videoThumbnail = sortedThumbnails[0].uri
                 }
-                
+
                 // 動画のソースURL - 複数のオプションを試す
                 // 1. 直接のsource URL（最も信頼性が高い）
                 if (videoData.source) {
                   videoUrl = videoData.source
                   console.log('Using direct source URL:', videoUrl)
                 }
-                
+
                 // 2. フォーマット情報から直接URLを取得
                 if (!videoUrl && videoData.format && Array.isArray(videoData.format)) {
                   // HD版を優先、なければネイティブ版
@@ -634,27 +669,29 @@ export class MetaApiService {
                     }
                   }
                 }
-                
+
                 // 3. 動画IDのみを保存（クライアント側で処理）
                 if (!videoUrl) {
                   // 動画IDを直接渡す（クライアント側でFacebookの埋め込みプレーヤーを使用）
                   actualVideoId = videoData.id
-                  console.log('No direct video URL found, will use video ID for embed:', actualVideoId)
+                  console.log(
+                    'No direct video URL found, will use video ID for embed:',
+                    actualVideoId
+                  )
                 }
-                
               } catch (error) {
                 console.warn(`Failed to get video data for ${actualVideoId}:`, error)
               }
             }
           }
-          
+
           // 画像の高画質版を取得
           let highQualityImageUrl = adData.creative.image_url
           if (creativeType === 'image' && adData.creative.image_hash) {
             // Facebookの高画質画像URLパターン
             highQualityImageUrl = `https://scontent.xx.fbcdn.net/v/t45.1600-4/${adData.creative.image_hash}_n.jpg`
           }
-          
+
           const creativeData = {
             ad_id: adData.id,
             ad_name: adData.name,
@@ -664,13 +701,13 @@ export class MetaApiService {
             title: adData.creative.title,
             body: adData.creative.body,
             image_url: highQualityImageUrl || adData.creative.image_url,
-            video_id: actualVideoId,  // 実際の動画ID
-            video_url: videoUrl,       // 動画の直接URL（あれば）
+            video_id: actualVideoId, // 実際の動画ID
+            video_url: videoUrl, // 動画の直接URL（あれば）
             thumbnail_url: videoThumbnail || highQualityImageUrl || adData.creative.image_url,
             link_url: adData.creative.link_url,
-            carousel_cards: carouselCards
+            carousel_cards: carouselCards,
           }
-          
+
           // 詳細なデバッグログ
           console.log(`Creative Data Debug for ${adData.id}:`, {
             creative_type: creativeType,
@@ -680,22 +717,23 @@ export class MetaApiService {
             thumbnail_url: videoThumbnail,
             effective_object_story_id: adData.creative.effective_object_story_id,
             has_video: !!actualVideoId,
-            has_video_url: !!videoUrl
+            has_video_url: !!videoUrl,
           })
-          
+
           creatives.push(creativeData)
         }
       } catch (error) {
         // デバッグモードでのみエラーログを出力
-        const debugMode = localStorage.getItem('meta_sync_settings') ? 
-          JSON.parse(localStorage.getItem('meta_sync_settings') || '{}').debugMode : false
-        
+        const debugMode = localStorage.getItem('meta_sync_settings')
+          ? JSON.parse(localStorage.getItem('meta_sync_settings') || '{}').debugMode
+          : false
+
         if (debugMode) {
           console.warn(`Failed to get creative for ad ${adId}:`, error)
         }
       }
     }
-    
+
     return creatives
   }
 
@@ -704,26 +742,32 @@ export class MetaApiService {
     // コンバージョン、ROAS、CPAを含む包括的なメトリクス
     const defaultMetrics = [
       // 基本フィールド
-      'impressions', 'clicks', 'spend', 'reach', 'frequency',
-      'cpm', 'cpc', 'ctr',
-      
+      'impressions',
+      'clicks',
+      'spend',
+      'reach',
+      'frequency',
+      'cpm',
+      'cpc',
+      'ctr',
+
       // コンバージョン関連（重要：正しいフィールド名）
-      'actions',                    // すべてのアクション
-      'action_values',             // アクションの価値
-      'conversions',               // コンバージョン数
-      'conversion_values',         // コンバージョン価値
-      'cost_per_action_type',      // アクションタイプ別CPA
-      'cost_per_conversion',       // CPA
-      'website_purchases',         // ウェブサイト購入
-      'purchase_roas',            // 購入ROAS（配列形式）
-      'website_purchase_roas',     // ウェブサイト購入ROAS（配列形式）
-      
+      'actions', // すべてのアクション
+      'action_values', // アクションの価値
+      'conversions', // コンバージョン数
+      'conversion_values', // コンバージョン価値
+      'cost_per_action_type', // アクションタイプ別CPA
+      'cost_per_conversion', // CPA
+      'website_purchases', // ウェブサイト購入
+      'purchase_roas', // 購入ROAS（配列形式）
+      'website_purchase_roas', // ウェブサイト購入ROAS（配列形式）
+
       // アトリビューション設定
       'inline_link_clicks',
       'outbound_clicks',
       'landing_page_views',
       'omni_purchase',
-      'purchase'
+      'purchase',
     ]
 
     // レベルに応じて追加フィールドを決定
@@ -733,30 +777,39 @@ export class MetaApiService {
     } else if (options.level === 'adset') {
       additionalFields = ['campaign_id', 'campaign_name', 'adset_id', 'adset_name']
     } else if (options.level === 'ad') {
-      additionalFields = ['campaign_id', 'campaign_name', 'adset_id', 'adset_name', 'ad_id', 'ad_name']
+      additionalFields = [
+        'campaign_id',
+        'campaign_name',
+        'adset_id',
+        'adset_name',
+        'ad_id',
+        'ad_name',
+      ]
     }
 
-    const fields = options.fields ? options.fields : [...(options.metrics || defaultMetrics), ...additionalFields]
+    const fields = options.fields
+      ? options.fields
+      : [...(options.metrics || defaultMetrics), ...additionalFields]
     const params: any = {
       fields: fields.join(','),
       level: options.level,
       limit: Math.min(options.limit || 25, 25), // API制限を考慮した小さなバッチサイズ
-      
+
       // アトリビューションウィンドウの設定（重要）
       use_unified_attribution_setting: true,
       action_attribution_windows: [
         '1d_click',
-        '7d_click', 
+        '7d_click',
         '28d_click',
         '1d_view',
         '7d_view',
-        '28d_view'
+        '28d_view',
       ].join(','),
-      
+
       // アクションブレークダウンを追加
-      action_breakdowns: 'action_type'
+      action_breakdowns: 'action_type',
     }
-    
+
     console.log(`getInsights called with level: ${options.level}, fields: ${fields.join(',')}`)
 
     if (options.datePreset) {
@@ -764,16 +817,19 @@ export class MetaApiService {
     } else if (options.dateRange && options.dateRange.since && options.dateRange.until) {
       params.time_range = JSON.stringify({
         since: options.dateRange.since,
-        until: options.dateRange.until
+        until: options.dateRange.until,
       })
     } else {
       // デフォルトの日付範囲（過去30日）を設定
       const defaultDateRange = {
         since: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        until: new Date().toISOString().split('T')[0]
+        until: new Date().toISOString().split('T')[0],
       }
       params.time_range = JSON.stringify(defaultDateRange)
-      console.warn('日付範囲が指定されていないため、デフォルトの過去30日を使用します', options.dateRange)
+      console.warn(
+        '日付範囲が指定されていないため、デフォルトの過去30日を使用します',
+        options.dateRange
+      )
     }
 
     if (options.after) {
@@ -783,7 +839,7 @@ export class MetaApiService {
     if (options.breakdowns) {
       params.breakdowns = options.breakdowns.join(',')
     }
-    
+
     if (options.time_increment) {
       params.time_increment = options.time_increment
     }
@@ -793,13 +849,13 @@ export class MetaApiService {
     }
 
     let endpoint = `/act_${this.config.accountId}/insights`
-    
+
     const response = await this.retryWithBackoff(async () => {
       await this.rateLimit()
       return await this.apiCall(endpoint, params)
     })
-    const data = Array.isArray(response) ? response : (response.data || [])
-    
+    const data = Array.isArray(response) ? response : response.data || []
+
     // データ確認とデバッグログ
     if (data.length > 0) {
       console.log(`${options.level}レベルデータ取得: ${data.length}件`)
@@ -814,31 +870,31 @@ export class MetaApiService {
         cost_per_action_type: sample.cost_per_action_type,
         purchase_roas: sample.purchase_roas,
         website_purchase_roas: sample.website_purchase_roas,
-        conversions: sample.conversions
+        conversions: sample.conversions,
       })
     }
-    
+
     // データを統一フォーマットに変換（MetaDataParserを使用）
     return data.map((insight: any) => {
       // MetaDataParserを使用してコンバージョンデータを解析
       const parsedData = MetaDataParser.parseInsightData(insight)
-      
+
       // 従来の個別抽出も保持（詳細分析用）
       const extractActionValue = (actions: any[], actionType: string) => {
         if (!Array.isArray(actions)) return 0
-        const action = actions.find(a => a.action_type === actionType)
+        const action = actions.find((a) => a.action_type === actionType)
         return action ? parseFloat(action.value || '0') : 0
       }
 
       const extractActionValues = (actionValues: any[], actionType: string) => {
         if (!Array.isArray(actionValues)) return 0
-        const actionValue = actionValues.find(a => a.action_type === actionType)
+        const actionValue = actionValues.find((a) => a.action_type === actionType)
         return actionValue ? parseFloat(actionValue.value || '0') : 0
       }
 
       const extractCostPerAction = (costPerActions: any[], actionType: string) => {
         if (!Array.isArray(costPerActions)) return 0
-        const costAction = costPerActions.find(a => a.action_type === actionType)
+        const costAction = costPerActions.find((a) => a.action_type === actionType)
         return costAction ? parseFloat(costAction.value || '0') : 0
       }
 
@@ -847,15 +903,24 @@ export class MetaApiService {
       const offsite_conversions = extractActionValue(insight.actions, 'offsite_conversion')
       const website_purchases = extractActionValue(insight.actions, 'website_purchase')
       const omni_purchases = extractActionValue(insight.actions, 'omni_purchase')
-      
+
       const purchaseValue = extractActionValues(insight.action_values, 'purchase')
       const website_purchase_value = extractActionValues(insight.action_values, 'website_purchase')
-      const offsite_conversion_value = extractActionValues(insight.action_values, 'offsite_conversion')
+      const offsite_conversion_value = extractActionValues(
+        insight.action_values,
+        'offsite_conversion'
+      )
       const omni_purchase_value = extractActionValues(insight.action_values, 'omni_purchase')
-      
+
       const purchaseCPA = extractCostPerAction(insight.cost_per_action_type, 'purchase')
-      const website_purchase_cpa = extractCostPerAction(insight.cost_per_action_type, 'website_purchase')
-      const offsite_conversion_cpa = extractCostPerAction(insight.cost_per_action_type, 'offsite_conversion')
+      const website_purchase_cpa = extractCostPerAction(
+        insight.cost_per_action_type,
+        'website_purchase'
+      )
+      const offsite_conversion_cpa = extractCostPerAction(
+        insight.cost_per_action_type,
+        'offsite_conversion'
+      )
 
       // MetaDataParserの結果を使用（優先）
       const totalConversions = parsedData.conversions
@@ -875,7 +940,7 @@ export class MetaApiService {
           purchases,
           website_purchases,
           offsite_conversions,
-          debug: parsedData.debug
+          debug: parsedData.debug,
         })
       }
 
@@ -891,41 +956,41 @@ export class MetaApiService {
         cpm: insight.cpm,
         cpc: insight.cpc,
         ctr: insight.ctr,
-        
+
         // 抽出されたコンバージョンデータ
         conversions: totalConversions.toString(),
         conversion_value: totalConversionValue.toString(),
         cost_per_conversion: totalCPA.toString(),
         roas: totalROAS.toString(),
-        
+
         // 詳細なコンバージョンデータ（デバッグ用）
         purchase_conversions: purchases,
         website_purchase_conversions: website_purchases,
         offsite_conversions: offsite_conversions,
         omni_purchase_conversions: omni_purchases,
-        
+
         purchase_value: purchaseValue,
         website_purchase_value: website_purchase_value,
         offsite_conversion_value: offsite_conversion_value,
         omni_purchase_value: omni_purchase_value,
-        
+
         purchase_cpa: purchaseCPA,
         website_purchase_cpa: website_purchase_cpa,
         offsite_conversion_cpa: offsite_conversion_cpa,
-        
+
         purchase_roas_value: purchases,
         website_purchase_roas_value: website_purchases,
-        
+
         // 生データも保持（デバッグ用）
         actions_raw: insight.actions,
         action_values_raw: insight.action_values,
         cost_per_action_type_raw: insight.cost_per_action_type,
         purchase_roas_raw: insight.purchase_roas,
         website_purchase_roas_raw: insight.website_purchase_roas,
-        
+
         // MetaDataParserのデバッグ情報
         parser_debug: parsedData.debug,
-        
+
         // キャンペーン・広告セット・広告情報
         campaign_id: insight.campaign_id,
         campaign_name: insight.campaign_name,
@@ -933,20 +998,20 @@ export class MetaApiService {
         adset_name: insight.adset_name,
         ad_id: insight.ad_id,
         ad_name: insight.ad_name,
-        
+
         // クリエイティブ情報（もし含まれていれば）
         creative_id: insight.creative_id,
         creative_name: insight.creative_name,
         video_id: insight.video_id,
         video_url: insight.video_url,
-        
+
         // 古いフィールド名も保持（後方互換性）
         dateStart: insight.date_start,
         dateStop: insight.date_stop,
         campaignName: insight.campaign_name,
         campaignId: insight.campaign_id,
         conversionValue: totalConversionValue,
-        costPerConversion: totalCPA
+        costPerConversion: totalCPA,
       }
     })
   }
@@ -960,20 +1025,20 @@ export class MetaApiService {
 
     try {
       // データを変換して保存
-      const transformedInsights = insights.map(insight => ({
+      const transformedInsights = insights.map((insight) => ({
         // 基本情報
         accountId: this.config.accountId,
         date_start: insight.date_start,
         date_stop: insight.date_stop || insight.date_start,
-        
+
         // キャンペーン情報
         campaign_id: insight.campaign_id,
         campaign_name: insight.campaign_name,
-        
+
         // 広告情報
         ad_id: insight.ad_id,
         ad_name: insight.ad_name,
-        
+
         // クリエイティブ情報
         creative_id: insight.creative_id,
         creative_name: insight.creative_name,
@@ -981,7 +1046,7 @@ export class MetaApiService {
         thumbnail_url: insight.thumbnail_url,
         video_url: insight.video_url,
         carousel_cards: insight.carousel_cards,
-        
+
         // パフォーマンスメトリクス
         impressions: Number(insight.impressions) || 0,
         clicks: Number(insight.clicks) || 0,
@@ -991,12 +1056,12 @@ export class MetaApiService {
         cpc: Number(insight.cpc) || 0,
         cpm: Number(insight.cpm) || 0,
         ctr: Number(insight.ctr) || 0,
-        
+
         // コンバージョンメトリクス
         conversions: Number(insight.conversions) || 0,
         conversion_rate: Number(insight.cvr) || 0,
         cost_per_conversion: Number(insight.cpa) || 0,
-        
+
         // 互換性フィールド
         dateStart: insight.date_start,
         dateStop: insight.date_stop || insight.date_start,
@@ -1012,7 +1077,7 @@ export class MetaApiService {
         const batch = transformedInsights.slice(i, i + batchSize)
         await this.convexClient.mutation(api.metaInsights.importInsights, {
           insights: batch,
-          strategy: 'merge' as const
+          strategy: 'merge' as const,
         })
       }
 
@@ -1039,7 +1104,7 @@ export class MetaApiService {
     try {
       await this.convexClient.mutation(api.metaInsights.saveSyncStatus, {
         accountId: this.config.accountId,
-        ...status
+        ...status,
       })
     } catch (error) {
       console.error('Error saving sync status to Convex:', error)
@@ -1052,11 +1117,11 @@ export class MetaApiService {
     startDate?: string,
     endDate?: string,
     options: {
-      level?: 'account' | 'campaign' | 'adset' | 'ad',
-      limit?: number,
-      fields?: string[],
-      timeIncrement?: number | 'monthly',
-      filtering?: any[],
+      level?: 'account' | 'campaign' | 'adset' | 'ad'
+      limit?: number
+      fields?: string[]
+      timeIncrement?: number | 'monthly'
+      filtering?: any[]
       breakdowns?: string[]
     } = {}
   ): Promise<MetaInsightsData[]> {
@@ -1064,27 +1129,27 @@ export class MetaApiService {
       level: options.level || 'ad',
       dateRange: {
         since: startDate || '',
-        until: endDate || ''
+        until: endDate || '',
       },
       fields: options.fields,
       metrics: options.fields, // Map fields to metrics for backward compatibility
       breakdowns: options.breakdowns,
       filtering: options.filtering,
       limit: options.limit,
-      time_increment: options.timeIncrement ? String(options.timeIncrement) : undefined
+      time_increment: options.timeIncrement ? String(options.timeIncrement) : undefined,
     })
-    
+
     // Convexに保存
     if (this.convexClient && insights.length > 0) {
       await this.saveInsightsToConvex(insights)
-      
+
       // 同期ステータスを更新
-      const dates = insights.map(i => i.date_start).sort()
+      const dates = insights.map((i) => i.date_start).sort()
       await this.saveSyncStatusToConvex({
         lastIncrementalSync: new Date().toISOString(),
         totalRecords: insights.length,
         earliestDate: dates[0],
-        latestDate: dates[dates.length - 1]
+        latestDate: dates[dates.length - 1],
       })
     }
 
@@ -1093,23 +1158,23 @@ export class MetaApiService {
 
   // バッチリクエスト
   async batch(requests: MetaBatchRequest[]): Promise<any[]> {
-    const batch = requests.map(req => ({
+    const batch = requests.map((req) => ({
       method: req.method,
       relative_url: req.relative_url,
-      body: req.body
+      body: req.body,
     }))
 
     const params = {
       batch: JSON.stringify(batch),
-      access_token: this.config.accessToken
+      access_token: this.config.accessToken,
     }
 
     const response = await fetch(`${this.baseUrl}/`, {
       method: 'POST',
       body: new URLSearchParams(params),
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      }
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
     })
 
     if (!response.ok) {
@@ -1135,7 +1200,7 @@ export class MetaApiService {
       dailyBudget: apiData.daily_budget ? parseFloat(apiData.daily_budget) : null,
       lifetimeBudget: apiData.lifetime_budget ? parseFloat(apiData.lifetime_budget) : null,
       createdTime: apiData.created_time,
-      updatedTime: apiData.updated_time
+      updatedTime: apiData.updated_time,
     }
 
     if (apiData.insights?.data?.[0]) {
@@ -1148,7 +1213,7 @@ export class MetaApiService {
 
   transformNumericFields(data: any): any {
     const transformed: any = {}
-    
+
     for (const [key, value] of Object.entries(data)) {
       if (typeof value === 'string' && !isNaN(Number(value))) {
         transformed[key] = Number(value)
@@ -1156,7 +1221,7 @@ export class MetaApiService {
         transformed[key] = value
       }
     }
-    
+
     return transformed
   }
 
@@ -1164,34 +1229,36 @@ export class MetaApiService {
   private async apiCall(endpoint: string, params?: any): Promise<any> {
     try {
       // デバッグモードでのみ詳細ログを出力
-      const debugMode = localStorage.getItem('meta_sync_settings') ? 
-        JSON.parse(localStorage.getItem('meta_sync_settings') || '{}').debugMode : false
-      
+      const debugMode = localStorage.getItem('meta_sync_settings')
+        ? JSON.parse(localStorage.getItem('meta_sync_settings') || '{}').debugMode
+        : false
+
       if (debugMode) {
         console.log(`Meta API Call #${this.requestCount + 1} - ${endpoint}`)
       }
-      
+
       const url = new URL(`${this.baseUrl}${endpoint}`)
-      
+
       if (params) {
-        Object.keys(params).forEach(key => {
+        Object.keys(params).forEach((key) => {
           url.searchParams.append(key, params[key])
         })
       }
 
       const response = await fetch(url.toString(), {
         headers: {
-          'Authorization': `Bearer ${this.config.accessToken}`
-        }
+          Authorization: `Bearer ${this.config.accessToken}`,
+        },
       })
 
       if (!response.ok) {
         const error = await response.json()
-        
+
         // デバッグモードでのみ詳細エラーログを出力
-        const debugMode = localStorage.getItem('meta_sync_settings') ? 
-          JSON.parse(localStorage.getItem('meta_sync_settings') || '{}').debugMode : false
-        
+        const debugMode = localStorage.getItem('meta_sync_settings')
+          ? JSON.parse(localStorage.getItem('meta_sync_settings') || '{}').debugMode
+          : false
+
         if (debugMode) {
           console.error('Meta API Error Response:', {
             endpoint,
@@ -1201,12 +1268,12 @@ export class MetaApiService {
             error,
             accountId: this.config.accountId,
             apiVersion: this.config.apiVersion,
-            requestParams: params
+            requestParams: params,
           })
         }
-        
+
         const errorCode = error.error?.code || this.getErrorCode(response.status, error)
-        
+
         throw new MetaApiError(
           error.error?.message || 'API request failed',
           errorCode,
@@ -1220,13 +1287,8 @@ export class MetaApiService {
       if (error instanceof MetaApiError) {
         throw error
       }
-      
-      throw new MetaApiError(
-        'Network error',
-        'NETWORK_ERROR',
-        undefined,
-        error
-      )
+
+      throw new MetaApiError('Network error', 'NETWORK_ERROR', undefined, error)
     }
   }
 
@@ -1243,34 +1305,50 @@ export class MetaApiService {
     if (status >= 500) {
       return 'SERVER_ERROR'
     }
-    
+
     return 'API_ERROR'
   }
 
   // 包括的なインサイトデータを取得
-  async getComprehensiveInsights(dateRange: { since: string; until: string }): Promise<MetaInsightsData[]> {
+  async getComprehensiveInsights(dateRange: {
+    since: string
+    until: string
+  }): Promise<MetaInsightsData[]> {
     const fields = [
       // 基本情報
-      'ad_id', 'ad_name', 'adset_id', 'adset_name', 
-      'campaign_id', 'campaign_name',
+      'ad_id',
+      'ad_name',
+      'adset_id',
+      'adset_name',
+      'campaign_id',
+      'campaign_name',
       // パフォーマンスメトリクス
-      'impressions', 'clicks', 'spend', 'reach', 'frequency',
-      'cpm', 'cpp', 'cpc', 'ctr',
+      'impressions',
+      'clicks',
+      'spend',
+      'reach',
+      'frequency',
+      'cpm',
+      'cpp',
+      'cpc',
+      'ctr',
       // コンバージョン
-      'conversions', 'conversion_values', 'cost_per_conversion',
+      'conversions',
+      'conversion_values',
+      'cost_per_conversion',
       'purchase_roas',
       // 動画メトリクス（権限エラー回避）
       'video_play_actions',
-      'video_30_sec_watched_actions', 
+      'video_30_sec_watched_actions',
       'video_avg_time_watched_actions',
       'video_p25_watched_actions',
-      'video_p50_watched_actions', 
+      'video_p50_watched_actions',
       'video_p75_watched_actions',
       'video_p100_watched_actions',
       // エンゲージメント
       'engagement_rate_ranking',
       'quality_ranking',
-      'conversion_rate_ranking'
+      'conversion_rate_ranking',
     ]
 
     try {
@@ -1279,7 +1357,7 @@ export class MetaApiService {
         fields,
         dateRange,
         breakdowns: ['age', 'gender', 'placement', 'device_platform'],
-        time_increment: 'all_days'
+        time_increment: 'all_days',
       })
       return insights
     } catch (error) {
@@ -1290,7 +1368,7 @@ export class MetaApiService {
         level: 'ad',
         fields: basicFields,
         dateRange,
-        time_increment: 'all_days'
+        time_increment: 'all_days',
       })
     }
   }
@@ -1302,9 +1380,9 @@ export class MetaApiService {
 
     for (let i = 0; i < adIds.length; i += batchSize) {
       const batch = adIds.slice(i, i + batchSize)
-      const requests: MetaBatchRequest[] = batch.map(adId => ({
+      const requests: MetaBatchRequest[] = batch.map((adId) => ({
         method: 'GET',
-        relative_url: `/${adId}?fields=id,name,status,creative{id,name,title,body,image_url,thumbnail_url,object_type,link_url,call_to_action_type,effective_object_story_id,object_story_spec{page_id,link_data{link,message,name,description,child_attachments{link,name,description,picture,call_to_action{type,value{link}}}},video_data{video_id,title,message,call_to_action{type,value{link}}}},asset_feed_spec{images,videos,bodies,titles,descriptions,ad_formats}},targeting{age_min,age_max,genders,geo_locations{countries,cities,regions},interests,behaviors,custom_audiences}`
+        relative_url: `/${adId}?fields=id,name,status,creative{id,name,title,body,image_url,thumbnail_url,object_type,link_url,call_to_action_type,effective_object_story_id,object_story_spec{page_id,link_data{link,message,name,description,child_attachments{link,name,description,picture,call_to_action{type,value{link}}}},video_data{video_id,title,message,call_to_action{type,value{link}}}},asset_feed_spec{images,videos,bodies,titles,descriptions,ad_formats}},targeting{age_min,age_max,genders,geo_locations{countries,cities,regions},interests,behaviors,custom_audiences}`,
       }))
 
       try {
@@ -1317,7 +1395,7 @@ export class MetaApiService {
         for (const adId of batch) {
           try {
             const ad = await this.apiCall(`/${adId}`, {
-              fields: 'id,name,status,creative{id,name,title,body,image_url,thumbnail_url}'
+              fields: 'id,name,status,creative{id,name,title,body,image_url,thumbnail_url}',
             })
             creatives.push(ad)
           } catch (individualError) {
@@ -1335,15 +1413,18 @@ export class MetaApiService {
     try {
       const response = await this.apiCall(`/act_${this.config.accountId}/insights`, {
         fields: [
-          'spend', 'impressions', 'clicks',
-          'actions', 'action_values',
+          'spend',
+          'impressions',
+          'clicks',
+          'actions',
+          'action_values',
           'cost_per_action_type',
-          'website_purchase_roas'
+          'website_purchase_roas',
         ].join(','),
         level: 'account',
         breakdowns: 'publisher_platform,platform_position',
         time_range: JSON.stringify(dateRange),
-        limit: 1000
+        limit: 1000,
       })
 
       return response
@@ -1353,23 +1434,26 @@ export class MetaApiService {
       return await this.apiCall(`/act_${this.config.accountId}/insights`, {
         fields: 'spend,impressions,clicks',
         level: 'account',
-        time_range: JSON.stringify(dateRange)
+        time_range: JSON.stringify(dateRange),
       })
     }
   }
 
   // 動画パフォーマンスデータを取得
-  async getVideoPerformanceData(adIds: string[], dateRange?: { since: string; until: string }): Promise<any[]> {
+  async getVideoPerformanceData(
+    adIds: string[],
+    dateRange?: { since: string; until: string }
+  ): Promise<any[]> {
     const videoData: any[] = []
-    
+
     // デフォルトの日付範囲（過去30日）
     const defaultDateRange = {
       since: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      until: new Date().toISOString().split('T')[0]
+      until: new Date().toISOString().split('T')[0],
     }
-    
+
     const timeRange = dateRange || defaultDateRange
-    
+
     for (const adId of adIds) {
       try {
         const insights = await this.apiCall(`/${adId}/insights`, {
@@ -1382,12 +1466,12 @@ export class MetaApiService {
             'video_p95_watched_actions',
             'video_p100_watched_actions',
             'video_avg_time_watched_actions',
-            'video_play_curve_actions'
+            'video_play_curve_actions',
           ].join(','),
           time_increment: 'all_days',
-          time_range: JSON.stringify(timeRange)
+          time_range: JSON.stringify(timeRange),
         })
-        
+
         if (insights.data && insights.data.length > 0) {
           videoData.push({ adId, ...insights.data[0] })
         }
@@ -1395,7 +1479,7 @@ export class MetaApiService {
         console.warn(`動画データ取得エラー (広告 ${adId}):`, error)
       }
     }
-    
+
     return videoData
   }
 }

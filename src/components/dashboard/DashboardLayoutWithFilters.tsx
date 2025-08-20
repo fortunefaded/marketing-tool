@@ -34,14 +34,12 @@ export const DashboardLayoutWithFilters: React.FC<DashboardLayoutWithFiltersProp
     onFiltersChange?.(newFilters)
   }
 
-  const activeFilterCount = Object.keys(filters).filter(
-    (key) => {
-      const value = filters[key as keyof FilterState]
-      if (Array.isArray(value)) return value.length > 0
-      if (typeof value === 'object') return Object.keys(value).length > 0
-      return value !== undefined
-    }
-  ).length
+  const activeFilterCount = Object.keys(filters).filter((key) => {
+    const value = filters[key as keyof FilterState]
+    if (Array.isArray(value)) return value.length > 0
+    if (typeof value === 'object') return Object.keys(value).length > 0
+    return value !== undefined
+  }).length
 
   if (isLoading) {
     return (
@@ -79,20 +77,20 @@ export const DashboardLayoutWithFilters: React.FC<DashboardLayoutWithFiltersProp
         >
           <div className="fixed inset-y-0 left-0 z-40 w-80 bg-gray-50 border-r border-gray-200 overflow-y-auto lg:relative lg:translate-x-0">
             <div className="relative h-full">
-            <button
-              onClick={() => setIsFilterPanelOpen(false)}
-              className="absolute top-4 right-4 lg:hidden"
-            >
-              <XMarkIcon className="h-6 w-6 text-gray-500" />
-            </button>
-            <div className="p-6">
-              <CustomFilterPanel
-                filters={filters}
-                onChange={handleFiltersChange}
-                campaignOptions={campaignOptions}
-                showPresets={true}
-              />
-            </div>
+              <button
+                onClick={() => setIsFilterPanelOpen(false)}
+                className="absolute top-4 right-4 lg:hidden"
+              >
+                <XMarkIcon className="h-6 w-6 text-gray-500" />
+              </button>
+              <div className="p-6">
+                <CustomFilterPanel
+                  filters={filters}
+                  onChange={handleFiltersChange}
+                  campaignOptions={campaignOptions}
+                  showPresets={true}
+                />
+              </div>
             </div>
           </div>
         </Transition>
@@ -111,10 +109,9 @@ export const DashboardLayoutWithFilters: React.FC<DashboardLayoutWithFiltersProp
                       <div className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:border-gray-400 cursor-pointer">
                         <CalendarIcon className="h-5 w-5 text-gray-500" />
                         <span className="text-gray-700">
-                          {filters.dateRange 
+                          {filters.dateRange
                             ? `${filters.dateRange.start} - ${filters.dateRange.end}`
-                            : '期間を選択'
-                          }
+                            : '期間を選択'}
                         </span>
                       </div>
                     )}

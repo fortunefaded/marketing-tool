@@ -68,10 +68,10 @@ describe('MetaAPIClient - Enhanced Features', () => {
       ;(client as any).setTokenRefreshHandler(onTokenRefresh)
 
       const promise = client.getCampaigns()
-      
+
       // Advance timers to allow any delays
       await vi.runAllTimersAsync()
-      
+
       await promise
 
       expect(onTokenRefresh).toHaveBeenCalled()
@@ -84,10 +84,10 @@ describe('MetaAPIClient - Enhanced Features', () => {
 
     it('should store and retrieve tokens securely', async () => {
       const tokenStore = (client as any).getTokenStore()
-      
+
       await tokenStore.set('access_token', 'test-token')
       await tokenStore.set('refresh_token', 'refresh-token')
-      
+
       expect(await tokenStore.get('access_token')).toBe('test-token')
       expect(await tokenStore.get('refresh_token')).toBe('refresh-token')
     })
@@ -116,14 +116,14 @@ describe('MetaAPIClient - Enhanced Features', () => {
       const promise1 = client.getCampaigns()
       await vi.runAllTimersAsync()
       await promise1
-      
+
       // Try to make another call immediately
       // Removed unused startTime
       const promise2 = client.getCampaigns()
       await vi.runAllTimersAsync()
       await promise2
       // Removed unused endTime
-      
+
       // Should have waited due to rate limit
       expect((client as any).getRateLimitStatus()).toMatchObject({
         callCount: 95,
@@ -162,13 +162,13 @@ describe('MetaAPIClient - Enhanced Features', () => {
         })
 
       const promise = client.getCampaigns()
-      
+
       // Advance timers for retries with exponential backoff
       await vi.advanceTimersByTimeAsync(60000) // 60 seconds for retry-after
       await vi.advanceTimersByTimeAsync(60000) // Another 60 seconds
-      
+
       const result = await promise
-      
+
       expect(mockFetch).toHaveBeenCalledTimes(3)
       expect(result).toEqual([])
     })
@@ -177,7 +177,7 @@ describe('MetaAPIClient - Enhanced Features', () => {
   describe('Retry Logic', () => {
     it('should retry on network errors', async () => {
       console.log('🔧 Starting retry logic test')
-      
+
       mockFetch
         .mockRejectedValueOnce(new Error('Network error'))
         .mockRejectedValueOnce(new Error('Network error'))
@@ -188,13 +188,13 @@ describe('MetaAPIClient - Enhanced Features', () => {
           json: vi.fn().mockResolvedValue({ data: [] }),
         })
 
-      // Start the request  
+      // Start the request
       const requestPromise = client.getCampaigns()
-      
+
       // Advance timers to handle retry delays
       console.log('🔧 Advancing timers for retry delays')
       await vi.advanceTimersByTimeAsync(5000) // 1000ms + 2000ms + buffer
-      
+
       const result = await requestPromise
 
       expect(mockFetch).toHaveBeenCalledTimes(3)
@@ -203,7 +203,7 @@ describe('MetaAPIClient - Enhanced Features', () => {
 
     it('should not retry on client errors (4xx)', async () => {
       console.log('🔧 Starting 4xx error test')
-      
+
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 400,
@@ -223,7 +223,7 @@ describe('MetaAPIClient - Enhanced Features', () => {
 
     it('should implement circuit breaker pattern', async () => {
       console.log('🔧 Starting circuit breaker test')
-      
+
       // Simulate multiple failures
       mockFetch.mockRejectedValue(new Error('Service unavailable'))
 
@@ -231,7 +231,7 @@ describe('MetaAPIClient - Enhanced Features', () => {
       for (let i = 0; i < 5; i++) {
         try {
           await client.getCampaigns()
-        } catch (error) {
+        } catch {
           // Expected to fail
         }
       }
@@ -239,7 +239,7 @@ describe('MetaAPIClient - Enhanced Features', () => {
       // Circuit should be open now - next call should fail fast
       console.log('🔧 Circuit should be open now')
       await expect(client.getCampaigns()).rejects.toThrow()
-      
+
       // Verify multiple calls were made (retries)
       expect(mockFetch.mock.calls.length).toBeGreaterThan(5)
     }, 20000)
@@ -248,14 +248,14 @@ describe('MetaAPIClient - Enhanced Features', () => {
   describe('Batch Operations', () => {
     it('should batch multiple requests efficiently', async () => {
       console.log('🔧 Starting batch operations test')
-      
+
       // Mock batch response
       const batchResponse = [
         { code: 200, body: JSON.stringify({ data: { impressions: 1000, clicks: 50 } }) },
         { code: 200, body: JSON.stringify({ data: { impressions: 2000, clicks: 100 } }) },
         { code: 200, body: JSON.stringify({ data: { impressions: 1500, clicks: 75 } }) },
       ]
-      
+
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
@@ -282,9 +282,9 @@ describe('MetaAPIClient - Enhanced Features', () => {
   describe('Caching', () => {
     it('should cache responses with TTL', async () => {
       console.log('🔧 Starting caching test')
-      
+
       const mockData = { data: [{ id: '1', name: 'Campaign 1' }] }
-      
+
       mockFetch.mockResolvedValue({
         ok: true,
         status: 200,
@@ -315,7 +315,7 @@ describe('MetaAPIClient - Enhanced Features', () => {
 
     it('should invalidate cache on mutations', async () => {
       console.log('🔧 Starting cache invalidation test')
-      
+
       mockFetch.mockResolvedValue({
         ok: true,
         status: 200,
@@ -331,7 +331,7 @@ describe('MetaAPIClient - Enhanced Features', () => {
       // Perform a mutation
       console.log('🔧 Performing mutation')
       await (client as any).updateCampaign('1', { name: 'Updated' })
-      
+
       // Next get should hit API
       console.log('🔧 Making request after mutation (should hit API)')
       await client.getCampaigns({ cache: true })
@@ -342,7 +342,7 @@ describe('MetaAPIClient - Enhanced Features', () => {
   describe('Error Handling', () => {
     it('should parse and throw structured errors', async () => {
       console.log('🔧 Starting structured error test')
-      
+
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 400,
@@ -375,7 +375,7 @@ describe('MetaAPIClient - Enhanced Features', () => {
   describe('Request Monitoring', () => {
     it('should track request metrics', async () => {
       console.log('🔧 Starting metrics tracking test')
-      
+
       mockFetch.mockResolvedValue({
         ok: true,
         status: 200,
@@ -384,10 +384,10 @@ describe('MetaAPIClient - Enhanced Features', () => {
       })
 
       await client.getCampaigns()
-      
+
       const metrics = (client as any).getMetrics()
       console.log('🔧 Request metrics:', metrics)
-      
+
       expect(metrics).toMatchObject({
         totalRequests: 1,
         successfulRequests: 1,
@@ -399,11 +399,11 @@ describe('MetaAPIClient - Enhanced Features', () => {
 
     it('should emit events for monitoring', async () => {
       console.log('🔧 Starting event monitoring test')
-      
+
       const onRequest = vi.fn()
       const onResponse = vi.fn()
       const onError = vi.fn()
-      
+
       ;(client as any).on('request', onRequest)
       ;(client as any).on('response', onResponse)
       ;(client as any).on('error', onError)
@@ -419,12 +419,12 @@ describe('MetaAPIClient - Enhanced Features', () => {
 
       console.log('🔧 Request event calls:', onRequest.mock.calls)
       console.log('🔧 Response event calls:', onResponse.mock.calls)
-      
+
       expect(onRequest).toHaveBeenCalledWith({
         url: expect.stringContaining('/campaigns'),
         method: 'GET',
       })
-      
+
       expect(onResponse).toHaveBeenCalledWith({
         url: expect.stringContaining('/campaigns'),
         status: 200,

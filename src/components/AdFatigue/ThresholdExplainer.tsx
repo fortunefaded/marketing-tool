@@ -1,9 +1,9 @@
 import React, { useState } from 'react'
 import { QuestionMarkCircleIcon, XMarkIcon } from '@heroicons/react/24/outline'
-import { 
-  THRESHOLD_RATIONALE, 
+import {
+  THRESHOLD_RATIONALE,
   interpretThreshold,
-  getRecommendedActions 
+  getRecommendedActions,
 } from '../../../convex/config/thresholdRationale'
 
 interface ThresholdExplainerProps {
@@ -17,30 +17,30 @@ export const ThresholdExplainer: React.FC<ThresholdExplainerProps> = ({
   metric,
   value,
   status,
-  compact = false
+  compact = false,
 }) => {
   const [showDetails, setShowDetails] = useState(false)
-  
+
   const metricData = THRESHOLD_RATIONALE[metric]
   if (!metricData) return null
-  
+
   const interpretation = interpretThreshold(metric, value, status)
   const actions = getRecommendedActions(metric, status)
-  
+
   const metricLabels = {
     frequency: 'Frequency（平均表示回数）',
     ctrDecline: 'CTR減少率',
     firstTimeRatio: '初回インプレッション比率',
     cpmIncrease: 'CPM上昇率',
-    negativeFeedback: 'ネガティブフィードバック率'
+    negativeFeedback: 'ネガティブフィードバック率',
   }
-  
+
   const statusColors = {
     safe: 'text-green-600 bg-green-50',
     warning: 'text-yellow-600 bg-yellow-50',
-    critical: 'text-red-600 bg-red-50'
+    critical: 'text-red-600 bg-red-50',
   }
-  
+
   if (compact) {
     return (
       <button
@@ -52,7 +52,7 @@ export const ThresholdExplainer: React.FC<ThresholdExplainerProps> = ({
       </button>
     )
   }
-  
+
   return (
     <>
       <button
@@ -62,7 +62,7 @@ export const ThresholdExplainer: React.FC<ThresholdExplainerProps> = ({
         なぜこの判定？
         <QuestionMarkCircleIcon className="ml-1 h-4 w-4" />
       </button>
-      
+
       {showDetails && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -80,7 +80,7 @@ export const ThresholdExplainer: React.FC<ThresholdExplainerProps> = ({
                 </button>
               </div>
             </div>
-            
+
             {/* コンテンツ */}
             <div className="p-6 space-y-6">
               {/* 現在の状態 */}
@@ -91,7 +91,7 @@ export const ThresholdExplainer: React.FC<ThresholdExplainerProps> = ({
                 </div>
                 <p className="text-sm">{interpretation}</p>
               </div>
-              
+
               {/* 閾値の説明 */}
               <div>
                 <h4 className="font-medium text-gray-900 mb-3">閾値設定</h4>
@@ -99,10 +99,15 @@ export const ThresholdExplainer: React.FC<ThresholdExplainerProps> = ({
                   {Object.entries(metricData.thresholds).map(([level, threshold]) => (
                     <div key={level} className="flex items-center justify-between py-2 border-b">
                       <div className="flex items-center">
-                        <span className={`inline-block w-3 h-3 rounded-full mr-2 ${
-                          level === 'safe' ? 'bg-green-500' :
-                          level === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
-                        }`} />
+                        <span
+                          className={`inline-block w-3 h-3 rounded-full mr-2 ${
+                            level === 'safe'
+                              ? 'bg-green-500'
+                              : level === 'warning'
+                                ? 'bg-yellow-500'
+                                : 'bg-red-500'
+                          }`}
+                        />
                         <span className="capitalize">{level}</span>
                       </div>
                       <span className="font-mono">{threshold}</span>
@@ -110,27 +115,25 @@ export const ThresholdExplainer: React.FC<ThresholdExplainerProps> = ({
                   ))}
                 </div>
               </div>
-              
+
               {/* 根拠 */}
               <div>
                 <h4 className="font-medium text-gray-900 mb-3">科学的根拠</h4>
                 <div className="bg-gray-50 rounded-lg p-4">
                   <p className="text-sm text-gray-700 mb-2">
-                    {'evidence' in metricData ? metricData.evidence : '業界標準および実証研究に基づく'}
+                    {'evidence' in metricData
+                      ? metricData.evidence
+                      : '業界標準および実証研究に基づく'}
                   </p>
                   {'mathematical' in metricData && metricData.mathematical && (
-                    <p className="text-sm text-gray-600 italic">
-                      {metricData.mathematical}
-                    </p>
+                    <p className="text-sm text-gray-600 italic">{metricData.mathematical}</p>
                   )}
                   {'mechanism' in metricData && metricData.mechanism && (
-                    <p className="text-sm text-gray-600 mt-2">
-                      {metricData.mechanism}
-                    </p>
+                    <p className="text-sm text-gray-600 mt-2">{metricData.mechanism}</p>
                   )}
                 </div>
               </div>
-              
+
               {/* 段階説明（CTR減少率の場合） */}
               {metric === 'ctrDecline' && 'stages' in metricData && metricData.stages && (
                 <div>
@@ -145,7 +148,7 @@ export const ThresholdExplainer: React.FC<ThresholdExplainerProps> = ({
                   </div>
                 </div>
               )}
-              
+
               {/* 業界ベンチマーク */}
               {'industryBenchmarks' in metricData && metricData.industryBenchmarks && (
                 <div>
@@ -162,7 +165,7 @@ export const ThresholdExplainer: React.FC<ThresholdExplainerProps> = ({
                   </div>
                 </div>
               )}
-              
+
               {/* 推奨アクション */}
               <div>
                 <h4 className="font-medium text-gray-900 mb-3">推奨アクション</h4>
@@ -176,7 +179,7 @@ export const ThresholdExplainer: React.FC<ThresholdExplainerProps> = ({
                 </ul>
               </div>
             </div>
-            
+
             {/* フッター */}
             <div className="sticky bottom-0 bg-gray-50 px-6 py-4 border-t">
               <button

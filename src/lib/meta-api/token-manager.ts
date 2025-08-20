@@ -31,7 +31,7 @@ export class MetaTokenManager extends EventEmitter {
       refreshThreshold: 24, // refresh 24 hours before expiry
       ...config,
     }
-    
+
     this.initialize()
   }
 
@@ -88,9 +88,9 @@ export class MetaTokenManager extends EventEmitter {
     if (this.config.appSecret && import.meta.env.DEV) {
       console.warn(
         '⚠️ 開発環境: App Secretを使用してトークンを交換しています。\n' +
-        '本番環境では必ずサーバーサイドAPIを使用してください。'
+          '本番環境では必ずサーバーサイドAPIを使用してください。'
       )
-      
+
       const url = new URL('https://graph.facebook.com/v23.0/oauth/access_token')
       url.searchParams.append('grant_type', 'fb_exchange_token')
       url.searchParams.append('client_id', this.config.appId)
@@ -107,14 +107,12 @@ export class MetaTokenManager extends EventEmitter {
       const tokenInfo: TokenInfo = {
         token: data.access_token,
         type: 'long',
-        expiresAt: data.expires_in 
-          ? new Date(Date.now() + data.expires_in * 1000)
-          : undefined,
+        expiresAt: data.expires_in ? new Date(Date.now() + data.expires_in * 1000) : undefined,
       }
 
       this.setToken(tokenInfo)
       this.emit('token:exchanged', tokenInfo)
-      
+
       return tokenInfo
     }
 
@@ -133,21 +131,21 @@ export class MetaTokenManager extends EventEmitter {
       }
 
       const data = await response.json()
-      
+
       const tokenInfo: TokenInfo = {
         token: data.accessToken,
         type: 'long',
-        expiresAt: data.expiresIn 
-          ? new Date(Date.now() + data.expiresIn * 1000)
-          : undefined,
+        expiresAt: data.expiresIn ? new Date(Date.now() + data.expiresIn * 1000) : undefined,
       }
 
       this.setToken(tokenInfo)
       this.emit('token:exchanged', tokenInfo)
-      
+
       return tokenInfo
     } catch (error) {
-      throw new Error(`Token exchange failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      throw new Error(
+        `Token exchange failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      )
     }
   }
 
@@ -175,14 +173,12 @@ export class MetaTokenManager extends EventEmitter {
     const tokenInfo: TokenInfo = {
       token: data.access_token,
       type: 'long',
-      expiresAt: data.expires_in 
-        ? new Date(Date.now() + data.expires_in * 1000)
-        : undefined,
+      expiresAt: data.expires_in ? new Date(Date.now() + data.expires_in * 1000) : undefined,
     }
 
     this.setToken(tokenInfo)
     this.emit('token:refreshed', tokenInfo)
-    
+
     return tokenInfo
   }
 
@@ -192,7 +188,7 @@ export class MetaTokenManager extends EventEmitter {
   setToken(tokenInfo: TokenInfo) {
     this.currentToken = tokenInfo
     this.tokenStorage.set(tokenInfo.type, tokenInfo)
-    
+
     // Save to secure storage (in production, use a secure key store)
     if (typeof window !== 'undefined' && window.localStorage) {
       const key = `meta_token_${tokenInfo.type}`
@@ -200,7 +196,7 @@ export class MetaTokenManager extends EventEmitter {
         ...tokenInfo,
         expiresAt: tokenInfo.expiresAt?.toISOString(),
       })
-      
+
       // In production, encrypt this value
       localStorage.setItem(key, value)
     }
@@ -225,14 +221,14 @@ export class MetaTokenManager extends EventEmitter {
     }
 
     const expiresAt = this.currentToken.expiresAt.getTime()
-    const refreshAt = expiresAt - (this.config.refreshThreshold! * 60 * 60 * 1000)
+    const refreshAt = expiresAt - this.config.refreshThreshold! * 60 * 60 * 1000
     const timeUntilRefresh = refreshAt - Date.now()
 
     if (timeUntilRefresh > 0) {
       // Prevent 32-bit overflow by capping at 24 days
       const maxTimeout = 24 * 24 * 60 * 60 * 1000 // 24 days in ms
       const actualTimeout = Math.min(timeUntilRefresh, maxTimeout)
-      
+
       this.refreshTimer = setTimeout(async () => {
         try {
           await this.refreshLongLivedToken()
@@ -249,7 +245,7 @@ export class MetaTokenManager extends EventEmitter {
    */
   async validateToken(token?: string): Promise<boolean> {
     const accessToken = token || (await this.getAccessToken())
-    
+
     const url = new URL('https://graph.facebook.com/v23.0/debug_token')
     url.searchParams.append('input_token', accessToken)
     url.searchParams.append('access_token', `${this.config.appId}|${this.config.appSecret}`)
@@ -257,11 +253,11 @@ export class MetaTokenManager extends EventEmitter {
     try {
       const response = await fetch(url.toString())
       const data = await response.json()
-      
+
       if (data.data) {
         return data.data.is_valid === true
       }
-      
+
       return false
     } catch {
       return false
@@ -290,19 +286,17 @@ export class MetaTokenManager extends EventEmitter {
     try {
       const response = await fetch(url.toString())
       const data = await response.json()
-      
+
       if (data.data) {
         return {
           isValid: data.data.is_valid === true,
           type: this.currentToken.type,
-          expiresAt: data.data.expires_at 
-            ? new Date(data.data.expires_at * 1000)
-            : undefined,
+          expiresAt: data.data.expires_at ? new Date(data.data.expires_at * 1000) : undefined,
           scopes: data.data.scopes,
           userId: data.data.user_id,
         }
       }
-      
+
       return { isValid: false }
     } catch {
       return { isValid: false }
@@ -315,14 +309,14 @@ export class MetaTokenManager extends EventEmitter {
   clearTokens() {
     this.currentToken = null
     this.tokenStorage.clear()
-    
+
     if (this.refreshTimer) {
       clearTimeout(this.refreshTimer)
     }
 
     // Clear from storage
     if (typeof window !== 'undefined' && window.localStorage) {
-      ['short', 'long', 'system'].forEach(type => {
+      ;['short', 'long', 'system'].forEach((type) => {
         localStorage.removeItem(`meta_token_${type}`)
       })
     }
@@ -358,7 +352,7 @@ export class MetaTokenManager extends EventEmitter {
           ...parsed,
           expiresAt: parsed.expiresAt ? new Date(parsed.expiresAt) : undefined,
         }
-        
+
         // Check if expired
         if (!tokenInfo.expiresAt || new Date() < tokenInfo.expiresAt) {
           this.setToken(tokenInfo)

@@ -6,12 +6,12 @@ interface SkeletonLoaderProps {
   className?: string
 }
 
-export const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({ 
-  type = 'text', 
+export const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
+  type = 'text',
   rows = 1,
-  className = ''
+  className = '',
 }) => {
-  const baseClass = "animate-pulse bg-gray-200 rounded"
+  const baseClass = 'animate-pulse bg-gray-200 rounded'
 
   if (type === 'text') {
     return (

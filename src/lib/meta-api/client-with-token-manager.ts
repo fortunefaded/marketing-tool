@@ -1,11 +1,11 @@
 import { MetaTokenManager } from './token-manager'
-import type { 
-  MetaApiConfig, 
-  MetaCampaign, 
-  MetaCreative, 
+import type {
+  MetaApiConfig,
+  MetaCampaign,
+  MetaCreative,
   MetaInsight,
   MetaAdSet,
-  MetaAd 
+  MetaAd,
 } from './types'
 
 export interface TokenManagedApiConfig extends Omit<MetaApiConfig, 'accessToken' | 'apiVersion'> {
@@ -26,7 +26,7 @@ export class MetaApiClientWithTokenManager {
 
   constructor(config: TokenManagedApiConfig) {
     this.config = config
-    
+
     // Initialize token manager
     this.tokenManager = new MetaTokenManager({
       appId: config.appId,
@@ -61,9 +61,7 @@ export class MetaApiClientWithTokenManager {
   async initialize(): Promise<void> {
     const loaded = await this.tokenManager.loadFromStorage()
     if (!loaded && !this.config.systemUserToken && !this.config.longLivedToken) {
-      throw new Error(
-        'No valid token found. Please provide a token in the configuration.'
-      )
+      throw new Error('No valid token found. Please provide a token in the configuration.')
     }
   }
 
@@ -92,12 +90,9 @@ export class MetaApiClientWithTokenManager {
   /**
    * Make an authenticated API request
    */
-  private async request<T>(
-    endpoint: string,
-    options?: RequestInit
-  ): Promise<T> {
+  private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
     const accessToken = await this.tokenManager.getAccessToken()
-    
+
     const url = new URL(endpoint, this.baseUrl)
     url.searchParams.append('access_token', accessToken)
 
@@ -147,7 +142,7 @@ export class MetaApiClientWithTokenManager {
     if (params?.datePreset) {
       queryParams.append('date_preset', params.datePreset)
     }
-    
+
     if (params?.timeRange) {
       queryParams.append('time_range', JSON.stringify(params.timeRange))
     }
@@ -210,20 +205,17 @@ export class MetaApiClientWithTokenManager {
    */
   async batch(requests: Array<{ method: string; relative_url: string }>): Promise<any[]> {
     const accessToken = await this.tokenManager.getAccessToken()
-    
-    const response = await fetch(
-      `${this.baseUrl}/${this.apiVersion}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          access_token: accessToken,
-          batch: JSON.stringify(requests),
-        }),
-      }
-    )
+
+    const response = await fetch(`${this.baseUrl}/${this.apiVersion}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        access_token: accessToken,
+        batch: JSON.stringify(requests),
+      }),
+    })
 
     if (!response.ok) {
       const error = await response.json()
@@ -233,9 +225,7 @@ export class MetaApiClientWithTokenManager {
     const results = await response.json()
     return results.map((result: any) => {
       if (result.code !== 200) {
-        throw new Error(
-          `Batch request failed: ${result.body}`
-        )
+        throw new Error(`Batch request failed: ${result.body}`)
       }
       return JSON.parse(result.body)
     })

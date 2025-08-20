@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react'
-import { 
+import {
   CogIcon,
   CalendarIcon,
   ChartBarIcon,
   ExclamationTriangleIcon,
   CheckIcon,
-  XMarkIcon
+  XMarkIcon,
 } from '@heroicons/react/24/outline'
 
 interface SyncSettingsProps {
@@ -23,7 +23,7 @@ const DEFAULT_SETTINGS: SyncSettingsData = {
   maxMonths: 37, // フル同期のデフォルト
   limitPerRequest: 500, // 1リクエストあたりの最大件数
   skipCreatives: false, // クリエイティブ取得をスキップ
-  debugMode: false // デバッグモード
+  debugMode: false, // デバッグモード
 }
 
 const PRESET_OPTIONS = [
@@ -58,7 +58,7 @@ export const SyncSettings: React.FC<SyncSettingsProps> = ({ onSettingsChange }) 
   }, [settings, onSettingsChange])
 
   const updateSetting = <K extends keyof SyncSettingsData>(key: K, value: SyncSettingsData[K]) => {
-    setSettings(prev => ({ ...prev, [key]: value }))
+    setSettings((prev) => ({ ...prev, [key]: value }))
   }
 
   return (
@@ -78,7 +78,7 @@ export const SyncSettings: React.FC<SyncSettingsProps> = ({ onSettingsChange }) 
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             {/* 背景オーバーレイ */}
-            <div 
+            <div
               className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
               onClick={() => setIsOpen(false)}
             />
@@ -87,9 +87,7 @@ export const SyncSettings: React.FC<SyncSettingsProps> = ({ onSettingsChange }) 
             <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
               <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg leading-6 font-medium text-gray-900">
-                    同期設定
-                  </h3>
+                  <h3 className="text-lg leading-6 font-medium text-gray-900">同期設定</h3>
                   <button
                     onClick={() => setIsOpen(false)}
                     className="text-gray-400 hover:text-gray-500"
@@ -106,7 +104,7 @@ export const SyncSettings: React.FC<SyncSettingsProps> = ({ onSettingsChange }) 
                       同期期間
                     </label>
                     <div className="grid grid-cols-2 gap-2">
-                      {PRESET_OPTIONS.map(option => (
+                      {PRESET_OPTIONS.map((option) => (
                         <button
                           key={option.months}
                           onClick={() => updateSetting('maxMonths', option.months)}
@@ -122,16 +120,16 @@ export const SyncSettings: React.FC<SyncSettingsProps> = ({ onSettingsChange }) 
                       ))}
                     </div>
                     <div className="mt-2">
-                      <label className="text-xs text-gray-600">
-                        カスタム期間（月数）:
-                      </label>
+                      <label className="text-xs text-gray-600">カスタム期間（月数）:</label>
                       <input
                         type="number"
                         min="0.1"
                         max="60"
                         step="0.1"
                         value={settings.maxMonths}
-                        onChange={(e) => updateSetting('maxMonths', parseFloat(e.target.value) || 1)}
+                        onChange={(e) =>
+                          updateSetting('maxMonths', parseFloat(e.target.value) || 1)
+                        }
                         className="ml-2 w-20 px-2 py-1 text-sm border border-gray-300 rounded-md"
                       />
                     </div>
@@ -169,7 +167,7 @@ export const SyncSettings: React.FC<SyncSettingsProps> = ({ onSettingsChange }) 
                         クリエイティブ取得をスキップ（高速化）
                       </span>
                     </label>
-                    
+
                     <label className="flex items-center">
                       <input
                         type="checkbox"

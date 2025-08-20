@@ -27,12 +27,13 @@ describe('ECForceCSVParserV2', () => {
         広告主名: 'ナハト',
         顧客購入回数: 0,
         定期ステータス: '有効',
-        定期回数: 1
+        定期回数: 1,
       })
     })
 
     it('BOM付きのCSVデータをパースできること', () => {
-      const csvData = '\uFEFF受注ID,受注番号,顧客番号,購入URL,購入オファー,定期受注番号,メールアドレス,小計,支払い合計,受注日,購入商品（商品コード）,広告URLグループ名,広告主名,顧客購入回数,定期ステータス,定期回数\n' +
+      const csvData =
+        '\uFEFF受注ID,受注番号,顧客番号,購入URL,購入オファー,定期受注番号,メールアドレス,小計,支払い合計,受注日,購入商品（商品コード）,広告URLグループ名,広告主名,顧客購入回数,定期ステータス,定期回数\n' +
         '401966,bdbfaf4469,5f20015e35,IF_7860_nht,サンクスアップセル,1f7666bf4a,test@example.com,4296,0,2025/08/09 23:15,"upsell18_set_if8",ナハト,ナハト,0,有効,1'
 
       const result = ECForceCSVParserV2.parse(csvData)
@@ -41,7 +42,8 @@ describe('ECForceCSVParserV2', () => {
     })
 
     it('UTF-8 BOMを除去できること', () => {
-      const csvData = '\xEF\xBB\xBF受注ID,受注番号,顧客番号,購入URL,購入オファー,定期受注番号,メールアドレス,小計,支払い合計,受注日,購入商品（商品コード）,広告URLグループ名,広告主名,顧客購入回数,定期ステータス,定期回数\n' +
+      const csvData =
+        '\xEF\xBB\xBF受注ID,受注番号,顧客番号,購入URL,購入オファー,定期受注番号,メールアドレス,小計,支払い合計,受注日,購入商品（商品コード）,広告URLグループ名,広告主名,顧客購入回数,定期ステータス,定期回数\n' +
         '401966,bdbfaf4469,5f20015e35,IF_7860_nht,サンクスアップセル,1f7666bf4a,test@example.com,4296,0,2025/08/09 23:15,"upsell18_set_if8",ナハト,ナハト,0,有効,1'
 
       const result = ECForceCSVParserV2.parse(csvData)
@@ -103,7 +105,9 @@ describe('ECForceCSVParserV2', () => {
     it('データが含まれていない場合エラーをスローすること', () => {
       const csvData = `受注ID,受注番号,顧客番号,購入URL,購入オファー,定期受注番号,メールアドレス,小計,支払い合計,受注日,購入商品（商品コード）,広告URLグループ名,広告主名,顧客購入回数,定期ステータス,定期回数`
 
-      expect(() => ECForceCSVParserV2.parse(csvData)).toThrow('CSVファイルにデータが含まれていません')
+      expect(() => ECForceCSVParserV2.parse(csvData)).toThrow(
+        'CSVファイルにデータが含まれていません'
+      )
     })
 
     it('空のCSVの場合エラーをスローすること', () => {
@@ -112,7 +116,7 @@ describe('ECForceCSVParserV2', () => {
 
     it('カラム数が一致しない行を警告付きでスキップすること', () => {
       const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
-      
+
       const csvData = `受注ID,受注番号,顧客番号,購入URL,購入オファー,定期受注番号,メールアドレス,小計,支払い合計,受注日,購入商品（商品コード）,広告URLグループ名,広告主名,顧客購入回数,定期ステータス,定期回数
 401966,bdbfaf4469,5f20015e35,IF_7860_nht,サンクスアップセル,1f7666bf4a,test@example.com,4296,0,2025/08/09 23:15,"upsell18_set_if8",ナハト,ナハト,0,有効,1
 401967,短い行
@@ -126,7 +130,7 @@ describe('ECForceCSVParserV2', () => {
         'CSVパース中の警告:',
         expect.arrayContaining([expect.stringContaining('行 3: カラム数が一致しません')])
       )
-      
+
       consoleSpy.mockRestore()
     })
   })
@@ -169,7 +173,7 @@ describe('ECForceCSVParserV2', () => {
         readAsText: vi.fn(),
         onload: null as any,
         onerror: null as any,
-        result: null as string | null
+        result: null as string | null,
       }
 
       vi.spyOn(window, 'FileReader').mockImplementation(() => mockFileReader as any)
@@ -178,7 +182,7 @@ describe('ECForceCSVParserV2', () => {
 401966,bdbfaf4469,5f20015e35,IF_7860_nht,サンクスアップセル,1f7666bf4a,test@example.com,4296,0,2025/08/09 23:15,"upsell18_set_if8",ナハト,ナハト,0,有効,1`
 
       const file = new File(['dummy'], 'test.csv', { type: 'text/csv' })
-      
+
       const parsePromise = ECForceCSVParserV2.parseFile(file)
 
       // 最初のreadAsTextが呼ばれることを確認
@@ -196,22 +200,20 @@ describe('ECForceCSVParserV2', () => {
     })
 
     it('Shift-JISが失敗した場合はUTF-8にフォールバックすること', async () => {
-      let readCount = 0
       const mockFileReader = {
         readAsText: vi.fn(),
         onload: null as any,
         onerror: null as any,
-        result: null as string | null
+        result: null as string | null,
       }
 
       vi.spyOn(window, 'FileReader').mockImplementation(() => {
-        readCount++
         return {
           ...mockFileReader,
           readAsText: mockFileReader.readAsText,
           onload: null,
           onerror: null,
-          result: null
+          result: null,
         } as any
       })
 
@@ -219,7 +221,7 @@ describe('ECForceCSVParserV2', () => {
 401966,bdbfaf4469,5f20015e35,IF_7860_nht,サンクスアップセル,1f7666bf4a,test@example.com,4296,0,2025/08/09 23:15,"upsell18_set_if8",ナハト,ナハト,0,有効,1`
 
       const file = new File(['dummy'], 'test.csv', { type: 'text/csv' })
-      
+
       // 複数のFileReaderインスタンスを保持
       const readers: any[] = []
       vi.spyOn(window, 'FileReader').mockImplementation(() => {
@@ -227,7 +229,7 @@ describe('ECForceCSVParserV2', () => {
           readAsText: vi.fn(),
           onload: null as any,
           onerror: null as any,
-          result: null as string | null
+          result: null as string | null,
         }
         readers.push(reader)
         return reader as any
@@ -242,8 +244,8 @@ describe('ECForceCSVParserV2', () => {
       readers[0].onload({ target: { result: '文字化け�データ' } })
 
       // 少し待ってから、UTF-8のFileReaderが作成されることを確認
-      await new Promise(resolve => setTimeout(resolve, 10))
-      
+      await new Promise((resolve) => setTimeout(resolve, 10))
+
       expect(readers[1].readAsText).toHaveBeenCalledWith(file, 'UTF-8')
 
       // UTF-8での読み込みが成功
@@ -263,21 +265,21 @@ describe('ECForceCSVParserV2', () => {
           readAsText: vi.fn(),
           onload: null as any,
           onerror: null as any,
-          result: null as string | null
+          result: null as string | null,
         }
         readers.push(reader)
         return reader as any
       })
 
       const file = new File(['dummy'], 'test.csv', { type: 'text/csv' })
-      
+
       const parsePromise = ECForceCSVParserV2.parseFile(file)
 
       // Shift-JISで文字化け
       readers[0].onload({ target: { result: '文字化け�データ' } })
 
       // UTF-8でも文字化け
-      await new Promise(resolve => setTimeout(resolve, 10))
+      await new Promise((resolve) => setTimeout(resolve, 10))
       readers[1].onload({ target: { result: '文字化け�データ' } })
 
       await expect(parsePromise).rejects.toThrow('CSVファイルの読み込みに失敗しました')

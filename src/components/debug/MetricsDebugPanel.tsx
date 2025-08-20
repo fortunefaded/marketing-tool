@@ -3,7 +3,7 @@ interface MetricsDebugPanelProps {
   title?: string
 }
 
-export function MetricsDebugPanel({ data, title = "API生データ" }: MetricsDebugPanelProps) {
+export function MetricsDebugPanel({ data, title = 'API生データ' }: MetricsDebugPanelProps) {
   const debugData = {
     // 基本メトリクス
     basic_metrics: {
@@ -12,9 +12,9 @@ export function MetricsDebugPanel({ data, title = "API生データ" }: MetricsDe
       clicks: data.clicks,
       date_start: data.date_start,
       ad_id: data.ad_id,
-      campaign_name: data.campaign_name
+      campaign_name: data.campaign_name,
     },
-    
+
     // コンバージョン関連の生データ
     conversion_raw_data: {
       actions: data.actions,
@@ -22,19 +22,19 @@ export function MetricsDebugPanel({ data, title = "API生データ" }: MetricsDe
       cost_per_action_type: data.cost_per_action_type,
       purchase_roas: data.purchase_roas,
       website_purchase_roas: data.website_purchase_roas,
-      conversions: data.conversions
+      conversions: data.conversions,
     },
-    
+
     // パーサー解析結果
     parser_results: data.parser_analysis || data.parser_debug,
-    
+
     // 計算されたメトリクス
     calculated_metrics: {
       conversions: data.conversions,
       conversion_value: data.conversion_value,
       roas: data.roas,
-      cpa: data.cost_per_conversion
-    }
+      cpa: data.cost_per_conversion,
+    },
   }
 
   return (
@@ -42,7 +42,7 @@ export function MetricsDebugPanel({ data, title = "API生データ" }: MetricsDe
       <summary className="cursor-pointer font-medium text-gray-700 hover:text-gray-900">
         🔍 デバッグ: {title}
       </summary>
-      
+
       <div className="mt-4 space-y-4">
         {/* 基本メトリクス */}
         <div>
@@ -66,7 +66,8 @@ export function MetricsDebugPanel({ data, title = "API生データ" }: MetricsDe
               action_values: {data.action_values ? `${data.action_values.length}件` : '❌ なし'}
             </div>
             <div className={data.cost_per_action_type ? 'text-green-600' : 'text-red-600'}>
-              cost_per_action_type: {data.cost_per_action_type ? `${data.cost_per_action_type.length}件` : '❌ なし'}
+              cost_per_action_type:{' '}
+              {data.cost_per_action_type ? `${data.cost_per_action_type.length}件` : '❌ なし'}
             </div>
             <div className={data.purchase_roas ? 'text-green-600' : 'text-red-600'}>
               purchase_roas: {data.purchase_roas ? '✅ あり' : '❌ なし'}
@@ -93,9 +94,19 @@ export function MetricsDebugPanel({ data, title = "API生データ" }: MetricsDe
           <h4 className="font-semibold text-sm text-gray-800 mb-2">計算結果</h4>
           <div className="bg-white p-3 rounded border text-xs space-y-1">
             <div>CV: {data.conversions || data.parser_analysis?.conversions || '0'}</div>
-            <div>CV値: ¥{parseFloat(data.conversion_value || data.parser_analysis?.conversionValue || '0').toLocaleString()}</div>
+            <div>
+              CV値: ¥
+              {parseFloat(
+                data.conversion_value || data.parser_analysis?.conversionValue || '0'
+              ).toLocaleString()}
+            </div>
             <div>ROAS: {parseFloat(data.roas || data.parser_analysis?.roas || '0').toFixed(2)}</div>
-            <div>CPA: ¥{parseFloat(data.cost_per_conversion || data.parser_analysis?.cpa || '0').toLocaleString()}</div>
+            <div>
+              CPA: ¥
+              {parseFloat(
+                data.cost_per_conversion || data.parser_analysis?.cpa || '0'
+              ).toLocaleString()}
+            </div>
           </div>
         </div>
 

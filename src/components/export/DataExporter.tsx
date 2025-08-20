@@ -14,7 +14,7 @@ interface DataExporterProps {
 export const DataExporter: React.FC<DataExporterProps> = ({
   orders,
   filteredOrders,
-  reportType = 'full'
+  reportType = 'full',
 }) => {
   const [isExporting, setIsExporting] = useState(false)
   const [exportFormat, setExportFormat] = useState<'csv' | 'excel' | 'pdf'>('csv')
@@ -49,34 +49,30 @@ export const DataExporter: React.FC<DataExporterProps> = ({
       value: 'csv',
       label: 'CSV',
       icon: FileText,
-      description: 'データをCSV形式でエクスポート'
+      description: 'データをCSV形式でエクスポート',
     },
     {
       value: 'excel',
       label: 'Excel',
       icon: FileSpreadsheet,
-      description: 'データをExcel形式でエクスポート'
+      description: 'データをExcel形式でエクスポート',
     },
     {
       value: 'pdf',
       label: 'PDFレポート',
       icon: FilePlus2,
-      description: '分析レポートをPDFで生成'
-    }
+      description: '分析レポートをPDFで生成',
+    },
   ]
 
   return (
     <div className="bg-white rounded-lg shadow p-6">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">
-        データエクスポート
-      </h3>
+      <h3 className="text-lg font-semibold text-gray-900 mb-4">データエクスポート</h3>
 
       <div className="space-y-4">
         {/* フォーマット選択 */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            エクスポート形式
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">エクスポート形式</label>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {exportOptions.map((option) => {
               const Icon = option.icon
@@ -87,23 +83,26 @@ export const DataExporter: React.FC<DataExporterProps> = ({
                   className={`
                     relative rounded-lg border p-4 flex flex-col items-center text-center
                     transition-all cursor-pointer
-                    ${exportFormat === option.value
-                      ? 'border-indigo-500 bg-indigo-50'
-                      : 'border-gray-200 hover:border-gray-300'
+                    ${
+                      exportFormat === option.value
+                        ? 'border-indigo-500 bg-indigo-50'
+                        : 'border-gray-200 hover:border-gray-300'
                     }
                   `}
                 >
-                  <Icon className={`h-8 w-8 mb-2 ${
-                    exportFormat === option.value ? 'text-indigo-600' : 'text-gray-400'
-                  }`} />
-                  <span className={`text-sm font-medium ${
-                    exportFormat === option.value ? 'text-indigo-900' : 'text-gray-900'
-                  }`}>
+                  <Icon
+                    className={`h-8 w-8 mb-2 ${
+                      exportFormat === option.value ? 'text-indigo-600' : 'text-gray-400'
+                    }`}
+                  />
+                  <span
+                    className={`text-sm font-medium ${
+                      exportFormat === option.value ? 'text-indigo-900' : 'text-gray-900'
+                    }`}
+                  >
                     {option.label}
                   </span>
-                  <span className="text-xs text-gray-500 mt-1">
-                    {option.description}
-                  </span>
+                  <span className="text-xs text-gray-500 mt-1">{option.description}</span>
                 </button>
               )
             })}
@@ -133,9 +132,10 @@ export const DataExporter: React.FC<DataExporterProps> = ({
           className={`
             w-full px-4 py-2 text-sm font-medium rounded-md
             flex items-center justify-center
-            ${isExporting || dataToExport.length === 0
-              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-              : 'bg-indigo-600 text-white hover:bg-indigo-700'
+            ${
+              isExporting || dataToExport.length === 0
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-indigo-600 text-white hover:bg-indigo-700'
             }
           `}
         >

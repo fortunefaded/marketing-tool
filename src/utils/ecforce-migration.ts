@@ -25,7 +25,7 @@ export class ECForceMigration {
     try {
       // ローカルストレージからデータを読み込み
       const localOrders = ECForceStorage.load()
-      
+
       if (localOrders.length === 0) {
         return {
           success: true,
@@ -45,9 +45,9 @@ export class ECForceMigration {
 
       for (let i = 0; i < localOrders.length; i += batchSize) {
         const batch = localOrders.slice(i, i + batchSize)
-        
+
         // Convexに送信するためのデータを準備
-        const ordersForConvex = batch.map(order => ({
+        const ordersForConvex = batch.map((order) => ({
           orderId: order.受注ID || '',
           orderDate: order.受注日 || '',
           purchaseDate: order.受注日 || '',
@@ -84,10 +84,14 @@ export class ECForceMigration {
         totalSkipped += result.skipped
         totalReplaced += result.replaced
 
-        console.log(`[ECForceMigration] バッチ ${Math.floor(i / batchSize) + 1}: ${result.total}件処理完了`)
+        console.log(
+          `[ECForceMigration] バッチ ${Math.floor(i / batchSize) + 1}: ${result.total}件処理完了`
+        )
       }
 
-      console.log(`[ECForceMigration] 移行完了: インポート${totalImported}件, スキップ${totalSkipped}件, 置換${totalReplaced}件`)
+      console.log(
+        `[ECForceMigration] 移行完了: インポート${totalImported}件, スキップ${totalSkipped}件, 置換${totalReplaced}件`
+      )
 
       return {
         success: true,

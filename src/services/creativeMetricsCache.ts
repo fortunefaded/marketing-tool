@@ -22,7 +22,7 @@ export class CreativeMetricsCache {
   private static CACHE_KEY_PREFIX = 'creative_metrics_cache_'
   private static CACHE_DURATION = 5 * 60 * 1000 // 5分
   private static MAX_CACHE_SIZE = 50 // 最大50エントリ
-  
+
   // キャッシュキーを生成
   private static generateCacheKey(
     accountId: string,
@@ -34,38 +34,35 @@ export class CreativeMetricsCache {
       endDate: params.endDate,
       period: params.period,
       creativeTypes: params.creativeTypes?.sort().join(',') || '',
-      campaignIds: params.campaignIds?.sort().join(',') || ''
+      campaignIds: params.campaignIds?.sort().join(',') || '',
     }
-    
+
     return `${this.CACHE_KEY_PREFIX}${btoa(JSON.stringify(sortedParams))}`
   }
-  
+
   // キャッシュから取得
-  static get(
-    accountId: string,
-    params: CachedCreativeMetrics['params']
-  ): CreativeMetrics[] | null {
+  static get(accountId: string, params: CachedCreativeMetrics['params']): CreativeMetrics[] | null {
     try {
       const cacheKey = this.generateCacheKey(accountId, params)
       const cached = localStorage.getItem(cacheKey)
-      
+
       if (!cached) return null
-      
+
       // 圧縮データを解凍
       const decompressed = LZString.decompressFromUTF16(cached)
       if (!decompressed) return null
-      
+
       const data: CachedCreativeMetrics = JSON.parse(decompressed)
-      
+
       // キャッシュの有効期限をチェック
       const cachedTime = new Date(data.cachedAt).getTime()
       const now = new Date().getTime()
-      
+
       if (now - cachedTime > this.CACHE_DURATION) {
         localStorage.removeItem(cacheKey)
         return null
       }
-      
+
       console.log(`キャッシュヒット: ${data.data.length}件のクリエイティブメトリクス`)
       return data.data
     } catch (error) {
@@ -73,7 +70,7 @@ export class CreativeMetricsCache {
       return null
     }
   }
-  
+
   // キャッシュに保存
   static set(
     accountId: string,
@@ -82,20 +79,20 @@ export class CreativeMetricsCache {
   ): void {
     try {
       const cacheKey = this.generateCacheKey(accountId, params)
-      
+
       const cacheData: CachedCreativeMetrics = {
         data,
         cachedAt: new Date().toISOString(),
         accountId,
-        params
+        params,
       }
-      
+
       // データを圧縮
       const compressed = LZString.compressToUTF16(JSON.stringify(cacheData))
-      
+
       // キャッシュサイズを管理
       this.manageCacheSize()
-      
+
       localStorage.setItem(cacheKey, compressed)
       console.log(`キャッシュに保存: ${data.length}件のクリエイティブメトリクス`)
     } catch (error) {
@@ -103,12 +100,12 @@ export class CreativeMetricsCache {
       // キャッシュの保存に失敗してもアプリケーションは続行
     }
   }
-  
+
   // キャッシュを無効化
   static invalidate(accountId: string): void {
     try {
       const keys: string[] = []
-      
+
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i)
         if (key && key.startsWith(this.CACHE_KEY_PREFIX)) {
@@ -128,14 +125,14 @@ export class CreativeMetricsCache {
           }
         }
       }
-      
-      keys.forEach(key => localStorage.removeItem(key))
+
+      keys.forEach((key) => localStorage.removeItem(key))
       console.log(`${keys.length}件のキャッシュエントリを削除`)
     } catch (error) {
       console.error('キャッシュ無効化エラー:', error)
     }
   }
-  
+
   // キャッシュサイズを管理（古いエントリを削除）
   private static manageCacheSize(): void {
     try {
@@ -143,7 +140,7 @@ export class CreativeMetricsCache {
         key: string
         cachedAt: string
       }> = []
-      
+
       // すべてのキャッシュエントリを取得
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i)
@@ -156,7 +153,7 @@ export class CreativeMetricsCache {
                 const data: CachedCreativeMetrics = JSON.parse(decompressed)
                 cacheEntries.push({
                   key,
-                  cachedAt: data.cachedAt
+                  cachedAt: data.cachedAt,
                 })
               }
             }
@@ -165,23 +162,21 @@ export class CreativeMetricsCache {
           }
         }
       }
-      
+
       // キャッシュサイズが上限を超えている場合、古いものから削除
       if (cacheEntries.length > this.MAX_CACHE_SIZE) {
-        cacheEntries.sort((a, b) => 
-          new Date(a.cachedAt).getTime() - new Date(b.cachedAt).getTime()
-        )
-        
+        cacheEntries.sort((a, b) => new Date(a.cachedAt).getTime() - new Date(b.cachedAt).getTime())
+
         const toRemove = cacheEntries.slice(0, cacheEntries.length - this.MAX_CACHE_SIZE)
-        toRemove.forEach(entry => localStorage.removeItem(entry.key))
-        
+        toRemove.forEach((entry) => localStorage.removeItem(entry.key))
+
         console.log(`キャッシュサイズ管理: ${toRemove.length}件の古いエントリを削除`)
       }
     } catch (error) {
       console.error('キャッシュサイズ管理エラー:', error)
     }
   }
-  
+
   // デバッグ情報を取得
   static getDebugInfo(): {
     totalEntries: number
@@ -193,7 +188,7 @@ export class CreativeMetricsCache {
     let totalSize = 0
     let oldestEntry: string | null = null
     let newestEntry: string | null = null
-    
+
     try {
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i)
@@ -202,7 +197,7 @@ export class CreativeMetricsCache {
           const value = localStorage.getItem(key)
           if (value) {
             totalSize += value.length * 2 // UTF-16なので2バイト/文字
-            
+
             try {
               const decompressed = LZString.decompressFromUTF16(value)
               if (decompressed) {
@@ -223,12 +218,12 @@ export class CreativeMetricsCache {
     } catch (error) {
       console.error('デバッグ情報取得エラー:', error)
     }
-    
+
     return {
       totalEntries,
       totalSizeKB: Math.round(totalSize / 1024),
       oldestEntry,
-      newestEntry
+      newestEntry,
     }
   }
 }

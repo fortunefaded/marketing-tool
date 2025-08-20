@@ -9,12 +9,12 @@ export class ECForceCSVParser {
    */
   static parse(csvText: string): ECForceOrder[] {
     // BOMを除去
-    if (csvText.charCodeAt(0) === 0xFEFF) {
+    if (csvText.charCodeAt(0) === 0xfeff) {
       csvText = csvText.substring(1)
     }
-    
-    const lines = csvText.split('\n').filter(line => line.trim())
-    
+
+    const lines = csvText.split('\n').filter((line) => line.trim())
+
     if (lines.length < 2) {
       throw new Error('CSVファイルにデータが含まれていません')
     }
@@ -22,17 +22,27 @@ export class ECForceCSVParser {
     // ヘッダー行を取得
     const headers = this.parseCSVLine(lines[0])
     const expectedHeaders = [
-      '受注ID', '受注番号', '顧客番号', '購入URL', '購入オファー',
-      '定期受注番号', 'メールアドレス', '小計', '支払い合計', '受注日',
-      '購入商品（商品コード）', '広告URLグループ名', '広告主名',
-      '顧客購入回数', '定期ステータス', '定期回数'
+      '受注ID',
+      '受注番号',
+      '顧客番号',
+      '購入URL',
+      '購入オファー',
+      '定期受注番号',
+      'メールアドレス',
+      '小計',
+      '支払い合計',
+      '受注日',
+      '購入商品（商品コード）',
+      '広告URLグループ名',
+      '広告主名',
+      '顧客購入回数',
+      '定期ステータス',
+      '定期回数',
     ]
 
     // ヘッダーの検証
-    const missingHeaders = expectedHeaders.filter(
-      header => !headers.includes(header)
-    )
-    
+    const missingHeaders = expectedHeaders.filter((header) => !headers.includes(header))
+
     if (missingHeaders.length > 0) {
       throw new Error(`必要なヘッダーが不足しています: ${missingHeaders.join(', ')}`)
     }
@@ -44,7 +54,7 @@ export class ECForceCSVParser {
     for (let i = 1; i < lines.length; i++) {
       try {
         const values = this.parseCSVLine(lines[i])
-        
+
         if (values.length !== headers.length) {
           errors.push(`行 ${i + 1}: カラム数が一致しません`)
           continue
@@ -113,8 +123,8 @@ export class ECForceCSVParser {
     const productsString = getValue('購入商品（商品コード）')
     const products = productsString
       .split(',')
-      .map(p => p.trim())
-      .filter(p => p)
+      .map((p) => p.trim())
+      .filter((p) => p)
 
     return {
       受注ID: getValue('受注ID'),
@@ -132,7 +142,7 @@ export class ECForceCSVParser {
       広告主名: getValue('広告主名'),
       顧客購入回数: this.parseNumber(getValue('顧客購入回数')),
       定期ステータス: getValue('定期ステータス'),
-      定期回数: this.parseNumber(getValue('定期回数'))
+      定期回数: this.parseNumber(getValue('定期回数')),
     }
   }
 
@@ -154,7 +164,7 @@ export class ECForceCSVParser {
       reader.onload = async (event) => {
         try {
           let text = event.target?.result as string
-          
+
           // 文字化けチェック - もし文字化けしていたら別のエンコーディングを試す
           if (text.includes('�') || !text.includes('受注ID')) {
             // UTF-8で再読み込み
@@ -177,7 +187,7 @@ export class ECForceCSVParser {
             reader2.readAsText(file, 'UTF-8')
             return
           }
-          
+
           const orders = this.parse(text)
           resolve(orders)
         } catch (error) {

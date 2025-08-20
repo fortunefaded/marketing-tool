@@ -1,9 +1,5 @@
 import React, { useState, useMemo } from 'react'
-import {
-  FunnelIcon,
-  ChevronDownIcon,
-  ChevronUpIcon,
-} from '@heroicons/react/24/outline'
+import { FunnelIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline'
 import { Transition } from '@headlessui/react'
 
 export interface FilterState {
@@ -71,7 +67,9 @@ const PRESET_FILTERS = [
     name: '今月',
     filters: {
       dateRange: {
-        start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+        start: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+          .toISOString()
+          .split('T')[0],
         end: new Date().toISOString().split('T')[0],
       },
     },
@@ -80,8 +78,12 @@ const PRESET_FILTERS = [
     name: '先月',
     filters: {
       dateRange: {
-        start: new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toISOString().split('T')[0],
-        end: new Date(new Date().getFullYear(), new Date().getMonth(), 0).toISOString().split('T')[0],
+        start: new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1)
+          .toISOString()
+          .split('T')[0],
+        end: new Date(new Date().getFullYear(), new Date().getMonth(), 0)
+          .toISOString()
+          .split('T')[0],
       },
     },
   },
@@ -159,10 +161,7 @@ export const CustomFilterPanel: React.FC<CustomFilterPanelProps> = ({
             )}
           </div>
           {activeFilterCount > 0 && (
-            <button
-              onClick={clearFilters}
-              className="text-sm text-gray-500 hover:text-gray-700"
-            >
+            <button onClick={clearFilters} className="text-sm text-gray-500 hover:text-gray-700">
               フィルターをクリア
             </button>
           )}
@@ -265,7 +264,9 @@ export const CustomFilterPanel: React.FC<CustomFilterPanelProps> = ({
               <h4 className="text-sm font-medium text-gray-900">
                 キャンペーン
                 {selectedCampaignCount > 0 && (
-                  <span className="ml-2 text-xs text-gray-500">{selectedCampaignCount}件選択中</span>
+                  <span className="ml-2 text-xs text-gray-500">
+                    {selectedCampaignCount}件選択中
+                  </span>
                 )}
               </h4>
               {sections.find((s) => s.key === 'campaigns')?.isExpanded ? (

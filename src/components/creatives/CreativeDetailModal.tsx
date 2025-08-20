@@ -137,10 +137,15 @@ export const CreativeDetailModal: React.FC<CreativeDetailModalProps> = ({
                             controls
                             className="w-full h-full object-contain"
                           />
-                        ) : creative.type === 'CAROUSEL' && creative.carouselCards && creative.carouselCards.length > 0 ? (
+                        ) : creative.type === 'CAROUSEL' &&
+                          creative.carouselCards &&
+                          creative.carouselCards.length > 0 ? (
                           <div className="flex overflow-x-auto gap-2 p-4 h-full">
                             {creative.carouselCards.map((card, index) => (
-                              <div key={index} className="flex-shrink-0 w-48 bg-white rounded-lg shadow-sm">
+                              <div
+                                key={index}
+                                className="flex-shrink-0 w-48 bg-white rounded-lg shadow-sm"
+                              >
                                 {card.image_url && (
                                   <img
                                     src={card.image_url}
@@ -149,8 +154,12 @@ export const CreativeDetailModal: React.FC<CreativeDetailModalProps> = ({
                                   />
                                 )}
                                 <div className="p-2">
-                                  <h5 className="text-xs font-medium text-gray-900 truncate">{card.name}</h5>
-                                  <p className="text-xs text-gray-500 mt-1 line-clamp-2">{card.description}</p>
+                                  <h5 className="text-xs font-medium text-gray-900 truncate">
+                                    {card.name}
+                                  </h5>
+                                  <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                                    {card.description}
+                                  </p>
                                 </div>
                               </div>
                             ))}
@@ -167,22 +176,28 @@ export const CreativeDetailModal: React.FC<CreativeDetailModalProps> = ({
                           </div>
                         )}
                       </div>
-                      
+
                       <div className="mt-4">
                         <h4 className="text-lg font-medium text-gray-900">{creative.name}</h4>
                         <p className="text-sm text-gray-500 mt-1">
                           キャンペーン: {creative.campaignName}
                         </p>
                         <div className="flex items-center space-x-2 mt-2">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            creative.status === 'ACTIVE' 
-                              ? 'bg-green-100 text-green-800' 
-                              : 'bg-yellow-100 text-yellow-800'
-                          }`}>
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              creative.status === 'ACTIVE'
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-yellow-100 text-yellow-800'
+                            }`}
+                          >
                             {creative.status === 'ACTIVE' ? 'アクティブ' : '一時停止'}
                           </span>
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                            {creative.type === 'IMAGE' ? '画像' : creative.type === 'VIDEO' ? '動画' : 'カルーセル'}
+                            {creative.type === 'IMAGE'
+                              ? '画像'
+                              : creative.type === 'VIDEO'
+                                ? '動画'
+                                : 'カルーセル'}
                           </span>
                         </div>
                       </div>
@@ -219,18 +234,26 @@ export const CreativeDetailModal: React.FC<CreativeDetailModalProps> = ({
 
                   {/* Performance Summary */}
                   <div className="mt-6 bg-indigo-50 rounded-lg p-4">
-                    <h4 className="text-sm font-medium text-indigo-900 mb-2">パフォーマンスサマリー</h4>
+                    <h4 className="text-sm font-medium text-indigo-900 mb-2">
+                      パフォーマンスサマリー
+                    </h4>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                       <div>
                         <span className="text-indigo-600">エンゲージメント率:</span>
                         <span className="ml-2 font-medium text-indigo-900">
-                          {((creative.metrics.clicks / creative.metrics.impressions) * 100).toFixed(2)}%
+                          {((creative.metrics.clicks / creative.metrics.impressions) * 100).toFixed(
+                            2
+                          )}
+                          %
                         </span>
                       </div>
                       <div>
                         <span className="text-indigo-600">コンバージョン率:</span>
                         <span className="ml-2 font-medium text-indigo-900">
-                          {((creative.metrics.conversions / creative.metrics.clicks) * 100).toFixed(2)}%
+                          {((creative.metrics.conversions / creative.metrics.clicks) * 100).toFixed(
+                            2
+                          )}
+                          %
                         </span>
                       </div>
                       <div>
@@ -242,7 +265,12 @@ export const CreativeDetailModal: React.FC<CreativeDetailModalProps> = ({
                       <div>
                         <span className="text-indigo-600">利益率:</span>
                         <span className="ml-2 font-medium text-indigo-900">
-                          {(((creative.metrics.revenue - creative.metrics.spend) / creative.metrics.revenue) * 100).toFixed(1)}%
+                          {(
+                            ((creative.metrics.revenue - creative.metrics.spend) /
+                              creative.metrics.revenue) *
+                            100
+                          ).toFixed(1)}
+                          %
                         </span>
                       </div>
                     </div>

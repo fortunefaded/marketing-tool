@@ -32,14 +32,14 @@ const createMockOrder = (overrides: Partial<ECForceOrder>): ECForceOrder => ({
   配送先市区町村: '千代田区',
   配送先住所: '千代田1-1',
   配送先氏名: '山田太郎',
-  ...overrides
+  ...overrides,
 })
 
 // LocalStorageのモック
 const localStorageMock = {
   getItem: vi.fn(),
   setItem: vi.fn(),
-  clear: vi.fn()
+  clear: vi.fn(),
 }
 Object.defineProperty(window, 'localStorage', { value: localStorageMock })
 
@@ -55,14 +55,20 @@ describe('AdvancedFilter', () => {
   it('検索クエリでのフィルタリングが正しく動作する', async () => {
     const orders: ECForceOrder[] = [
       createMockOrder({ 受注番号: 'ORDER-001', 顧客番号: 'CUST-001' }),
-      createMockOrder({ 受注番号: 'ORDER-002', 顧客番号: 'CUST-002', メールアドレス: 'test2@example.com' }),
-      createMockOrder({ 受注番号: 'ORDER-003', 顧客番号: 'CUST-003', 購入商品: ['商品B'] })
+      createMockOrder({
+        受注番号: 'ORDER-002',
+        顧客番号: 'CUST-002',
+        メールアドレス: 'test2@example.com',
+      }),
+      createMockOrder({ 受注番号: 'ORDER-003', 顧客番号: 'CUST-003', 購入商品: ['商品B'] }),
     ]
 
     render(<AdvancedFilter orders={orders} onFilterChange={mockOnFilterChange} />)
 
-    const searchInput = screen.getByPlaceholderText('受注番号、顧客番号、メールアドレス、商品名で検索')
-    
+    const searchInput = screen.getByPlaceholderText(
+      '受注番号、顧客番号、メールアドレス、商品名で検索'
+    )
+
     // 受注番号で検索
     fireEvent.change(searchInput, { target: { value: 'ORDER-002' } })
     await waitFor(() => {
@@ -92,12 +98,14 @@ describe('AdvancedFilter', () => {
     const orders: ECForceOrder[] = [
       createMockOrder({ 受注ID: '1', 受注日: '2024-01-01 10:00:00' }),
       createMockOrder({ 受注ID: '2', 受注日: '2024-01-15 10:00:00' }),
-      createMockOrder({ 受注ID: '3', 受注日: '2024-01-31 10:00:00' })
+      createMockOrder({ 受注ID: '3', 受注日: '2024-01-31 10:00:00' }),
     ]
 
     render(<AdvancedFilter orders={orders} onFilterChange={mockOnFilterChange} />)
 
-    const dateInputs = screen.getAllByRole('textbox', { name: '' }).filter(input => input.getAttribute('type') === 'date')
+    const dateInputs = screen
+      .getAllByRole('textbox', { name: '' })
+      .filter((input) => input.getAttribute('type') === 'date')
     const startDateInput = dateInputs[0]
     const endDateInput = dateInputs[1]
 
@@ -122,7 +130,7 @@ describe('AdvancedFilter', () => {
     const orders: ECForceOrder[] = [
       createMockOrder({ 受注ID: '1', 小計: 500 }),
       createMockOrder({ 受注ID: '2', 小計: 1500 }),
-      createMockOrder({ 受注ID: '3', 小計: 3000 })
+      createMockOrder({ 受注ID: '3', 小計: 3000 }),
     ]
 
     render(<AdvancedFilter orders={orders} onFilterChange={mockOnFilterChange} />)
@@ -153,7 +161,7 @@ describe('AdvancedFilter', () => {
       createMockOrder({ 受注ID: '1', 顧客番号: 'CUST-001' }),
       createMockOrder({ 受注ID: '2', 顧客番号: 'CUST-001' }), // リピーター
       createMockOrder({ 受注ID: '3', 顧客番号: 'CUST-002' }), // 新規
-      createMockOrder({ 受注ID: '4', 顧客番号: 'CUST-003', 定期ステータス: '有効' }) // 定期購入者
+      createMockOrder({ 受注ID: '4', 顧客番号: 'CUST-003', 定期ステータス: '有効' }), // 定期購入者
     ]
 
     render(<AdvancedFilter orders={orders} onFilterChange={mockOnFilterChange} />)
@@ -191,9 +199,24 @@ describe('AdvancedFilter', () => {
 
   it('複数選択フィルター（オファー、広告主、商品）が正しく動作する', async () => {
     const orders: ECForceOrder[] = [
-      createMockOrder({ 受注ID: '1', 購入オファー: 'オファーA', 広告主名: '広告主X', 購入商品: ['商品1'] }),
-      createMockOrder({ 受注ID: '2', 購入オファー: 'オファーB', 広告主名: '広告主Y', 購入商品: ['商品2'] }),
-      createMockOrder({ 受注ID: '3', 購入オファー: 'オファーA', 広告主名: '広告主X', 購入商品: ['商品1', '商品2'] })
+      createMockOrder({
+        受注ID: '1',
+        購入オファー: 'オファーA',
+        広告主名: '広告主X',
+        購入商品: ['商品1'],
+      }),
+      createMockOrder({
+        受注ID: '2',
+        購入オファー: 'オファーB',
+        広告主名: '広告主Y',
+        購入商品: ['商品2'],
+      }),
+      createMockOrder({
+        受注ID: '3',
+        購入オファー: 'オファーA',
+        広告主名: '広告主X',
+        購入商品: ['商品1', '商品2'],
+      }),
     ]
 
     render(<AdvancedFilter orders={orders} onFilterChange={mockOnFilterChange} />)
@@ -202,7 +225,7 @@ describe('AdvancedFilter', () => {
     const offerSelect = screen.getAllByRole('listbox')[0]
     fireEvent.click(screen.getByText('オファーA'))
     fireEvent.change(offerSelect, { target: { selectedOptions: [{ value: 'オファーA' }] } })
-    
+
     await waitFor(() => {
       const lastCall = mockOnFilterChange.mock.calls[mockOnFilterChange.mock.calls.length - 1]
       expect(lastCall[0]).toHaveLength(2)
@@ -214,7 +237,7 @@ describe('AdvancedFilter', () => {
     const orders: ECForceOrder[] = [
       createMockOrder({ 受注ID: '1', 定期ステータス: '有効' }),
       createMockOrder({ 受注ID: '2', 定期ステータス: '無効' }),
-      createMockOrder({ 受注ID: '3', 定期ステータス: '有効' })
+      createMockOrder({ 受注ID: '3', 定期ステータス: '有効' }),
     ]
 
     render(<AdvancedFilter orders={orders} onFilterChange={mockOnFilterChange} />)
@@ -241,7 +264,7 @@ describe('AdvancedFilter', () => {
   it('フィルターのリセットが正しく動作する', async () => {
     const orders: ECForceOrder[] = [
       createMockOrder({ 受注ID: '1', 小計: 1000 }),
-      createMockOrder({ 受注ID: '2', 小計: 2000 })
+      createMockOrder({ 受注ID: '2', 小計: 2000 }),
     ]
 
     render(<AdvancedFilter orders={orders} onFilterChange={mockOnFilterChange} />)
@@ -268,7 +291,7 @@ describe('AdvancedFilter', () => {
   it('プリセットの保存と読み込みが正しく動作する', async () => {
     const orders: ECForceOrder[] = [
       createMockOrder({ 受注ID: '1', 小計: 1000 }),
-      createMockOrder({ 受注ID: '2', 小計: 2000 })
+      createMockOrder({ 受注ID: '2', 小計: 2000 }),
     ]
 
     render(<AdvancedFilter orders={orders} onFilterChange={mockOnFilterChange} />)
@@ -298,33 +321,35 @@ describe('AdvancedFilter', () => {
 
   it('複数の条件を組み合わせたフィルタリングが正しく動作する', async () => {
     const orders: ECForceOrder[] = [
-      createMockOrder({ 
-        受注ID: '1', 
+      createMockOrder({
+        受注ID: '1',
         受注日: '2024-01-15 10:00:00',
         小計: 1500,
         購入オファー: 'オファーA',
-        定期ステータス: '有効'
+        定期ステータス: '有効',
       }),
-      createMockOrder({ 
-        受注ID: '2', 
+      createMockOrder({
+        受注ID: '2',
         受注日: '2024-01-20 10:00:00',
         小計: 2500,
         購入オファー: 'オファーB',
-        定期ステータス: '無効'
+        定期ステータス: '無効',
       }),
-      createMockOrder({ 
-        受注ID: '3', 
+      createMockOrder({
+        受注ID: '3',
         受注日: '2024-01-25 10:00:00',
         小計: 1800,
         購入オファー: 'オファーA',
-        定期ステータス: '有効'
-      })
+        定期ステータス: '有効',
+      }),
     ]
 
     render(<AdvancedFilter orders={orders} onFilterChange={mockOnFilterChange} />)
 
     // 日付範囲を設定
-    const dateInputs = screen.getAllByRole('textbox', { name: '' }).filter(input => input.getAttribute('type') === 'date')
+    const dateInputs = screen
+      .getAllByRole('textbox', { name: '' })
+      .filter((input) => input.getAttribute('type') === 'date')
     fireEvent.change(dateInputs[0], { target: { value: '2024-01-14' } })
     fireEvent.change(dateInputs[1], { target: { value: '2024-01-22' } })
 
@@ -347,7 +372,9 @@ describe('AdvancedFilter', () => {
   it('閉じるボタンが表示され、クリックで呼ばれる', () => {
     const orders: ECForceOrder[] = [createMockOrder({})]
 
-    render(<AdvancedFilter orders={orders} onFilterChange={mockOnFilterChange} onClose={mockOnClose} />)
+    render(
+      <AdvancedFilter orders={orders} onFilterChange={mockOnFilterChange} onClose={mockOnClose} />
+    )
 
     const closeButton = screen.getByRole('button', { name: '' })
     expect(closeButton.querySelector('svg')).toBeInTheDocument()

@@ -5,11 +5,11 @@ import { FatigueTrend } from './FatigueTrend'
 import { useFatigueAnalysis } from '../../hooks/useAdFatigue'
 import { useAdFatigueRealSafe as useAdFatigueReal } from '../../hooks/useAdFatigueRealSafe'
 // import { useAdFatigueRealSafeDebug as useAdFatigueReal } from '../../hooks/useAdFatigueRealSafeDebug'
-import { 
+import {
   ChartBarIcon,
   ExclamationTriangleIcon,
   CheckCircleIcon,
-  InformationCircleIcon
+  InformationCircleIcon,
 } from '@heroicons/react/24/outline'
 
 interface FatigueDashboardProps {
@@ -18,15 +18,15 @@ interface FatigueDashboardProps {
 
 export const FatigueDashboard: React.FC<FatigueDashboardProps> = ({ accountId }) => {
   const [selectedAdId, setSelectedAdId] = useState<string | null>(null)
-  const { typeBreakdown, levelBreakdown, criticalAds, recommendedActions } = useFatigueAnalysis(accountId)
-  
-  
+  const { typeBreakdown, levelBreakdown, criticalAds, recommendedActions } =
+    useFatigueAnalysis(accountId)
+
   // 実際のMeta APIデータから全広告の疲労度分析を取得
   const { error: apiError } = useAdFatigueReal(accountId)
-  
+
   // 選択された広告の疲労度データ
   const { error: fatigueError } = useAdFatigueReal(accountId, selectedAdId || undefined)
-  
+
   // エラーをコンソールに出力
   useEffect(() => {
     if (apiError) {
@@ -36,7 +36,7 @@ export const FatigueDashboard: React.FC<FatigueDashboardProps> = ({ accountId })
       console.error('Fatigue Error in FatigueDashboard:', fatigueError)
     }
   }, [apiError, fatigueError])
-  
+
   // サンプルデータ（実際のデータがない場合のフォールバック）
   const sampleFatigueData = {
     adId: '123456',
@@ -46,27 +46,97 @@ export const FatigueDashboard: React.FC<FatigueDashboardProps> = ({ accountId })
       breakdown: {
         audience: 85,
         creative: 70,
-        algorithm: 45
+        algorithm: 45,
       },
       primaryIssue: 'audience' as const,
-      status: 'critical' as const
+      status: 'critical' as const,
     },
     metrics: {
       frequency: 3.8,
       firstTimeRatio: 0.28,
       ctrDeclineRate: 0.32,
-      cpmIncreaseRate: 0.42
-    }
+      cpmIncreaseRate: 0.42,
+    },
   }
 
   const sampleTrendData = [
-    { date: '2024-01-15', totalScore: 25, audienceScore: 30, creativeScore: 20, algorithmScore: 25, frequency: 2.1, ctr: 0.025, cpm: 450, firstTimeRatio: 0.65 },
-    { date: '2024-01-16', totalScore: 28, audienceScore: 35, creativeScore: 22, algorithmScore: 26, frequency: 2.3, ctr: 0.024, cpm: 460, firstTimeRatio: 0.62 },
-    { date: '2024-01-17', totalScore: 35, audienceScore: 45, creativeScore: 28, algorithmScore: 30, frequency: 2.6, ctr: 0.022, cpm: 480, firstTimeRatio: 0.58 },
-    { date: '2024-01-18', totalScore: 42, audienceScore: 55, creativeScore: 35, algorithmScore: 32, frequency: 2.9, ctr: 0.020, cpm: 510, firstTimeRatio: 0.52 },
-    { date: '2024-01-19', totalScore: 55, audienceScore: 68, creativeScore: 50, algorithmScore: 38, frequency: 3.2, ctr: 0.018, cpm: 550, firstTimeRatio: 0.45 },
-    { date: '2024-01-20', totalScore: 65, audienceScore: 78, creativeScore: 62, algorithmScore: 42, frequency: 3.5, ctr: 0.015, cpm: 600, firstTimeRatio: 0.35 },
-    { date: '2024-01-21', totalScore: 72, audienceScore: 85, creativeScore: 70, algorithmScore: 45, frequency: 3.8, ctr: 0.012, cpm: 650, firstTimeRatio: 0.28 },
+    {
+      date: '2024-01-15',
+      totalScore: 25,
+      audienceScore: 30,
+      creativeScore: 20,
+      algorithmScore: 25,
+      frequency: 2.1,
+      ctr: 0.025,
+      cpm: 450,
+      firstTimeRatio: 0.65,
+    },
+    {
+      date: '2024-01-16',
+      totalScore: 28,
+      audienceScore: 35,
+      creativeScore: 22,
+      algorithmScore: 26,
+      frequency: 2.3,
+      ctr: 0.024,
+      cpm: 460,
+      firstTimeRatio: 0.62,
+    },
+    {
+      date: '2024-01-17',
+      totalScore: 35,
+      audienceScore: 45,
+      creativeScore: 28,
+      algorithmScore: 30,
+      frequency: 2.6,
+      ctr: 0.022,
+      cpm: 480,
+      firstTimeRatio: 0.58,
+    },
+    {
+      date: '2024-01-18',
+      totalScore: 42,
+      audienceScore: 55,
+      creativeScore: 35,
+      algorithmScore: 32,
+      frequency: 2.9,
+      ctr: 0.02,
+      cpm: 510,
+      firstTimeRatio: 0.52,
+    },
+    {
+      date: '2024-01-19',
+      totalScore: 55,
+      audienceScore: 68,
+      creativeScore: 50,
+      algorithmScore: 38,
+      frequency: 3.2,
+      ctr: 0.018,
+      cpm: 550,
+      firstTimeRatio: 0.45,
+    },
+    {
+      date: '2024-01-20',
+      totalScore: 65,
+      audienceScore: 78,
+      creativeScore: 62,
+      algorithmScore: 42,
+      frequency: 3.5,
+      ctr: 0.015,
+      cpm: 600,
+      firstTimeRatio: 0.35,
+    },
+    {
+      date: '2024-01-21',
+      totalScore: 72,
+      audienceScore: 85,
+      creativeScore: 70,
+      algorithmScore: 45,
+      frequency: 3.8,
+      ctr: 0.012,
+      cpm: 650,
+      firstTimeRatio: 0.28,
+    },
   ]
 
   // サマリーカード
@@ -160,7 +230,7 @@ export const FatigueDashboard: React.FC<FatigueDashboardProps> = ({ accountId })
           metrics={{
             frequency: 3.8,
             ctrDeclineRate: 0.32,
-            firstTimeRatio: 0.28
+            firstTimeRatio: 0.28,
           }}
           onDismiss={() => console.log('Alert dismissed')}
           onTakeAction={() => console.log('Take action')}
@@ -172,7 +242,7 @@ export const FatigueDashboard: React.FC<FatigueDashboardProps> = ({ accountId })
           recommendedAction="クリエイティブのパフォーマンスが低下傾向です。A/Bテストで新しいバリエーションを試してください。"
           metrics={{
             ctrDeclineRate: 0.28,
-            cpmIncreaseRate: 0.30
+            cpmIncreaseRate: 0.3,
           }}
           onDismiss={() => console.log('Alert dismissed')}
         />
@@ -194,11 +264,7 @@ export const FatigueDashboard: React.FC<FatigueDashboardProps> = ({ accountId })
         {/* トレンドグラフ */}
         <div className="lg:col-span-2">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">疲労度トレンド</h3>
-          <FatigueTrend
-            data={sampleTrendData}
-            showMetrics={true}
-            height={400}
-          />
+          <FatigueTrend data={sampleTrendData} showMetrics={true} height={400} />
         </div>
       </div>
 
@@ -209,21 +275,36 @@ export const FatigueDashboard: React.FC<FatigueDashboardProps> = ({ accountId })
           {(recommendedActions || []).slice(0, 5).map((action, index) => (
             <div key={index} className="flex items-start space-x-3 p-4 bg-gray-50 rounded-lg">
               <div className="flex-shrink-0">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-medium ${
-                  action?.fatigueLevel === 'critical' ? 'bg-red-500' :
-                  action?.fatigueLevel === 'warning' ? 'bg-orange-500' :
-                  'bg-yellow-500'
-                }`}>
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-medium ${
+                    action?.fatigueLevel === 'critical'
+                      ? 'bg-red-500'
+                      : action?.fatigueLevel === 'warning'
+                        ? 'bg-orange-500'
+                        : 'bg-yellow-500'
+                  }`}
+                >
                   {index + 1}
                 </div>
               </div>
               <div className="flex-1">
                 <h4 className="font-medium text-gray-900">{action?.adName || '広告名なし'}</h4>
-                <p className="text-sm text-gray-600 mt-1">{action?.recommendedAction || '推奨アクションなし'}</p>
+                <p className="text-sm text-gray-600 mt-1">
+                  {action?.recommendedAction || '推奨アクションなし'}
+                </p>
                 <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
                   <span>スコア: {action?.totalScore || 'N/A'}</span>
-                  <span>フリークエンシー: {action?.metrics?.frequency ? action.metrics.frequency.toFixed(1) : 'N/A'}</span>
-                  <span>CTR低下: {action?.metrics?.ctrDeclineRate ? (action.metrics.ctrDeclineRate * 100).toFixed(0) : '0'}%</span>
+                  <span>
+                    フリークエンシー:{' '}
+                    {action?.metrics?.frequency ? action.metrics.frequency.toFixed(1) : 'N/A'}
+                  </span>
+                  <span>
+                    CTR低下:{' '}
+                    {action?.metrics?.ctrDeclineRate
+                      ? (action.metrics.ctrDeclineRate * 100).toFixed(0)
+                      : '0'}
+                    %
+                  </span>
                 </div>
               </div>
               <button className="flex-shrink-0 px-3 py-1 text-sm font-medium text-indigo-600 hover:text-indigo-700">
@@ -238,7 +319,9 @@ export const FatigueDashboard: React.FC<FatigueDashboardProps> = ({ accountId })
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white rounded-lg shadow p-6">
           <h4 className="text-sm font-medium text-gray-700 mb-3">オーディエンス疲労</h4>
-          <div className="text-3xl font-bold text-pink-600">{typeBreakdown?.audience?.count || 8}</div>
+          <div className="text-3xl font-bold text-pink-600">
+            {typeBreakdown?.audience?.count || 8}
+          </div>
           <p className="text-sm text-gray-500 mt-1">フリークエンシー過多による疲労</p>
           <div className="mt-4 space-y-2 text-sm">
             <div className="flex justify-between">
@@ -254,7 +337,9 @@ export const FatigueDashboard: React.FC<FatigueDashboardProps> = ({ accountId })
 
         <div className="bg-white rounded-lg shadow p-6">
           <h4 className="text-sm font-medium text-gray-700 mb-3">クリエイティブ疲労</h4>
-          <div className="text-3xl font-bold text-blue-600">{typeBreakdown?.creative?.count || 6}</div>
+          <div className="text-3xl font-bold text-blue-600">
+            {typeBreakdown?.creative?.count || 6}
+          </div>
           <p className="text-sm text-gray-500 mt-1">CTR低下による疲労</p>
           <div className="mt-4 space-y-2 text-sm">
             <div className="flex justify-between">
@@ -270,7 +355,9 @@ export const FatigueDashboard: React.FC<FatigueDashboardProps> = ({ accountId })
 
         <div className="bg-white rounded-lg shadow p-6">
           <h4 className="text-sm font-medium text-gray-700 mb-3">アルゴリズム疲労</h4>
-          <div className="text-3xl font-bold text-green-600">{typeBreakdown?.algorithm?.count || 3}</div>
+          <div className="text-3xl font-bold text-green-600">
+            {typeBreakdown?.algorithm?.count || 3}
+          </div>
           <p className="text-sm text-gray-500 mt-1">配信効率の悪化による疲労</p>
           <div className="mt-4 space-y-2 text-sm">
             <div className="flex justify-between">

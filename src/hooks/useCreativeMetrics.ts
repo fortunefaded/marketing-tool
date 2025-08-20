@@ -2,7 +2,11 @@ import { useState, useEffect, useMemo } from 'react'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import { MetaAccountManager } from '../services/metaAccountManager'
-import { CreativeAggregator, CreativeMetrics, AggregationOptions } from '../services/creativeAggregator'
+import {
+  CreativeAggregator,
+  CreativeMetrics,
+  AggregationOptions,
+} from '../services/creativeAggregator'
 
 interface UseCreativeMetricsOptions {
   startDate?: string
@@ -68,10 +72,11 @@ export const useCreativeMetrics = (
       : 'skip'
   )
 
-  const campaigns = useQuery(
-    api.creativeMetrics.getCampaigns,
-    activeAccount ? { accountId: activeAccount.accountId } : 'skip'
-  ) || []
+  const campaigns =
+    useQuery(
+      api.creativeMetrics.getCampaigns,
+      activeAccount ? { accountId: activeAccount.accountId } : 'skip'
+    ) || []
 
   const summary = useQuery(
     api.creativeMetrics.getMetricsSummary,
@@ -100,7 +105,7 @@ export const useCreativeMetrics = (
     try {
       // CreativeAggregatorを使用してデータを集計
       const aggregator = new CreativeAggregator(apiService)
-      
+
       const aggregationOptions: AggregationOptions = {
         startDate,
         endDate,
@@ -155,7 +160,7 @@ export const useCreativeMetrics = (
     let filtered = metrics
 
     // 追加のクライアントサイドフィルタリング（必要に応じて）
-    
+
     return filtered
   }, [metrics])
 

@@ -2,7 +2,11 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import { MetaAccountManager } from '../services/metaAccountManager'
-import { CreativeDataAggregator, EnhancedCreativeData, AggregationOptions } from '../services/creativeDataAggregator'
+import {
+  CreativeDataAggregator,
+  EnhancedCreativeData,
+  AggregationOptions,
+} from '../services/creativeDataAggregator'
 
 export interface UseEnhancedCreativeMetricsOptions {
   dateRange: {
@@ -46,9 +50,9 @@ export const useEnhancedCreativeMetrics = (
   }>({
     stage: 'idle',
     percentage: 0,
-    message: ''
+    message: '',
   })
-  
+
   const manager = MetaAccountManager.getInstance()
   const aggregatorRef = useRef<CreativeDataAggregator | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
@@ -92,7 +96,7 @@ export const useEnhancedCreativeMetrics = (
     setProgress({
       stage: 'basic',
       percentage: 10,
-      message: '基本データを取得中...'
+      message: '基本データを取得中...',
     })
 
     try {
@@ -115,9 +119,9 @@ export const useEnhancedCreativeMetrics = (
         setProgress({
           stage: 'basic',
           percentage: 30,
-          message: 'クリエイティブ情報を取得中...'
+          message: 'クリエイティブ情報を取得中...',
         })
-        
+
         const basicData = await aggregatorRef.current.getCompleteCreativeData({
           ...aggregationOptions,
           includeVideoMetrics: false,
@@ -125,24 +129,29 @@ export const useEnhancedCreativeMetrics = (
           includePlacements: false,
           includeTargeting: false,
         })
-        
+
         setData(basicData)
         setProgress({
           stage: 'details',
           percentage: 50,
-          message: '詳細データを取得中...'
+          message: '詳細データを取得中...',
         })
 
         // Step 2: 詳細データを追加
-        if (options.includeVideoMetrics || options.includeDemographics || options.includePlacements) {
-          const detailedData = await aggregatorRef.current.getCompleteCreativeData(aggregationOptions)
+        if (
+          options.includeVideoMetrics ||
+          options.includeDemographics ||
+          options.includePlacements
+        ) {
+          const detailedData =
+            await aggregatorRef.current.getCompleteCreativeData(aggregationOptions)
           setData(detailedData)
         }
-        
+
         setProgress({
           stage: 'complete',
           percentage: 100,
-          message: '完了'
+          message: '完了',
         })
       } else {
         // 一括取得
@@ -151,14 +160,14 @@ export const useEnhancedCreativeMetrics = (
         setProgress({
           stage: 'complete',
           percentage: 100,
-          message: '完了'
+          message: '完了',
         })
       }
 
       // Convexに保存
       await saveData({
         accountId: activeAccount.accountId,
-        data: data.map(d => ({
+        data: data.map((d) => ({
           ...d,
           _id: undefined, // Convexのシステムフィールドを除外
           _creationTime: undefined,
@@ -169,21 +178,20 @@ export const useEnhancedCreativeMetrics = (
           includeDemographics: options.includeDemographics,
           includePlacements: options.includePlacements,
           includeTargeting: options.includeTargeting,
-        }
+        },
       })
-
     } catch (err: any) {
       if (err.name === 'AbortError') {
         console.log('データ取得がキャンセルされました')
         return
       }
-      
+
       console.error('Enhanced creative metrics fetch error:', err)
       setError(err.message || 'データの取得に失敗しました')
       setProgress({
         stage: 'idle',
         percentage: 0,
-        message: ''
+        message: '',
       })
     } finally {
       setIsLoading(false)
@@ -221,12 +229,15 @@ export const useEnhancedCreativeMetrics = (
   }, [])
 
   // 計算されたプロパティ
-  const hasVideoContent = data.some(d => d.type === 'VIDEO')
+  const hasVideoContent = data.some((d) => d.type === 'VIDEO')
   const totalCreatives = data.length
-  const creativesByType = data.reduce((acc, creative) => {
-    acc[creative.type] = (acc[creative.type] || 0) + 1
-    return acc
-  }, {} as Record<string, number>)
+  const creativesByType = data.reduce(
+    (acc, creative) => {
+      acc[creative.type] = (acc[creative.type] || 0) + 1
+      return acc
+    },
+    {} as Record<string, number>
+  )
 
   return {
     data,

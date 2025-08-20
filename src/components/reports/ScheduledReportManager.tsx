@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { 
+import {
   Calendar,
   Clock,
   Mail,
@@ -10,12 +10,12 @@ import {
   Edit,
   Plus,
   Check,
-  X
+  X,
 } from 'lucide-react'
-import { 
-  scheduledReportService, 
+import {
+  scheduledReportService,
   ScheduledReport,
-  reportTemplates 
+  reportTemplates,
 } from '../../services/scheduledReports'
 
 export const ScheduledReportManager: React.FC = () => {
@@ -32,9 +32,9 @@ export const ScheduledReportManager: React.FC = () => {
       time: '09:00',
       dayOfWeek: 1,
       dayOfMonth: 1,
-      timezone: 'Asia/Tokyo'
+      timezone: 'Asia/Tokyo',
     },
-    isActive: true
+    isActive: true,
   })
 
   useEffect(() => {
@@ -47,17 +47,17 @@ export const ScheduledReportManager: React.FC = () => {
   }
 
   const handleCreateReport = () => {
-    if (!formData.name || formData.recipients.every(r => !r)) {
+    if (!formData.name || formData.recipients.every((r) => !r)) {
       alert('レポート名と配信先を入力してください')
       return
     }
 
-    const validRecipients = formData.recipients.filter(r => r.trim())
-    
+    const validRecipients = formData.recipients.filter((r) => r.trim())
+
     scheduledReportService.createReport({
       ...formData,
       recipients: validRecipients,
-      includeSections: getDefaultSections(formData.reportType)
+      includeSections: getDefaultSections(formData.reportType),
     })
 
     loadReports()
@@ -70,7 +70,7 @@ export const ScheduledReportManager: React.FC = () => {
 
     scheduledReportService.updateReport(editingReport.id, {
       ...formData,
-      recipients: formData.recipients.filter(r => r.trim())
+      recipients: formData.recipients.filter((r) => r.trim()),
     })
 
     loadReports()
@@ -87,7 +87,7 @@ export const ScheduledReportManager: React.FC = () => {
 
   const handleToggleActive = (report: ScheduledReport) => {
     scheduledReportService.updateReport(report.id, {
-      isActive: !report.isActive
+      isActive: !report.isActive,
     })
     loadReports()
   }
@@ -114,23 +114,23 @@ export const ScheduledReportManager: React.FC = () => {
         time: report.schedule.time,
         dayOfWeek: report.schedule.dayOfWeek || 1,
         dayOfMonth: report.schedule.dayOfMonth || 1,
-        timezone: report.schedule.timezone || 'Asia/Tokyo'
+        timezone: report.schedule.timezone || 'Asia/Tokyo',
       },
-      isActive: report.isActive
+      isActive: report.isActive,
     })
   }
 
   const handleAddRecipient = () => {
     setFormData({
       ...formData,
-      recipients: [...formData.recipients, '']
+      recipients: [...formData.recipients, ''],
     })
   }
 
   const handleRemoveRecipient = (index: number) => {
     setFormData({
       ...formData,
-      recipients: formData.recipients.filter((_, i) => i !== index)
+      recipients: formData.recipients.filter((_, i) => i !== index),
     })
   }
 
@@ -139,7 +139,7 @@ export const ScheduledReportManager: React.FC = () => {
     newRecipients[index] = value
     setFormData({
       ...formData,
-      recipients: newRecipients
+      recipients: newRecipients,
     })
   }
 
@@ -155,9 +155,9 @@ export const ScheduledReportManager: React.FC = () => {
         time: template.schedule.time,
         dayOfWeek: 'dayOfWeek' in template.schedule ? template.schedule.dayOfWeek : 1,
         dayOfMonth: 'dayOfMonth' in template.schedule ? template.schedule.dayOfMonth : 1,
-        timezone: template.schedule.timezone || 'Asia/Tokyo'
+        timezone: template.schedule.timezone || 'Asia/Tokyo',
       },
-      isActive: true
+      isActive: true,
     })
   }
 
@@ -172,9 +172,9 @@ export const ScheduledReportManager: React.FC = () => {
         time: '09:00',
         dayOfWeek: 1,
         dayOfMonth: 1,
-        timezone: 'Asia/Tokyo'
+        timezone: 'Asia/Tokyo',
       },
-      isActive: true
+      isActive: true,
     })
   }
 
@@ -193,7 +193,7 @@ export const ScheduledReportManager: React.FC = () => {
 
   const formatSchedule = (report: ScheduledReport): string => {
     const time = report.schedule.time
-    
+
     switch (report.type) {
       case 'daily':
         return `毎日 ${time}`
@@ -212,9 +212,7 @@ export const ScheduledReportManager: React.FC = () => {
     <div className="bg-white rounded-lg shadow">
       <div className="p-6 border-b border-gray-200">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">
-            スケジュールレポート
-          </h2>
+          <h2 className="text-lg font-semibold text-gray-900">スケジュールレポート</h2>
           <button
             onClick={() => setShowCreateModal(true)}
             className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 flex items-center gap-2"
@@ -234,7 +232,7 @@ export const ScheduledReportManager: React.FC = () => {
           </div>
         ) : (
           <div className="space-y-4">
-            {reports.map(report => (
+            {reports.map((report) => (
               <div
                 key={report.id}
                 className="border rounded-lg p-4 hover:shadow-md transition-shadow"
@@ -242,18 +240,18 @@ export const ScheduledReportManager: React.FC = () => {
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-3">
-                      <h3 className="font-medium text-gray-900">
-                        {report.name}
-                      </h3>
-                      <span className={`px-2 py-1 text-xs rounded-full ${
-                        report.isActive
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-gray-100 text-gray-600'
-                      }`}>
+                      <h3 className="font-medium text-gray-900">{report.name}</h3>
+                      <span
+                        className={`px-2 py-1 text-xs rounded-full ${
+                          report.isActive
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-gray-100 text-gray-600'
+                        }`}
+                      >
                         {report.isActive ? '有効' : '無効'}
                       </span>
                     </div>
-                    
+
                     <div className="mt-2 flex items-center gap-4 text-sm text-gray-600">
                       <span className="flex items-center gap-1">
                         <Clock className="h-4 w-4" />
@@ -289,7 +287,11 @@ export const ScheduledReportManager: React.FC = () => {
                       }`}
                       title={report.isActive ? '無効化' : '有効化'}
                     >
-                      {report.isActive ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                      {report.isActive ? (
+                        <Pause className="h-4 w-4" />
+                      ) : (
+                        <Play className="h-4 w-4" />
+                      )}
                     </button>
                     <button
                       onClick={() => handleRunNow(report.id)}
@@ -360,9 +362,7 @@ export const ScheduledReportManager: React.FC = () => {
             <div className="space-y-4">
               {/* レポート名 */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  レポート名
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">レポート名</label>
                 <input
                   type="text"
                   value={formData.name}
@@ -375,9 +375,7 @@ export const ScheduledReportManager: React.FC = () => {
               {/* レポートタイプ */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    配信頻度
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">配信頻度</label>
                   <select
                     value={formData.type}
                     onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
@@ -407,27 +405,29 @@ export const ScheduledReportManager: React.FC = () => {
 
               {/* スケジュール設定 */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  配信時刻
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">配信時刻</label>
                 <div className="flex gap-4">
                   <input
                     type="time"
                     value={formData.schedule.time}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      schedule: { ...formData.schedule, time: e.target.value }
-                    })}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        schedule: { ...formData.schedule, time: e.target.value },
+                      })
+                    }
                     className="px-3 py-2 border rounded-md focus:ring-2 focus:ring-indigo-500"
                   />
-                  
+
                   {formData.type === 'weekly' && (
                     <select
                       value={formData.schedule.dayOfWeek}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        schedule: { ...formData.schedule, dayOfWeek: Number(e.target.value) }
-                      })}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          schedule: { ...formData.schedule, dayOfWeek: Number(e.target.value) },
+                        })
+                      }
                       className="px-3 py-2 border rounded-md focus:ring-2 focus:ring-indigo-500"
                     >
                       <option value={0}>日曜日</option>
@@ -439,18 +439,22 @@ export const ScheduledReportManager: React.FC = () => {
                       <option value={6}>土曜日</option>
                     </select>
                   )}
-                  
+
                   {formData.type === 'monthly' && (
                     <select
                       value={formData.schedule.dayOfMonth}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        schedule: { ...formData.schedule, dayOfMonth: Number(e.target.value) }
-                      })}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          schedule: { ...formData.schedule, dayOfMonth: Number(e.target.value) },
+                        })
+                      }
                       className="px-3 py-2 border rounded-md focus:ring-2 focus:ring-indigo-500"
                     >
                       {Array.from({ length: 31 }, (_, i) => (
-                        <option key={i + 1} value={i + 1}>{i + 1}日</option>
+                        <option key={i + 1} value={i + 1}>
+                          {i + 1}日
+                        </option>
                       ))}
                     </select>
                   )}

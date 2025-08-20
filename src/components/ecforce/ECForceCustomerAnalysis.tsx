@@ -1,11 +1,5 @@
 import React, { useMemo } from 'react'
-import {
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-  Tooltip
-} from 'recharts'
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
 import { ECForceOrder } from '../../types/ecforce'
 
 interface ECForceCustomerAnalysisProps {
@@ -15,38 +9,41 @@ interface ECForceCustomerAnalysisProps {
 export const ECForceCustomerAnalysis: React.FC<ECForceCustomerAnalysisProps> = ({ orders }) => {
   const customerData = useMemo(() => {
     // 顧客ごとの購入回数を集計
-    const customerPurchases = orders.reduce((acc, order) => {
-      const customerId = order.顧客番号
-      if (!acc[customerId]) {
-        acc[customerId] = {
-          id: customerId,
-          email: order.メールアドレス,
-          purchases: 0,
-          totalSpent: 0,
-          isSubscriber: false
+    const customerPurchases = orders.reduce(
+      (acc, order) => {
+        const customerId = order.顧客番号
+        if (!acc[customerId]) {
+          acc[customerId] = {
+            id: customerId,
+            email: order.メールアドレス,
+            purchases: 0,
+            totalSpent: 0,
+            isSubscriber: false,
+          }
         }
-      }
-      
-      acc[customerId].purchases += 1
-      acc[customerId].totalSpent += order.小計
-      if (order.定期ステータス === '有効') {
-        acc[customerId].isSubscriber = true
-      }
-      
-      return acc
-    }, {} as Record<string, any>)
+
+        acc[customerId].purchases += 1
+        acc[customerId].totalSpent += order.小計
+        if (order.定期ステータス === '有効') {
+          acc[customerId].isSubscriber = true
+        }
+
+        return acc
+      },
+      {} as Record<string, any>
+    )
 
     // 購入回数別に分類
     const segmentation = {
-      '初回購入': 0,
+      初回購入: 0,
       '2-3回購入': 0,
       '4-9回購入': 0,
-      '10回以上': 0
+      '10回以上': 0,
     }
 
     const subscriberStats = {
-      '定期購入者': 0,
-      '通常購入者': 0
+      定期購入者: 0,
+      通常購入者: 0,
     }
 
     Object.values(customerPurchases).forEach((customer: any) => {
@@ -70,15 +67,15 @@ export const ECForceCustomerAnalysis: React.FC<ECForceCustomerAnalysisProps> = (
     return {
       segmentation: Object.entries(segmentation).map(([name, value]) => ({
         name,
-        value
+        value,
       })),
       subscriberStats: Object.entries(subscriberStats).map(([name, value]) => ({
         name,
-        value
+        value,
       })),
       topCustomers: Object.values(customerPurchases)
         .sort((a: any, b: any) => b.totalSpent - a.totalSpent)
-        .slice(0, 5)
+        .slice(0, 5),
     }
   }, [orders])
 

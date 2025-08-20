@@ -2,14 +2,14 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { MetaAccountManager } from '../../services/metaAccountManager'
 import { MetaAccount } from '../../types/meta-account'
-import { 
+import {
   ExclamationTriangleIcon,
   KeyIcon,
   ShieldCheckIcon,
   PlusIcon,
   TrashIcon,
   UserCircleIcon,
-  CheckCircleIcon
+  CheckCircleIcon,
 } from '@heroicons/react/24/outline'
 
 export const ConnectStep: React.FC = () => {
@@ -33,10 +33,10 @@ export const ConnectStep: React.FC = () => {
   const loadAccounts = () => {
     const allAccounts = manager.getAccounts()
     const active = manager.getActiveAccount()
-    
+
     setAccounts(allAccounts)
     setSelectedAccount(active)
-    
+
     if (allAccounts.length === 0) {
       setShowAddForm(true)
     }
@@ -62,10 +62,9 @@ export const ConnectStep: React.FC = () => {
         accessToken: '',
         accountId: '',
       })
-      
+
       setShowAddForm(false)
       loadAccounts()
-      
     } catch (error) {
       setError(error instanceof Error ? error.message : '接続に失敗しました')
     } finally {
@@ -94,9 +93,7 @@ export const ConnectStep: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">
-          Meta広告アカウントの接続
-        </h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">Meta広告アカウントの接続</h2>
         <p className="text-gray-600">
           Meta広告アカウントを接続して、広告データへのアクセスを設定します。
         </p>
@@ -105,10 +102,8 @@ export const ConnectStep: React.FC = () => {
       {/* アカウント一覧 */}
       {accounts.length > 0 && !showAddForm && (
         <div>
-          <h3 className="text-lg font-medium text-gray-900 mb-3">
-            登録済みアカウント
-          </h3>
-          
+          <h3 className="text-lg font-medium text-gray-900 mb-3">登録済みアカウント</h3>
+
           <div className="space-y-3">
             {accounts.map((account) => (
               <div
@@ -124,12 +119,8 @@ export const ConnectStep: React.FC = () => {
                   <div className="flex items-center flex-1">
                     <UserCircleIcon className="h-10 w-10 text-gray-400 mr-3" />
                     <div>
-                      <div className="font-medium text-gray-900">
-                        {account.name}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {account.fullAccountId}
-                      </div>
+                      <div className="font-medium text-gray-900">{account.name}</div>
+                      <div className="text-sm text-gray-500">{account.fullAccountId}</div>
                     </div>
                     {selectedAccount?.accountId === account.accountId && (
                       <CheckCircleIcon className="h-5 w-5 text-indigo-500 ml-auto mr-3" />
@@ -158,7 +149,7 @@ export const ConnectStep: React.FC = () => {
               <PlusIcon className="h-5 w-5 mr-2" />
               アカウントを追加
             </button>
-            
+
             {selectedAccount && (
               <button
                 onClick={handleContinue}
@@ -178,7 +169,7 @@ export const ConnectStep: React.FC = () => {
             <KeyIcon className="h-6 w-6 mr-2 text-indigo-500" />
             新規アカウントの追加
           </h3>
-          
+
           <div className="space-y-4">
             <div>
               <label htmlFor="account-name" className="block text-sm font-medium text-gray-700">
@@ -205,7 +196,9 @@ export const ConnectStep: React.FC = () => {
                   type="password"
                   id="access-token"
                   value={newAccountForm.accessToken}
-                  onChange={(e) => setNewAccountForm({ ...newAccountForm, accessToken: e.target.value })}
+                  onChange={(e) =>
+                    setNewAccountForm({ ...newAccountForm, accessToken: e.target.value })
+                  }
                   className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
                   placeholder="EAA..."
                 />
@@ -243,9 +236,7 @@ export const ConnectStep: React.FC = () => {
                 <div className="flex">
                   <ExclamationTriangleIcon className="h-5 w-5 text-red-400" />
                   <div className="ml-3">
-                    <p className="text-sm font-medium text-red-800">
-                      {error}
-                    </p>
+                    <p className="text-sm font-medium text-red-800">{error}</p>
                   </div>
                 </div>
               </div>

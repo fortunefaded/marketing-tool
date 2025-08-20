@@ -7,7 +7,7 @@ import {
   ShoppingCartIcon,
   CursorArrowRaysIcon,
   ArrowTrendingUpIcon,
-  SparklesIcon
+  SparklesIcon,
 } from '@heroicons/react/24/outline'
 import { KPIMetrics, KPIComparison } from '../../services/kpiCalculator'
 
@@ -34,12 +34,12 @@ const KPICard: React.FC<KPICardProps> = ({
   icon,
   format = 'number',
   color = 'blue',
-  subtitle
+  subtitle,
 }) => {
   // 値のフォーマット
   const formatValue = (val: string | number): string => {
     const numValue = typeof val === 'string' ? parseFloat(val) : val
-    
+
     switch (format) {
       case 'currency':
         return `¥${numValue.toLocaleString('ja-JP', { maximumFractionDigits: 0 })}`
@@ -76,7 +76,7 @@ const KPICard: React.FC<KPICardProps> = ({
     purple: 'bg-purple-50 text-purple-700 border-purple-200',
     yellow: 'bg-yellow-50 text-yellow-700 border-yellow-200',
     red: 'bg-red-50 text-red-700 border-red-200',
-    gray: 'bg-gray-50 text-gray-700 border-gray-200'
+    gray: 'bg-gray-50 text-gray-700 border-gray-200',
   }
 
   const iconColorClasses = {
@@ -85,29 +85,25 @@ const KPICard: React.FC<KPICardProps> = ({
     purple: 'text-purple-500',
     yellow: 'text-yellow-500',
     red: 'text-red-500',
-    gray: 'text-gray-500'
+    gray: 'text-gray-500',
   }
 
   return (
-    <div className={`rounded-lg border p-4 sm:p-6 ${colorClasses[color]} transition-all hover:shadow-md`}>
+    <div
+      className={`rounded-lg border p-4 sm:p-6 ${colorClasses[color]} transition-all hover:shadow-md`}
+    >
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-2">
-            <div className={`p-2 rounded-lg bg-white ${iconColorClasses[color]}`}>
-              {icon}
-            </div>
+            <div className={`p-2 rounded-lg bg-white ${iconColorClasses[color]}`}>{icon}</div>
             <h3 className="text-sm font-medium text-gray-700">{title}</h3>
           </div>
-          
+
           <div className="mt-3">
-            <p className="text-2xl sm:text-3xl font-bold">
-              {formatValue(value)}
-            </p>
-            
-            {subtitle && (
-              <p className="text-xs text-gray-600 mt-1">{subtitle}</p>
-            )}
-            
+            <p className="text-2xl sm:text-3xl font-bold">{formatValue(value)}</p>
+
+            {subtitle && <p className="text-xs text-gray-600 mt-1">{subtitle}</p>}
+
             {renderChange()}
           </div>
         </div>
@@ -119,7 +115,7 @@ const KPICard: React.FC<KPICardProps> = ({
 export const KPIOverview: React.FC<KPIOverviewProps> = ({
   metrics,
   comparison,
-  isLoading = false
+  isLoading = false,
 }) => {
   if (isLoading) {
     return (
@@ -139,7 +135,7 @@ export const KPIOverview: React.FC<KPIOverviewProps> = ({
       icon: <ArrowTrendingUpIcon className="h-6 w-6" />,
       format: 'decimal' as const,
       color: 'green' as const,
-      subtitle: 'Return on Ad Spend'
+      subtitle: 'Return on Ad Spend',
     },
     {
       title: '平均CPA',
@@ -148,7 +144,7 @@ export const KPIOverview: React.FC<KPIOverviewProps> = ({
       icon: <CurrencyYenIcon className="h-6 w-6" />,
       format: 'currency' as const,
       color: 'blue' as const,
-      subtitle: 'Cost Per Acquisition'
+      subtitle: 'Cost Per Acquisition',
     },
     {
       title: '総コンバージョン',
@@ -157,7 +153,7 @@ export const KPIOverview: React.FC<KPIOverviewProps> = ({
       icon: <ShoppingCartIcon className="h-6 w-6" />,
       format: 'number' as const,
       color: 'purple' as const,
-      subtitle: 'Total Conversions'
+      subtitle: 'Total Conversions',
     },
     {
       title: '総広告費',
@@ -166,7 +162,7 @@ export const KPIOverview: React.FC<KPIOverviewProps> = ({
       icon: <ChartBarIcon className="h-6 w-6" />,
       format: 'currency' as const,
       color: 'yellow' as const,
-      subtitle: 'Total Ad Spend'
+      subtitle: 'Total Ad Spend',
     },
     {
       title: '総売上',
@@ -175,7 +171,7 @@ export const KPIOverview: React.FC<KPIOverviewProps> = ({
       icon: <CurrencyYenIcon className="h-6 w-6" />,
       format: 'currency' as const,
       color: 'green' as const,
-      subtitle: 'Total Revenue'
+      subtitle: 'Total Revenue',
     },
     {
       title: 'CTR',
@@ -184,7 +180,7 @@ export const KPIOverview: React.FC<KPIOverviewProps> = ({
       icon: <CursorArrowRaysIcon className="h-6 w-6" />,
       format: 'percentage' as const,
       color: 'blue' as const,
-      subtitle: 'Click Through Rate'
+      subtitle: 'Click Through Rate',
     },
     {
       title: 'CVR',
@@ -193,7 +189,7 @@ export const KPIOverview: React.FC<KPIOverviewProps> = ({
       icon: <SparklesIcon className="h-6 w-6" />,
       format: 'percentage' as const,
       color: 'purple' as const,
-      subtitle: 'Conversion Rate'
+      subtitle: 'Conversion Rate',
     },
     {
       title: '総インプレッション',
@@ -202,21 +198,17 @@ export const KPIOverview: React.FC<KPIOverviewProps> = ({
       icon: <ChartBarIcon className="h-6 w-6" />,
       format: 'number' as const,
       color: 'gray' as const,
-      subtitle: 'Total Impressions'
-    }
+      subtitle: 'Total Impressions',
+    },
   ]
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold text-gray-900">KPIサマリー</h2>
-        {comparison && (
-          <p className="text-sm text-gray-500">
-            前期間比較
-          </p>
-        )}
+        {comparison && <p className="text-sm text-gray-500">前期間比較</p>}
       </div>
-      
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {kpiCards.map((card, index) => (
           <KPICard
@@ -231,7 +223,7 @@ export const KPIOverview: React.FC<KPIOverviewProps> = ({
           />
         ))}
       </div>
-      
+
       {/* パフォーマンスサマリー */}
       {comparison && (
         <div className="mt-6 p-4 bg-gray-50 rounded-lg">
@@ -268,15 +260,13 @@ const getTopImprovement = (changes: KPIComparison['changes']): string => {
     { name: 'ROAS', value: changes.roas },
     { name: 'CTR', value: changes.ctr },
     { name: 'CVR', value: changes.cvr },
-    { name: '売上', value: changes.totalRevenue }
-  ].filter(item => item.value > 0)
-  
+    { name: '売上', value: changes.totalRevenue },
+  ].filter((item) => item.value > 0)
+
   if (improvements.length === 0) return 'なし'
-  
-  const best = improvements.reduce((prev, current) => 
-    current.value > prev.value ? current : prev
-  )
-  
+
+  const best = improvements.reduce((prev, current) => (current.value > prev.value ? current : prev))
+
   return `${best.name} (+${best.value.toFixed(1)}%)`
 }
 
@@ -285,14 +275,12 @@ const getWorstPerformance = (changes: KPIComparison['changes']): string => {
     { name: 'ROAS', value: changes.roas },
     { name: 'CTR', value: changes.ctr },
     { name: 'CVR', value: changes.cvr },
-    { name: 'CPA', value: -changes.cpa } // CPAは低い方が良いので符号を反転
-  ].filter(item => item.value < 0)
-  
+    { name: 'CPA', value: -changes.cpa }, // CPAは低い方が良いので符号を反転
+  ].filter((item) => item.value < 0)
+
   if (declines.length === 0) return 'なし'
-  
-  const worst = declines.reduce((prev, current) => 
-    current.value < prev.value ? current : prev
-  )
-  
+
+  const worst = declines.reduce((prev, current) => (current.value < prev.value ? current : prev))
+
   return `${worst.name} (${worst.value.toFixed(1)}%)`
 }

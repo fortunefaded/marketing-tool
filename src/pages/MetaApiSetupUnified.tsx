@@ -4,8 +4,8 @@ import { MetaAccountManager } from '../services/metaAccountManager'
 // import { MetaApiService } from '../services/metaApiService'
 // import { AccountSelector } from '../components/meta/AccountSelector'
 import { MetaAccount } from '../types/meta-account'
-import { 
-  CheckCircleIcon, 
+import {
+  CheckCircleIcon,
   ExclamationTriangleIcon,
   InformationCircleIcon,
   ArrowTopRightOnSquareIcon,
@@ -13,7 +13,7 @@ import {
   ShieldCheckIcon,
   PlusIcon,
   TrashIcon,
-  UserCircleIcon
+  UserCircleIcon,
 } from '@heroicons/react/24/outline'
 
 export const MetaApiSetupUnified: React.FC = () => {
@@ -37,10 +37,10 @@ export const MetaApiSetupUnified: React.FC = () => {
   const loadAccounts = () => {
     const allAccounts = manager.getAccounts()
     const active = manager.getActiveAccount()
-    
+
     setAccounts(allAccounts)
     setSelectedAccount(active)
-    
+
     // アカウントがない場合は追加フォームを表示
     if (allAccounts.length === 0) {
       setShowAddForm(true)
@@ -68,10 +68,9 @@ export const MetaApiSetupUnified: React.FC = () => {
         accessToken: '',
         accountId: '',
       })
-      
+
       setShowAddForm(false)
       loadAccounts()
-      
     } catch (error) {
       setError(error instanceof Error ? error.message : '接続に失敗しました')
     } finally {
@@ -104,9 +103,7 @@ export const MetaApiSetupUnified: React.FC = () => {
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Meta広告API設定
-          </h1>
+          <h1 className="text-3xl font-bold text-gray-900">Meta広告API設定</h1>
           <p className="mt-2 text-lg text-gray-600">
             Meta広告データにアクセスするための設定を行います
           </p>
@@ -115,10 +112,8 @@ export const MetaApiSetupUnified: React.FC = () => {
         {/* アカウント一覧（複数アカウントがある場合のみ表示） */}
         {!isSimpleMode && accounts.length > 0 && (
           <div className="bg-white shadow rounded-lg p-6 mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">
-              登録済みアカウント
-            </h2>
-            
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">登録済みアカウント</h2>
+
             <div className="space-y-3">
               {accounts.map((account) => (
                 <div
@@ -134,12 +129,8 @@ export const MetaApiSetupUnified: React.FC = () => {
                     <div className="flex items-center flex-1">
                       <UserCircleIcon className="h-10 w-10 text-gray-400 mr-3" />
                       <div>
-                        <div className="font-medium text-gray-900">
-                          {account.name}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {account.fullAccountId}
-                        </div>
+                        <div className="font-medium text-gray-900">{account.name}</div>
+                        <div className="text-sm text-gray-500">{account.fullAccountId}</div>
                       </div>
                       {selectedAccount?.accountId === account.accountId && (
                         <CheckCircleIcon className="h-5 w-5 text-indigo-500 ml-auto mr-3" />
@@ -168,7 +159,7 @@ export const MetaApiSetupUnified: React.FC = () => {
                 <PlusIcon className="h-5 w-5 mr-2" />
                 アカウントを追加
               </button>
-              
+
               {selectedAccount && (
                 <button
                   onClick={handleContinueToDashboard}
@@ -191,7 +182,7 @@ export const MetaApiSetupUnified: React.FC = () => {
                   <InformationCircleIcon className="h-6 w-6 mr-2 text-blue-500" />
                   セットアップガイド
                 </h2>
-                
+
                 <div className="space-y-4">
                   <div>
                     <h3 className="text-lg font-medium text-gray-900 mb-2">必要なもの</h3>
@@ -203,7 +194,9 @@ export const MetaApiSetupUnified: React.FC = () => {
                   </div>
 
                   <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">アクセストークンの取得方法</h3>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      アクセストークンの取得方法
+                    </h3>
                     <ol className="list-decimal list-inside space-y-2 text-sm text-gray-600">
                       <li>
                         <a
@@ -217,11 +210,18 @@ export const MetaApiSetupUnified: React.FC = () => {
                         </a>
                         にアクセス
                       </li>
-                      <li>アプリを選択し、必要な権限を追加：
+                      <li>
+                        アプリを選択し、必要な権限を追加：
                         <div className="mt-1 flex flex-wrap gap-1">
-                          <span className="px-2 py-0.5 bg-green-100 text-green-800 text-xs rounded">ads_read</span>
-                          <span className="px-2 py-0.5 bg-green-100 text-green-800 text-xs rounded">ads_management</span>
-                          <span className="px-2 py-0.5 bg-green-100 text-green-800 text-xs rounded">business_management</span>
+                          <span className="px-2 py-0.5 bg-green-100 text-green-800 text-xs rounded">
+                            ads_read
+                          </span>
+                          <span className="px-2 py-0.5 bg-green-100 text-green-800 text-xs rounded">
+                            ads_management
+                          </span>
+                          <span className="px-2 py-0.5 bg-green-100 text-green-800 text-xs rounded">
+                            business_management
+                          </span>
                         </div>
                         <div className="mt-2 p-2 bg-yellow-50 rounded text-xs text-yellow-800">
                           注意: これらの権限がすべて選択されていることを確認してください
@@ -250,11 +250,14 @@ export const MetaApiSetupUnified: React.FC = () => {
                   <KeyIcon className="h-6 w-6 mr-2 text-indigo-500" />
                   {accounts.length === 0 ? 'アカウント情報の設定' : '新規アカウントの追加'}
                 </h2>
-                
+
                 <div className="space-y-4">
                   {accounts.length > 0 && (
                     <div>
-                      <label htmlFor="account-name" className="block text-sm font-medium text-gray-700">
+                      <label
+                        htmlFor="account-name"
+                        className="block text-sm font-medium text-gray-700"
+                      >
                         アカウント名（任意）
                       </label>
                       <div className="mt-1">
@@ -262,19 +265,22 @@ export const MetaApiSetupUnified: React.FC = () => {
                           type="text"
                           id="account-name"
                           value={newAccountForm.name}
-                          onChange={(e) => setNewAccountForm({ ...newAccountForm, name: e.target.value })}
+                          onChange={(e) =>
+                            setNewAccountForm({ ...newAccountForm, name: e.target.value })
+                          }
                           className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
                           placeholder="例：クライアントA広告アカウント"
                         />
                       </div>
-                      <p className="mt-1 text-sm text-gray-500">
-                        識別しやすい名前を付けてください
-                      </p>
+                      <p className="mt-1 text-sm text-gray-500">識別しやすい名前を付けてください</p>
                     </div>
                   )}
 
                   <div>
-                    <label htmlFor="access-token" className="block text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="access-token"
+                      className="block text-sm font-medium text-gray-700"
+                    >
                       アクセストークン
                     </label>
                     <div className="mt-1">
@@ -282,7 +288,9 @@ export const MetaApiSetupUnified: React.FC = () => {
                         type="password"
                         id="access-token"
                         value={newAccountForm.accessToken}
-                        onChange={(e) => setNewAccountForm({ ...newAccountForm, accessToken: e.target.value })}
+                        onChange={(e) =>
+                          setNewAccountForm({ ...newAccountForm, accessToken: e.target.value })
+                        }
                         className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
                         placeholder="EAA..."
                       />
@@ -327,9 +335,7 @@ export const MetaApiSetupUnified: React.FC = () => {
                       <div className="flex">
                         <ExclamationTriangleIcon className="h-5 w-5 text-red-400" />
                         <div className="ml-3">
-                          <p className="text-sm font-medium text-red-800">
-                            {error}
-                          </p>
+                          <p className="text-sm font-medium text-red-800">{error}</p>
                         </div>
                       </div>
                     </div>
@@ -354,11 +360,17 @@ export const MetaApiSetupUnified: React.FC = () => {
                     )}
                     <button
                       onClick={handleAddAccount}
-                      disabled={!newAccountForm.accessToken || !newAccountForm.accountId || isConnecting}
+                      disabled={
+                        !newAccountForm.accessToken || !newAccountForm.accountId || isConnecting
+                      }
                       className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-gray-300 disabled:cursor-not-allowed"
                     >
                       <ShieldCheckIcon className="h-5 w-5 mr-2" />
-                      {isConnecting ? '接続中...' : accounts.length === 0 ? '接続して保存' : 'アカウントを追加'}
+                      {isConnecting
+                        ? '接続中...'
+                        : accounts.length === 0
+                          ? '接続して保存'
+                          : 'アカウントを追加'}
                     </button>
                   </div>
                 </div>
@@ -374,41 +386,27 @@ export const MetaApiSetupUnified: React.FC = () => {
               <div className="flex">
                 <CheckCircleIcon className="h-5 w-5 text-green-400 mr-3" />
                 <div className="flex-1">
-                  <h3 className="text-sm font-medium text-green-800">
-                    接続成功
-                  </h3>
-                  <p className="mt-1 text-sm text-green-700">
-                    Meta APIへの接続が確立されました
-                  </p>
+                  <h3 className="text-sm font-medium text-green-800">接続成功</h3>
+                  <p className="mt-1 text-sm text-green-700">Meta APIへの接続が確立されました</p>
                 </div>
               </div>
             </div>
 
             <div className="mb-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-3">
-                接続された広告アカウント
-              </h3>
+              <h3 className="text-lg font-medium text-gray-900 mb-3">接続された広告アカウント</h3>
               <dl className="bg-gray-50 rounded-md p-4 space-y-2">
                 <div>
-                  <dt className="text-sm font-medium text-gray-500">
-                    アカウント名
-                  </dt>
-                  <dd className="text-sm text-gray-900">
-                    {selectedAccount.name}
-                  </dd>
+                  <dt className="text-sm font-medium text-gray-500">アカウント名</dt>
+                  <dd className="text-sm text-gray-900">{selectedAccount.name}</dd>
                 </div>
                 <div>
-                  <dt className="text-sm font-medium text-gray-500">
-                    アカウントID
-                  </dt>
+                  <dt className="text-sm font-medium text-gray-500">アカウントID</dt>
                   <dd className="text-sm text-gray-900 font-mono">
                     {selectedAccount.fullAccountId}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-sm font-medium text-gray-500">
-                    追加日
-                  </dt>
+                  <dt className="text-sm font-medium text-gray-500">追加日</dt>
                   <dd className="text-sm text-gray-900">
                     {new Date(selectedAccount.createdAt).toLocaleDateString()}
                   </dd>

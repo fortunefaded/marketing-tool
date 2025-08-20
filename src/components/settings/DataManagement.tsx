@@ -8,7 +8,7 @@ import {
   ArrowUpTrayIcon,
   ClockIcon,
   CircleStackIcon,
-  ExclamationTriangleIcon
+  ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline'
 
 interface StorageInfo {
@@ -33,7 +33,7 @@ export const DataManagement: React.FC = () => {
     try {
       const info = await localDB.getStorageInfo()
       setStorageInfo(info)
-      
+
       // 最後のクリーンアップ時刻を取得
       const cleanupTime = storageManager.getSettings<number>('lastCleanup')
       if (cleanupTime) {
@@ -59,10 +59,10 @@ export const DataManagement: React.FC = () => {
       // IndexedDBをクリア
       await localDB.delete()
       await localDB.open()
-      
+
       // LocalStorage/SessionStorageをクリア
       storageManager.clearAll()
-      
+
       alert('キャッシュをクリアしました')
       await loadStorageInfo()
     } catch (error) {
@@ -79,7 +79,7 @@ export const DataManagement: React.FC = () => {
     try {
       await localDB.cleanup(30) // 30日以上前のデータを削除
       storageManager.saveSettings('lastCleanup', Date.now())
-      
+
       alert('古いデータをクリーンアップしました')
       await loadStorageInfo()
       setLastCleanup(new Date())
@@ -97,7 +97,7 @@ export const DataManagement: React.FC = () => {
     try {
       const allData = await localDB.exportAllData()
       const blob = new Blob([JSON.stringify(allData, null, 2)], {
-        type: 'application/json'
+        type: 'application/json',
       })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -122,7 +122,7 @@ export const DataManagement: React.FC = () => {
     try {
       const text = await file.text()
       const data = JSON.parse(text)
-      
+
       if (!confirm('既存のデータが上書きされる可能性があります。続行しますか？')) {
         return
       }
@@ -158,20 +158,24 @@ export const DataManagement: React.FC = () => {
             <CircleStackIcon className="h-5 w-5 mr-2" />
             ストレージ使用状況
           </h3>
-          
+
           <div className="space-y-4">
             {/* 使用量バー */}
             <div>
               <div className="flex justify-between text-sm text-gray-600 mb-1">
                 <span>使用容量</span>
-                <span>{formatBytes(storageInfo.used)} / {formatBytes(storageInfo.quota)}</span>
+                <span>
+                  {formatBytes(storageInfo.used)} / {formatBytes(storageInfo.quota)}
+                </span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div
                   className={`h-2 rounded-full transition-all ${
-                    storageInfo.percentage > 80 ? 'bg-red-600' :
-                    storageInfo.percentage > 60 ? 'bg-yellow-600' :
-                    'bg-green-600'
+                    storageInfo.percentage > 80
+                      ? 'bg-red-600'
+                      : storageInfo.percentage > 60
+                        ? 'bg-yellow-600'
+                        : 'bg-green-600'
                   }`}
                   style={{ width: `${Math.min(storageInfo.percentage, 100)}%` }}
                 />
@@ -185,15 +189,21 @@ export const DataManagement: React.FC = () => {
             <div className="grid grid-cols-3 gap-4 text-sm">
               <div className="bg-gray-50 rounded p-3">
                 <p className="text-gray-600">クリエイティブ</p>
-                <p className="text-lg font-semibold">{storageInfo.counts.creatives.toLocaleString()}件</p>
+                <p className="text-lg font-semibold">
+                  {storageInfo.counts.creatives.toLocaleString()}件
+                </p>
               </div>
               <div className="bg-gray-50 rounded p-3">
                 <p className="text-gray-600">インサイト</p>
-                <p className="text-lg font-semibold">{storageInfo.counts.insights.toLocaleString()}件</p>
+                <p className="text-lg font-semibold">
+                  {storageInfo.counts.insights.toLocaleString()}件
+                </p>
               </div>
               <div className="bg-gray-50 rounded p-3">
                 <p className="text-gray-600">キャンペーン</p>
-                <p className="text-lg font-semibold">{storageInfo.counts.campaigns.toLocaleString()}件</p>
+                <p className="text-lg font-semibold">
+                  {storageInfo.counts.campaigns.toLocaleString()}件
+                </p>
               </div>
             </div>
 
@@ -216,7 +226,8 @@ export const DataManagement: React.FC = () => {
         <div className="mb-6 p-3 bg-blue-50 rounded-lg flex items-center gap-2">
           <ClockIcon className="h-5 w-5 text-blue-600" />
           <p className="text-sm text-blue-800">
-            最終クリーンアップ: {lastCleanup.toLocaleDateString('ja-JP')} {lastCleanup.toLocaleTimeString('ja-JP')}
+            最終クリーンアップ: {lastCleanup.toLocaleDateString('ja-JP')}{' '}
+            {lastCleanup.toLocaleTimeString('ja-JP')}
           </p>
         </div>
       )}

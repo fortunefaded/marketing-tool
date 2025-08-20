@@ -153,10 +153,10 @@ export function useMockDataInitializer() {
 
         // Sync mock campaigns
         await syncCampaigns({ campaigns: mockCampaigns })
-        
+
         // Sync mock creatives
         await syncCreatives({ creatives: mockCreatives })
-        
+
         // Save mock insights
         await saveInsights({ insights: mockInsights })
 

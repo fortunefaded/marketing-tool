@@ -14,11 +14,7 @@ export async function processDataInChunks<T, R>(
   processor: (chunk: T[]) => Promise<R>,
   options: ChunkProcessOptions = {}
 ): Promise<R[]> {
-  const {
-    chunkSize = 100,
-    delayBetweenChunks = 10,
-    onProgress
-  } = options
+  const { chunkSize = 100, delayBetweenChunks = 10, onProgress } = options
 
   const results: R[] = []
   // Removed unused totalChunks variable
@@ -36,7 +32,7 @@ export async function processDataInChunks<T, R>(
 
     // UIスレッドをブロックしないように遅延を入れる
     if (i + chunkSize < data.length) {
-      await new Promise(resolve => setTimeout(resolve, delayBetweenChunks))
+      await new Promise((resolve) => setTimeout(resolve, delayBetweenChunks))
     }
   }
 
@@ -56,19 +52,16 @@ export class LazyLoader<T> {
     options: IntersectionObserverInit = {}
   ) {
     if (typeof window !== 'undefined' && 'IntersectionObserver' in window) {
-      this.observer = new IntersectionObserver(
-        this.handleIntersection.bind(this),
-        {
-          rootMargin: '50px',
-          threshold: 0.01,
-          ...options
-        }
-      )
+      this.observer = new IntersectionObserver(this.handleIntersection.bind(this), {
+        rootMargin: '50px',
+        threshold: 0.01,
+        ...options,
+      })
     }
   }
 
   private handleIntersection(entries: IntersectionObserverEntry[]) {
-    entries.forEach(entry => {
+    entries.forEach((entry) => {
       if (entry.isIntersecting) {
         const id = entry.target.getAttribute('data-lazy-id')
         if (id && !this.loadedItems.has(id)) {
@@ -132,14 +125,14 @@ export class VirtualList<T> {
 
   private updateAverageHeight() {
     if (this.itemHeights.size === 0) return
-    
+
     const totalHeight = Array.from(this.itemHeights.values()).reduce((sum, h) => sum + h, 0)
     this.averageItemHeight = totalHeight / this.itemHeights.size
   }
 
   getVisibleItems(scrollTop: number): { items: T[]; offset: number } {
     const buffer = 5 // 上下に余分に描画する項目数
-    
+
     // 可視範囲を計算
     let accumulatedHeight = 0
     let startIndex = 0
@@ -147,16 +140,16 @@ export class VirtualList<T> {
 
     for (let i = 0; i < this.items.length; i++) {
       const itemHeight = this.itemHeights.get(i) || this.averageItemHeight
-      
+
       if (accumulatedHeight + itemHeight > scrollTop && startIndex === 0) {
         startIndex = Math.max(0, i - buffer)
       }
-      
+
       if (accumulatedHeight > scrollTop + this.containerHeight && endIndex === 0) {
         endIndex = Math.min(this.items.length, i + buffer)
         break
       }
-      
+
       accumulatedHeight += itemHeight
     }
 
@@ -171,10 +164,10 @@ export class VirtualList<T> {
     }
 
     this.visibleRange = { start: startIndex, end: endIndex }
-    
+
     return {
       items: this.items.slice(startIndex, endIndex),
-      offset
+      offset,
     }
   }
 

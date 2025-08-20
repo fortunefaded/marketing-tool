@@ -27,12 +27,14 @@ export class FatigueDashboardErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       const isConvexError = this.state.error?.message?.includes('Could not find public function')
-      
+
       return (
         <div className="min-h-[400px] flex items-center justify-center">
           <div className="text-center max-w-lg">
             <ExclamationTriangleIcon className="mx-auto h-12 w-12 text-red-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">疲労度分析でエラーが発生しました</h3>
+            <h3 className="mt-2 text-sm font-medium text-gray-900">
+              疲労度分析でエラーが発生しました
+            </h3>
             <p className="mt-1 text-sm text-gray-500">
               {isConvexError ? (
                 <>

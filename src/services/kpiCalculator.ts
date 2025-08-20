@@ -51,7 +51,7 @@ export class KPICalculator {
     let totalClicks = 0
     let totalImpressions = 0
 
-    data.forEach(item => {
+    data.forEach((item) => {
       // MetaInsightsDataとCreativeMetricsの両方に対応
       totalRevenue += Number(item.conversion_value || 0)
       totalSpend += Number(item.spend || 0)
@@ -69,7 +69,7 @@ export class KPICalculator {
       totalSpend,
       totalConversions,
       totalClicks,
-      totalImpressions
+      totalImpressions,
     }
   }
 
@@ -133,7 +133,10 @@ export class KPICalculator {
   /**
    * 期間比較を実行
    */
-  static compareKPIs(currentData: MetaInsightsData[], previousData: MetaInsightsData[]): KPIComparison {
+  static compareKPIs(
+    currentData: MetaInsightsData[],
+    previousData: MetaInsightsData[]
+  ): KPIComparison {
     const current = this.calculateKPIs(currentData)
     const previous = this.calculateKPIs(previousData)
 
@@ -147,8 +150,11 @@ export class KPICalculator {
         ctr: this.calculateChangeRate(current.ctr, previous.ctr),
         totalRevenue: this.calculateChangeRate(current.totalRevenue, previous.totalRevenue),
         totalSpend: this.calculateChangeRate(current.totalSpend, previous.totalSpend),
-        totalConversions: this.calculateChangeRate(current.totalConversions, previous.totalConversions)
-      }
+        totalConversions: this.calculateChangeRate(
+          current.totalConversions,
+          previous.totalConversions
+        ),
+      },
     }
   }
 
@@ -156,16 +162,19 @@ export class KPICalculator {
    * 日別データを集計
    */
   static aggregateByDate(data: MetaInsightsData[]): PeriodData[] {
-    const dateMap = new Map<string, {
-      revenue: number
-      spend: number
-      conversions: number
-      clicks: number
-      impressions: number
-    }>()
+    const dateMap = new Map<
+      string,
+      {
+        revenue: number
+        spend: number
+        conversions: number
+        clicks: number
+        impressions: number
+      }
+    >()
 
     // 日付ごとにデータを集計
-    data.forEach(item => {
+    data.forEach((item) => {
       const date = item.date_start || item.dateStart || ''
       if (!date || typeof date !== 'string') return
 
@@ -174,7 +183,7 @@ export class KPICalculator {
         spend: 0,
         conversions: 0,
         clicks: 0,
-        impressions: 0
+        impressions: 0,
       }
 
       dateMap.set(date, {
@@ -182,7 +191,7 @@ export class KPICalculator {
         spend: existing.spend + Number(item.spend || 0),
         conversions: existing.conversions + Number(item.conversions || 0),
         clicks: existing.clicks + Number(item.clicks || 0),
-        impressions: existing.impressions + Number(item.impressions || 0)
+        impressions: existing.impressions + Number(item.impressions || 0),
       })
     })
 
@@ -198,7 +207,7 @@ export class KPICalculator {
         revenue: metrics.revenue,
         spend: metrics.spend,
         clicks: metrics.clicks,
-        impressions: metrics.impressions
+        impressions: metrics.impressions,
       }))
       .sort((a, b) => a.date.localeCompare(b.date))
   }
@@ -207,16 +216,19 @@ export class KPICalculator {
    * 週別データを集計
    */
   static aggregateByWeek(data: MetaInsightsData[]): PeriodData[] {
-    const weekMap = new Map<string, {
-      revenue: number
-      spend: number
-      conversions: number
-      clicks: number
-      impressions: number
-      startDate: string
-    }>()
+    const weekMap = new Map<
+      string,
+      {
+        revenue: number
+        spend: number
+        conversions: number
+        clicks: number
+        impressions: number
+        startDate: string
+      }
+    >()
 
-    data.forEach(item => {
+    data.forEach((item) => {
       const dateValue = item.date_start || item.dateStart || ''
       if (!dateValue || typeof dateValue !== 'string') return
       const date = dateValue
@@ -228,7 +240,7 @@ export class KPICalculator {
         conversions: 0,
         clicks: 0,
         impressions: 0,
-        startDate: this.getWeekStartDate(date)
+        startDate: this.getWeekStartDate(date),
       }
 
       weekMap.set(weekKey, {
@@ -237,7 +249,7 @@ export class KPICalculator {
         conversions: existing.conversions + Number(item.conversions || 0),
         clicks: existing.clicks + Number(item.clicks || 0),
         impressions: existing.impressions + Number(item.impressions || 0),
-        startDate: existing.startDate
+        startDate: existing.startDate,
       })
     })
 
@@ -252,7 +264,7 @@ export class KPICalculator {
         revenue: metrics.revenue,
         spend: metrics.spend,
         clicks: metrics.clicks,
-        impressions: metrics.impressions
+        impressions: metrics.impressions,
       }))
       .sort((a, b) => a.date.localeCompare(b.date))
   }
@@ -261,15 +273,18 @@ export class KPICalculator {
    * 月別データを集計
    */
   static aggregateByMonth(data: MetaInsightsData[]): PeriodData[] {
-    const monthMap = new Map<string, {
-      revenue: number
-      spend: number
-      conversions: number
-      clicks: number
-      impressions: number
-    }>()
+    const monthMap = new Map<
+      string,
+      {
+        revenue: number
+        spend: number
+        conversions: number
+        clicks: number
+        impressions: number
+      }
+    >()
 
-    data.forEach(item => {
+    data.forEach((item) => {
       const dateValue = item.date_start || item.dateStart || ''
       if (!dateValue || typeof dateValue !== 'string') return
       const date = dateValue
@@ -280,7 +295,7 @@ export class KPICalculator {
         spend: 0,
         conversions: 0,
         clicks: 0,
-        impressions: 0
+        impressions: 0,
       }
 
       monthMap.set(monthKey, {
@@ -288,7 +303,7 @@ export class KPICalculator {
         spend: existing.spend + Number(item.spend || 0),
         conversions: existing.conversions + Number(item.conversions || 0),
         clicks: existing.clicks + Number(item.clicks || 0),
-        impressions: existing.impressions + Number(item.impressions || 0)
+        impressions: existing.impressions + Number(item.impressions || 0),
       })
     })
 
@@ -303,7 +318,7 @@ export class KPICalculator {
         revenue: metrics.revenue,
         spend: metrics.spend,
         clicks: metrics.clicks,
-        impressions: metrics.impressions
+        impressions: metrics.impressions,
       }))
       .sort((a, b) => a.date.localeCompare(b.date))
   }
@@ -337,6 +352,6 @@ export class KPICalculator {
     const dayNum = d.getUTCDay() || 7
     d.setUTCDate(d.getUTCDate() + 4 - dayNum)
     const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
-    return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
+    return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7)
   }
 }

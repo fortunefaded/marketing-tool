@@ -84,10 +84,10 @@ describe('MetaAPIClientEnhanced - Simple Tests', () => {
 
   it('should store and retrieve tokens', async () => {
     const tokenStore = (client as any).getTokenStore()
-    
+
     await tokenStore.set('access_token', 'new-token')
     const token = await tokenStore.get('access_token')
-    
+
     expect(token).toBe('new-token')
   })
 
@@ -100,7 +100,7 @@ describe('MetaAPIClientEnhanced - Simple Tests', () => {
     })
 
     await client.getCampaigns()
-    
+
     const metrics = (client as any).getMetrics()
     expect(metrics.totalRequests).toBe(1)
     expect(metrics.successfulRequests).toBe(1)
@@ -110,7 +110,7 @@ describe('MetaAPIClientEnhanced - Simple Tests', () => {
   it('should emit events', async () => {
     const onRequest = vi.fn()
     const onResponse = vi.fn()
-    
+
     ;(client as any).on('request', onRequest)
     ;(client as any).on('response', onResponse)
 

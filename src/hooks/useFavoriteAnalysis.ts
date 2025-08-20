@@ -35,11 +35,13 @@ export function useFavoriteAnalysis(): UseFavoriteAnalysisReturn {
     if (stored) {
       try {
         const parsed = JSON.parse(stored)
-        setFavorites(parsed.map((fav: any) => ({
-          ...fav,
-          createdAt: new Date(fav.createdAt),
-          lastAccessedAt: fav.lastAccessedAt ? new Date(fav.lastAccessedAt) : undefined
-        })))
+        setFavorites(
+          parsed.map((fav: any) => ({
+            ...fav,
+            createdAt: new Date(fav.createdAt),
+            lastAccessedAt: fav.lastAccessedAt ? new Date(fav.lastAccessedAt) : undefined,
+          }))
+        )
       } catch (error) {
         console.error('Failed to load favorite analysis:', error)
       }
@@ -52,7 +54,7 @@ export function useFavoriteAnalysis(): UseFavoriteAnalysisReturn {
       ...analysis,
       id: `fav-${Date.now()}`,
       createdAt: new Date(),
-      accessCount: 0
+      accessCount: 0,
     }
 
     const updated = [...favorites, newFavorite]
@@ -62,38 +64,36 @@ export function useFavoriteAnalysis(): UseFavoriteAnalysisReturn {
 
   // お気に入りを削除
   const removeFavorite = (id: string) => {
-    const updated = favorites.filter(fav => fav.id !== id)
+    const updated = favorites.filter((fav) => fav.id !== id)
     setFavorites(updated)
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
   }
 
   // お気に入りを更新
   const updateFavorite = (id: string, updates: Partial<FavoriteAnalysis>) => {
-    const updated = favorites.map(fav =>
-      fav.id === id ? { ...fav, ...updates } : fav
-    )
+    const updated = favorites.map((fav) => (fav.id === id ? { ...fav, ...updates } : fav))
     setFavorites(updated)
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
   }
 
   // IDでお気に入りを取得
   const getFavoriteById = (id: string): FavoriteAnalysis | undefined => {
-    return favorites.find(fav => fav.id === id)
+    return favorites.find((fav) => fav.id === id)
   }
 
   // タイプ別にお気に入りを取得
   const getFavoritesByType = (type: FavoriteAnalysis['type']): FavoriteAnalysis[] => {
-    return favorites.filter(fav => fav.type === type)
+    return favorites.filter((fav) => fav.type === type)
   }
 
   // アクセスを記録
   const recordAccess = (id: string) => {
-    const updated = favorites.map(fav =>
+    const updated = favorites.map((fav) =>
       fav.id === id
         ? {
             ...fav,
             lastAccessedAt: new Date(),
-            accessCount: fav.accessCount + 1
+            accessCount: fav.accessCount + 1,
           }
         : fav
     )
@@ -104,20 +104,20 @@ export function useFavoriteAnalysis(): UseFavoriteAnalysisReturn {
   // お気に入りを検索
   const searchFavorites = (query: string): FavoriteAnalysis[] => {
     const lowerQuery = query.toLowerCase()
-    
-    return favorites.filter(fav => {
+
+    return favorites.filter((fav) => {
       // 名前で検索
       if (fav.name.toLowerCase().includes(lowerQuery)) return true
-      
+
       // 説明で検索
       if (fav.description?.toLowerCase().includes(lowerQuery)) return true
-      
+
       // タグで検索
-      if (fav.tags?.some(tag => tag.toLowerCase().includes(lowerQuery))) return true
-      
+      if (fav.tags?.some((tag) => tag.toLowerCase().includes(lowerQuery))) return true
+
       // タイプで検索
       if (fav.type.toLowerCase().includes(lowerQuery)) return true
-      
+
       return false
     })
   }
@@ -149,6 +149,6 @@ export function useFavoriteAnalysis(): UseFavoriteAnalysisReturn {
     getFavoriteById,
     getFavoritesByType,
     recordAccess,
-    searchFavorites
+    searchFavorites,
   }
 }

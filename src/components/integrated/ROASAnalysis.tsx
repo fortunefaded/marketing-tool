@@ -9,7 +9,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
-  ComposedChart
+  ComposedChart,
 } from 'recharts'
 import { ECForceOrder } from '../../types/ecforce'
 
@@ -18,25 +18,25 @@ interface ROASAnalysisProps {
   metaAdData: any
 }
 
-export const ROASAnalysis: React.FC<ROASAnalysisProps> = ({
-  ecforceOrders,
-  metaAdData
-}) => {
+export const ROASAnalysis: React.FC<ROASAnalysisProps> = ({ ecforceOrders, metaAdData }) => {
   const roasData = useMemo(() => {
     // 日付別に広告費と売上を集計
-    const dailyData: Record<string, {
-      date: string
-      adSpend: number
-      revenue: number
-      roas: number
-      orders: number
-    }> = {}
+    const dailyData: Record<
+      string,
+      {
+        date: string
+        adSpend: number
+        revenue: number
+        roas: number
+        orders: number
+      }
+    > = {}
 
     // 広告費を日割り計算（簡易的に10日間で均等配分）
     const dailyAdSpend = metaAdData.totalSpend / 10
 
     // EC Forceの売上データを日付別に集計
-    ecforceOrders.forEach(order => {
+    ecforceOrders.forEach((order) => {
       const date = order.受注日.split(' ')[0]
       if (!dailyData[date]) {
         dailyData[date] = {
@@ -44,10 +44,10 @@ export const ROASAnalysis: React.FC<ROASAnalysisProps> = ({
           adSpend: dailyAdSpend,
           revenue: 0,
           roas: 0,
-          orders: 0
+          orders: 0,
         }
       }
-      
+
       // 広告経由の売上のみカウント（広告URLグループ名がある場合）
       if (order.広告URLグループ名) {
         dailyData[date].revenue += order.小計
@@ -56,26 +56,29 @@ export const ROASAnalysis: React.FC<ROASAnalysisProps> = ({
     })
 
     // ROAS計算
-    Object.values(dailyData).forEach(data => {
+    Object.values(dailyData).forEach((data) => {
       data.roas = data.adSpend > 0 ? data.revenue / data.adSpend : 0
     })
 
-    return Object.values(dailyData).sort((a, b) => 
-      new Date(a.date).getTime() - new Date(b.date).getTime()
+    return Object.values(dailyData).sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
     )
   }, [ecforceOrders, metaAdData])
 
   // 広告主別ROAS
   const advertiserROAS = useMemo(() => {
-    const adData: Record<string, {
-      advertiser: string
-      revenue: number
-      orders: number
-      spend: number
-      roas: number
-    }> = {}
+    const adData: Record<
+      string,
+      {
+        advertiser: string
+        revenue: number
+        orders: number
+        spend: number
+        roas: number
+      }
+    > = {}
 
-    ecforceOrders.forEach(order => {
+    ecforceOrders.forEach((order) => {
       if (order.広告主名) {
         if (!adData[order.広告主名]) {
           adData[order.広告主名] = {
@@ -83,7 +86,7 @@ export const ROASAnalysis: React.FC<ROASAnalysisProps> = ({
             revenue: 0,
             orders: 0,
             spend: 0,
-            roas: 0
+            roas: 0,
           }
         }
         adData[order.広告主名].revenue += order.小計
@@ -93,7 +96,7 @@ export const ROASAnalysis: React.FC<ROASAnalysisProps> = ({
 
     // 広告費を広告主ごとに配分（注文数比率で配分）
     const totalOrders = Object.values(adData).reduce((sum, d) => sum + d.orders, 0)
-    Object.values(adData).forEach(data => {
+    Object.values(adData).forEach((data) => {
       data.spend = (data.orders / totalOrders) * metaAdData.totalSpend
       data.roas = data.spend > 0 ? data.revenue / data.spend : 0
     })
@@ -114,15 +117,13 @@ export const ROASAnalysis: React.FC<ROASAnalysisProps> = ({
     <div className="space-y-6">
       {/* ROAS推移 */}
       <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          ROAS推移（日別）
-        </h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">ROAS推移（日別）</h3>
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={roasData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis 
-                dataKey="date" 
+              <XAxis
+                dataKey="date"
                 tickFormatter={(value) => {
                   const date = new Date(value)
                   return `${date.getMonth() + 1}/${date.getDate()}`
@@ -130,7 +131,7 @@ export const ROASAnalysis: React.FC<ROASAnalysisProps> = ({
               />
               <YAxis yAxisId="left" tickFormatter={formatYAxis} />
               <YAxis yAxisId="right" orientation="right" />
-              <Tooltip 
+              <Tooltip
                 formatter={(value: any, name: string) => {
                   if (name === '売上' || name === '広告費') {
                     return `¥${value.toLocaleString()}`
@@ -141,11 +142,11 @@ export const ROASAnalysis: React.FC<ROASAnalysisProps> = ({
               <Legend />
               <Bar yAxisId="left" dataKey="revenue" fill="#10B981" name="売上" />
               <Bar yAxisId="left" dataKey="adSpend" fill="#EF4444" name="広告費" />
-              <Line 
-                yAxisId="right" 
-                type="monotone" 
-                dataKey="roas" 
-                stroke="#4F46E5" 
+              <Line
+                yAxisId="right"
+                type="monotone"
+                dataKey="roas"
+                stroke="#4F46E5"
                 strokeWidth={2}
                 name="ROAS"
                 dot={{ r: 4 }}
@@ -157,13 +158,11 @@ export const ROASAnalysis: React.FC<ROASAnalysisProps> = ({
 
       {/* 広告主別ROAS */}
       <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          広告主別ROAS
-        </h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">広告主別ROAS</h3>
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart 
-              data={advertiserROAS} 
+            <BarChart
+              data={advertiserROAS}
               layout="horizontal"
               margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
             >
@@ -179,9 +178,7 @@ export const ROASAnalysis: React.FC<ROASAnalysisProps> = ({
 
       {/* 詳細テーブル */}
       <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          広告パフォーマンス詳細
-        </h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">広告パフォーマンス詳細</h3>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -219,11 +216,15 @@ export const ROASAnalysis: React.FC<ROASAnalysisProps> = ({
                     ¥{Math.round(data.spend).toLocaleString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      data.roas >= 3 ? 'bg-green-100 text-green-800' : 
-                      data.roas >= 1 ? 'bg-yellow-100 text-yellow-800' : 
-                      'bg-red-100 text-red-800'
-                    }`}>
+                    <span
+                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        data.roas >= 3
+                          ? 'bg-green-100 text-green-800'
+                          : data.roas >= 1
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-red-100 text-red-800'
+                      }`}
+                    >
                       {data.roas.toFixed(2)}
                     </span>
                   </td>

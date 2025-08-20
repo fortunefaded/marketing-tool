@@ -6,7 +6,7 @@ import { MetaAccountManager } from '../../services/metaAccountManager'
 
 // Mocks
 vi.mock('react-router-dom', () => ({
-  useNavigate: () => vi.fn()
+  useNavigate: () => vi.fn(),
 }))
 
 vi.mock('../../services/metaAccountManager')
@@ -19,18 +19,18 @@ describe('MetaDashboardReal - キャッシュクリア機能', () => {
     accountId: mockAccountId,
     fullAccountId: 'act_123456789',
     name: 'Test Account',
-    accessToken: 'test-token'
+    accessToken: 'test-token',
   }
 
   const mockApiService = {
     checkPermissions: vi.fn().mockResolvedValue([
       { permission: 'ads_read', status: 'granted' },
-      { permission: 'ads_management', status: 'granted' }
+      { permission: 'ads_management', status: 'granted' },
     ]),
     getAccountInfo: vi.fn().mockResolvedValue({ id: mockAccountId }),
     getCampaigns: vi.fn().mockResolvedValue([]),
     getInsights: vi.fn().mockResolvedValue([]),
-    detectDateLimit: vi.fn().mockResolvedValue({ maxMonths: 37, oldestDate: '2022-01-01' })
+    detectDateLimit: vi.fn().mockResolvedValue({ maxMonths: 37, oldestDate: '2022-01-01' }),
   }
 
   beforeEach(() => {
@@ -40,7 +40,7 @@ describe('MetaDashboardReal - キャッシュクリア機能', () => {
       getActiveApiService: vi.fn().mockReturnValue(mockApiService),
     }
     vi.mocked(MetaAccountManager.getInstance).mockReturnValue(mockInstance as any)
-    
+
     // MetaDataCache mocks
     vi.mocked(MetaDataCache.getInsights).mockReturnValue([])
     vi.mocked(MetaDataCache.getSyncStatus).mockReturnValue({
@@ -48,18 +48,18 @@ describe('MetaDashboardReal - キャッシュクリア機能', () => {
       lastFullSync: null,
       lastIncrementalSync: null,
       totalRecords: 0,
-      dateRange: { earliest: null, latest: null }
+      dateRange: { earliest: null, latest: null },
     })
     vi.mocked(MetaDataCache.getCacheUsage).mockReturnValue({ sizeKB: 0, records: 0 })
     vi.mocked(MetaDataCache.clearAccountCache).mockImplementation(vi.fn())
     vi.mocked(MetaDataCache.saveInsights).mockImplementation(vi.fn())
     vi.mocked(MetaDataCache.saveSyncStatus).mockImplementation(vi.fn())
-    
+
     // window mocks
     window.confirm = vi.fn().mockReturnValue(true)
     Object.defineProperty(window, 'location', {
       writable: true,
-      value: { reload: vi.fn() }
+      value: { reload: vi.fn() },
     })
   })
 
@@ -82,7 +82,7 @@ describe('MetaDashboardReal - キャッシュクリア機能', () => {
         cpm: '200',
         cpc: '2.0',
         ctr: '5.0',
-        dateStart: '2025-07-18'
+        dateStart: '2025-07-18',
       },
       {
         syncedAt: Date.now(),
@@ -96,8 +96,8 @@ describe('MetaDashboardReal - キャッシュクリア機能', () => {
         cpm: '200',
         cpc: '2.0',
         ctr: '5.0',
-        dateStart: '2025-08-11'
-      }
+        dateStart: '2025-08-11',
+      },
     ] as any)
     vi.mocked(MetaDataCache.getCacheUsage).mockReturnValue({ sizeKB: 10, records: 2 })
 
@@ -128,15 +128,22 @@ describe('MetaDashboardReal - キャッシュクリア機能', () => {
       lastFullSync: null,
       lastIncrementalSync: null,
       totalRecords: 0,
-      dateRange: { earliest: null, latest: null }
+      dateRange: { earliest: null, latest: null },
     })
 
     render(<MetaDashboardReal />)
 
     // Then: 推奨メッセージが表示される
-    await waitFor(() => {
-      expect(screen.getByText(/初回アクセスです。「全同期」ボタンをクリックして過去37ヶ月間のデータを取得することを推奨します。/)).toBeInTheDocument()
-    }, { timeout: 3000 })
+    await waitFor(
+      () => {
+        expect(
+          screen.getByText(
+            /初回アクセスです。「全同期」ボタンをクリックして過去37ヶ月間のデータを取得することを推奨します。/
+          )
+        ).toBeInTheDocument()
+      },
+      { timeout: 3000 }
+    )
   })
 
   it('データが存在しても全期間同期がされていない場合は推奨メッセージが表示される', async () => {
@@ -154,22 +161,29 @@ describe('MetaDashboardReal - キャッシュクリア機能', () => {
         cpm: '200',
         cpc: '2.0',
         ctr: '5.0',
-        dateStart: '2025-07-18'
-      }
+        dateStart: '2025-07-18',
+      },
     ] as any)
     vi.mocked(MetaDataCache.getSyncStatus).mockReturnValue({
       accountId: mockAccountId,
       lastFullSync: null, // 全期間同期されていない
       lastIncrementalSync: '2025-08-11T10:00:00Z',
       totalRecords: 1,
-      dateRange: { earliest: '2025-07-18', latest: '2025-08-11' }
+      dateRange: { earliest: '2025-07-18', latest: '2025-08-11' },
     })
 
     render(<MetaDashboardReal />)
 
     // Then: 推奨メッセージが表示される
-    await waitFor(() => {
-      expect(screen.getByText(/初回アクセスです。「全同期」ボタンをクリックして過去37ヶ月間のデータを取得することを推奨します。/)).toBeInTheDocument()
-    }, { timeout: 3000 })
+    await waitFor(
+      () => {
+        expect(
+          screen.getByText(
+            /初回アクセスです。「全同期」ボタンをクリックして過去37ヶ月間のデータを取得することを推奨します。/
+          )
+        ).toBeInTheDocument()
+      },
+      { timeout: 3000 }
+    )
   })
 })

@@ -1,9 +1,9 @@
 import React from 'react'
-import { 
-  ExclamationTriangleIcon, 
+import {
+  ExclamationTriangleIcon,
   XCircleIcon,
   LightBulbIcon,
-  XMarkIcon
+  XMarkIcon,
 } from '@heroicons/react/24/solid'
 import { FatigueLevel } from '../../../convex/adFatigue'
 
@@ -29,7 +29,7 @@ export const FatigueAlert: React.FC<FatigueAlertProps> = ({
   recommendedAction,
   metrics,
   onDismiss,
-  onTakeAction
+  onTakeAction,
 }) => {
   // アラートレベルに応じたスタイル
   const getAlertStyle = () => {
@@ -42,7 +42,7 @@ export const FatigueAlert: React.FC<FatigueAlertProps> = ({
           icon: XCircleIcon,
           iconBg: 'bg-red-100',
           iconColor: 'text-red-600',
-          title: '危険: 即座の対応が必要です'
+          title: '危険: 即座の対応が必要です',
         }
       case 'warning':
         return {
@@ -52,7 +52,7 @@ export const FatigueAlert: React.FC<FatigueAlertProps> = ({
           icon: ExclamationTriangleIcon,
           iconBg: 'bg-orange-100',
           iconColor: 'text-orange-600',
-          title: '警告: 対応を検討してください'
+          title: '警告: 対応を検討してください',
         }
       case 'caution':
         return {
@@ -62,7 +62,7 @@ export const FatigueAlert: React.FC<FatigueAlertProps> = ({
           icon: ExclamationTriangleIcon,
           iconBg: 'bg-yellow-100',
           iconColor: 'text-yellow-600',
-          title: '注意: 監視を継続してください'
+          title: '注意: 監視を継続してください',
         }
       default:
         return null
@@ -109,9 +109,7 @@ export const FatigueAlert: React.FC<FatigueAlertProps> = ({
           {/* ヘッダー */}
           <div className="flex items-start justify-between">
             <div>
-              <h3 className={`text-sm font-medium ${alertStyle.text}`}>
-                {alertStyle.title}
-              </h3>
+              <h3 className={`text-sm font-medium ${alertStyle.text}`}>{alertStyle.title}</h3>
               <p className={`mt-1 text-sm ${alertStyle.text}`}>
                 <span className="font-semibold">{adName}</span> - {primaryIssue}
               </p>
@@ -142,7 +140,9 @@ export const FatigueAlert: React.FC<FatigueAlertProps> = ({
           {/* 推奨アクション */}
           <div className="mt-4">
             <div className="flex items-start">
-              <LightBulbIcon className={`h-5 w-5 ${alertStyle.iconColor} mr-2 flex-shrink-0 mt-0.5`} />
+              <LightBulbIcon
+                className={`h-5 w-5 ${alertStyle.iconColor} mr-2 flex-shrink-0 mt-0.5`}
+              />
               <div className="flex-1">
                 <p className={`text-sm font-medium ${alertStyle.text}`}>推奨アクション:</p>
                 <p className={`mt-1 text-sm ${alertStyle.text}`}>{recommendedAction}</p>
@@ -156,9 +156,11 @@ export const FatigueAlert: React.FC<FatigueAlertProps> = ({
               <button
                 onClick={onTakeAction}
                 className={`inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white ${
-                  level === 'critical' ? 'bg-red-600 hover:bg-red-700' :
-                  level === 'warning' ? 'bg-orange-600 hover:bg-orange-700' :
-                  'bg-yellow-600 hover:bg-yellow-700'
+                  level === 'critical'
+                    ? 'bg-red-600 hover:bg-red-700'
+                    : level === 'warning'
+                      ? 'bg-orange-600 hover:bg-orange-700'
+                      : 'bg-yellow-600 hover:bg-yellow-700'
                 } focus:outline-none focus:ring-2 focus:ring-offset-2`}
               >
                 対応する
@@ -169,9 +171,7 @@ export const FatigueAlert: React.FC<FatigueAlertProps> = ({
       </div>
 
       {/* タイムスタンプ */}
-      <div className="mt-3 text-xs text-gray-500">
-        {new Date().toLocaleString('ja-JP')}
-      </div>
+      <div className="mt-3 text-xs text-gray-500">{new Date().toLocaleString('ja-JP')}</div>
     </div>
   )
 }

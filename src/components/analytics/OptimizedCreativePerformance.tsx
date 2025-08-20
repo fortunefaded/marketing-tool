@@ -6,7 +6,7 @@ import {
   DocumentTextIcon,
   ViewColumnsIcon,
   PlayIcon,
-  ChartBarIcon
+  ChartBarIcon,
 } from '@heroicons/react/24/outline'
 import { EnhancedCreativeDetailModal } from '../creatives/EnhancedCreativeDetailModal'
 import { CreativeData } from '../creatives/CreativePerformanceGrid'
@@ -67,7 +67,7 @@ const CreativeCard = memo<{
     return new Intl.NumberFormat('ja-JP', {
       style: 'currency',
       currency: 'JPY',
-      minimumFractionDigits: 0
+      minimumFractionDigits: 0,
     }).format(num)
   }, [])
 
@@ -98,7 +98,9 @@ const CreativeCard = memo<{
             videoId={metric.video_id}
             creativeName={metric.creative_name}
           />
-        ) : metric.creative_type === 'carousel' && metric.carousel_cards && metric.carousel_cards.length > 0 ? (
+        ) : metric.creative_type === 'carousel' &&
+          metric.carousel_cards &&
+          metric.carousel_cards.length > 0 ? (
           <>
             <img
               src={metric.carousel_cards[0].image_url}
@@ -119,7 +121,7 @@ const CreativeCard = memo<{
               loading="lazy"
             />
             {metric.creative_type === 'video' && (
-              <div 
+              <div
                 className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all cursor-pointer"
                 onClick={(e) => {
                   e.stopPropagation()
@@ -138,17 +140,19 @@ const CreativeCard = memo<{
         {/* タイプバッジ */}
         <div className="absolute top-2 left-2">
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-gray-900 text-white">
-            {metric.creative_type === 'image' ? '画像' : 
-             metric.creative_type === 'video' ? '動画' : 
-             metric.creative_type === 'carousel' ? 'カルーセル' : 'テキスト'}
+            {metric.creative_type === 'image'
+              ? '画像'
+              : metric.creative_type === 'video'
+                ? '動画'
+                : metric.creative_type === 'carousel'
+                  ? 'カルーセル'
+                  : 'テキスト'}
           </span>
         </div>
       </div>
       {/* 情報 */}
       <div className="p-4">
-        <h4 className="text-sm font-medium text-gray-900 truncate">
-          {metric.creative_name}
-        </h4>
+        <h4 className="text-sm font-medium text-gray-900 truncate">{metric.creative_name}</h4>
         <p className="text-xs text-gray-500 mt-1 truncate">
           {metric.campaign_name || 'キャンペーン名なし'}
         </p>
@@ -169,7 +173,7 @@ const CreativeCard = memo<{
               <p className="text-gray-900 font-medium">{formatNumber(metric.conversions)}</p>
             </div>
           </div>
-          
+
           {/* パフォーマンス指標 */}
           <div className="grid grid-cols-3 gap-2 text-xs border-t pt-2">
             <div className="text-center">
@@ -179,7 +183,10 @@ const CreativeCard = memo<{
             <div className="text-center">
               <p className="text-gray-500">CVR</p>
               <p className="text-green-600 font-medium">
-                {metric.clicks > 0 ? ((metric.conversions / metric.clicks) * 100).toFixed(2) : '0.00'}%
+                {metric.clicks > 0
+                  ? ((metric.conversions / metric.clicks) * 100).toFixed(2)
+                  : '0.00'}
+                %
               </p>
             </div>
             <div className="text-center">
@@ -187,7 +194,7 @@ const CreativeCard = memo<{
               <p className="text-purple-600 font-medium">{metric.roas.toFixed(2)}x</p>
             </div>
           </div>
-          
+
           {/* 費用と収益 */}
           <div className="flex justify-between text-xs border-t pt-2">
             <div>
@@ -196,10 +203,12 @@ const CreativeCard = memo<{
             </div>
             <div>
               <span className="text-gray-500">収益:</span>
-              <span className="ml-1 font-medium text-green-600">{formatCurrency(metric.conversion_value)}</span>
+              <span className="ml-1 font-medium text-green-600">
+                {formatCurrency(metric.conversion_value)}
+              </span>
             </div>
           </div>
-          
+
           {/* 疲労度分析ボタン */}
           <div className="mt-3 border-t pt-3">
             <button
@@ -229,91 +238,100 @@ const FilterButtons = memo<{
   onViewModeChange: (mode: 'grid' | 'table') => void
   aggregationPeriod?: 'daily' | 'weekly' | 'monthly'
   onPeriodChange?: (period: 'daily' | 'weekly' | 'monthly') => void
-}>(({ selectedType, onTypeChange, viewMode, onViewModeChange, aggregationPeriod, onPeriodChange }) => (
-  <div className="flex gap-4">
-    {/* 期間選択 */}
-    {onPeriodChange && aggregationPeriod && (
-      <select
-        value={aggregationPeriod}
-        onChange={(e) => onPeriodChange(e.target.value as 'daily' | 'weekly' | 'monthly')}
-        className="px-3 py-1 text-sm border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-      >
-        <option value="daily">日別</option>
-        <option value="weekly">週別</option>
-        <option value="monthly">月別</option>
-      </select>
-    )}
-    {/* 表示モード切替 */}
-    <div className="flex gap-1 bg-gray-100 p-1 rounded-md">
-      <button
-        onClick={() => onViewModeChange('grid')}
-        className={`px-3 py-1 rounded text-sm font-medium ${
-          viewMode === 'grid'
-            ? 'bg-white text-gray-900 shadow-sm'
-            : 'text-gray-600 hover:text-gray-900'
-        }`}
-      >
-        グリッド
-      </button>
-      <button
-        onClick={() => onViewModeChange('table')}
-        className={`px-3 py-1 rounded text-sm font-medium ${
-          viewMode === 'table'
-            ? 'bg-white text-gray-900 shadow-sm'
-            : 'text-gray-600 hover:text-gray-900'
-        }`}
-      >
-        テーブル
-      </button>
+}>(
+  ({
+    selectedType,
+    onTypeChange,
+    viewMode,
+    onViewModeChange,
+    aggregationPeriod,
+    onPeriodChange,
+  }) => (
+    <div className="flex gap-4">
+      {/* 期間選択 */}
+      {onPeriodChange && aggregationPeriod && (
+        <select
+          value={aggregationPeriod}
+          onChange={(e) => onPeriodChange(e.target.value as 'daily' | 'weekly' | 'monthly')}
+          className="px-3 py-1 text-sm border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+        >
+          <option value="daily">日別</option>
+          <option value="weekly">週別</option>
+          <option value="monthly">月別</option>
+        </select>
+      )}
+      {/* 表示モード切替 */}
+      <div className="flex gap-1 bg-gray-100 p-1 rounded-md">
+        <button
+          onClick={() => onViewModeChange('grid')}
+          className={`px-3 py-1 rounded text-sm font-medium ${
+            viewMode === 'grid'
+              ? 'bg-white text-gray-900 shadow-sm'
+              : 'text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          グリッド
+        </button>
+        <button
+          onClick={() => onViewModeChange('table')}
+          className={`px-3 py-1 rounded text-sm font-medium ${
+            viewMode === 'table'
+              ? 'bg-white text-gray-900 shadow-sm'
+              : 'text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          テーブル
+        </button>
+      </div>
+      {/* タイプフィルター */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => onTypeChange('all')}
+          className={`px-4 py-2 rounded-md text-sm font-medium ${
+            selectedType === 'all'
+              ? 'bg-blue-600 text-white'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+          すべて
+        </button>
+        <button
+          onClick={() => onTypeChange('image')}
+          className={`px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 ${
+            selectedType === 'image'
+              ? 'bg-blue-600 text-white'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+          <PhotoIcon className="h-4 w-4" />
+          画像
+        </button>
+        <button
+          onClick={() => onTypeChange('video')}
+          className={`px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 ${
+            selectedType === 'video'
+              ? 'bg-blue-600 text-white'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+          <VideoCameraIcon className="h-4 w-4" />
+          動画
+        </button>
+        <button
+          onClick={() => onTypeChange('carousel')}
+          className={`px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 ${
+            selectedType === 'carousel'
+              ? 'bg-blue-600 text-white'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+          <ViewColumnsIcon className="h-4 w-4" />
+          カルーセル
+        </button>
+      </div>
     </div>
-    {/* タイプフィルター */}
-    <div className="flex gap-2">
-      <button
-        onClick={() => onTypeChange('all')}
-        className={`px-4 py-2 rounded-md text-sm font-medium ${
-          selectedType === 'all'
-            ? 'bg-blue-600 text-white'
-            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-        }`}
-      >
-        すべて
-      </button>
-      <button
-        onClick={() => onTypeChange('image')}
-        className={`px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 ${
-          selectedType === 'image'
-            ? 'bg-blue-600 text-white'
-            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-        }`}
-      >
-        <PhotoIcon className="h-4 w-4" />
-        画像
-      </button>
-      <button
-        onClick={() => onTypeChange('video')}
-        className={`px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 ${
-          selectedType === 'video'
-            ? 'bg-blue-600 text-white'
-            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-        }`}
-      >
-        <VideoCameraIcon className="h-4 w-4" />
-        動画
-      </button>
-      <button
-        onClick={() => onTypeChange('carousel')}
-        className={`px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 ${
-          selectedType === 'carousel'
-            ? 'bg-blue-600 text-white'
-            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-        }`}
-      >
-        <ViewColumnsIcon className="h-4 w-4" />
-        カルーセル
-      </button>
-    </div>
-  </div>
-))
+  )
+)
 
 FilterButtons.displayName = 'FilterButtons'
 
@@ -321,7 +339,7 @@ export const OptimizedCreativePerformance: React.FC<CreativePerformanceProps> = 
   insights,
   dateRange: _dateRange, // 未使用パラメータ
   aggregationPeriod = 'daily',
-  onPeriodChange
+  onPeriodChange,
 }) => {
   const [selectedType, setSelectedType] = useState<string>('all')
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid')
@@ -329,18 +347,20 @@ export const OptimizedCreativePerformance: React.FC<CreativePerformanceProps> = 
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [playingVideoId, setPlayingVideoId] = useState<string | null>(null)
   const [showInsights, setShowInsights] = useState(false)
-  const [selectedCreativeForInsights, setSelectedCreativeForInsights] = useState<string | null>(null)
-  
+  const [selectedCreativeForInsights, setSelectedCreativeForInsights] = useState<string | null>(
+    null
+  )
+
   const analyzer = useMemo(() => new CreativeFatigueAnalyzer(), [])
 
   // クリエイティブメトリクスの集計（メモ化）
   const creativeMetrics = useMemo(() => {
     const metricsMap = new Map<string, CreativeMetrics>()
-    
+
     // 広告レベルのデータのみを処理
-    const adLevelInsights = insights.filter(insight => insight.ad_id)
-    
-    adLevelInsights.forEach(insight => {
+    const adLevelInsights = insights.filter((insight) => insight.ad_id)
+
+    adLevelInsights.forEach((insight) => {
       const key = insight.creative_id || insight.ad_id || 'unknown'
       const existing = metricsMap.get(key) || {
         creative_id: key,
@@ -361,32 +381,32 @@ export const OptimizedCreativePerformance: React.FC<CreativePerformanceProps> = 
         ctr: 0,
         cpc: 0,
         cpa: 0,
-        roas: 0
+        roas: 0,
       }
-      
+
       existing.impressions += Number(insight.impressions || 0)
       existing.clicks += Number(insight.clicks || 0)
       existing.spend += Number(insight.spend || 0)
       existing.conversions += Number(insight.conversions || 0)
       existing.conversion_value += Number(insight.conversion_value || 0)
-      
+
       metricsMap.set(key, existing)
     })
-    
+
     // CTR, CPC, CPA, ROASを計算
-    return Array.from(metricsMap.values()).map(m => ({
+    return Array.from(metricsMap.values()).map((m) => ({
       ...m,
       ctr: m.impressions > 0 ? (m.clicks / m.impressions) * 100 : 0,
       cpc: m.clicks > 0 ? m.spend / m.clicks : 0,
       cpa: m.conversions > 0 ? m.spend / m.conversions : 0,
-      roas: m.spend > 0 ? m.conversion_value / m.spend : 0
+      roas: m.spend > 0 ? m.conversion_value / m.spend : 0,
     }))
   }, [insights])
 
   // フィルタリング（メモ化）
   const filteredMetrics = useMemo(() => {
     if (selectedType === 'all') return creativeMetrics
-    return creativeMetrics.filter(m => m.creative_type === selectedType)
+    return creativeMetrics.filter((m) => m.creative_type === selectedType)
   }, [creativeMetrics, selectedType])
 
   // コールバック関数（メモ化）
@@ -394,8 +414,12 @@ export const OptimizedCreativePerformance: React.FC<CreativePerformanceProps> = 
     const creative: CreativeData = {
       id: metric.creative_id,
       name: metric.creative_name,
-      type: metric.creative_type === 'video' ? 'VIDEO' : 
-            metric.creative_type === 'carousel' ? 'CAROUSEL' : 'IMAGE',
+      type:
+        metric.creative_type === 'video'
+          ? 'VIDEO'
+          : metric.creative_type === 'carousel'
+            ? 'CAROUSEL'
+            : 'IMAGE',
       thumbnailUrl: metric.thumbnail_url || metric.creative_url,
       videoUrl: metric.video_url,
       campaignName: metric.campaign_name || 'Unknown Campaign',
@@ -409,9 +433,9 @@ export const OptimizedCreativePerformance: React.FC<CreativePerformanceProps> = 
         ctr: metric.ctr,
         cpc: metric.cpc,
         cpa: metric.cpa,
-        roas: metric.roas
+        roas: metric.roas,
       },
-      status: 'ACTIVE'
+      status: 'ACTIVE',
     }
     setSelectedCreative(creative)
     setIsModalOpen(true)
@@ -423,7 +447,7 @@ export const OptimizedCreativePerformance: React.FC<CreativePerformanceProps> = 
   }, [])
 
   const handleVideoPlay = useCallback((creativeId: string) => {
-    setPlayingVideoId(prev => prev === creativeId ? null : creativeId)
+    setPlayingVideoId((prev) => (prev === creativeId ? null : creativeId))
   }, [])
 
   return (
@@ -444,7 +468,9 @@ export const OptimizedCreativePerformance: React.FC<CreativePerformanceProps> = 
         {filteredMetrics.length === 0 ? (
           <div className="text-center py-12">
             <PhotoIcon className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">クリエイティブデータがありません</h3>
+            <h3 className="mt-2 text-sm font-medium text-gray-900">
+              クリエイティブデータがありません
+            </h3>
             <p className="mt-1 text-sm text-gray-500">
               広告レベルのデータを取得するには、「全同期」を実行してください。
             </p>
@@ -467,7 +493,7 @@ export const OptimizedCreativePerformance: React.FC<CreativePerformanceProps> = 
           <div>テーブルビュー</div>
         )}
       </div>
-      
+
       {/* 詳細モーダル */}
       <EnhancedCreativeDetailModal
         creative={selectedCreative}
@@ -477,44 +503,48 @@ export const OptimizedCreativePerformance: React.FC<CreativePerformanceProps> = 
           setSelectedCreative(null)
         }}
       />
-      
+
       {/* 疲労度分析モーダル */}
-      {showInsights && selectedCreativeForInsights && (() => {
-        const selectedMetric = creativeMetrics.find(m => m.creative_id === selectedCreativeForInsights)
-        if (!selectedMetric) return null
-        
-        const performanceData = insights
-          .filter(insight => insight.creative_id === selectedCreativeForInsights)
-          .map(insight => ({
-            date: (insight.date_start || (insight as any).dateStart || '') as string,
-            ctr: Number(insight.ctr) || 0,
-            frequency: Number(insight.frequency) || 1,
-            impressions: Number(insight.impressions) || 0,
-            clicks: Number(insight.clicks) || 0,
-            spend: Number(insight.spend) || 0
-          }))
-          .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-        
-        const analysis = analyzer.analyzeFatigue(selectedCreativeForInsights, performanceData)
-        
-        return (
-          <MobileCreativeInsights
-            isOpen={showInsights}
-            onClose={() => {
-              setShowInsights(false)
-              setSelectedCreativeForInsights(null)
-            }}
-            creativeName={selectedMetric.creative_name}
-            creativeType={selectedMetric.creative_type}
-            thumbnailUrl={selectedMetric.thumbnail_url || selectedMetric.creative_url}
-            videoUrl={selectedMetric.video_url}
-            videoId={selectedMetric.video_id}
-            carouselCards={selectedMetric.carousel_cards}
-            analysis={analysis}
-            performanceHistory={performanceData}
-          />
-        )
-      })()}
+      {showInsights &&
+        selectedCreativeForInsights &&
+        (() => {
+          const selectedMetric = creativeMetrics.find(
+            (m) => m.creative_id === selectedCreativeForInsights
+          )
+          if (!selectedMetric) return null
+
+          const performanceData = insights
+            .filter((insight) => insight.creative_id === selectedCreativeForInsights)
+            .map((insight) => ({
+              date: (insight.date_start || (insight as any).dateStart || '') as string,
+              ctr: Number(insight.ctr) || 0,
+              frequency: Number(insight.frequency) || 1,
+              impressions: Number(insight.impressions) || 0,
+              clicks: Number(insight.clicks) || 0,
+              spend: Number(insight.spend) || 0,
+            }))
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+
+          const analysis = analyzer.analyzeFatigue(selectedCreativeForInsights, performanceData)
+
+          return (
+            <MobileCreativeInsights
+              isOpen={showInsights}
+              onClose={() => {
+                setShowInsights(false)
+                setSelectedCreativeForInsights(null)
+              }}
+              creativeName={selectedMetric.creative_name}
+              creativeType={selectedMetric.creative_type}
+              thumbnailUrl={selectedMetric.thumbnail_url || selectedMetric.creative_url}
+              videoUrl={selectedMetric.video_url}
+              videoId={selectedMetric.video_id}
+              carouselCards={selectedMetric.carousel_cards}
+              analysis={analysis}
+              performanceHistory={performanceData}
+            />
+          )
+        })()}
     </>
   )
 }

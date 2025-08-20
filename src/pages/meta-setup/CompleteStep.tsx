@@ -20,45 +20,28 @@ export const CompleteStep: React.FC = () => {
     <div className="space-y-6">
       <div className="text-center py-8">
         <CheckCircleIcon className="mx-auto h-16 w-16 text-green-500" />
-        <h2 className="mt-4 text-2xl font-semibold text-gray-900">
-          設定が完了しました！
-        </h2>
+        <h2 className="mt-4 text-2xl font-semibold text-gray-900">設定が完了しました！</h2>
         <p className="mt-2 text-gray-600">
-          Meta広告APIの設定が正常に完了しました。
-          ダッシュボードで広告データの分析を開始できます。
+          Meta広告APIの設定が正常に完了しました。 ダッシュボードで広告データの分析を開始できます。
         </p>
       </div>
 
       {activeAccount && (
         <div className="bg-gray-50 rounded-lg p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">
-            接続されたアカウント情報
-          </h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-4">接続されたアカウント情報</h3>
           <dl className="space-y-2">
             <div>
-              <dt className="text-sm font-medium text-gray-500">
-                アカウント名
-              </dt>
-              <dd className="text-sm text-gray-900">
-                {activeAccount.name}
-              </dd>
+              <dt className="text-sm font-medium text-gray-500">アカウント名</dt>
+              <dd className="text-sm text-gray-900">{activeAccount.name}</dd>
             </div>
             <div>
-              <dt className="text-sm font-medium text-gray-500">
-                アカウントID
-              </dt>
-              <dd className="text-sm text-gray-900 font-mono">
-                {activeAccount.fullAccountId}
-              </dd>
+              <dt className="text-sm font-medium text-gray-500">アカウントID</dt>
+              <dd className="text-sm text-gray-900 font-mono">{activeAccount.fullAccountId}</dd>
             </div>
             {activeAccount.currency && (
               <div>
-                <dt className="text-sm font-medium text-gray-500">
-                  通貨
-                </dt>
-                <dd className="text-sm text-gray-900">
-                  {activeAccount.currency}
-                </dd>
+                <dt className="text-sm font-medium text-gray-500">通貨</dt>
+                <dd className="text-sm text-gray-900">{activeAccount.currency}</dd>
               </div>
             )}
           </dl>
@@ -66,9 +49,7 @@ export const CompleteStep: React.FC = () => {
       )}
 
       <div className="bg-blue-50 rounded-lg p-6">
-        <h3 className="text-lg font-medium text-blue-900 mb-2">
-          次のステップ
-        </h3>
+        <h3 className="text-lg font-medium text-blue-900 mb-2">次のステップ</h3>
         <ul className="space-y-2 text-sm text-blue-800">
           <li className="flex items-start">
             <span className="mr-2">•</span>
@@ -92,7 +73,7 @@ export const CompleteStep: React.FC = () => {
         >
           別のアカウントを追加
         </button>
-        
+
         <button
           onClick={handleGoToDashboard}
           className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"

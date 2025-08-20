@@ -20,22 +20,22 @@ export const PermissionsStep: React.FC = () => {
       key: 'ads_read',
       required: true,
       description: '広告データとインサイトを読み取るための権限',
-      hasPermission: false
+      hasPermission: false,
     },
     {
       name: '広告管理',
       key: 'ads_management',
       required: true,
       description: '広告の管理とレポート取得のための権限',
-      hasPermission: false
+      hasPermission: false,
     },
     {
       name: 'ビジネス管理',
       key: 'business_management',
       required: true,
       description: 'ビジネスアカウントへのアクセス権限',
-      hasPermission: false
-    }
+      hasPermission: false,
+    },
   ])
   const [isChecking, setIsChecking] = useState(true)
 
@@ -46,7 +46,7 @@ export const PermissionsStep: React.FC = () => {
   const checkPermissions = async () => {
     setIsChecking(true)
     const activeAccount = manager.getActiveAccount()
-    
+
     if (!activeAccount) {
       navigate('/meta-api-setup/connect')
       return
@@ -54,9 +54,9 @@ export const PermissionsStep: React.FC = () => {
 
     // アカウントの権限を確認（実際のAPI呼び出しをシミュレート）
     setTimeout(() => {
-      const updatedPermissions = permissions.map(perm => ({
+      const updatedPermissions = permissions.map((perm) => ({
         ...perm,
-        hasPermission: perm.required // デモのため、必須権限は付与されているとする
+        hasPermission: perm.required, // デモのため、必須権限は付与されているとする
       }))
       setPermissions(updatedPermissions)
       setIsChecking(false)
@@ -65,9 +65,9 @@ export const PermissionsStep: React.FC = () => {
 
   const handleContinue = () => {
     const hasAllRequiredPermissions = permissions
-      .filter(p => p.required)
-      .every(p => p.hasPermission)
-    
+      .filter((p) => p.required)
+      .every((p) => p.hasPermission)
+
     if (hasAllRequiredPermissions) {
       navigate('/meta-api-setup/test')
     }
@@ -78,18 +78,14 @@ export const PermissionsStep: React.FC = () => {
   }
 
   const allRequiredPermissionsGranted = permissions
-    .filter(p => p.required)
-    .every(p => p.hasPermission)
+    .filter((p) => p.required)
+    .every((p) => p.hasPermission)
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">
-          アクセス権限の確認
-        </h2>
-        <p className="text-gray-600">
-          Meta広告データにアクセスするために必要な権限を確認します。
-        </p>
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">アクセス権限の確認</h2>
+        <p className="text-gray-600">Meta広告データにアクセスするために必要な権限を確認します。</p>
       </div>
 
       {isChecking ? (
@@ -106,8 +102,8 @@ export const PermissionsStep: React.FC = () => {
                   permission.hasPermission
                     ? 'border-green-200 bg-green-50'
                     : permission.required
-                    ? 'border-red-200 bg-red-50'
-                    : 'border-gray-200 bg-gray-50'
+                      ? 'border-red-200 bg-red-50'
+                      : 'border-gray-200 bg-gray-50'
                 }`}
               >
                 <div className="flex items-start">
@@ -120,21 +116,15 @@ export const PermissionsStep: React.FC = () => {
                   </div>
                   <div className="ml-3 flex-1">
                     <div className="flex items-center">
-                      <h3 className="text-sm font-medium text-gray-900">
-                        {permission.name}
-                      </h3>
+                      <h3 className="text-sm font-medium text-gray-900">{permission.name}</h3>
                       {permission.required && (
                         <span className="ml-2 px-2 py-0.5 text-xs font-medium bg-red-100 text-red-800 rounded">
                           必須
                         </span>
                       )}
                     </div>
-                    <p className="mt-1 text-sm text-gray-600">
-                      {permission.description}
-                    </p>
-                    <p className="mt-1 text-xs text-gray-500">
-                      権限キー: {permission.key}
-                    </p>
+                    <p className="mt-1 text-sm text-gray-600">{permission.description}</p>
+                    <p className="mt-1 text-xs text-gray-500">権限キー: {permission.key}</p>
                   </div>
                 </div>
               </div>
@@ -150,9 +140,8 @@ export const PermissionsStep: React.FC = () => {
                     必要な権限が不足しています
                   </h3>
                   <p className="mt-2 text-sm text-yellow-700">
-                    必須の権限がすべて付与されていません。
-                    Graph API Explorerでアクセストークンを再生成し、
-                    必要な権限をすべて選択してください。
+                    必須の権限がすべて付与されていません。 Graph API
+                    Explorerでアクセストークンを再生成し、 必要な権限をすべて選択してください。
                   </p>
                 </div>
               </div>
@@ -166,7 +155,7 @@ export const PermissionsStep: React.FC = () => {
             >
               戻る
             </button>
-            
+
             <button
               onClick={handleContinue}
               disabled={!allRequiredPermissionsGranted}

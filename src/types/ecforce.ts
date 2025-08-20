@@ -30,7 +30,7 @@ export interface ECForceOrder {
   配送先市区町村?: string
   配送先住所?: string
   配送先氏名?: string
-  
+
   // 追加の互換性フィールド
   注文日?: string
   顧客ID?: string

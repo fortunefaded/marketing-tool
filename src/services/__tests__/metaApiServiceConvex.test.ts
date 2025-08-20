@@ -13,7 +13,7 @@ global.fetch = vi.fn()
 
 describe('MetaApiService with Convex', () => {
   let service: MetaApiService
-  
+
   beforeEach(() => {
     vi.clearAllMocks()
     service = new MetaApiService(
@@ -49,46 +49,48 @@ describe('MetaApiService with Convex', () => {
 
       // バッチサイズ100で3回呼ばれるはず
       expect(mockConvexClient.mutation).toHaveBeenCalledTimes(3)
-      
+
       // 最初のバッチの確認
       const firstCall = (mockConvexClient.mutation as any).mock.calls[0]
       expect(firstCall[1].insights).toHaveLength(100)
       expect(firstCall[1].strategy).toBe('merge')
-      
+
       // 最後のバッチの確認（50件）
       const lastCall = (mockConvexClient.mutation as any).mock.calls[2]
       expect(lastCall[1].insights).toHaveLength(50)
     })
 
     it('should transform data correctly before saving', async () => {
-      const mockInsights = [{
-        date_start: '2024-01-01',
-        date_stop: '2024-01-02',
-        impressions: '1000',
-        clicks: '50',
-        spend: '100.50',
-        reach: '500',
-        frequency: '2.0',
-        conversions: '5',
-        campaign_id: 'campaign_123',
-        campaign_name: 'Test Campaign',
-        ad_id: 'ad_456',
-        ad_name: 'Test Ad',
-        creative_id: 'creative_789',
-        creative_name: 'Test Creative',
-        creative_type: 'image',
-        thumbnail_url: 'https://example.com/thumb.jpg',
-        cpc: '2.01',
-        cpm: '100.50',
-        ctr: '5.0',
-        cvr: '10.0',
-        cpa: '20.10',
-      }]
+      const mockInsights = [
+        {
+          date_start: '2024-01-01',
+          date_stop: '2024-01-02',
+          impressions: '1000',
+          clicks: '50',
+          spend: '100.50',
+          reach: '500',
+          frequency: '2.0',
+          conversions: '5',
+          campaign_id: 'campaign_123',
+          campaign_name: 'Test Campaign',
+          ad_id: 'ad_456',
+          ad_name: 'Test Ad',
+          creative_id: 'creative_789',
+          creative_name: 'Test Creative',
+          creative_type: 'image',
+          thumbnail_url: 'https://example.com/thumb.jpg',
+          cpc: '2.01',
+          cpm: '100.50',
+          ctr: '5.0',
+          cvr: '10.0',
+          cpa: '20.10',
+        },
+      ]
 
       await service.saveInsightsToConvex(mockInsights)
 
       const savedData = (mockConvexClient.mutation as any).mock.calls[0][1].insights[0]
-      
+
       expect(savedData).toMatchObject({
         accountId: 'test-account-id',
         date_start: '2024-01-01',
@@ -111,25 +113,24 @@ describe('MetaApiService with Convex', () => {
     })
 
     it('should handle Convex errors gracefully', async () => {
-      const mockInsights = [{
-        date_start: '2024-01-01',
-        date_stop: '2024-01-01',
-        impressions: '1000',
-        clicks: '50',
-        spend: '100',
-        reach: '500',
-        frequency: '2.0',
-        cpm: '200',
-        cpc: '2.0',
-        ctr: '5.0',
-      }]
+      const mockInsights = [
+        {
+          date_start: '2024-01-01',
+          date_stop: '2024-01-01',
+          impressions: '1000',
+          clicks: '50',
+          spend: '100',
+          reach: '500',
+          frequency: '2.0',
+          cpm: '200',
+          cpc: '2.0',
+          ctr: '5.0',
+        },
+      ]
 
-      ;(mockConvexClient.mutation as any).mockRejectedValueOnce(
-        new Error('Convex error')
-      )
+      ;(mockConvexClient.mutation as any).mockRejectedValueOnce(new Error('Convex error'))
 
-      await expect(service.saveInsightsToConvex(mockInsights))
-        .rejects.toThrow('Convex error')
+      await expect(service.saveInsightsToConvex(mockInsights)).rejects.toThrow('Convex error')
     })
 
     it('should skip save when Convex client is not initialized', async () => {
@@ -139,19 +140,21 @@ describe('MetaApiService with Convex', () => {
       })
 
       const consoleSpy = vi.spyOn(console, 'warn')
-      
-      await serviceWithoutConvex.saveInsightsToConvex([{
-        date_start: '2024-01-01',
-        date_stop: '2024-01-01',
-        impressions: '1000',
-        clicks: '50',
-        spend: '100',
-        reach: '500',
-        frequency: '2.0',
-        cpm: '200',
-        cpc: '2.0',
-        ctr: '5.0',
-      }])
+
+      await serviceWithoutConvex.saveInsightsToConvex([
+        {
+          date_start: '2024-01-01',
+          date_stop: '2024-01-01',
+          impressions: '1000',
+          clicks: '50',
+          spend: '100',
+          reach: '500',
+          frequency: '2.0',
+          cpm: '200',
+          cpc: '2.0',
+          ctr: '5.0',
+        },
+      ])
 
       expect(consoleSpy).toHaveBeenCalledWith(
         'Convex client not initialized, skipping save to Convex'
@@ -187,14 +190,11 @@ describe('MetaApiService with Convex', () => {
         totalRecords: 500,
       })
 
-      expect(mockConvexClient.mutation).toHaveBeenCalledWith(
-        expect.any(Object),
-        {
-          accountId: 'test-account-id',
-          lastIncrementalSync: '2024-01-02T00:00:00Z',
-          totalRecords: 500,
-        }
-      )
+      expect(mockConvexClient.mutation).toHaveBeenCalledWith(expect.any(Object), {
+        accountId: 'test-account-id',
+        lastIncrementalSync: '2024-01-02T00:00:00Z',
+        totalRecords: 500,
+      })
     })
   })
 
@@ -211,30 +211,19 @@ describe('MetaApiService with Convex', () => {
               impressions: '1000',
               clicks: '50',
               spend: '100',
-              actions: [
-                { action_type: 'purchase', value: '5' }
-              ],
-              action_values: [
-                { action_type: 'purchase', value: '500' }
-              ],
-              purchase_roas: [
-                { value: '5.0', action_type: 'purchase' }
-              ],
-              cost_per_action_type: [
-                { action_type: 'purchase', value: '20' }
-              ],
-            }
+              actions: [{ action_type: 'purchase', value: '5' }],
+              action_values: [{ action_type: 'purchase', value: '500' }],
+              purchase_roas: [{ value: '5.0', action_type: 'purchase' }],
+              cost_per_action_type: [{ action_type: 'purchase', value: '20' }],
+            },
           ],
-          paging: {}
-        })
+          paging: {},
+        }),
       })
     })
 
     it('should fetch insights and save to Convex', async () => {
-      const insights = await service.getInsightsWithConvexSave(
-        '2024-01-01',
-        '2024-01-31'
-      )
+      const insights = await service.getInsightsWithConvexSave('2024-01-01', '2024-01-31')
 
       // データが取得されたか確認
       expect(insights).toHaveLength(1)
@@ -248,11 +237,11 @@ describe('MetaApiService with Convex', () => {
 
       // Convexに保存されたか確認
       expect(mockConvexClient.mutation).toHaveBeenCalledTimes(2)
-      
+
       // insights保存の確認
       const insightsSaveCall = (mockConvexClient.mutation as any).mock.calls[0]
       expect(insightsSaveCall[1].insights).toHaveLength(1)
-      
+
       // sync status更新の確認
       const statusSaveCall = (mockConvexClient.mutation as any).mock.calls[1]
       expect(statusSaveCall[1]).toMatchObject({
@@ -269,13 +258,13 @@ describe('MetaApiService with Convex', () => {
         ok: false,
         status: 400,
         json: async () => ({
-          error: { message: 'Invalid request' }
-        })
+          error: { message: 'Invalid request' },
+        }),
       })
 
-      await expect(
-        service.getInsightsWithConvexSave('2024-01-01', '2024-01-31')
-      ).rejects.toThrow('Invalid request')
+      await expect(service.getInsightsWithConvexSave('2024-01-01', '2024-01-31')).rejects.toThrow(
+        'Invalid request'
+      )
 
       // エラー時はConvexに保存されない
       expect(mockConvexClient.mutation).not.toHaveBeenCalled()

@@ -37,11 +37,11 @@ export function useAdFatigue(_accountId: string, _adId?: string) {
   // 注: Convexエラーを避けるため、現時点では無効化
   const calculateFatigue = null // useQuery(
   //   api.adFatigue.calculateAdvancedFatigueScore,
-  //   adId ? { 
-  //     accountId, 
+  //   adId ? {
+  //     accountId,
   //     adId,
   //     includeVideo: true,
-  //     includeInstagram: true 
+  //     includeInstagram: true
   //   } : undefined
   // )
 
@@ -70,10 +70,10 @@ export function useAdFatigue(_accountId: string, _adId?: string) {
           breakdown: {
             audience: 70,
             creative: 60,
-            algorithm: 65
+            algorithm: 65,
           },
           primaryIssue: 'audience' as const,
-          status: 'warning' as const
+          status: 'warning' as const,
         },
         metrics: {
           frequency: 3.2,
@@ -83,11 +83,12 @@ export function useAdFatigue(_accountId: string, _adId?: string) {
           reach: 50000,
           impressions: 160000,
           ctr: 1.2,
-          cpm: 1200
+          cpm: 1200,
         },
-        recommendedAction: 'オーディエンスへの露出頻度が高くなっています。新しいターゲティングの追加を検討してください。',
+        recommendedAction:
+          'オーディエンスへの露出頻度が高くなっています。新しいターゲティングの追加を検討してください。',
         dataRangeStart: '2024-01-01',
-        dataRangeEnd: '2024-01-21'
+        dataRangeEnd: '2024-01-21',
       }
 
       // TODO: 実際の保存処理を実装
@@ -103,11 +104,11 @@ export function useAdFatigue(_accountId: string, _adId?: string) {
   }
 
   return {
-    fatigueData: (calculateFatigue as unknown) as AdFatigueData | undefined,
+    fatigueData: calculateFatigue as unknown as AdFatigueData | undefined,
     fatigueStatus,
     isCalculating,
     error,
-    analyzeFatigue
+    analyzeFatigue,
   }
 }
 
@@ -142,16 +143,16 @@ export function useFatigueAnalysis(_accountId: string) {
     typeBreakdown: {
       audience: { count: 5, percentage: 45 },
       creative: { count: 3, percentage: 27 },
-      algorithm: { count: 3, percentage: 27 }
+      algorithm: { count: 3, percentage: 27 },
     },
     levelBreakdown: {
       critical: { count: 2, percentage: 18 },
       warning: { count: 4, percentage: 36 },
       caution: { count: 3, percentage: 27 },
-      healthy: { count: 2, percentage: 18 }
+      healthy: { count: 2, percentage: 18 },
     },
     criticalAds: [],
-    recommendedActions: [] as RecommendedAction[]
+    recommendedActions: [] as RecommendedAction[],
   }
 }
 
@@ -164,11 +165,11 @@ export function useFatigueAlerts(_accountId: string) {
 
   const dismissAlert = async (alertId: string) => {
     // アラートを非表示にする処理
-    setAlerts(alerts.filter(a => a._id !== alertId))
+    setAlerts(alerts.filter((a) => a._id !== alertId))
   }
 
   return {
     alerts,
-    dismissAlert
+    dismissAlert,
   }
 }

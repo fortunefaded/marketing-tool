@@ -20,9 +20,9 @@ interface UsePaginationReturn<T> {
   }
 }
 
-export function usePagination<T>({ 
-  data, 
-  itemsPerPage: initialItemsPerPage = 20 
+export function usePagination<T>({
+  data,
+  itemsPerPage: initialItemsPerPage = 20,
 }: UsePaginationProps<T>): UsePaginationReturn<T> {
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPageState] = useState(initialItemsPerPage)
@@ -43,13 +43,13 @@ export function usePagination<T>({
 
   const nextPage = () => {
     if (currentPage < totalPages) {
-      setCurrentPage(prev => prev + 1)
+      setCurrentPage((prev) => prev + 1)
     }
   }
 
   const previousPage = () => {
     if (currentPage > 1) {
-      setCurrentPage(prev => prev - 1)
+      setCurrentPage((prev) => prev - 1)
     }
   }
 
@@ -61,7 +61,7 @@ export function usePagination<T>({
   const pageInfo = {
     from: data.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1,
     to: Math.min(currentPage * itemsPerPage, data.length),
-    total: data.length
+    total: data.length,
   }
 
   return {
@@ -72,6 +72,6 @@ export function usePagination<T>({
     nextPage,
     previousPage,
     setItemsPerPage,
-    pageInfo
+    pageInfo,
   }
 }

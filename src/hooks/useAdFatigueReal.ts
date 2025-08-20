@@ -66,13 +66,13 @@ export function useAdFatigueReal(accountId: string, adId?: string) {
   // Meta Insightsデータから疲労度を計算
   const calculateFatigue = useQuery(
     api.adFatigueCalculator.calculateFatigueFromInsights,
-    adId ? { accountId, adId, lookbackDays: 21 } : "skip"
+    adId ? { accountId, adId, lookbackDays: 21 } : 'skip'
   ) as AdFatigueData | null | undefined
 
   // 保存された疲労度分析結果を取得
   const savedAnalysis = useQuery(
     api.adFatigueCalculator.getSavedFatigueAnalysis,
-    adId ? { accountId, adId } : "skip"
+    adId ? { accountId, adId } : 'skip'
   )
 
   // 疲労度分析結果の保存
@@ -98,9 +98,9 @@ export function useAdFatigueReal(accountId: string, adId?: string) {
           recommendedAction: savedAnalysis.recommendedAction,
           dataRange: {
             start: savedAnalysis.dataRangeStart,
-            end: savedAnalysis.dataRangeEnd
+            end: savedAnalysis.dataRangeEnd,
           },
-          analyzedAt: savedAnalysis.analyzedAt
+          analyzedAt: savedAnalysis.analyzedAt,
         })
         setError(null)
       }
@@ -127,7 +127,7 @@ export function useAdFatigueReal(accountId: string, adId?: string) {
     try {
       // Convexクエリは非同期ではないため、一度取得してから保存
       const result = calculateFatigue
-      
+
       if (!result) {
         throw new Error('分析するデータが見つかりません')
       }
@@ -136,7 +136,7 @@ export function useAdFatigueReal(accountId: string, adId?: string) {
       await saveFatigueAnalysis({
         accountId,
         adId: targetAdId,
-        analysis: result
+        analysis: result,
       })
 
       setFatigueData(result)
@@ -151,39 +151,30 @@ export function useAdFatigueReal(accountId: string, adId?: string) {
   }
 
   // 全広告の疲労度分析を取得
-  const allAdsAnalysis = useQuery(
-    api.adFatigueCalculator.getAllAdsFatigueAnalysis,
-    { accountId }
-  )
+  const allAdsAnalysis = useQuery(api.adFatigueCalculator.getAllAdsFatigueAnalysis, { accountId })
 
   return {
     fatigueData,
     isCalculating,
     error,
     analyzeFatigue,
-    allAdsAnalysis
+    allAdsAnalysis,
   }
 }
 
 // 疲労度トレンドの取得
 export function useFatigueTrends(adId: string, days: number = 30) {
-  const trends = useQuery(
-    api.adFatigueCalculator.getFatigueTrends,
-    adId ? { adId, days } : "skip"
-  )
+  const trends = useQuery(api.adFatigueCalculator.getFatigueTrends, adId ? { adId, days } : 'skip')
 
   return {
     trends: trends || [],
-    isLoading: trends === undefined
+    isLoading: trends === undefined,
   }
 }
 
 // 疲労度アラートの管理
 export function useFatigueAlerts(accountId: string) {
-  const activeAlerts = useQuery(
-    api.adFatigueCalculator.getActiveAlerts,
-    { accountId }
-  )
+  const activeAlerts = useQuery(api.adFatigueCalculator.getActiveAlerts, { accountId })
 
   const dismissAlert = useMutation(api.adFatigueCalculator.dismissAlert)
   const acknowledgeAlert = useMutation(api.adFatigueCalculator.acknowledgeAlert)
@@ -195,7 +186,7 @@ export function useFatigueAlerts(accountId: string) {
     },
     acknowledgeAlert: async (alertId: string, userId: string) => {
       await acknowledgeAlert({ alertId, userId })
-    }
+    },
   }
 }
 
@@ -203,7 +194,7 @@ export function useFatigueAlerts(accountId: string) {
 export function useBatchFatigueAnalysis(accountId: string) {
   const [progress, setProgress] = useState({ current: 0, total: 0 })
   const [isAnalyzing, setIsAnalyzing] = useState(false)
-  
+
   const analyzeAllAds = useMutation(api.adFatigueCalculator.batchAnalyzeFatigue)
 
   const startBatchAnalysis = async (adIds: string[]) => {
@@ -214,7 +205,7 @@ export function useBatchFatigueAnalysis(accountId: string) {
       const result = await analyzeAllAds({
         accountId,
         adIds,
-        lookbackDays: 21
+        lookbackDays: 21,
       })
 
       return result
@@ -229,6 +220,6 @@ export function useBatchFatigueAnalysis(accountId: string) {
   return {
     startBatchAnalysis,
     progress,
-    isAnalyzing
+    isAnalyzing,
   }
 }

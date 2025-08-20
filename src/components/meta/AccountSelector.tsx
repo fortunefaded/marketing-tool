@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react'
-import { 
-  ChevronDownIcon, 
-  PlusIcon, 
+import {
+  ChevronDownIcon,
+  PlusIcon,
   CheckIcon,
   TrashIcon,
-  UserCircleIcon
+  UserCircleIcon,
 } from '@heroicons/react/24/outline'
 import { MetaAccountManager } from '../../services/metaAccountManager'
 import { MetaAccount } from '../../types/meta-account'
@@ -16,7 +16,7 @@ interface AccountSelectorProps {
 
 export const AccountSelector: React.FC<AccountSelectorProps> = ({
   onAccountChange,
-  onAddAccount
+  onAddAccount,
 }) => {
   const [manager] = useState(() => MetaAccountManager.getInstance())
   const [accounts, setAccounts] = useState<MetaAccount[]>([])
@@ -30,10 +30,10 @@ export const AccountSelector: React.FC<AccountSelectorProps> = ({
   const loadAccounts = () => {
     const allAccounts = manager.getAccounts()
     const active = manager.getActiveAccount()
-    
+
     setAccounts(allAccounts)
     setActiveAccount(active)
-    
+
     if (onAccountChange) {
       onAccountChange(active)
     }
@@ -43,7 +43,7 @@ export const AccountSelector: React.FC<AccountSelectorProps> = ({
     manager.setActiveAccount(account.id)
     setActiveAccount(account)
     setShowDropdown(false)
-    
+
     if (onAccountChange) {
       onAccountChange(account)
     }
@@ -51,7 +51,7 @@ export const AccountSelector: React.FC<AccountSelectorProps> = ({
 
   const handleRemoveAccount = (accountId: string, e: React.MouseEvent) => {
     e.stopPropagation()
-    
+
     if (window.confirm('このアカウントを削除しますか？')) {
       manager.removeAccount(accountId)
       loadAccounts()
@@ -76,17 +76,11 @@ export const AccountSelector: React.FC<AccountSelectorProps> = ({
           <div className="text-left">
             {activeAccount ? (
               <>
-                <div className="text-sm font-medium text-gray-900">
-                  {activeAccount.name}
-                </div>
-                <div className="text-xs text-gray-500">
-                  {activeAccount.fullAccountId}
-                </div>
+                <div className="text-sm font-medium text-gray-900">{activeAccount.name}</div>
+                <div className="text-xs text-gray-500">{activeAccount.fullAccountId}</div>
               </>
             ) : (
-              <span className="text-sm text-gray-500">
-                アカウントを選択
-              </span>
+              <span className="text-sm text-gray-500">アカウントを選択</span>
             )}
           </div>
         </div>
@@ -104,12 +98,8 @@ export const AccountSelector: React.FC<AccountSelectorProps> = ({
               >
                 <div className="flex items-center flex-1">
                   <div className="flex-1">
-                    <div className="text-sm font-medium text-gray-900">
-                      {account.name}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {account.fullAccountId}
-                    </div>
+                    <div className="text-sm font-medium text-gray-900">{account.name}</div>
+                    <div className="text-xs text-gray-500">{account.fullAccountId}</div>
                   </div>
                   {activeAccount?.id === account.id && (
                     <CheckIcon className="h-5 w-5 text-green-500 ml-2" />

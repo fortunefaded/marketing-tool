@@ -6,10 +6,22 @@ import { ECForceOrder } from '../types/ecforce'
  */
 export class ECForceCSVParserV2 {
   private static readonly EXPECTED_HEADERS = [
-    '受注ID', '受注番号', '顧客番号', '購入URL', '購入オファー',
-    '定期受注番号', 'メールアドレス', '小計', '支払い合計', '受注日',
-    '購入商品（商品コード）', '広告URLグループ名', '広告主名',
-    '顧客購入回数', '定期ステータス', '定期回数'
+    '受注ID',
+    '受注番号',
+    '顧客番号',
+    '購入URL',
+    '購入オファー',
+    '定期受注番号',
+    'メールアドレス',
+    '小計',
+    '支払い合計',
+    '受注日',
+    '購入商品（商品コード）',
+    '広告URLグループ名',
+    '広告主名',
+    '顧客購入回数',
+    '定期ステータス',
+    '定期回数',
   ]
 
   /**
@@ -18,16 +30,16 @@ export class ECForceCSVParserV2 {
   static parse(csvText: string): ECForceOrder[] {
     // BOMを除去
     csvText = this.removeBOM(csvText)
-    
-    const lines = csvText.split(/\r?\n/).filter(line => line.trim())
-    
+
+    const lines = csvText.split(/\r?\n/).filter((line) => line.trim())
+
     if (lines.length < 2) {
       throw new Error('CSVファイルにデータが含まれていません')
     }
 
     // ヘッダー行を取得
     const headers = this.parseCSVLine(lines[0])
-    
+
     // ヘッダーの検証
     this.validateHeaders(headers)
 
@@ -38,9 +50,11 @@ export class ECForceCSVParserV2 {
     for (let i = 1; i < lines.length; i++) {
       try {
         const values = this.parseCSVLine(lines[i])
-        
+
         if (values.length !== headers.length) {
-          errors.push(`行 ${i + 1}: カラム数が一致しません (期待値: ${headers.length}, 実際: ${values.length})`)
+          errors.push(
+            `行 ${i + 1}: カラム数が一致しません (期待値: ${headers.length}, 実際: ${values.length})`
+          )
           continue
         }
 
@@ -62,7 +76,7 @@ export class ECForceCSVParserV2 {
    * BOMを除去
    */
   private static removeBOM(text: string): string {
-    if (text.charCodeAt(0) === 0xFEFF) {
+    if (text.charCodeAt(0) === 0xfeff) {
       return text.substring(1)
     }
     // UTF-8 BOM
@@ -76,10 +90,8 @@ export class ECForceCSVParserV2 {
    * ヘッダーの検証
    */
   private static validateHeaders(headers: string[]): void {
-    const missingHeaders = this.EXPECTED_HEADERS.filter(
-      header => !headers.includes(header)
-    )
-    
+    const missingHeaders = this.EXPECTED_HEADERS.filter((header) => !headers.includes(header))
+
     if (missingHeaders.length > 0) {
       throw new Error(`必要なヘッダーが不足しています: ${missingHeaders.join(', ')}`)
     }
@@ -111,7 +123,7 @@ export class ECForceCSVParserV2 {
           continue
         }
       }
-      
+
       if (char === ',' && !inQuotes) {
         // フィールドの区切り
         result.push(current.trim())
@@ -119,7 +131,7 @@ export class ECForceCSVParserV2 {
         i++
         continue
       }
-      
+
       current += char
       i++
     }
@@ -143,8 +155,8 @@ export class ECForceCSVParserV2 {
     const productsString = getValue('購入商品（商品コード）')
     const products = productsString
       .split(',')
-      .map(p => p.trim())
-      .filter(p => p)
+      .map((p) => p.trim())
+      .filter((p) => p)
 
     return {
       受注ID: getValue('受注ID'),
@@ -162,7 +174,7 @@ export class ECForceCSVParserV2 {
       広告主名: getValue('広告主名'),
       顧客購入回数: this.parseNumber(getValue('顧客購入回数')),
       定期ステータス: getValue('定期ステータス'),
-      定期回数: this.parseNumber(getValue('定期回数'))
+      定期回数: this.parseNumber(getValue('定期回数')),
     }
   }
 
@@ -207,16 +219,16 @@ export class ECForceCSVParserV2 {
   private static readFileAsText(file: File, encoding: string): Promise<string> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
-      
+
       reader.onload = (event) => {
         const text = event.target?.result as string
         resolve(text)
       }
-      
+
       reader.onerror = () => {
         reject(new Error(`${encoding}での読み込みに失敗しました`))
       }
-      
+
       reader.readAsText(file, encoding)
     })
   }
@@ -229,7 +241,7 @@ export class ECForceCSVParserV2 {
     if (text.includes('�')) {
       return false
     }
-    
+
     // 必須ヘッダーの存在チェック
     const firstLine = text.split(/\r?\n/)[0]
     return firstLine.includes('受注ID') && firstLine.includes('受注番号')

@@ -3,7 +3,12 @@ import { useQuery } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import { useVibeLogger } from '../hooks/useVibeLogger'
 import MetricCard, { MetricData } from '../components/MetricCard'
-import { CalendarIcon, ChevronDownIcon, ChartBarIcon, ArrowRightIcon } from '@heroicons/react/24/outline'
+import {
+  CalendarIcon,
+  ChevronDownIcon,
+  ChartBarIcon,
+  ArrowRightIcon,
+} from '@heroicons/react/24/outline'
 import { Link } from 'react-router-dom'
 
 export default function Dashboard() {
@@ -217,7 +222,9 @@ export default function Dashboard() {
                 <ChartBarIcon className="h-10 w-10" />
                 <div>
                   <h3 className="text-lg font-bold">Meta広告ダッシュボード</h3>
-                  <p className="text-sm text-blue-100">リアルタイム分析・比較分析・アラート機能を確認</p>
+                  <p className="text-sm text-blue-100">
+                    リアルタイム分析・比較分析・アラート機能を確認
+                  </p>
                 </div>
               </div>
               <ArrowRightIcon className="h-6 w-6" />

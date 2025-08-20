@@ -119,9 +119,11 @@ function App() {
   useEffect(() => {
     // 開発環境でテストアカウントをセットアップ
     if (import.meta.env.DEV) {
-      setupTestAccount().then((account) => {
-        console.log('Test account setup completed:', account)
-      }).catch(console.error)
+      setupTestAccount()
+        .then((account) => {
+          console.log('Test account setup completed:', account)
+        })
+        .catch(console.error)
     }
   }, [])
 

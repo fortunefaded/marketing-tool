@@ -6,7 +6,7 @@ import {
   MetaCampaignData,
   MetaAdSetData,
   MetaAdData,
-  MetaInsightsData
+  MetaInsightsData,
 } from '../metaApiService'
 
 // Fetch APIのモック
@@ -16,7 +16,7 @@ describe('MetaApiService', () => {
   const mockConfig: MetaApiConfig = {
     accessToken: 'test-access-token',
     accountId: 'test-account-id',
-    apiVersion: 'v18.0'
+    apiVersion: 'v18.0',
   }
 
   let service: MetaApiService
@@ -39,7 +39,7 @@ describe('MetaApiService', () => {
     it('デフォルトのAPIバージョンを使用する', () => {
       const serviceWithoutVersion = new MetaApiService({
         accessToken: 'test-token',
-        accountId: 'test-account'
+        accountId: 'test-account',
       })
       expect(serviceWithoutVersion.getConfig().apiVersion).toBe('v18.0')
     })
@@ -51,24 +51,24 @@ describe('MetaApiService', () => {
         data: {
           is_valid: true,
           app_id: '123456789',
-          user_id: '987654321'
-        }
+          user_id: '987654321',
+        },
       }
 
       ;(global.fetch as any).mockResolvedValueOnce({
         ok: true,
-        json: async () => mockResponse
+        json: async () => mockResponse,
       })
 
       const result = await service.validateAccessToken()
-      
+
       expect(result).toBe(true)
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringContaining('/debug_token'),
         expect.objectContaining({
           headers: {
-            'Authorization': `Bearer ${mockConfig.accessToken}`
-          }
+            Authorization: `Bearer ${mockConfig.accessToken}`,
+          },
         })
       )
     })
@@ -76,13 +76,13 @@ describe('MetaApiService', () => {
     it('無効なトークンの場合はfalseを返す', async () => {
       const mockResponse = {
         data: {
-          is_valid: false
-        }
+          is_valid: false,
+        },
       }
 
       ;(global.fetch as any).mockResolvedValueOnce({
         ok: true,
-        json: async () => mockResponse
+        json: async () => mockResponse,
       })
 
       const result = await service.validateAccessToken()
@@ -107,7 +107,7 @@ describe('MetaApiService', () => {
           dailyBudget: 10000,
           lifetimeBudget: undefined,
           created_time: '2024-01-01T00:00:00Z',
-          updated_time: '2024-01-02T00:00:00Z'
+          updated_time: '2024-01-02T00:00:00Z',
         },
         {
           id: 'campaign-2',
@@ -117,24 +117,24 @@ describe('MetaApiService', () => {
           dailyBudget: 5000,
           lifetimeBudget: undefined,
           created_time: '2024-01-01T00:00:00Z',
-          updated_time: '2024-01-02T00:00:00Z'
-        }
+          updated_time: '2024-01-02T00:00:00Z',
+        },
       ]
 
       ;(global.fetch as any).mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ data: mockCampaigns })
+        json: async () => ({ data: mockCampaigns }),
       })
 
       const result = await service.getCampaigns()
-      
+
       expect(result).toEqual(mockCampaigns)
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringContaining(`/act_${mockConfig.accountId}/campaigns`),
         expect.objectContaining({
           headers: {
-            'Authorization': `Bearer ${mockConfig.accessToken}`
-          }
+            Authorization: `Bearer ${mockConfig.accessToken}`,
+          },
         })
       )
     })
@@ -142,11 +142,11 @@ describe('MetaApiService', () => {
     it('キャンペーンIDでフィルタリングできる', async () => {
       ;(global.fetch as any).mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ data: [] })
+        json: async () => ({ data: [] }),
       })
 
       await service.getCampaigns({ campaignIds: ['campaign-1', 'campaign-2'] })
-      
+
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringContaining('filtering'),
         expect.any(Object)
@@ -156,16 +156,16 @@ describe('MetaApiService', () => {
     it('日付範囲でフィルタリングできる', async () => {
       ;(global.fetch as any).mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ data: [] })
+        json: async () => ({ data: [] }),
       })
 
       const dateRange = {
         since: '2024-01-01',
-        until: '2024-01-31'
+        until: '2024-01-31',
       }
 
       await service.getCampaigns({ dateRange })
-      
+
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringContaining('time_range'),
         expect.any(Object)
@@ -187,17 +187,17 @@ describe('MetaApiService', () => {
           billing_event: 'IMPRESSIONS',
           bid_amount: '1000',
           created_time: '2024-01-01T00:00:00Z',
-          updated_time: '2024-01-02T00:00:00Z'
-        }
+          updated_time: '2024-01-02T00:00:00Z',
+        },
       ]
 
       ;(global.fetch as any).mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ data: mockAdSets })
+        json: async () => ({ data: mockAdSets }),
       })
 
       const result = await service.getAdSets()
-      
+
       expect(result).toEqual(mockAdSets)
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringContaining(`/act_${mockConfig.accountId}/adsets`),
@@ -220,20 +220,20 @@ describe('MetaApiService', () => {
             name: 'Test Creative',
             title: 'Ad Title',
             body: 'Ad Body',
-            image_url: 'https://example.com/image.jpg'
+            image_url: 'https://example.com/image.jpg',
           },
           created_time: '2024-01-01T00:00:00Z',
-          updated_time: '2024-01-02T00:00:00Z'
-        }
+          updated_time: '2024-01-02T00:00:00Z',
+        },
       ]
 
       ;(global.fetch as any).mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ data: mockAds })
+        json: async () => ({ data: mockAds }),
       })
 
       const result = await service.getAds()
-      
+
       expect(result).toEqual(mockAds)
     })
   })
@@ -255,23 +255,23 @@ describe('MetaApiService', () => {
           conversions: '50',
           conversion_value: '50000',
           cost_per_conversion: '100',
-          roas: '10'
-        }
+          roas: '10',
+        },
       ]
 
       ;(global.fetch as any).mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ data: mockInsights })
+        json: async () => ({ data: mockInsights }),
       })
 
       const result = await service.getInsights({
         level: 'campaign',
         dateRange: {
           since: '2024-01-01',
-          until: '2024-01-01'
-        }
+          until: '2024-01-01',
+        },
       })
-      
+
       expect(result).toEqual(mockInsights)
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringContaining('/insights'),
@@ -282,33 +282,33 @@ describe('MetaApiService', () => {
     it('複数のメトリクスを指定できる', async () => {
       ;(global.fetch as any).mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ data: [] })
+        json: async () => ({ data: [] }),
       })
 
       const metrics = ['impressions', 'clicks', 'spend', 'conversions']
-      
+
       await service.getInsights({
         level: 'ad',
         metrics,
         dateRange: {
           since: '2024-01-01',
-          until: '2024-01-31'
-        }
+          until: '2024-01-31',
+        },
       })
-      
+
       const fetchCall = (global.fetch as any).mock.calls[0]
       expect(fetchCall[0]).toContain('fields=impressions%2Cclicks%2Cspend%2Cconversions')
       expect(fetchCall[1]).toMatchObject({
         headers: {
-          'Authorization': `Bearer ${mockConfig.accessToken}`
-        }
+          Authorization: `Bearer ${mockConfig.accessToken}`,
+        },
       })
     })
 
     it('ブレークダウンを指定できる', async () => {
       ;(global.fetch as any).mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ data: [] })
+        json: async () => ({ data: [] }),
       })
 
       await service.getInsights({
@@ -316,16 +316,16 @@ describe('MetaApiService', () => {
         breakdowns: ['age', 'gender'],
         dateRange: {
           since: '2024-01-01',
-          until: '2024-01-31'
-        }
+          until: '2024-01-31',
+        },
       })
-      
+
       const fetchCall = (global.fetch as any).mock.calls[0]
       expect(fetchCall[0]).toContain('breakdowns=age%2Cgender')
       expect(fetchCall[1]).toMatchObject({
         headers: {
-          'Authorization': `Bearer ${mockConfig.accessToken}`
-        }
+          Authorization: `Bearer ${mockConfig.accessToken}`,
+        },
       })
     })
   })
@@ -339,9 +339,9 @@ describe('MetaApiService', () => {
           error: {
             message: 'Invalid OAuth access token',
             type: 'OAuthException',
-            code: 190
-          }
-        })
+            code: 190,
+          },
+        }),
       })
 
       try {
@@ -350,7 +350,7 @@ describe('MetaApiService', () => {
         expect(error).toBeInstanceOf(MetaApiError)
         expect(error).toMatchObject({
           code: 'AUTH_ERROR',
-          statusCode: 401
+          statusCode: 401,
         })
       }
     })
@@ -363,9 +363,9 @@ describe('MetaApiService', () => {
           error: {
             message: 'Too many requests',
             type: 'OAuthException',
-            code: 17
-          }
-        })
+            code: 17,
+          },
+        }),
       })
 
       try {
@@ -374,7 +374,7 @@ describe('MetaApiService', () => {
         expect(error).toBeInstanceOf(MetaApiError)
         expect(error).toMatchObject({
           code: 'RATE_LIMIT',
-          statusCode: 429
+          statusCode: 429,
         })
       }
     })
@@ -384,7 +384,7 @@ describe('MetaApiService', () => {
 
       await expect(service.getCampaigns()).rejects.toThrow(MetaApiError)
       await expect(service.getCampaigns()).rejects.toMatchObject({
-        code: 'NETWORK_ERROR'
+        code: 'NETWORK_ERROR',
       })
     })
   })
@@ -396,10 +396,10 @@ describe('MetaApiService', () => {
         paging: {
           cursors: {
             after: 'cursor-123',
-            before: 'cursor-000'
+            before: 'cursor-000',
           },
-          next: 'https://graph.facebook.com/v18.0/...'
-        }
+          next: 'https://graph.facebook.com/v18.0/...',
+        },
       }
 
       const secondPageData = {
@@ -407,27 +407,27 @@ describe('MetaApiService', () => {
         paging: {
           cursors: {
             after: 'cursor-456',
-            before: 'cursor-123'
-          }
-        }
+            before: 'cursor-123',
+          },
+        },
       }
 
       ;(global.fetch as any)
         .mockResolvedValueOnce({
           ok: true,
-          json: async () => firstPageData
+          json: async () => firstPageData,
         })
         .mockResolvedValueOnce({
           ok: true,
-          json: async () => secondPageData
+          json: async () => secondPageData,
         })
 
       const result1 = await service.getCampaigns({ limit: 1 })
       expect(result1).toHaveLength(1)
 
-      const result2 = await service.getCampaigns({ 
-        limit: 1, 
-        after: firstPageData.paging.cursors.after 
+      const result2 = await service.getCampaigns({
+        limit: 1,
+        after: firstPageData.paging.cursors.after,
       })
       expect(result2).toHaveLength(1)
       expect(result2[0].id).toBe('2')
@@ -439,34 +439,34 @@ describe('MetaApiService', () => {
       const batchResponse = [
         {
           code: 200,
-          body: JSON.stringify({ data: [{ id: '1', name: 'Campaign 1' }] })
+          body: JSON.stringify({ data: [{ id: '1', name: 'Campaign 1' }] }),
         },
         {
           code: 200,
-          body: JSON.stringify({ data: [{ id: 'adset-1', name: 'AdSet 1' }] })
-        }
+          body: JSON.stringify({ data: [{ id: 'adset-1', name: 'AdSet 1' }] }),
+        },
       ]
 
       ;(global.fetch as any).mockResolvedValueOnce({
         ok: true,
-        json: async () => batchResponse
+        json: async () => batchResponse,
       })
 
       const requests = [
         { method: 'GET', relative_url: 'me/campaigns' },
-        { method: 'GET', relative_url: 'me/adsets' }
+        { method: 'GET', relative_url: 'me/adsets' },
       ]
 
       const result = await service.batch(requests)
-      
+
       expect(result).toEqual(batchResponse)
       const fetchCall = (global.fetch as any).mock.calls[0]
       expect(fetchCall[0]).toContain('https://graph.facebook.com/v18.0/')
       expect(fetchCall[1]).toMatchObject({
         method: 'POST',
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
-        }
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
       })
       expect(fetchCall[1].body).toBeInstanceOf(URLSearchParams)
     })
@@ -481,16 +481,18 @@ describe('MetaApiService', () => {
         objective: 'CONVERSIONS',
         daily_budget: '10000',
         insights: {
-          data: [{
-            impressions: '10000',
-            clicks: '500',
-            spend: '5000'
-          }]
-        }
+          data: [
+            {
+              impressions: '10000',
+              clicks: '500',
+              spend: '5000',
+            },
+          ],
+        },
       }
 
       const transformed = service.transformCampaignData(apiResponse)
-      
+
       expect(transformed).toMatchObject({
         id: '123',
         name: 'Test Campaign',
@@ -498,8 +500,8 @@ describe('MetaApiService', () => {
         metrics: {
           impressions: 10000,
           clicks: 500,
-          spend: 5000
-        }
+          spend: 5000,
+        },
       })
     })
 
@@ -509,17 +511,17 @@ describe('MetaApiService', () => {
         clicks: '500',
         spend: '5000.50',
         ctr: '5.0',
-        frequency: '1.25'
+        frequency: '1.25',
       }
 
       const transformed = service.transformNumericFields(data)
-      
+
       expect(transformed).toEqual({
         impressions: 10000,
         clicks: 500,
-        spend: 5000.50,
+        spend: 5000.5,
         ctr: 5.0,
-        frequency: 1.25
+        frequency: 1.25,
       })
     })
   })

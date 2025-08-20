@@ -55,13 +55,17 @@ class ScheduledReportService {
           nextRun: new Date(report.nextRun),
           createdAt: new Date(report.createdAt),
           updatedAt: new Date(report.updatedAt),
-          filters: report.filters ? {
-            ...report.filters,
-            dateRange: report.filters.dateRange ? {
-              start: new Date(report.filters.dateRange.start),
-              end: new Date(report.filters.dateRange.end)
-            } : undefined
-          } : undefined
+          filters: report.filters
+            ? {
+                ...report.filters,
+                dateRange: report.filters.dateRange
+                  ? {
+                      start: new Date(report.filters.dateRange.start),
+                      end: new Date(report.filters.dateRange.end),
+                    }
+                  : undefined,
+              }
+            : undefined,
         }))
       } catch (error) {
         console.error('Failed to load scheduled reports:', error)
@@ -89,10 +93,10 @@ class ScheduledReportService {
   // レポートの実行チェック
   private async checkAndRunReports() {
     const now = new Date()
-    
+
     for (const report of this.reports) {
       if (!report.isActive) continue
-      
+
       if (now >= report.nextRun) {
         await this.runReport(report.id)
       }
@@ -103,7 +107,7 @@ class ScheduledReportService {
   private calculateNextRun(report: ScheduledReport): Date {
     const now = new Date()
     const [hours, minutes] = report.schedule.time.split(':').map(Number)
-    
+
     let nextRun = new Date()
     nextRun.setHours(hours, minutes, 0, 0)
 
@@ -113,7 +117,7 @@ class ScheduledReportService {
           nextRun.setDate(nextRun.getDate() + 1)
         }
         break
-        
+
       case 'weekly': {
         const targetDay = report.schedule.dayOfWeek || 1 // デフォルトは月曜日
         let daysUntilTarget = (targetDay - nextRun.getDay() + 7) % 7
@@ -123,7 +127,7 @@ class ScheduledReportService {
         nextRun.setDate(nextRun.getDate() + daysUntilTarget)
         break
       }
-        
+
       case 'monthly': {
         const targetDate = report.schedule.dayOfMonth || 1
         nextRun.setDate(targetDate)
@@ -138,30 +142,32 @@ class ScheduledReportService {
   }
 
   // レポートの作成
-  createReport(report: Omit<ScheduledReport, 'id' | 'createdAt' | 'updatedAt' | 'nextRun'>): ScheduledReport {
+  createReport(
+    report: Omit<ScheduledReport, 'id' | 'createdAt' | 'updatedAt' | 'nextRun'>
+  ): ScheduledReport {
     const newReport: ScheduledReport = {
       ...report,
       id: `report-${Date.now()}`,
       createdAt: new Date(),
       updatedAt: new Date(),
-      nextRun: this.calculateNextRun(report as ScheduledReport)
+      nextRun: this.calculateNextRun(report as ScheduledReport),
     }
 
     this.reports.push(newReport)
     this.saveReports()
-    
+
     return newReport
   }
 
   // レポートの更新
   updateReport(id: string, updates: Partial<ScheduledReport>): ScheduledReport | null {
-    const index = this.reports.findIndex(r => r.id === id)
+    const index = this.reports.findIndex((r) => r.id === id)
     if (index === -1) return null
 
     const updatedReport = {
       ...this.reports[index],
       ...updates,
-      updatedAt: new Date()
+      updatedAt: new Date(),
     }
 
     // スケジュールが変更された場合は次回実行時刻を再計算
@@ -171,36 +177,36 @@ class ScheduledReportService {
 
     this.reports[index] = updatedReport
     this.saveReports()
-    
+
     return updatedReport
   }
 
   // レポートの削除
   deleteReport(id: string): boolean {
-    const index = this.reports.findIndex(r => r.id === id)
+    const index = this.reports.findIndex((r) => r.id === id)
     if (index === -1) return false
 
     this.reports.splice(index, 1)
     this.saveReports()
-    
+
     return true
   }
 
   // レポートの実行
   async runReport(id: string): Promise<ReportGenerationResult> {
-    const report = this.reports.find(r => r.id === id)
+    const report = this.reports.find((r) => r.id === id)
     if (!report) {
       return {
         success: false,
         error: 'Report not found',
-        generatedAt: new Date()
+        generatedAt: new Date(),
       }
     }
 
     try {
       // ダミーのレポート生成（実際の実装では適切なデータ取得とエクスポートを行う）
       const result = await this.generateReport(report)
-      
+
       // 実行履歴を更新
       report.lastRun = new Date()
       report.nextRun = this.calculateNextRun(report)
@@ -216,7 +222,7 @@ class ScheduledReportService {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
-        generatedAt: new Date()
+        generatedAt: new Date(),
       }
     }
   }
@@ -227,17 +233,17 @@ class ScheduledReportService {
       // ここで実際のデータ取得とレポート生成を行う
       // 今回はシミュレーション
       const filePath = `/reports/${report.name}_${new Date().toISOString()}.${report.format}`
-      
+
       return {
         success: true,
         filePath,
-        generatedAt: new Date()
+        generatedAt: new Date(),
       }
     } catch (error) {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to generate report',
-        generatedAt: new Date()
+        generatedAt: new Date(),
       }
     }
   }
@@ -246,7 +252,7 @@ class ScheduledReportService {
   private async sendReportEmail(report: ScheduledReport, filePath: string): Promise<void> {
     console.log(`Sending report "${report.name}" to:`, report.recipients)
     console.log(`Report file: ${filePath}`)
-    
+
     // 実際の実装では、ここでメールAPIを呼び出す
     // 例: SendGrid, AWS SES, nodemailer など
   }
@@ -258,12 +264,12 @@ class ScheduledReportService {
 
   // レポートの取得
   getReport(id: string): ScheduledReport | undefined {
-    return this.reports.find(r => r.id === id)
+    return this.reports.find((r) => r.id === id)
   }
 
   // アクティブなレポートの取得
   getActiveReports(): ScheduledReport[] {
-    return this.reports.filter(r => r.isActive)
+    return this.reports.filter((r) => r.isActive)
   }
 
   // クリーンアップ
@@ -288,8 +294,8 @@ export const reportTemplates = {
     includeSections: ['sales', 'customers', 'top-products'],
     schedule: {
       time: '09:00',
-      timezone: 'Asia/Tokyo'
-    }
+      timezone: 'Asia/Tokyo',
+    },
   },
   weeklyAnalysis: {
     name: '週次分析レポート',
@@ -300,8 +306,8 @@ export const reportTemplates = {
     schedule: {
       time: '10:00',
       dayOfWeek: 1, // 月曜日
-      timezone: 'Asia/Tokyo'
-    }
+      timezone: 'Asia/Tokyo',
+    },
   },
   monthlyKPI: {
     name: '月次KPIレポート',
@@ -312,7 +318,7 @@ export const reportTemplates = {
     schedule: {
       time: '09:30',
       dayOfMonth: 1,
-      timezone: 'Asia/Tokyo'
-    }
-  }
+      timezone: 'Asia/Tokyo',
+    },
+  },
 }

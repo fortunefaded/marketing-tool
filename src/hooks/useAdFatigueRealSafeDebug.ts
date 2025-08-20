@@ -84,10 +84,10 @@ export function useAdFatigueRealSafeDebug(accountId: string, adId?: string) {
           breakdown: {
             audience: 70,
             creative: 60,
-            algorithm: 65
+            algorithm: 65,
           },
           primaryIssue: 'audience',
-          status: 'warning'
+          status: 'warning',
         },
         metrics: {
           frequency: 3.2,
@@ -99,14 +99,15 @@ export function useAdFatigueRealSafeDebug(accountId: string, adId?: string) {
           ctr: 1.2,
           cpm: 1200,
           conversions: 100,
-          daysActive: 5
+          daysActive: 5,
         },
-        recommendedAction: 'オーディエンスへの露出頻度が高くなっています。新しいターゲティングの追加を検討してください。',
+        recommendedAction:
+          'オーディエンスへの露出頻度が高くなっています。新しいターゲティングの追加を検討してください。',
         dataRange: {
           start: '2024-01-01',
-          end: '2024-01-05'
+          end: '2024-01-05',
         },
-        analyzedAt: new Date().toISOString()
+        analyzedAt: new Date().toISOString(),
       }
 
       setFatigueData(demoResult)
@@ -125,6 +126,6 @@ export function useAdFatigueRealSafeDebug(accountId: string, adId?: string) {
     isCalculating,
     error,
     analyzeFatigue,
-    allAdsAnalysis: []
+    allAdsAnalysis: [],
   }
 }

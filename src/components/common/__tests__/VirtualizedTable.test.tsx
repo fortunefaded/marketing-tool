@@ -11,33 +11,28 @@ import { VirtualizedTable } from '../VirtualizedTable'
 }
 
 describe('VirtualizedTable', () => {
-  const generateTestData = (count: number) => 
+  const generateTestData = (count: number) =>
     Array.from({ length: count }, (_, i) => ({
       id: i + 1,
       name: `Item ${i + 1}`,
-      value: Math.floor(Math.random() * 1000)
+      value: Math.floor(Math.random() * 1000),
     }))
 
   const columns = [
     { key: 'id', header: 'ID', width: 100 },
     { key: 'name', header: '名前' },
-    { 
-      key: 'value', 
+    {
+      key: 'value',
       header: '値',
-      render: (item: any) => `¥${item.value.toLocaleString()}`
-    }
+      render: (item: any) => `¥${item.value.toLocaleString()}`,
+    },
   ]
 
   it('基本的なテーブルを表示する', () => {
     const data = generateTestData(10)
-    
+
     render(
-      <VirtualizedTable
-        data={data}
-        columns={columns}
-        getRowKey={(item) => item.id}
-        height={400}
-      />
+      <VirtualizedTable data={data} columns={columns} getRowKey={(item) => item.id} height={400} />
     )
 
     // ヘッダーが表示される
@@ -51,14 +46,9 @@ describe('VirtualizedTable', () => {
 
   it('カスタムレンダラーが機能する', () => {
     const data = [{ id: 1, name: 'Test', value: 1000 }]
-    
+
     render(
-      <VirtualizedTable
-        data={data}
-        columns={columns}
-        getRowKey={(item) => item.id}
-        height={400}
-      />
+      <VirtualizedTable data={data} columns={columns} getRowKey={(item) => item.id} height={400} />
     )
 
     expect(screen.getByText('¥1,000')).toBeInTheDocument()
@@ -66,14 +56,9 @@ describe('VirtualizedTable', () => {
 
   it('行数情報を表示する', () => {
     const data = generateTestData(100)
-    
+
     render(
-      <VirtualizedTable
-        data={data}
-        columns={columns}
-        getRowKey={(item) => item.id}
-        height={400}
-      />
+      <VirtualizedTable data={data} columns={columns} getRowKey={(item) => item.id} height={400} />
     )
 
     // 初期表示時の行数情報
@@ -83,7 +68,7 @@ describe('VirtualizedTable', () => {
 
   it('スクロールで表示範囲が更新される', async () => {
     const data = generateTestData(1000)
-    
+
     const { container } = render(
       <VirtualizedTable
         data={data}
@@ -113,7 +98,7 @@ describe('VirtualizedTable', () => {
   it('行クリックイベントが動作する', () => {
     const data = generateTestData(10)
     const handleClick = jest.fn()
-    
+
     render(
       <VirtualizedTable
         data={data}
@@ -127,7 +112,7 @@ describe('VirtualizedTable', () => {
     // 行をクリック
     const row = screen.getByText('Item 1').closest('div[class*="flex border-b"]')
     expect(row).toHaveClass('cursor-pointer')
-    
+
     fireEvent.click(row!)
     expect(handleClick).toHaveBeenCalledWith(data[0])
   })
@@ -147,14 +132,9 @@ describe('VirtualizedTable', () => {
 
   it('列幅が正しく適用される', () => {
     const data = generateTestData(5)
-    
+
     render(
-      <VirtualizedTable
-        data={data}
-        columns={columns}
-        getRowKey={(item) => item.id}
-        height={400}
-      />
+      <VirtualizedTable data={data} columns={columns} getRowKey={(item) => item.id} height={400} />
     )
 
     // ID列の幅が100pxに設定されている
@@ -165,7 +145,7 @@ describe('VirtualizedTable', () => {
   it('大量データでもパフォーマンスが維持される', () => {
     const largeData = generateTestData(10000)
     const startTime = performance.now()
-    
+
     render(
       <VirtualizedTable
         data={largeData}
@@ -176,10 +156,10 @@ describe('VirtualizedTable', () => {
     )
 
     const renderTime = performance.now() - startTime
-    
+
     // レンダリング時間が妥当な範囲内（1秒以内）
     expect(renderTime).toBeLessThan(1000)
-    
+
     // 全てのデータが描画されていない（仮想化されている）
     const renderedRows = screen.queryAllByText(/Item \d+/)
     expect(renderedRows.length).toBeLessThan(50) // 表示されている行数は限定的
@@ -188,7 +168,7 @@ describe('VirtualizedTable', () => {
   it('カスタム行の高さが適用される', () => {
     const data = generateTestData(10)
     const customRowHeight = 80
-    
+
     render(
       <VirtualizedTable
         data={data}

@@ -1,6 +1,6 @@
 /**
  * Meta API統合テストスクリプト
- * 
+ *
  * 使用方法:
  * 1. .env.localに実際のMeta API認証情報を設定
  * 2. npm run test:integration を実行
@@ -60,22 +60,22 @@ class MetaAPIIntegrationTester {
 
     // 基本的な接続テスト
     await this.testConnection()
-    
+
     // アカウント情報取得
     await this.testGetAccount()
-    
+
     // キャンペーン一覧取得
     await this.testGetCampaigns()
-    
+
     // インサイトデータ取得
     await this.testGetInsights()
-    
+
     // エラーハンドリング
     await this.testErrorHandling()
-    
+
     // レート制限テスト
     await this.testRateLimiting()
-    
+
     // トークン検証
     await this.testTokenValidation()
 
@@ -118,7 +118,12 @@ class MetaAPIIntegrationTester {
       if (!config || !config.accountId) {
         throw new Error('アカウント設定が無効です')
       }
-      const account = { id: config.accountId, name: 'Test Account', currency: 'JPY', timezone_name: 'Asia/Tokyo' }
+      const account = {
+        id: config.accountId,
+        name: 'Test Account',
+        currency: 'JPY',
+        timezone_name: 'Asia/Tokyo',
+      }
       if (!account.id) {
         throw new Error('アカウントIDが取得できません')
       }
@@ -132,7 +137,7 @@ class MetaAPIIntegrationTester {
     await this.runTest('キャンペーン一覧取得', async () => {
       const campaigns = await this.client.getCampaigns()
       log.info(`取得したキャンペーン数: ${campaigns.length}`)
-      
+
       if (campaigns.length > 0) {
         const campaign = campaigns[0]
         log.info(`サンプル: ${campaign.name} (${campaign.status})`)
@@ -152,7 +157,7 @@ class MetaAPIIntegrationTester {
 
       const campaignId = campaigns[0].id
       const insights = await this.client.getCampaignInsights(campaignId)
-      
+
       if (insights && insights.data && insights.data.length > 0) {
         const data = insights.data[0]
         log.info(`インプレッション: ${data.impressions || 0}`)
@@ -188,15 +193,15 @@ class MetaAPIIntegrationTester {
   private async testRateLimiting() {
     await this.runTest('レート制限テスト', async () => {
       // 5回連続でAPIを呼び出し
-      const promises = Array(5).fill(null).map(() => 
-        this.client.getCampaigns()
-      )
-      
+      const promises = Array(5)
+        .fill(null)
+        .map(() => this.client.getCampaigns())
+
       const results = await Promise.allSettled(promises)
-      const successful = results.filter(r => r.status === 'fulfilled').length
-      
+      const successful = results.filter((r) => r.status === 'fulfilled').length
+
       log.info(`${successful}/5 リクエストが成功しました`)
-      
+
       // レート制限情報を確認
       const rateLimitStatus = this.client['getRateLimitStatus']()
       log.info(`レート制限状態: ${JSON.stringify(rateLimitStatus)}`)
@@ -209,17 +214,17 @@ class MetaAPIIntegrationTester {
       if (!isValid) {
         throw new Error('トークンが無効です')
       }
-      
+
       const tokenInfo = await this.tokenManager.getTokenInfo()
       log.info(`トークンタイプ: ${tokenInfo.type || 'unknown'}`)
-      
+
       if (tokenInfo.expiresAt) {
         const remainingDays = Math.floor(
           (tokenInfo.expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
         )
         log.info(`有効期限まで: ${remainingDays}日`)
       }
-      
+
       if (tokenInfo.scopes) {
         log.info(`権限: ${tokenInfo.scopes.join(', ')}`)
       }
@@ -231,8 +236,8 @@ class MetaAPIIntegrationTester {
     log.info('テスト結果サマリー')
     console.log('='.repeat(50))
 
-    const passed = this.results.filter(r => r.status === 'passed').length
-    const failed = this.results.filter(r => r.status === 'failed').length
+    const passed = this.results.filter((r) => r.status === 'passed').length
+    const failed = this.results.filter((r) => r.status === 'failed').length
     const total = this.results.length
 
     console.log(`合計: ${total}`)
@@ -242,8 +247,8 @@ class MetaAPIIntegrationTester {
     if (failed > 0) {
       console.log('\n失敗したテスト:')
       this.results
-        .filter(r => r.status === 'failed')
-        .forEach(r => {
+        .filter((r) => r.status === 'failed')
+        .forEach((r) => {
           console.log(`  - ${r.name}: ${r.message}`)
         })
     }
@@ -259,7 +264,9 @@ async function main() {
     // モックデータモードチェック
     if (import.meta.env.VITE_USE_MOCK_DATA === 'true') {
       log.warn('VITE_USE_MOCK_DATA=true が設定されています')
-      log.warn('実際のAPIをテストするには、.env.localで VITE_USE_MOCK_DATA=false を設定してください')
+      log.warn(
+        '実際のAPIをテストするには、.env.localで VITE_USE_MOCK_DATA=false を設定してください'
+      )
       process.exit(1)
     }
 

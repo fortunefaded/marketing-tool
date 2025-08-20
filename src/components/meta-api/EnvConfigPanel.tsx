@@ -56,7 +56,7 @@ export function EnvConfigPanel() {
 
     // ローカルストレージに保存
     localStorage.setItem('meta_api_config', JSON.stringify(config))
-    
+
     // アクセストークンは別途暗号化して保存（実際にはより安全な方法を使用すべき）
     if (config.accessToken) {
       localStorage.setItem('meta_access_token', config.accessToken)
@@ -64,15 +64,15 @@ export function EnvConfigPanel() {
 
     setIsSaved(true)
     setError('')
-    
+
     // 3秒後に保存メッセージを消す
     setTimeout(() => setIsSaved(false), 3000)
   }
 
   const handleChange = (field: keyof EnvConfig) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setConfig(prev => ({
+    setConfig((prev) => ({
       ...prev,
-      [field]: e.target.value
+      [field]: e.target.value,
     }))
     setIsSaved(false)
   }
@@ -105,9 +105,7 @@ export function EnvConfigPanel() {
             className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
             placeholder="1234567890123456"
           />
-          <p className="mt-1 text-sm text-gray-500">
-            Meta開発者ダッシュボードから取得できます
-          </p>
+          <p className="mt-1 text-sm text-gray-500">Meta開発者ダッシュボードから取得できます</p>
         </div>
 
         <div>
@@ -139,9 +137,7 @@ export function EnvConfigPanel() {
             className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
             placeholder="act_123456789"
           />
-          <p className="mt-1 text-sm text-gray-500">
-            "act_" で始まる広告アカウントID
-          </p>
+          <p className="mt-1 text-sm text-gray-500">"act_" で始まる広告アカウントID</p>
         </div>
 
         <div>
@@ -189,21 +185,15 @@ export function EnvConfigPanel() {
         <dl className="space-y-2 text-sm">
           <div className="flex justify-between">
             <dt className="text-gray-600">App ID:</dt>
-            <dd className="font-mono text-gray-900">
-              {config.appId || '未設定'}
-            </dd>
+            <dd className="font-mono text-gray-900">{config.appId || '未設定'}</dd>
           </div>
           <div className="flex justify-between">
             <dt className="text-gray-600">App Secret:</dt>
-            <dd className="font-mono text-gray-900">
-              {config.appSecret ? '設定済み' : '未設定'}
-            </dd>
+            <dd className="font-mono text-gray-900">{config.appSecret ? '設定済み' : '未設定'}</dd>
           </div>
           <div className="flex justify-between">
             <dt className="text-gray-600">広告アカウントID:</dt>
-            <dd className="font-mono text-gray-900">
-              {config.adAccountId || '未設定'}
-            </dd>
+            <dd className="font-mono text-gray-900">{config.adAccountId || '未設定'}</dd>
           </div>
           <div className="flex justify-between">
             <dt className="text-gray-600">アクセストークン:</dt>

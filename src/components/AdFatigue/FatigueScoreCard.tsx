@@ -1,9 +1,9 @@
 import React from 'react'
-import { 
-  ExclamationTriangleIcon, 
+import {
+  ExclamationTriangleIcon,
   CheckCircleIcon,
   XCircleIcon,
-  InformationCircleIcon
+  InformationCircleIcon,
 } from '@heroicons/react/24/solid'
 import { FatigueScore, FatigueType, FatigueLevel } from '../../../convex/adFatigue'
 import { ThresholdExplainer } from './ThresholdExplainer'
@@ -24,7 +24,7 @@ export const FatigueScoreCard: React.FC<FatigueScoreCardProps> = ({
   adName,
   fatigueScore,
   metrics,
-  onViewDetails
+  onViewDetails,
 }) => {
   // 信号機の色を取得
   const getSignalColor = (level: FatigueLevel) => {
@@ -56,7 +56,7 @@ export const FatigueScoreCard: React.FC<FatigueScoreCardProps> = ({
   const renderScoreGauge = (score: number, label: string, type?: FatigueType) => {
     const circumference = 2 * Math.PI * 40
     const strokeDashoffset = circumference - (score / 100) * circumference
-    
+
     // スコアに応じた色
     const getGaugeColor = (score: number) => {
       if (score >= 70) return '#ef4444' // red-500
@@ -64,7 +64,7 @@ export const FatigueScoreCard: React.FC<FatigueScoreCardProps> = ({
       if (score >= 30) return '#eab308' // yellow-500
       return '#22c55e' // green-500
     }
-    
+
     const gaugeColor = getGaugeColor(score)
     const isPrimary = type === fatigueScore.primaryIssue
 
@@ -72,14 +72,7 @@ export const FatigueScoreCard: React.FC<FatigueScoreCardProps> = ({
       <div className={`relative ${isPrimary ? 'scale-110' : ''}`}>
         <svg className="w-24 h-24 transform -rotate-90">
           {/* 背景の円 */}
-          <circle
-            cx="48"
-            cy="48"
-            r="40"
-            stroke="#e5e7eb"
-            strokeWidth="8"
-            fill="none"
-          />
+          <circle cx="48" cy="48" r="40" stroke="#e5e7eb" strokeWidth="8" fill="none" />
           {/* スコアの円 */}
           <circle
             cx="48"
@@ -119,12 +112,18 @@ export const FatigueScoreCard: React.FC<FatigueScoreCardProps> = ({
           <h3 className="text-lg font-semibold text-gray-900">{adName}</h3>
           <p className="text-sm text-gray-500 mt-1">広告疲労度分析</p>
         </div>
-        <div className={`inline-flex items-center px-3 py-1 rounded-full ${signalColor.bg} ${signalColor.text}`}>
+        <div
+          className={`inline-flex items-center px-3 py-1 rounded-full ${signalColor.bg} ${signalColor.text}`}
+        >
           <SignalIcon className="h-5 w-5 mr-1" />
           <span className="font-medium">
-            {fatigueScore.status === 'healthy' ? '健全' :
-             fatigueScore.status === 'caution' ? '注意' :
-             fatigueScore.status === 'warning' ? '警告' : '危険'}
+            {fatigueScore.status === 'healthy'
+              ? '健全'
+              : fatigueScore.status === 'caution'
+                ? '注意'
+                : fatigueScore.status === 'warning'
+                  ? '警告'
+                  : '危険'}
           </span>
         </div>
       </div>
@@ -133,19 +132,14 @@ export const FatigueScoreCard: React.FC<FatigueScoreCardProps> = ({
       <div className="text-center mb-8">
         <div className="inline-block relative">
           <svg className="w-32 h-32 transform -rotate-90">
+            <circle cx="64" cy="64" r="56" stroke="#e5e7eb" strokeWidth="12" fill="none" />
             <circle
               cx="64"
               cy="64"
               r="56"
-              stroke="#e5e7eb"
-              strokeWidth="12"
-              fill="none"
-            />
-            <circle
-              cx="64"
-              cy="64"
-              r="56"
-              stroke={getSignalColor(fatigueScore.status).text.replace('text-', '#').replace('-800', '500')}
+              stroke={getSignalColor(fatigueScore.status)
+                .text.replace('text-', '#')
+                .replace('-800', '500')}
               strokeWidth="12"
               fill="none"
               strokeDasharray={`${2 * Math.PI * 56}`}
@@ -181,56 +175,88 @@ export const FatigueScoreCard: React.FC<FatigueScoreCardProps> = ({
             <div className="flex justify-between items-center">
               <span className="text-gray-600 flex items-center">
                 フリークエンシー:
-                <ThresholdExplainer 
-                  metric="frequency" 
+                <ThresholdExplainer
+                  metric="frequency"
                   value={metrics.frequency}
-                  status={metrics.frequency >= 3.5 ? 'critical' : metrics.frequency >= 3.0 ? 'warning' : 'safe'}
+                  status={
+                    metrics.frequency >= 3.5
+                      ? 'critical'
+                      : metrics.frequency >= 3.0
+                        ? 'warning'
+                        : 'safe'
+                  }
                   compact
                 />
               </span>
-              <span className={`font-medium ${metrics.frequency >= 3.5 ? 'text-red-600' : metrics.frequency >= 3.0 ? 'text-orange-600' : 'text-gray-900'}`}>
+              <span
+                className={`font-medium ${metrics.frequency >= 3.5 ? 'text-red-600' : metrics.frequency >= 3.0 ? 'text-orange-600' : 'text-gray-900'}`}
+              >
                 {metrics.frequency.toFixed(1)}
               </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-600 flex items-center">
                 新規リーチ率:
-                <ThresholdExplainer 
-                  metric="firstTimeRatio" 
+                <ThresholdExplainer
+                  metric="firstTimeRatio"
                   value={metrics.firstTimeRatio}
-                  status={metrics.firstTimeRatio <= 0.3 ? 'critical' : metrics.firstTimeRatio <= 0.4 ? 'warning' : 'safe'}
+                  status={
+                    metrics.firstTimeRatio <= 0.3
+                      ? 'critical'
+                      : metrics.firstTimeRatio <= 0.4
+                        ? 'warning'
+                        : 'safe'
+                  }
                   compact
                 />
               </span>
-              <span className={`font-medium ${metrics.firstTimeRatio <= 0.3 ? 'text-red-600' : metrics.firstTimeRatio <= 0.4 ? 'text-orange-600' : 'text-gray-900'}`}>
+              <span
+                className={`font-medium ${metrics.firstTimeRatio <= 0.3 ? 'text-red-600' : metrics.firstTimeRatio <= 0.4 ? 'text-orange-600' : 'text-gray-900'}`}
+              >
                 {(metrics.firstTimeRatio * 100).toFixed(0)}%
               </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-600 flex items-center">
                 CTR低下率:
-                <ThresholdExplainer 
-                  metric="ctrDecline" 
+                <ThresholdExplainer
+                  metric="ctrDecline"
                   value={metrics.ctrDeclineRate}
-                  status={metrics.ctrDeclineRate >= 0.4 ? 'critical' : metrics.ctrDeclineRate >= 0.25 ? 'warning' : 'safe'}
+                  status={
+                    metrics.ctrDeclineRate >= 0.4
+                      ? 'critical'
+                      : metrics.ctrDeclineRate >= 0.25
+                        ? 'warning'
+                        : 'safe'
+                  }
                   compact
                 />
               </span>
-              <span className={`font-medium ${metrics.ctrDeclineRate >= 0.25 ? 'text-red-600' : metrics.ctrDeclineRate >= 0.15 ? 'text-orange-600' : 'text-gray-900'}`}>
+              <span
+                className={`font-medium ${metrics.ctrDeclineRate >= 0.25 ? 'text-red-600' : metrics.ctrDeclineRate >= 0.15 ? 'text-orange-600' : 'text-gray-900'}`}
+              >
                 {(metrics.ctrDeclineRate * 100).toFixed(0)}%
               </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-600 flex items-center">
                 CPM上昇率:
-                <ThresholdExplainer 
-                  metric="cpmIncrease" 
+                <ThresholdExplainer
+                  metric="cpmIncrease"
                   value={metrics.cpmIncreaseRate}
-                  status={metrics.cpmIncreaseRate >= 0.3 ? 'critical' : metrics.cpmIncreaseRate >= 0.2 ? 'warning' : 'safe'}
+                  status={
+                    metrics.cpmIncreaseRate >= 0.3
+                      ? 'critical'
+                      : metrics.cpmIncreaseRate >= 0.2
+                        ? 'warning'
+                        : 'safe'
+                  }
                   compact
                 />
               </span>
-              <span className={`font-medium ${metrics.cpmIncreaseRate >= 0.35 ? 'text-red-600' : metrics.cpmIncreaseRate >= 0.20 ? 'text-orange-600' : 'text-gray-900'}`}>
+              <span
+                className={`font-medium ${metrics.cpmIncreaseRate >= 0.35 ? 'text-red-600' : metrics.cpmIncreaseRate >= 0.2 ? 'text-orange-600' : 'text-gray-900'}`}
+              >
                 {(metrics.cpmIncreaseRate * 100).toFixed(0)}%
               </span>
             </div>
@@ -241,7 +267,9 @@ export const FatigueScoreCard: React.FC<FatigueScoreCardProps> = ({
       {/* 主要問題 */}
       <div className={`mt-4 p-3 rounded-lg ${getSignalColor(fatigueScore.status).bg}`}>
         <div className="flex items-start">
-          <SignalIcon className={`h-5 w-5 mr-2 flex-shrink-0 ${getSignalColor(fatigueScore.status).text}`} />
+          <SignalIcon
+            className={`h-5 w-5 mr-2 flex-shrink-0 ${getSignalColor(fatigueScore.status).text}`}
+          />
           <div>
             <p className={`text-sm font-medium ${getSignalColor(fatigueScore.status).text}`}>
               主要な問題: {getFatigueTypeName(fatigueScore.primaryIssue)}

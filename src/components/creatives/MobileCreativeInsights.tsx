@@ -99,13 +99,14 @@ export const MobileCreativeInsights: React.FC<MobileCreativeInsightsProps> = ({
                 <div className="bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <Dialog.Title as="h3" className="text-xl font-bold text-white flex items-center gap-2">
+                      <Dialog.Title
+                        as="h3"
+                        className="text-xl font-bold text-white flex items-center gap-2"
+                      >
                         <ChartBarIcon className="h-6 w-6" />
                         クリエイティブ疲労度分析
                       </Dialog.Title>
-                      <p className="text-sm text-purple-100 mt-1">
-                        {creativeName}
-                      </p>
+                      <p className="text-sm text-purple-100 mt-1">{creativeName}</p>
                     </div>
                     <button
                       type="button"
@@ -125,15 +126,21 @@ export const MobileCreativeInsights: React.FC<MobileCreativeInsightsProps> = ({
                     <div className="flex justify-center items-center">
                       <div className="relative">
                         {/* iPhone mockup */}
-                        <div className="relative mx-auto" style={{ width: '320px', height: '640px' }}>
+                        <div
+                          className="relative mx-auto"
+                          style={{ width: '320px', height: '640px' }}
+                        >
                           {/* Phone frame */}
                           <div className="absolute inset-0 bg-gray-900 rounded-[3rem] shadow-2xl"></div>
-                          
+
                           {/* Screen bezel */}
                           <div className="absolute inset-[12px] bg-black rounded-[2.5rem] overflow-hidden">
                             {/* Notch */}
-                            <div className="absolute top-0 inset-x-0 h-6 bg-gray-900 rounded-b-2xl" style={{ width: '150px', margin: '0 auto' }}></div>
-                            
+                            <div
+                              className="absolute top-0 inset-x-0 h-6 bg-gray-900 rounded-b-2xl"
+                              style={{ width: '150px', margin: '0 auto' }}
+                            ></div>
+
                             {/* Screen content */}
                             <div className="absolute inset-[2px] bg-white rounded-[2.4rem] overflow-hidden">
                               {/* Status bar */}
@@ -146,23 +153,40 @@ export const MobileCreativeInsights: React.FC<MobileCreativeInsightsProps> = ({
                                     <div className="w-1 h-4 bg-gray-900 rounded-sm"></div>
                                   </div>
                                   {/* WiFi icon */}
-                                  <svg className="w-3 h-3 text-gray-900" fill="currentColor" viewBox="0 0 640 512">
-                                    <path d="M320 128c88.4 0 160 71.6 160 160v96H160v-96c0-88.4 71.6-160 160-160zm0 32c-70.7 0-128 57.3-128 128v64h256v-64c0-70.7-57.3-128-128-128zm0 64c35.3 0 64 28.7 64 64h-128c0-35.3 28.7-64 64-64z"/>
+                                  <svg
+                                    className="w-3 h-3 text-gray-900"
+                                    fill="currentColor"
+                                    viewBox="0 0 640 512"
+                                  >
+                                    <path d="M320 128c88.4 0 160 71.6 160 160v96H160v-96c0-88.4 71.6-160 160-160zm0 32c-70.7 0-128 57.3-128 128v64h256v-64c0-70.7-57.3-128-128-128zm0 64c35.3 0 64 28.7 64 64h-128c0-35.3 28.7-64 64-64z" />
                                   </svg>
                                   {/* Battery with charging indicator */}
                                   <div className="relative">
                                     <div className="w-6 h-3 border border-gray-900 rounded-sm">
-                                      <div className="absolute inset-0.5 bg-green-500 rounded-sm" style={{ width: '70%' }}></div>
+                                      <div
+                                        className="absolute inset-0.5 bg-green-500 rounded-sm"
+                                        style={{ width: '70%' }}
+                                      ></div>
                                     </div>
                                     <div className="absolute -right-0.5 top-1 w-0.5 h-1 bg-gray-900 rounded-r"></div>
                                     {/* Lightning bolt for charging */}
-                                    <svg className="absolute left-1 top-0 w-3 h-3" viewBox="0 0 12 12" fill="none">
-                                      <path d="M7 1L3 6h2.5L4 11l4-5H5.5L7 1z" fill="white" stroke="currentColor" strokeWidth="0.5" className="text-gray-700"/>
+                                    <svg
+                                      className="absolute left-1 top-0 w-3 h-3"
+                                      viewBox="0 0 12 12"
+                                      fill="none"
+                                    >
+                                      <path
+                                        d="M7 1L3 6h2.5L4 11l4-5H5.5L7 1z"
+                                        fill="white"
+                                        stroke="currentColor"
+                                        strokeWidth="0.5"
+                                        className="text-gray-700"
+                                      />
                                     </svg>
                                   </div>
                                 </div>
                               </div>
-                              
+
                               {/* Content area */}
                               <div className="h-[calc(100%-24px)] bg-gray-100 overflow-hidden">
                                 {creativeType === 'video' && videoUrl ? (
@@ -175,7 +199,9 @@ export const MobileCreativeInsights: React.FC<MobileCreativeInsightsProps> = ({
                                       mobileOptimized={true}
                                     />
                                   </div>
-                                ) : creativeType === 'carousel' && carouselCards && carouselCards.length > 0 ? (
+                                ) : creativeType === 'carousel' &&
+                                  carouselCards &&
+                                  carouselCards.length > 0 ? (
                                   <div className="relative w-full h-full">
                                     <img
                                       src={carouselCards[currentCarouselIndex].image_url}
@@ -197,7 +223,9 @@ export const MobileCreativeInsights: React.FC<MobileCreativeInsightsProps> = ({
                                           key={index}
                                           onClick={() => setCurrentCarouselIndex(index)}
                                           className={`w-2 h-2 rounded-full transition-colors ${
-                                            index === currentCarouselIndex ? 'bg-white' : 'bg-white bg-opacity-50'
+                                            index === currentCarouselIndex
+                                              ? 'bg-white'
+                                              : 'bg-white bg-opacity-50'
                                           }`}
                                         />
                                       ))}
@@ -220,17 +248,23 @@ export const MobileCreativeInsights: React.FC<MobileCreativeInsightsProps> = ({
                             </div>
                           </div>
                         </div>
-                        
+
                         {/* Fatigue status below phone */}
                         <div className="mt-6 text-center">
-                          <div className={`inline-flex items-center px-4 py-2 rounded-full ${fatigueIcon.bg}`}>
+                          <div
+                            className={`inline-flex items-center px-4 py-2 rounded-full ${fatigueIcon.bg}`}
+                          >
                             <fatigueIcon.icon className={`h-5 w-5 ${fatigueIcon.color} mr-2`} />
                             <span className={`text-sm font-medium ${fatigueIcon.color}`}>
-                              疲労度: {
-                                analysis.fatigueLevel === 'healthy' ? '健全' :
-                                analysis.fatigueLevel === 'warning' ? '警告' :
-                                analysis.fatigueLevel === 'critical' ? '危険' : '不明'
-                              } ({(analysis.score ?? 0).toFixed(0)}%)
+                              疲労度:{' '}
+                              {analysis.fatigueLevel === 'healthy'
+                                ? '健全'
+                                : analysis.fatigueLevel === 'warning'
+                                  ? '警告'
+                                  : analysis.fatigueLevel === 'critical'
+                                    ? '危険'
+                                    : '不明'}{' '}
+                              ({(analysis.score ?? 0).toFixed(0)}%)
                             </span>
                           </div>
                         </div>

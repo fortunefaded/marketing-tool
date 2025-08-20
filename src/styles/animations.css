@@ -2,11 +2,12 @@
 
 /* パルスアニメーション */
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
-    opacity: .5;
+    opacity: 0.5;
   }
 }
 
@@ -52,19 +53,16 @@
 }
 
 .skeleton-shimmer {
-  background: linear-gradient(
-    90deg,
-    #f0f0f0 25%,
-    #e0e0e0 50%,
-    #f0f0f0 75%
-  );
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
   background-size: 1000px 100%;
   animation: shimmer 2s infinite;
 }
 
 /* データローディング用のドットアニメーション */
 @keyframes bounce {
-  0%, 80%, 100% {
+  0%,
+  80%,
+  100% {
     transform: scale(0);
   }
   40% {
@@ -80,7 +78,7 @@
 .loading-dots span {
   width: 8px;
   height: 8px;
-  background-color: #4F46E5;
+  background-color: #4f46e5;
   border-radius: 50%;
   animation: bounce 1.4s infinite ease-in-out both;
 }

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { MetaDataCache } from '../../services/metaDataCache'
-import { 
-  ClockIcon, 
+import {
+  ClockIcon,
   ExclamationTriangleIcon,
   CheckCircleIcon,
-  XMarkIcon
+  XMarkIcon,
 } from '@heroicons/react/24/outline'
 
 interface DataHistoryViewerProps {
@@ -62,56 +62,63 @@ export const DataHistoryViewer: React.FC<DataHistoryViewerProps> = ({ accountId 
               </button>
             </div>
           </div>
-          
+
           <div className="overflow-y-auto max-h-80">
             {history.length === 0 ? (
               <p className="p-4 text-gray-500 text-center">履歴がありません</p>
             ) : (
               <ul className="divide-y divide-gray-200">
-                {history.slice().reverse().map((item, index) => (
-                  <li key={index} className="p-3 hover:bg-gray-50">
-                    <div className="flex items-start gap-3">
-                      {getOperationIcon(item.operation, item.beforeCount, item.afterCount)}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-gray-900">
-                            {item.operation === 'save' ? '保存' :
-                             item.operation === 'clear' ? 'クリア' :
-                             item.operation === 'merge' ? 'マージ' : item.operation}
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            {formatTimestamp(item.timestamp)}
-                          </span>
-                        </div>
-                        <div className="mt-1 flex items-center gap-2 text-sm">
-                          <span className="text-gray-600">{item.beforeCount}件</span>
-                          <span className="text-gray-400">→</span>
-                          <span className={`font-medium ${
-                            item.afterCount < item.beforeCount * 0.5 ? 'text-red-600' :
-                            item.afterCount > item.beforeCount ? 'text-green-600' :
-                            'text-gray-900'
-                          }`}>
-                            {item.afterCount}件
-                          </span>
-                          {item.afterCount < item.beforeCount * 0.5 && item.afterCount < 100 && (
-                            <span className="text-xs text-red-600 font-medium">
-                              大幅減少！
+                {history
+                  .slice()
+                  .reverse()
+                  .map((item, index) => (
+                    <li key={index} className="p-3 hover:bg-gray-50">
+                      <div className="flex items-start gap-3">
+                        {getOperationIcon(item.operation, item.beforeCount, item.afterCount)}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-gray-900">
+                              {item.operation === 'save'
+                                ? '保存'
+                                : item.operation === 'clear'
+                                  ? 'クリア'
+                                  : item.operation === 'merge'
+                                    ? 'マージ'
+                                    : item.operation}
                             </span>
+                            <span className="text-xs text-gray-500">
+                              {formatTimestamp(item.timestamp)}
+                            </span>
+                          </div>
+                          <div className="mt-1 flex items-center gap-2 text-sm">
+                            <span className="text-gray-600">{item.beforeCount}件</span>
+                            <span className="text-gray-400">→</span>
+                            <span
+                              className={`font-medium ${
+                                item.afterCount < item.beforeCount * 0.5
+                                  ? 'text-red-600'
+                                  : item.afterCount > item.beforeCount
+                                    ? 'text-green-600'
+                                    : 'text-gray-900'
+                              }`}
+                            >
+                              {item.afterCount}件
+                            </span>
+                            {item.afterCount < item.beforeCount * 0.5 && item.afterCount < 100 && (
+                              <span className="text-xs text-red-600 font-medium">大幅減少！</span>
+                            )}
+                          </div>
+                          {item.source && (
+                            <div className="mt-1 text-xs text-gray-400 truncate">{item.source}</div>
                           )}
                         </div>
-                        {item.source && (
-                          <div className="mt-1 text-xs text-gray-400 truncate">
-                            {item.source}
-                          </div>
-                        )}
                       </div>
-                    </div>
-                  </li>
-                ))}
+                    </li>
+                  ))}
               </ul>
             )}
           </div>
-          
+
           <div className="p-3 border-t border-gray-200 bg-gray-50">
             <div className="text-xs text-gray-500">
               データ数が大幅に減少した場合は、オレンジ色の警告アイコンが表示されます。

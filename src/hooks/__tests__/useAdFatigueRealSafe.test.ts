@@ -17,19 +17,19 @@ vi.mock('../../../convex/_generated/api', () => ({
       getSavedFatigueAnalysis: 'getSavedFatigueAnalysis',
       saveFatigueAnalysis: 'saveFatigueAnalysis',
       getAllAdsFatigueAnalysis: 'getAllAdsFatigueAnalysis',
-    }
-  }
+    },
+  },
 }))
 
 describe('useAdFatigueRealSafe', () => {
   test('should handle undefined allAdsAnalysis gracefully', () => {
     const mockedUseQuery = vi.mocked(useQuery)
-    
+
     // Mock all queries to return undefined
     mockedUseQuery.mockReturnValue(undefined)
-    
+
     const { result } = renderHook(() => useAdFatigueRealSafe('test-account'))
-    
+
     // Should return empty array for allAdsAnalysis instead of undefined
     expect(result.current.allAdsAnalysis).toEqual([])
     expect(result.current.error).toBeNull()
@@ -38,7 +38,7 @@ describe('useAdFatigueRealSafe', () => {
 
   test('should handle savedAnalysis with missing properties', () => {
     const mockedUseQuery = vi.mocked(useQuery)
-    
+
     // Mock different return values for different queries
     mockedUseQuery.mockImplementation((() => {
       // Return incomplete savedAnalysis
@@ -47,21 +47,21 @@ describe('useAdFatigueRealSafe', () => {
         // Missing other properties
       }
     }) as any)
-    
+
     const { result } = renderHook(() => useAdFatigueRealSafe('test-account', 'test-ad'))
-    
+
     // Should not throw error
     expect(() => result.current).not.toThrow()
   })
 
   test('should handle null values in queries', () => {
     const mockedUseQuery = vi.mocked(useQuery)
-    
+
     // Mock all queries to return null
     mockedUseQuery.mockReturnValue(null)
-    
+
     const { result } = renderHook(() => useAdFatigueRealSafe('test-account'))
-    
+
     expect(result.current.allAdsAnalysis).toEqual([])
     expect(result.current.error).toBeNull()
     expect(result.current.fatigueData).toBeNull()

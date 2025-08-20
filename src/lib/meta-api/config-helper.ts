@@ -22,7 +22,7 @@ export function getMetaApiConfig(): MetaApiConfig {
     try {
       const parsed = JSON.parse(savedConfig)
       const accessToken = localStorage.getItem('meta_access_token') || parsed.accessToken
-      
+
       return {
         appId: parsed.appId,
         appSecret: parsed.appSecret,

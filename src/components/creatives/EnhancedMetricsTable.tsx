@@ -90,11 +90,7 @@ export const EnhancedMetricsTable: React.FC<EnhancedMetricsTableProps> = ({
 
   const handleSort = (key: string) => {
     let direction: 'asc' | 'desc' = 'desc'
-    if (
-      sortConfig &&
-      sortConfig.key === key &&
-      sortConfig.direction === 'desc'
-    ) {
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'desc') {
       direction = 'asc'
     }
     setSortConfig({ key, direction })
@@ -171,9 +167,7 @@ export const EnhancedMetricsTable: React.FC<EnhancedMetricsTableProps> = ({
       {/* ヘッダー */}
       <div className="px-6 py-4 border-b border-gray-200">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-medium text-gray-900">
-            拡張クリエイティブメトリクス
-          </h3>
+          <h3 className="text-lg font-medium text-gray-900">拡張クリエイティブメトリクス</h3>
           <div className="flex items-center space-x-4">
             <select
               value={filterType}
@@ -296,12 +290,8 @@ export const EnhancedMetricsTable: React.FC<EnhancedMetricsTableProps> = ({
                           )}
                         </div>
                         <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">
-                            {item.name}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {item.campaignName}
-                          </div>
+                          <div className="text-sm font-medium text-gray-900">{item.name}</div>
+                          <div className="text-sm text-gray-500">{item.campaignName}</div>
                           <div className="flex items-center mt-1">
                             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
                               {CREATIVE_TYPE_LABELS[item.type]}
@@ -331,9 +321,7 @@ export const EnhancedMetricsTable: React.FC<EnhancedMetricsTableProps> = ({
                           <div className="flex items-center space-x-2">
                             <PlayIcon className="h-4 w-4 text-gray-400" />
                             <span>
-                              {formatPercentage(
-                                item.metrics.videoMetrics.completionRate
-                              )}
+                              {formatPercentage(item.metrics.videoMetrics.completionRate)}
                             </span>
                           </div>
                         ) : (
@@ -403,34 +391,25 @@ export const EnhancedMetricsTable: React.FC<EnhancedMetricsTableProps> = ({
                                 <div className="flex justify-between">
                                   <dt className="text-gray-500">25%視聴:</dt>
                                   <dd className="text-gray-900">
-                                    {formatNumber(
-                                      item.metrics.videoMetrics.p25Watched
-                                    )}
+                                    {formatNumber(item.metrics.videoMetrics.p25Watched)}
                                   </dd>
                                 </div>
                                 <div className="flex justify-between">
                                   <dt className="text-gray-500">50%視聴:</dt>
                                   <dd className="text-gray-900">
-                                    {formatNumber(
-                                      item.metrics.videoMetrics.p50Watched
-                                    )}
+                                    {formatNumber(item.metrics.videoMetrics.p50Watched)}
                                   </dd>
                                 </div>
                                 <div className="flex justify-between">
                                   <dt className="text-gray-500">完全視聴:</dt>
                                   <dd className="text-gray-900">
-                                    {formatNumber(
-                                      item.metrics.videoMetrics.p100Watched
-                                    )}
+                                    {formatNumber(item.metrics.videoMetrics.p100Watched)}
                                   </dd>
                                 </div>
                                 <div className="flex justify-between">
                                   <dt className="text-gray-500">平均視聴時間:</dt>
                                   <dd className="text-gray-900">
-                                    {item.metrics.videoMetrics.avgWatchTime.toFixed(
-                                      1
-                                    )}
-                                    秒
+                                    {item.metrics.videoMetrics.avgWatchTime.toFixed(1)}秒
                                   </dd>
                                 </div>
                               </dl>
@@ -466,35 +445,32 @@ export const EnhancedMetricsTable: React.FC<EnhancedMetricsTableProps> = ({
                         </div>
 
                         {/* カルーセルカード */}
-                        {item.type === 'CAROUSEL' &&
-                          item.creative.carouselCards && (
-                            <div className="mt-4">
-                              <h4 className="text-sm font-medium text-gray-900 mb-2">
-                                カルーセルカード
-                              </h4>
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                                {item.creative.carouselCards.map((card, index) => (
-                                  <div
-                                    key={index}
-                                    className="bg-white border border-gray-200 rounded-lg p-2"
-                                  >
-                                    {card.imageUrl ? (
-                                      <img
-                                        src={card.imageUrl}
-                                        alt={card.name}
-                                        className="w-full h-20 object-cover rounded mb-1"
-                                      />
-                                    ) : (
-                                      <div className="w-full h-20 bg-gray-100 rounded mb-1"></div>
-                                    )}
-                                    <p className="text-xs text-gray-900 truncate">
-                                      {card.name}
-                                    </p>
-                                  </div>
-                                ))}
-                              </div>
+                        {item.type === 'CAROUSEL' && item.creative.carouselCards && (
+                          <div className="mt-4">
+                            <h4 className="text-sm font-medium text-gray-900 mb-2">
+                              カルーセルカード
+                            </h4>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                              {item.creative.carouselCards.map((card, index) => (
+                                <div
+                                  key={index}
+                                  className="bg-white border border-gray-200 rounded-lg p-2"
+                                >
+                                  {card.imageUrl ? (
+                                    <img
+                                      src={card.imageUrl}
+                                      alt={card.name}
+                                      className="w-full h-20 object-cover rounded mb-1"
+                                    />
+                                  ) : (
+                                    <div className="w-full h-20 bg-gray-100 rounded mb-1"></div>
+                                  )}
+                                  <p className="text-xs text-gray-900 truncate">{card.name}</p>
+                                </div>
+                              ))}
                             </div>
-                          )}
+                          </div>
+                        )}
                       </td>
                     </tr>
                   )}
@@ -510,24 +486,18 @@ export const EnhancedMetricsTable: React.FC<EnhancedMetricsTableProps> = ({
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
           <div>
             <span className="text-gray-500">合計クリエイティブ:</span>
-            <span className="ml-2 font-medium text-gray-900">
-              {processedData.length}件
-            </span>
+            <span className="ml-2 font-medium text-gray-900">{processedData.length}件</span>
           </div>
           <div>
             <span className="text-gray-500">合計表示回数:</span>
             <span className="ml-2 font-medium text-gray-900">
-              {formatNumber(
-                processedData.reduce((sum, item) => sum + item.metrics.impressions, 0)
-              )}
+              {formatNumber(processedData.reduce((sum, item) => sum + item.metrics.impressions, 0))}
             </span>
           </div>
           <div>
             <span className="text-gray-500">合計広告費:</span>
             <span className="ml-2 font-medium text-gray-900">
-              {formatCurrency(
-                processedData.reduce((sum, item) => sum + item.metrics.spend, 0)
-              )}
+              {formatCurrency(processedData.reduce((sum, item) => sum + item.metrics.spend, 0))}
             </span>
           </div>
           <div>

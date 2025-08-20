@@ -1,5 +1,9 @@
 import React from 'react'
-import { XMarkIcon, ClipboardDocumentIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline'
+import {
+  XMarkIcon,
+  ClipboardDocumentIcon,
+  ArrowTopRightOnSquareIcon,
+} from '@heroicons/react/24/outline'
 
 interface TroubleshootingModalProps {
   isOpen: boolean
@@ -7,7 +11,11 @@ interface TroubleshootingModalProps {
   error?: any
 }
 
-export const TroubleshootingModal: React.FC<TroubleshootingModalProps> = ({ isOpen, onClose, error }) => {
+export const TroubleshootingModal: React.FC<TroubleshootingModalProps> = ({
+  isOpen,
+  onClose,
+  error,
+}) => {
   if (!isOpen) return null
 
   const copyToClipboard = (text: string) => {
@@ -26,8 +34,8 @@ export const TroubleshootingModal: React.FC<TroubleshootingModalProps> = ({ isOp
           'Graph API Explorer (https://developers.facebook.com/tools/explorer/) にアクセス',
           '必要な権限（ads_read, ads_management, business_management）を選択',
           '新しいアクセストークンを生成',
-          '新しいトークンでアカウントを再接続'
-        ]
+          '新しいトークンでアカウントを再接続',
+        ],
       }
     }
 
@@ -37,8 +45,8 @@ export const TroubleshootingModal: React.FC<TroubleshootingModalProps> = ({ isOp
         steps: [
           'ビジネスマネージャーで正しいアカウントIDを確認',
           'アカウントIDは数字のみを入力（act_は不要）',
-          '例: 123456789012345'
-        ]
+          '例: 123456789012345',
+        ],
       }
     }
 
@@ -49,8 +57,8 @@ export const TroubleshootingModal: React.FC<TroubleshootingModalProps> = ({ isOp
           'Meta Business Managerにログイン',
           '設定 → ユーザー → アカウントを確認',
           '対象の広告アカウントへのアクセス権限を確認',
-          '権限がない場合は管理者に依頼'
-        ]
+          '権限がない場合は管理者に依頼',
+        ],
       }
     }
 
@@ -60,8 +68,8 @@ export const TroubleshootingModal: React.FC<TroubleshootingModalProps> = ({ isOp
         'アクセストークンが最新であることを確認',
         'すべての必要な権限が付与されていることを確認',
         'アカウントIDが正しいことを確認',
-        'インターネット接続を確認'
-      ]
+        'インターネット接続を確認',
+      ],
     }
   }
 
@@ -71,13 +79,8 @@ export const TroubleshootingModal: React.FC<TroubleshootingModalProps> = ({ isOp
     <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-gray-900">
-            トラブルシューティング
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-500"
-          >
+          <h2 className="text-xl font-semibold text-gray-900">トラブルシューティング</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-500">
             <XMarkIcon className="h-6 w-6" />
           </button>
         </div>
@@ -86,9 +89,7 @@ export const TroubleshootingModal: React.FC<TroubleshootingModalProps> = ({ isOp
           {/* エラー情報 */}
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <h3 className="text-sm font-medium text-red-800 mb-2">
-                エラー情報
-              </h3>
+              <h3 className="text-sm font-medium text-red-800 mb-2">エラー情報</h3>
               <div className="text-xs text-red-700 font-mono bg-red-100 p-2 rounded">
                 {error.message || 'エラーが発生しました'}
               </div>
@@ -104,9 +105,7 @@ export const TroubleshootingModal: React.FC<TroubleshootingModalProps> = ({ isOp
 
           {/* 推奨される解決方法 */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h3 className="text-sm font-medium text-blue-800 mb-2">
-              {solution.title}
-            </h3>
+            <h3 className="text-sm font-medium text-blue-800 mb-2">{solution.title}</h3>
             <ol className="list-decimal list-inside space-y-1 text-sm text-blue-700">
               {solution.steps.map((step, index) => (
                 <li key={index}>{step}</li>
@@ -116,9 +115,7 @@ export const TroubleshootingModal: React.FC<TroubleshootingModalProps> = ({ isOp
 
           {/* クイックリンク */}
           <div>
-            <h3 className="text-sm font-medium text-gray-900 mb-3">
-              便利なリンク
-            </h3>
+            <h3 className="text-sm font-medium text-gray-900 mb-3">便利なリンク</h3>
             <div className="space-y-2">
               <a
                 href="https://developers.facebook.com/tools/explorer/"
@@ -152,18 +149,20 @@ export const TroubleshootingModal: React.FC<TroubleshootingModalProps> = ({ isOp
 
           {/* テスト用cURLコマンド */}
           <div>
-            <h3 className="text-sm font-medium text-gray-900 mb-2">
-              テスト用cURLコマンド
-            </h3>
+            <h3 className="text-sm font-medium text-gray-900 mb-2">テスト用cURLコマンド</h3>
             <div className="bg-gray-900 text-gray-100 p-3 rounded-md text-xs font-mono">
               <pre className="whitespace-pre-wrap">
-{`curl -G \\
+                {`curl -G \\
   -d "access_token=YOUR_ACCESS_TOKEN" \\
   "https://graph.facebook.com/v18.0/act_YOUR_ACCOUNT_ID/campaigns"`}
               </pre>
             </div>
             <button
-              onClick={() => copyToClipboard(`curl -G -d "access_token=YOUR_ACCESS_TOKEN" "https://graph.facebook.com/v18.0/act_YOUR_ACCOUNT_ID/campaigns"`)}
+              onClick={() =>
+                copyToClipboard(
+                  `curl -G -d "access_token=YOUR_ACCESS_TOKEN" "https://graph.facebook.com/v18.0/act_YOUR_ACCOUNT_ID/campaigns"`
+                )
+              }
               className="mt-2 inline-flex items-center text-xs text-gray-600 hover:text-gray-700"
             >
               <ClipboardDocumentIcon className="h-4 w-4 mr-1" />

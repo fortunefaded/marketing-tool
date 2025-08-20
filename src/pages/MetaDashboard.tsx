@@ -25,26 +25,27 @@ export const MetaDashboard: React.FC = () => {
   const [showCreatives, setShowCreatives] = useState(false)
   const [selectedCreative, setSelectedCreative] = useState<CreativeData | null>(null)
   const [filters, setFilters] = useState<FilterState>({})
-  const [creativeAggregationPeriod, setCreativeAggregationPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily')
+  const [creativeAggregationPeriod, setCreativeAggregationPeriod] = useState<
+    'daily' | 'weekly' | 'monthly'
+  >('daily')
   const [selectedCreativeIds, setSelectedCreativeIds] = useState<string[]>([])
-  
+
   // Initialize mock data
   useMockDataInitializer()
-  
+
   // TODO: ローカルストレージから取得するように変更
   const campaigns: any[] = []
-  
+
   // Fetch creative performance data with period aggregation
   // const _startDate = filters.dateRange?.start || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
   // const _endDate = filters.dateRange?.end || new Date().toISOString().split('T')[0]
-  
+
   // TODO: ローカルストレージから取得するように変更
   const creatives: any[] = []
-  
+
   // Use comparison analytics hook
   const {
     overallComparison,
-    selectedComparison: _selectedComparison,
     setComparisonType,
     exportData,
     isLoading: comparisonLoading,
@@ -52,39 +53,36 @@ export const MetaDashboard: React.FC = () => {
     comparisonType: 'month-over-month',
   })
 
-
   // Filter campaigns based on active filters
   const filteredCampaigns = useMemo(() => {
     if (!campaigns) return []
-    
+
     let filtered = [...campaigns]
-    
+
     // Apply status filter
     if (filters.status && filters.status.length > 0) {
-      filtered = filtered.filter(c => 
-        filters.status!.includes(c.status.toUpperCase())
-      )
+      filtered = filtered.filter((c) => filters.status!.includes(c.status.toUpperCase()))
     }
-    
+
     // Apply performance filters
     if (filters.metrics) {
       const { minSpend, maxSpend, minRoas, maxRoas } = filters.metrics
-      
-      filtered = filtered.filter(c => {
+
+      filtered = filtered.filter((c) => {
         const roas = c.spent > 0 ? c.revenue / c.spent : 0
-        
+
         if (minSpend !== undefined && c.spent < minSpend) return false
         if (maxSpend !== undefined && c.spent > maxSpend) return false
         if (minRoas !== undefined && roas < minRoas) return false
         if (maxRoas !== undefined && roas > maxRoas) return false
-        
+
         return true
       })
     }
-    
+
     return filtered
   }, [campaigns, filters])
-  
+
   // Calculate aggregate metrics
   const metrics = useMemo(() => {
     if (!filteredCampaigns || filteredCampaigns.length === 0) {
@@ -176,7 +174,7 @@ export const MetaDashboard: React.FC = () => {
 
   // Prepare campaign options for filter panel
   const campaignOptions = useMemo(() => {
-    return campaigns?.map(c => ({ id: c._id, name: c.name })) || []
+    return campaigns?.map((c) => ({ id: c._id, name: c.name })) || []
   }, [campaigns])
 
   return (
@@ -189,7 +187,6 @@ export const MetaDashboard: React.FC = () => {
       onFiltersChange={setFilters}
       campaignOptions={campaignOptions}
     >
-
       {/* Toggle Buttons */}
       <div className="mb-6 flex justify-between">
         <div>
@@ -202,23 +199,22 @@ export const MetaDashboard: React.FC = () => {
           </a>
         </div>
         <div className="flex space-x-3">
-        <button
-          onClick={() => setShowComparison(!showComparison)}
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-        >
-          <ArrowsRightLeftIcon className="h-5 w-5 mr-2" />
-          {showComparison ? '比較を隠す' : '比較を表示'}
-        </button>
-        <button
-          onClick={() => setShowCreatives(!showCreatives)}
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
-        >
-          <PhotoIcon className="h-5 w-5 mr-2" />
-          {showCreatives ? 'クリエイティブを隠す' : 'クリエイティブを表示'}
-        </button>
+          <button
+            onClick={() => setShowComparison(!showComparison)}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            <ArrowsRightLeftIcon className="h-5 w-5 mr-2" />
+            {showComparison ? '比較を隠す' : '比較を表示'}
+          </button>
+          <button
+            onClick={() => setShowCreatives(!showCreatives)}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+          >
+            <PhotoIcon className="h-5 w-5 mr-2" />
+            {showCreatives ? 'クリエイティブを隠す' : 'クリエイティブを表示'}
+          </button>
         </div>
       </div>
-
 
       {/* Comparison Panel */}
       {showComparison && (
@@ -235,7 +231,7 @@ export const MetaDashboard: React.FC = () => {
       <section className="mb-8">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">主要指標</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <MetricCard
+          <MetricCard
             title="広告費用"
             value={metrics.totalSpent}
             format="currency"
@@ -370,7 +366,6 @@ export const MetaDashboard: React.FC = () => {
         isOpen={selectedCreative !== null}
         onClose={() => setSelectedCreative(null)}
       />
-
     </DashboardLayoutWithFilters>
   )
 }

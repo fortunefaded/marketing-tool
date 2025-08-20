@@ -7,9 +7,9 @@ describe('MetaDataParser', () => {
       const actions = [
         { action_type: 'purchase', value: '5' },
         { action_type: 'add_to_cart', value: '10' },
-        { action_type: 'omni_purchase', value: '3' }
+        { action_type: 'omni_purchase', value: '3' },
       ]
-      
+
       const result = MetaDataParser.extractConversions(actions)
       expect(result).toBe(8) // 5 + 3
     })
@@ -17,9 +17,9 @@ describe('MetaDataParser', () => {
     it('should return 0 when no purchase actions exist', () => {
       const actions = [
         { action_type: 'view_content', value: '100' },
-        { action_type: 'add_to_cart', value: '10' }
+        { action_type: 'add_to_cart', value: '10' },
       ]
-      
+
       const result = MetaDataParser.extractConversions(actions)
       expect(result).toBe(0)
     })
@@ -37,9 +37,9 @@ describe('MetaDataParser', () => {
         { action_type: 'app_custom_event.fb_mobile_purchase', value: '1' },
         { action_type: 'offsite_conversion.fb_pixel_purchase', value: '4' },
         { action_type: 'onsite_conversion.purchase', value: '5' },
-        { action_type: 'offline_conversion.purchase', value: '2' }
+        { action_type: 'offline_conversion.purchase', value: '2' },
       ]
-      
+
       const result = MetaDataParser.extractConversions(actions)
       expect(result).toBe(17)
     })
@@ -49,9 +49,9 @@ describe('MetaDataParser', () => {
         { action_type: 'purchase', value: 'invalid' },
         { action_type: 'purchase', value: null },
         { action_type: 'purchase', value: undefined },
-        { action_type: 'purchase', value: '5.5' }
+        { action_type: 'purchase', value: '5.5' },
       ]
-      
+
       const result = MetaDataParser.extractConversions(actions)
       expect(result).toBe(5.5)
     })
@@ -60,9 +60,9 @@ describe('MetaDataParser', () => {
   describe('calculateROAS', () => {
     it('should calculate ROAS from purchase_roas array', () => {
       const data = {
-        purchase_roas: [{ value: '2.50', action_type: 'omni_purchase' }]
+        purchase_roas: [{ value: '2.50', action_type: 'omni_purchase' }],
       }
-      
+
       const result = MetaDataParser.calculateROAS(data)
       expect(result).toBe(2.5)
     })
@@ -71,10 +71,10 @@ describe('MetaDataParser', () => {
       const data = {
         purchase_roas: [
           { value: '1.50', action_type: 'purchase' },
-          { value: '2.50', action_type: 'omni_purchase' }
-        ]
+          { value: '2.50', action_type: 'omni_purchase' },
+        ],
       }
-      
+
       const result = MetaDataParser.calculateROAS(data)
       expect(result).toBe(2.5)
     })
@@ -84,10 +84,10 @@ describe('MetaDataParser', () => {
         spend: '100',
         action_values: [
           { action_type: 'purchase', value: '250' },
-          { action_type: 'add_to_cart', value: '50' }
-        ]
+          { action_type: 'add_to_cart', value: '50' },
+        ],
       }
-      
+
       const result = MetaDataParser.calculateROAS(data)
       expect(result).toBe(2.5) // 250 / 100
     })
@@ -95,9 +95,9 @@ describe('MetaDataParser', () => {
     it('should return 0 when spend is 0', () => {
       const data = {
         spend: '0',
-        action_values: [{ action_type: 'purchase', value: '250' }]
+        action_values: [{ action_type: 'purchase', value: '250' }],
       }
-      
+
       const result = MetaDataParser.calculateROAS(data)
       expect(result).toBe(0)
     })
@@ -110,9 +110,9 @@ describe('MetaDataParser', () => {
 
     it('should handle website_purchase_roas', () => {
       const data = {
-        website_purchase_roas: [{ value: '3.25', action_type: 'website_purchase' }]
+        website_purchase_roas: [{ value: '3.25', action_type: 'website_purchase' }],
       }
-      
+
       const result = MetaDataParser.calculateROAS(data)
       expect(result).toBe(3.25)
     })
@@ -123,10 +123,10 @@ describe('MetaDataParser', () => {
       const data = {
         cost_per_action_type: [
           { action_type: 'purchase', value: '25.50' },
-          { action_type: 'add_to_cart', value: '5.00' }
-        ]
+          { action_type: 'add_to_cart', value: '5.00' },
+        ],
       }
-      
+
       const result = MetaDataParser.calculateCPA(data)
       expect(result).toBe(25.5)
     })
@@ -135,10 +135,10 @@ describe('MetaDataParser', () => {
       const data = {
         cost_per_action_type: [
           { action_type: 'purchase', value: '30.00' },
-          { action_type: 'omni_purchase', value: '25.00' }
-        ]
+          { action_type: 'omni_purchase', value: '25.00' },
+        ],
       }
-      
+
       const result = MetaDataParser.calculateCPA(data)
       expect(result).toBe(25)
     })
@@ -146,9 +146,9 @@ describe('MetaDataParser', () => {
     it('should calculate CPA from spend and conversions', () => {
       const data = {
         spend: '100',
-        conversions: '4' // 100 / 4 = 25
+        conversions: '4', // 100 / 4 = 25
       }
-      
+
       const result = MetaDataParser.calculateCPA(data)
       expect(result).toBe(25)
     })
@@ -157,11 +157,9 @@ describe('MetaDataParser', () => {
       const data = {
         spend: '100',
         conversions: '0',
-        actions: [
-          { action_type: 'purchase', value: '5' }
-        ]
+        actions: [{ action_type: 'purchase', value: '5' }],
       }
-      
+
       const result = MetaDataParser.calculateCPA(data)
       expect(result).toBe(20) // 100 / 5
     })
@@ -170,9 +168,9 @@ describe('MetaDataParser', () => {
       const data = {
         spend: '100',
         conversions: '0',
-        actions: []
+        actions: [],
       }
-      
+
       const result = MetaDataParser.calculateCPA(data)
       expect(result).toBe(0)
     })
@@ -186,9 +184,9 @@ describe('MetaDataParser', () => {
     it('should handle invalid numeric values', () => {
       const data = {
         spend: 'invalid',
-        conversions: 'also invalid'
+        conversions: 'also invalid',
       }
-      
+
       const result = MetaDataParser.calculateCPA(data)
       expect(result).toBe(0)
     })
@@ -198,9 +196,9 @@ describe('MetaDataParser', () => {
     it('should extract conversion value from action_values', () => {
       const actionValues = [
         { action_type: 'purchase', value: '500.50' },
-        { action_type: 'add_to_cart', value: '100' }
+        { action_type: 'add_to_cart', value: '100' },
       ]
-      
+
       const result = MetaDataParser.extractConversionValue(actionValues)
       expect(result).toBe(500.5)
     })
@@ -209,9 +207,9 @@ describe('MetaDataParser', () => {
       const actionValues = [
         { action_type: 'purchase', value: '200' },
         { action_type: 'omni_purchase', value: '300' },
-        { action_type: 'offsite_conversion.fb_pixel_purchase', value: '100' }
+        { action_type: 'offsite_conversion.fb_pixel_purchase', value: '100' },
       ]
-      
+
       const result = MetaDataParser.extractConversionValue(actionValues)
       expect(result).toBe(600)
     })
@@ -233,18 +231,14 @@ describe('MetaDataParser', () => {
         actions: [
           { action_type: 'purchase', value: '10' },
           { action_type: 'add_to_cart', value: '50' },
-          { action_type: 'omni_purchase', value: '5' }
+          { action_type: 'omni_purchase', value: '5' },
         ],
         action_values: [
           { action_type: 'purchase', value: '1000' },
-          { action_type: 'omni_purchase', value: '500' }
+          { action_type: 'omni_purchase', value: '500' },
         ],
-        cost_per_action_type: [
-          { action_type: 'purchase', value: '16.67' }
-        ],
-        purchase_roas: [
-          { value: '6.00', action_type: 'omni_purchase' }
-        ]
+        cost_per_action_type: [{ action_type: 'purchase', value: '16.67' }],
+        purchase_roas: [{ value: '6.00', action_type: 'omni_purchase' }],
       }
 
       const conversions = MetaDataParser.extractConversions(metaApiResponse.actions)

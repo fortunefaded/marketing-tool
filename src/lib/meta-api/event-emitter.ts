@@ -35,7 +35,7 @@ export class EventEmitter {
     if (!listeners || listeners.length === 0) {
       return false
     }
-    listeners.forEach(listener => {
+    listeners.forEach((listener) => {
       try {
         listener(...args)
       } catch (error) {

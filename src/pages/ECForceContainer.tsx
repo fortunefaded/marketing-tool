@@ -14,6 +14,6 @@ export const ECForceContainer: React.FC = () => {
       </div>
     )
   }
-  
+
   return <ECForceDashboard orders={orders} />
 }

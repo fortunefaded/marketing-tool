@@ -14,13 +14,13 @@ interface ECForceDateFilterProps {
 
 export const ECForceDateFilter: React.FC<ECForceDateFilterProps> = ({
   dateRange,
-  onDateRangeChange
+  onDateRangeChange,
 }) => {
   const handlePresetClick = (days: number) => {
     const end = new Date()
     const start = new Date()
     start.setDate(start.getDate() - days)
-    
+
     onDateRangeChange({ start, end })
   }
 

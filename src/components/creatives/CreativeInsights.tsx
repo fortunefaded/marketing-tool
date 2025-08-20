@@ -8,14 +8,14 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  ReferenceLine
+  ReferenceLine,
 } from 'recharts'
 import {
   ExclamationTriangleIcon,
   CheckCircleIcon,
   PauseIcon,
   ArrowPathIcon,
-  XCircleIcon
+  XCircleIcon,
 } from '@heroicons/react/24/outline'
 import { FatigueAnalysis, CreativePerformanceData } from '../../services/creativeFatigueAnalyzer'
 
@@ -30,7 +30,7 @@ export const CreativeInsights: React.FC<CreativeInsightsProps> = ({
   analysis,
   performanceHistory,
   creativeName,
-  compact: _compact = false
+  compact: _compact = false,
 }) => {
   // アクションに基づくアイコンとスタイル
   const getActionDisplay = () => {
@@ -41,7 +41,7 @@ export const CreativeInsights: React.FC<CreativeInsightsProps> = ({
           text: '継続推奨',
           color: 'text-green-600',
           bgColor: 'bg-green-50',
-          description: 'パフォーマンスは良好です。現状のまま継続してください。'
+          description: 'パフォーマンスは良好です。現状のまま継続してください。',
         }
       case 'refresh':
         return {
@@ -49,7 +49,7 @@ export const CreativeInsights: React.FC<CreativeInsightsProps> = ({
           text: 'リフレッシュ推奨',
           color: 'text-yellow-600',
           bgColor: 'bg-yellow-50',
-          description: 'クリエイティブの小規模な更新を検討してください。'
+          description: 'クリエイティブの小規模な更新を検討してください。',
         }
       case 'pause':
         return {
@@ -57,7 +57,7 @@ export const CreativeInsights: React.FC<CreativeInsightsProps> = ({
           text: '一時停止推奨',
           color: 'text-orange-600',
           bgColor: 'bg-orange-50',
-          description: 'フリークエンシーが高いため、一時的な配信停止を推奨します。'
+          description: 'フリークエンシーが高いため、一時的な配信停止を推奨します。',
         }
       case 'replace':
         return {
@@ -65,7 +65,7 @@ export const CreativeInsights: React.FC<CreativeInsightsProps> = ({
           text: '交換推奨',
           color: 'text-red-600',
           bgColor: 'bg-red-50',
-          description: '新しいクリエイティブへの交換を強く推奨します。'
+          description: '新しいクリエイティブへの交換を強く推奨します。',
         }
     }
   }
@@ -85,10 +85,10 @@ export const CreativeInsights: React.FC<CreativeInsightsProps> = ({
 
   // チャートデータの準備
   const chartData = useMemo(() => {
-    return performanceHistory.map(data => ({
+    return performanceHistory.map((data) => ({
       date: new Date(data.date).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' }),
       CTR: data.ctr,
-      フリークエンシー: data.frequency
+      フリークエンシー: data.frequency,
     }))
   }, [performanceHistory])
 
@@ -103,8 +103,8 @@ export const CreativeInsights: React.FC<CreativeInsightsProps> = ({
         </h3>
         {analysis.predictedEndOfLife && (
           <div className="text-sm text-gray-500">
-            予測効果終了日: {new Date(analysis.predictedEndOfLife).toLocaleDateString('ja-JP')}
-            ({analysis.daysUntilEndOfLife}日後)
+            予測効果終了日: {new Date(analysis.predictedEndOfLife).toLocaleDateString('ja-JP')}(
+            {analysis.daysUntilEndOfLife}日後)
           </div>
         )}
       </div>
@@ -144,7 +144,7 @@ export const CreativeInsights: React.FC<CreativeInsightsProps> = ({
                 strokeLinecap="round"
               />
               <circle cx="100" cy="100" r="5" fill="#374151" />
-              
+
               {/* スコアテキスト */}
               <text x="100" y="90" textAnchor="middle" className="text-2xl font-bold fill-gray-900">
                 {analysis.fatigueScore}
@@ -153,7 +153,7 @@ export const CreativeInsights: React.FC<CreativeInsightsProps> = ({
                 / 100
               </text>
             </svg>
-            
+
             {/* ラベル */}
             <div className="flex justify-between mt-2 text-xs text-gray-500">
               <span>低</span>
@@ -170,7 +170,7 @@ export const CreativeInsights: React.FC<CreativeInsightsProps> = ({
             <h4 className="ml-2 text-lg font-medium">{actionDisplay.text}</h4>
           </div>
           <p className="text-gray-700">{actionDisplay.description}</p>
-          
+
           {/* 追加メトリクス */}
           <div className="mt-4 space-y-2">
             <div className="flex justify-between text-sm">
@@ -200,28 +200,31 @@ export const CreativeInsights: React.FC<CreativeInsightsProps> = ({
           <LineChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="date" />
-            <YAxis yAxisId="left" label={{ value: 'CTR (%)', angle: -90, position: 'insideLeft' }} />
-            <YAxis 
-              yAxisId="right" 
-              orientation="right" 
-              label={{ value: 'フリークエンシー', angle: 90, position: 'insideRight' }} 
+            <YAxis
+              yAxisId="left"
+              label={{ value: 'CTR (%)', angle: -90, position: 'insideLeft' }}
+            />
+            <YAxis
+              yAxisId="right"
+              orientation="right"
+              label={{ value: 'フリークエンシー', angle: 90, position: 'insideRight' }}
             />
             <Tooltip />
             <Legend />
-            
+
             {/* ピーク日のマーカー */}
             {analysis.peakPerformanceDate && (
               <ReferenceLine
-                x={new Date(analysis.peakPerformanceDate).toLocaleDateString('ja-JP', { 
-                  month: 'short', 
-                  day: 'numeric' 
+                x={new Date(analysis.peakPerformanceDate).toLocaleDateString('ja-JP', {
+                  month: 'short',
+                  day: 'numeric',
                 })}
                 stroke="#9CA3AF"
                 strokeDasharray="5 5"
                 label="ピーク"
               />
             )}
-            
+
             <Line
               yAxisId="left"
               type="monotone"

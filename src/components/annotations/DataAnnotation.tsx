@@ -7,7 +7,7 @@ import {
   Search,
   Download,
   ChevronUp,
-  ChevronDown
+  ChevronDown,
 } from 'lucide-react'
 
 export interface Annotation {
@@ -33,7 +33,7 @@ const COLORS = [
   { name: 'blue', value: '#3B82F6' },
   { name: 'yellow', value: '#F59E0B' },
   { name: 'red', value: '#EF4444' },
-  { name: 'purple', value: '#8B5CF6' }
+  { name: 'purple', value: '#8B5CF6' },
 ]
 
 export const DataAnnotation: React.FC<DataAnnotationProps> = ({
@@ -41,7 +41,7 @@ export const DataAnnotation: React.FC<DataAnnotationProps> = ({
   onSave,
   onDelete,
   currentDataPoint,
-  showOnChart = false
+  showOnChart = false,
 }) => {
   const [isAdding, setIsAdding] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -56,10 +56,11 @@ export const DataAnnotation: React.FC<DataAnnotationProps> = ({
 
   // フィルタリングとソート
   const filteredAnnotations = useMemo(() => {
-    let filtered = annotations.filter(annotation => 
-      annotation.text.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      annotation.author.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      annotation.tags?.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+    let filtered = annotations.filter(
+      (annotation) =>
+        annotation.text.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        annotation.author.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        annotation.tags?.some((tag) => tag.toLowerCase().includes(searchTerm.toLowerCase()))
     )
 
     // ソート
@@ -94,7 +95,7 @@ export const DataAnnotation: React.FC<DataAnnotationProps> = ({
     const annotation: Partial<Annotation> = {
       text,
       color: selectedColor,
-      tags
+      tags,
     }
 
     if (editingId) {
@@ -104,7 +105,7 @@ export const DataAnnotation: React.FC<DataAnnotationProps> = ({
     }
 
     onSave(annotation)
-    
+
     // リセット
     setIsAdding(false)
     setEditingId(null)
@@ -130,7 +131,7 @@ export const DataAnnotation: React.FC<DataAnnotationProps> = ({
 
   // タグ削除
   const removeTag = (tag: string) => {
-    setTags(tags.filter(t => t !== tag))
+    setTags(tags.filter((t) => t !== tag))
   }
 
   // エクスポート処理
@@ -145,7 +146,7 @@ export const DataAnnotation: React.FC<DataAnnotationProps> = ({
     switch (exportFormat) {
       case 'csv':
         content = 'ID,日付,値,テキスト,作成者,作成日時,色,タグ\n'
-        data.forEach(a => {
+        data.forEach((a) => {
           content += `${a.id},${a.dataPoint.date},${a.dataPoint.value},"${a.text}",${a.author},${a.createdAt},${a.color},"${a.tags?.join(', ') || ''}"\n`
         })
         filename = 'annotations.csv'
@@ -160,12 +161,12 @@ export const DataAnnotation: React.FC<DataAnnotationProps> = ({
 
       case 'markdown':
         content = '# データアノテーション\n\n'
-        data.forEach(a => {
+        data.forEach((a) => {
           content += `## ${a.dataPoint.date} - ${a.dataPoint.value}\n\n`
           content += `**作成者:** ${a.author}\n`
           content += `**作成日時:** ${new Date(a.createdAt).toLocaleString()}\n`
           if (a.tags && a.tags.length > 0) {
-            content += `**タグ:** ${a.tags.map(t => `#${t}`).join(' ')}\n`
+            content += `**タグ:** ${a.tags.map((t) => `#${t}`).join(' ')}\n`
           }
           content += `\n${a.text}\n\n---\n\n`
         })
@@ -191,7 +192,7 @@ export const DataAnnotation: React.FC<DataAnnotationProps> = ({
           <MessageSquare className="h-5 w-5 mr-2 text-indigo-600" />
           データアノテーション
         </h3>
-        
+
         <div className="flex items-center gap-2">
           <button
             onClick={() => setIsAdding(true)}
@@ -199,7 +200,7 @@ export const DataAnnotation: React.FC<DataAnnotationProps> = ({
           >
             アノテーション追加
           </button>
-          
+
           <div className="relative">
             <button
               onClick={() => setExportFormat(exportFormat ? null : 'csv')}
@@ -208,23 +209,32 @@ export const DataAnnotation: React.FC<DataAnnotationProps> = ({
               <Download className="h-4 w-4 mr-1" />
               エクスポート
             </button>
-            
+
             {exportFormat !== null && (
               <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border border-gray-200">
                 <button
-                  onClick={() => { setExportFormat('csv'); handleExport(); }}
+                  onClick={() => {
+                    setExportFormat('csv')
+                    handleExport()
+                  }}
                   className="block w-full text-left px-4 py-2 hover:bg-gray-100"
                 >
                   CSV形式
                 </button>
                 <button
-                  onClick={() => { setExportFormat('json'); handleExport(); }}
+                  onClick={() => {
+                    setExportFormat('json')
+                    handleExport()
+                  }}
                   className="block w-full text-left px-4 py-2 hover:bg-gray-100"
                 >
                   JSON形式
                 </button>
                 <button
-                  onClick={() => { setExportFormat('markdown'); handleExport(); }}
+                  onClick={() => {
+                    setExportFormat('markdown')
+                    handleExport()
+                  }}
                   className="block w-full text-left px-4 py-2 hover:bg-gray-100"
                 >
                   Markdown形式
@@ -247,13 +257,17 @@ export const DataAnnotation: React.FC<DataAnnotationProps> = ({
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>
-        
+
         <button
           onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
           className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 flex items-center"
         >
           {sortOrder === 'desc' ? '新しい順' : '古い順'}
-          {sortOrder === 'desc' ? <ChevronDown className="h-4 w-4 ml-1" /> : <ChevronUp className="h-4 w-4 ml-1" />}
+          {sortOrder === 'desc' ? (
+            <ChevronDown className="h-4 w-4 ml-1" />
+          ) : (
+            <ChevronUp className="h-4 w-4 ml-1" />
+          )}
         </button>
       </div>
 
@@ -272,12 +286,12 @@ export const DataAnnotation: React.FC<DataAnnotationProps> = ({
               rows={3}
             />
           </div>
-          
+
           {/* 色選択 */}
           <div className="mb-3">
             <label className="block text-sm font-medium text-gray-700 mb-1">色</label>
             <div className="flex gap-2">
-              {COLORS.map(color => (
+              {COLORS.map((color) => (
                 <button
                   key={color.name}
                   data-testid={`color-${color.name}`}
@@ -288,13 +302,16 @@ export const DataAnnotation: React.FC<DataAnnotationProps> = ({
               ))}
             </div>
           </div>
-          
+
           {/* タグ */}
           <div className="mb-3">
             <label className="block text-sm font-medium text-gray-700 mb-1">タグ</label>
             <div className="flex flex-wrap gap-2 mb-2">
-              {tags.map(tag => (
-                <span key={tag} className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-200 text-gray-700">
+              {tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-200 text-gray-700"
+                >
                   #{tag}
                   <button onClick={() => removeTag(tag)} className="ml-1">
                     <X className="h-3 w-3" />
@@ -316,7 +333,7 @@ export const DataAnnotation: React.FC<DataAnnotationProps> = ({
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
-          
+
           <div className="flex justify-end gap-2">
             <button
               onClick={handleCancel}
@@ -336,7 +353,7 @@ export const DataAnnotation: React.FC<DataAnnotationProps> = ({
 
       {/* アノテーション一覧 */}
       <div className="space-y-3">
-        {filteredAnnotations.map(annotation => (
+        {filteredAnnotations.map((annotation) => (
           <div
             key={annotation.id}
             data-testid="annotation-item"
@@ -375,8 +392,11 @@ export const DataAnnotation: React.FC<DataAnnotationProps> = ({
                     <p className="text-gray-900">{annotation.text}</p>
                     {annotation.tags && annotation.tags.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-2">
-                        {annotation.tags.map(tag => (
-                          <span key={tag} className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
+                        {annotation.tags.map((tag) => (
+                          <span
+                            key={tag}
+                            className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full"
+                          >
                             #{tag}
                           </span>
                         ))}
@@ -400,17 +420,19 @@ export const DataAnnotation: React.FC<DataAnnotationProps> = ({
                     </button>
                   </div>
                 </div>
-                
+
                 <div className="text-sm text-gray-500">
                   <span>{annotation.author}</span>
                   <span className="mx-2">•</span>
                   <span>{new Date(annotation.createdAt).toLocaleString()}</span>
                   <span className="mx-2">•</span>
-                  <span>{annotation.dataPoint.date} - ¥{annotation.dataPoint.value.toLocaleString()}</span>
+                  <span>
+                    {annotation.dataPoint.date} - ¥{annotation.dataPoint.value.toLocaleString()}
+                  </span>
                 </div>
               </div>
             )}
-            
+
             {/* 削除確認 */}
             {showDeleteConfirm === annotation.id && (
               <div className="mt-3 p-3 bg-red-50 rounded-md">
@@ -439,34 +461,36 @@ export const DataAnnotation: React.FC<DataAnnotationProps> = ({
       </div>
 
       {/* チャート表示用マーカー */}
-      {showOnChart && filteredAnnotations.map(annotation => (
-        <div
-          key={annotation.id}
-          data-testid="annotation-marker"
-          className="absolute"
-          style={{
-            backgroundColor: annotation.color,
-            width: '12px',
-            height: '12px',
-            borderRadius: '50%',
-            cursor: 'pointer'
-          }}
-          onMouseEnter={(e) => {
-            const tooltip = document.createElement('div')
-            tooltip.setAttribute('role', 'tooltip')
-            tooltip.className = 'absolute bg-gray-900 text-white text-sm px-2 py-1 rounded shadow-lg z-50'
-            tooltip.textContent = annotation.text
-            tooltip.style.bottom = '20px'
-            tooltip.style.left = '50%'
-            tooltip.style.transform = 'translateX(-50%)'
-            e.currentTarget.appendChild(tooltip)
-          }}
-          onMouseLeave={(e) => {
-            const tooltip = e.currentTarget.querySelector('[role="tooltip"]')
-            if (tooltip) tooltip.remove()
-          }}
-        />
-      ))}
+      {showOnChart &&
+        filteredAnnotations.map((annotation) => (
+          <div
+            key={annotation.id}
+            data-testid="annotation-marker"
+            className="absolute"
+            style={{
+              backgroundColor: annotation.color,
+              width: '12px',
+              height: '12px',
+              borderRadius: '50%',
+              cursor: 'pointer',
+            }}
+            onMouseEnter={(e) => {
+              const tooltip = document.createElement('div')
+              tooltip.setAttribute('role', 'tooltip')
+              tooltip.className =
+                'absolute bg-gray-900 text-white text-sm px-2 py-1 rounded shadow-lg z-50'
+              tooltip.textContent = annotation.text
+              tooltip.style.bottom = '20px'
+              tooltip.style.left = '50%'
+              tooltip.style.transform = 'translateX(-50%)'
+              e.currentTarget.appendChild(tooltip)
+            }}
+            onMouseLeave={(e) => {
+              const tooltip = e.currentTarget.querySelector('[role="tooltip"]')
+              if (tooltip) tooltip.remove()
+            }}
+          />
+        ))}
     </div>
   )
 }

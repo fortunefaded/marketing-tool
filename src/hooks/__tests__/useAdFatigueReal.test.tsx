@@ -32,10 +32,7 @@ describe('useAdFatigueReal', () => {
     // Convex関数が見つからない場合のエラーをシミュレート
     mockQuery.mockReturnValue(undefined)
 
-    const { result } = renderHook(
-      () => useAdFatigueReal('test-account', 'test-ad'),
-      { wrapper }
-    )
+    const { result } = renderHook(() => useAdFatigueReal('test-account', 'test-ad'), { wrapper })
 
     expect(result.current.fatigueData).toBeNull()
     expect(result.current.error).toBeNull()
@@ -55,10 +52,10 @@ describe('useAdFatigueReal', () => {
         breakdown: {
           audience: 70,
           creative: 60,
-          algorithm: 65
+          algorithm: 65,
         },
         primaryIssue: 'audience' as const,
-        status: 'warning' as const
+        status: 'warning' as const,
       },
       metrics: {
         frequency: 3.2,
@@ -70,22 +67,19 @@ describe('useAdFatigueReal', () => {
         ctr: 1.2,
         cpm: 1200,
         conversions: 100,
-        daysActive: 5
+        daysActive: 5,
       },
       recommendedAction: 'オーディエンスへの露出頻度が高くなっています。',
       dataRange: {
         start: '2024-01-01',
-        end: '2024-01-05'
+        end: '2024-01-05',
       },
-      analyzedAt: new Date().toISOString()
+      analyzedAt: new Date().toISOString(),
     }
 
     mockQuery.mockReturnValue(mockFatigueData)
 
-    const { result } = renderHook(
-      () => useAdFatigueReal('test-account', 'test-ad'),
-      { wrapper }
-    )
+    const { result } = renderHook(() => useAdFatigueReal('test-account', 'test-ad'), { wrapper })
 
     await waitFor(() => {
       expect(result.current.fatigueData).toEqual(mockFatigueData)
@@ -99,10 +93,7 @@ describe('useAdFatigueReal', () => {
     mockQuery.mockReturnValue(null)
     mockMutation.mockRejectedValue(new Error('Analysis failed'))
 
-    const { result } = renderHook(
-      () => useAdFatigueReal('test-account'),
-      { wrapper }
-    )
+    const { result } = renderHook(() => useAdFatigueReal('test-account'), { wrapper })
 
     try {
       await result.current.analyzeFatigue('test-ad')

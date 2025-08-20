@@ -29,7 +29,7 @@ export const exportToCSV = async (
   // BOMを追加（Excelで日本語が文字化けしないように）
   const bom = new Uint8Array([0xef, 0xbb, 0xbf])
   const blob = new Blob([bom, csvContent], { type: 'text/csv;charset=utf-8' })
-  
+
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
@@ -63,10 +63,10 @@ const generateFullCSV = (orders: ECForceOrder[]): string => {
     '配送先都道府県',
     '配送先市区町村',
     '配送先住所',
-    '配送先氏名'
+    '配送先氏名',
   ]
 
-  const rows = orders.map(order => [
+  const rows = orders.map((order) => [
     order.受注番号,
     order.受注日,
     order.顧客番号,
@@ -88,33 +88,36 @@ const generateFullCSV = (orders: ECForceOrder[]): string => {
     order.配送先都道府県 || '',
     order.配送先市区町村 || '',
     order.配送先住所 || '',
-    order.配送先氏名 || ''
+    order.配送先氏名 || '',
   ])
 
   return [
     headers.join(','),
-    ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+    ...rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')),
   ].join('\n')
 }
 
 const generateSalesCSV = (orders: ECForceOrder[]): string => {
   // 日付別の売上集計
-  const salesByDate = new Map<string, {
-    count: number
-    revenue: number
-    tax: number
-    shipping: number
-    total: number
-  }>()
+  const salesByDate = new Map<
+    string,
+    {
+      count: number
+      revenue: number
+      tax: number
+      shipping: number
+      total: number
+    }
+  >()
 
-  orders.forEach(order => {
+  orders.forEach((order) => {
     const date = order.受注日.split(' ')[0]
     const current = salesByDate.get(date) || {
       count: 0,
       revenue: 0,
       tax: 0,
       shipping: 0,
-      total: 0
+      total: 0,
     }
 
     salesByDate.set(date, {
@@ -122,47 +125,40 @@ const generateSalesCSV = (orders: ECForceOrder[]): string => {
       revenue: current.revenue + (order.小計 || 0),
       tax: current.tax + (order.消費税 || 0),
       shipping: current.shipping + (order.送料 || 0),
-      total: current.total + (order.合計 || 0)
+      total: current.total + (order.合計 || 0),
     })
   })
 
   const headers = ['日付', '注文数', '売上', '消費税', '送料', '合計']
   const rows = Array.from(salesByDate.entries())
     .sort((a, b) => a[0].localeCompare(b[0]))
-    .map(([date, data]) => [
-      date,
-      data.count,
-      data.revenue,
-      data.tax,
-      data.shipping,
-      data.total
-    ])
+    .map(([date, data]) => [date, data.count, data.revenue, data.tax, data.shipping, data.total])
 
-  return [
-    headers.join(','),
-    ...rows.map(row => row.join(','))
-  ].join('\n')
+  return [headers.join(','), ...rows.map((row) => row.join(','))].join('\n')
 }
 
 const generateCustomerCSV = (orders: ECForceOrder[]): string => {
   // 顧客別の集計
-  const customerMap = new Map<string, {
-    email: string
-    orderCount: number
-    totalRevenue: number
-    firstOrder: string
-    lastOrder: string
-    isSubscriber: boolean
-  }>()
+  const customerMap = new Map<
+    string,
+    {
+      email: string
+      orderCount: number
+      totalRevenue: number
+      firstOrder: string
+      lastOrder: string
+      isSubscriber: boolean
+    }
+  >()
 
-  orders.forEach(order => {
+  orders.forEach((order) => {
     const current = customerMap.get(order.顧客番号) || {
       email: order.メールアドレス,
       orderCount: 0,
       totalRevenue: 0,
       firstOrder: order.受注日,
       lastOrder: order.受注日,
-      isSubscriber: false
+      isSubscriber: false,
     }
 
     customerMap.set(order.顧客番号, {
@@ -171,11 +167,19 @@ const generateCustomerCSV = (orders: ECForceOrder[]): string => {
       totalRevenue: current.totalRevenue + (order.合計 || 0),
       firstOrder: order.受注日 < current.firstOrder ? order.受注日 : current.firstOrder,
       lastOrder: order.受注日 > current.lastOrder ? order.受注日 : current.lastOrder,
-      isSubscriber: current.isSubscriber || order.定期ステータス === '有効'
+      isSubscriber: current.isSubscriber || order.定期ステータス === '有効',
     })
   })
 
-  const headers = ['顧客番号', 'メールアドレス', '注文回数', '累計購入金額', '初回購入日', '最終購入日', '定期購入']
+  const headers = [
+    '顧客番号',
+    'メールアドレス',
+    '注文回数',
+    '累計購入金額',
+    '初回購入日',
+    '最終購入日',
+    '定期購入',
+  ]
   const rows = Array.from(customerMap.entries()).map(([customerId, data]) => [
     customerId,
     data.email,
@@ -183,29 +187,32 @@ const generateCustomerCSV = (orders: ECForceOrder[]): string => {
     data.totalRevenue,
     data.firstOrder,
     data.lastOrder,
-    data.isSubscriber ? '有' : '無'
+    data.isSubscriber ? '有' : '無',
   ])
 
   return [
     headers.join(','),
-    ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+    ...rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')),
   ].join('\n')
 }
 
 const generateProductCSV = (orders: ECForceOrder[]): string => {
   // 商品別の集計
-  const productMap = new Map<string, {
-    orderCount: number
-    totalRevenue: number
-    customers: Set<string>
-  }>()
+  const productMap = new Map<
+    string,
+    {
+      orderCount: number
+      totalRevenue: number
+      customers: Set<string>
+    }
+  >()
 
-  orders.forEach(order => {
-    order.購入商品?.forEach(product => {
+  orders.forEach((order) => {
+    order.購入商品?.forEach((product) => {
       const current = productMap.get(product) || {
         orderCount: 0,
         totalRevenue: 0,
-        customers: new Set()
+        customers: new Set(),
       }
 
       current.orderCount++
@@ -224,13 +231,10 @@ const generateProductCSV = (orders: ECForceOrder[]): string => {
       data.orderCount,
       Math.round(data.totalRevenue),
       data.customers.size,
-      Math.round(data.totalRevenue / data.orderCount)
+      Math.round(data.totalRevenue / data.orderCount),
     ])
 
-  return [
-    headers.join(','),
-    ...rows.map(row => row.join(','))
-  ].join('\n')
+  return [headers.join(','), ...rows.map((row) => row.join(','))].join('\n')
 }
 
 const getDateString = (): string => {

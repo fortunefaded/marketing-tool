@@ -42,7 +42,7 @@ export const EnhancedCreativeDetailModal: React.FC<CreativeDetailModalProps> = (
   creative,
   isOpen,
   onClose,
-  performanceHistory = []
+  performanceHistory = [],
 }) => {
   const [currentCarouselIndex, setCurrentCarouselIndex] = useState(0)
   const [activeTab, setActiveTab] = useState<'metrics' | 'insights'>('metrics')
@@ -52,13 +52,13 @@ export const EnhancedCreativeDetailModal: React.FC<CreativeDetailModalProps> = (
   const manager = MetaAccountManager.getInstance()
   const activeAccount = manager.getActiveAccount()
   const accountId = activeAccount?.accountId || ''
-  
+
   // 実際のMeta APIデータから疲労度分析を使用
   const { fatigueData, isCalculating, error, analyzeFatigue } = useAdFatigueReal(
-    accountId, 
+    accountId,
     creative?.adId && activeTab === 'insights' ? creative.adId : undefined
   )
-  
+
   // 手動で疲労度分析を実行（必要に応じて）
   useEffect(() => {
     if (activeTab === 'insights' && creative?.adId && !fatigueData && !isCalculating && !error) {
@@ -202,9 +202,7 @@ export const EnhancedCreativeDetailModal: React.FC<CreativeDetailModalProps> = (
                       <Dialog.Title as="h3" className="text-xl font-bold text-white">
                         {creative.name}
                       </Dialog.Title>
-                      <p className="text-sm text-indigo-100 mt-1">
-                        {creative.campaignName}
-                      </p>
+                      <p className="text-sm text-indigo-100 mt-1">{creative.campaignName}</p>
                     </div>
                     <button
                       type="button"
@@ -225,12 +223,15 @@ export const EnhancedCreativeDetailModal: React.FC<CreativeDetailModalProps> = (
                       <div className="relative mx-auto" style={{ width: '320px', height: '640px' }}>
                         {/* Phone frame */}
                         <div className="absolute inset-0 bg-gray-900 rounded-[3rem] shadow-2xl"></div>
-                        
+
                         {/* Screen bezel */}
                         <div className="absolute inset-[12px] bg-black rounded-[2.5rem] overflow-hidden">
                           {/* Notch */}
-                          <div className="absolute top-0 inset-x-0 h-6 bg-gray-900 rounded-b-2xl" style={{ width: '150px', margin: '0 auto' }}></div>
-                          
+                          <div
+                            className="absolute top-0 inset-x-0 h-6 bg-gray-900 rounded-b-2xl"
+                            style={{ width: '150px', margin: '0 auto' }}
+                          ></div>
+
                           {/* Screen content */}
                           <div className="absolute inset-[2px] bg-white rounded-[2.4rem] overflow-hidden">
                             {/* Status bar */}
@@ -244,23 +245,40 @@ export const EnhancedCreativeDetailModal: React.FC<CreativeDetailModalProps> = (
                                   <div className="w-1 h-4 bg-gray-400 rounded-sm"></div>
                                 </div>
                                 {/* WiFi icon */}
-                                <svg className="w-3 h-3 text-gray-900" fill="currentColor" viewBox="0 0 640 512">
-                                  <path d="M320 128c88.4 0 160 71.6 160 160v96H160v-96c0-88.4 71.6-160 160-160zm0 32c-70.7 0-128 57.3-128 128v64h256v-64c0-70.7-57.3-128-128-128zm0 64c35.3 0 64 28.7 64 64h-128c0-35.3 28.7-64 64-64z"/>
+                                <svg
+                                  className="w-3 h-3 text-gray-900"
+                                  fill="currentColor"
+                                  viewBox="0 0 640 512"
+                                >
+                                  <path d="M320 128c88.4 0 160 71.6 160 160v96H160v-96c0-88.4 71.6-160 160-160zm0 32c-70.7 0-128 57.3-128 128v64h256v-64c0-70.7-57.3-128-128-128zm0 64c35.3 0 64 28.7 64 64h-128c0-35.3 28.7-64 64-64z" />
                                 </svg>
                                 {/* Battery with charging indicator */}
                                 <div className="relative">
                                   <div className="w-6 h-3 border border-gray-900 rounded-sm">
-                                    <div className="absolute inset-0.5 bg-green-500 rounded-sm" style={{ width: '70%' }}></div>
+                                    <div
+                                      className="absolute inset-0.5 bg-green-500 rounded-sm"
+                                      style={{ width: '70%' }}
+                                    ></div>
                                   </div>
                                   <div className="absolute -right-0.5 top-1 w-0.5 h-1 bg-gray-900 rounded-r"></div>
                                   {/* Lightning bolt for charging */}
-                                  <svg className="absolute left-1 top-0 w-3 h-3" viewBox="0 0 12 12" fill="none">
-                                    <path d="M7 1L3 6h2.5L4 11l4-5H5.5L7 1z" fill="white" stroke="currentColor" strokeWidth="0.5" className="text-gray-700"/>
+                                  <svg
+                                    className="absolute left-1 top-0 w-3 h-3"
+                                    viewBox="0 0 12 12"
+                                    fill="none"
+                                  >
+                                    <path
+                                      d="M7 1L3 6h2.5L4 11l4-5H5.5L7 1z"
+                                      fill="white"
+                                      stroke="currentColor"
+                                      strokeWidth="0.5"
+                                      className="text-gray-700"
+                                    />
                                   </svg>
                                 </div>
                               </div>
                             </div>
-                              
+
                             {/* Content area */}
                             <div className="h-[calc(100%-24px)] bg-gray-100 overflow-hidden">
                               {creative.type === 'VIDEO' && creative.videoUrl ? (
@@ -273,7 +291,9 @@ export const EnhancedCreativeDetailModal: React.FC<CreativeDetailModalProps> = (
                                     mobileOptimized={true}
                                   />
                                 </div>
-                              ) : creative.type === 'CAROUSEL' && creative.carouselCards && creative.carouselCards.length > 0 ? (
+                              ) : creative.type === 'CAROUSEL' &&
+                                creative.carouselCards &&
+                                creative.carouselCards.length > 0 ? (
                                 <div className="relative w-full h-full">
                                   <img
                                     src={creative.carouselCards[currentCarouselIndex].image_url}
@@ -295,7 +315,9 @@ export const EnhancedCreativeDetailModal: React.FC<CreativeDetailModalProps> = (
                                         key={index}
                                         onClick={() => setCurrentCarouselIndex(index)}
                                         className={`w-2 h-2 rounded-full transition-colors ${
-                                          index === currentCarouselIndex ? 'bg-white' : 'bg-white bg-opacity-50'
+                                          index === currentCarouselIndex
+                                            ? 'bg-white'
+                                            : 'bg-white bg-opacity-50'
                                         }`}
                                       />
                                     ))}
@@ -318,22 +340,30 @@ export const EnhancedCreativeDetailModal: React.FC<CreativeDetailModalProps> = (
                           </div>
                         </div>
                       </div>
-                      
+
                       {/* Creative info below phone */}
                       <div className="mt-6 text-center">
                         <div className="flex items-center justify-center gap-2">
-                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                            creative.status === 'ACTIVE' 
-                              ? 'bg-green-100 text-green-800' 
-                              : 'bg-yellow-100 text-yellow-800'
-                          }`}>
+                          <span
+                            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                              creative.status === 'ACTIVE'
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-yellow-100 text-yellow-800'
+                            }`}
+                          >
                             {creative.status === 'ACTIVE' ? 'アクティブ' : '一時停止'}
                           </span>
                           <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                            {creative.type === 'IMAGE' ? '画像' : creative.type === 'VIDEO' ? '動画' : 'カルーセル'}
+                            {creative.type === 'IMAGE'
+                              ? '画像'
+                              : creative.type === 'VIDEO'
+                                ? '動画'
+                                : 'カルーセル'}
                           </span>
                           {performanceRating.icon && (
-                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 ${performanceRating.color}`}>
+                            <span
+                              className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 ${performanceRating.color}`}
+                            >
                               <performanceRating.icon className="h-3 w-3 mr-1" />
                               {performanceRating.label}
                             </span>
@@ -372,7 +402,7 @@ export const EnhancedCreativeDetailModal: React.FC<CreativeDetailModalProps> = (
                       {activeTab === 'metrics' ? (
                         <div className="space-y-4">
                           <h4 className="text-lg font-bold text-gray-900">パフォーマンス指標</h4>
-                          
+
                           <div className="grid grid-cols-2 gap-4">
                             {metrics.map((metric) => (
                               <div
@@ -380,19 +410,27 @@ export const EnhancedCreativeDetailModal: React.FC<CreativeDetailModalProps> = (
                                 className="relative bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow overflow-hidden group"
                               >
                                 {/* Background gradient effect */}
-                                <div className={`absolute inset-0 bg-gradient-to-br ${metric.gradientFrom} ${metric.gradientTo} opacity-5 group-hover:opacity-10 transition-opacity`}></div>
-                                
+                                <div
+                                  className={`absolute inset-0 bg-gradient-to-br ${metric.gradientFrom} ${metric.gradientTo} opacity-5 group-hover:opacity-10 transition-opacity`}
+                                ></div>
+
                                 <div className="relative p-4">
                                   <div className="flex items-start justify-between">
                                     <div className="flex-1">
-                                      <p className="text-sm text-gray-600 font-medium">{metric.label}</p>
+                                      <p className="text-sm text-gray-600 font-medium">
+                                        {metric.label}
+                                      </p>
                                       <p className="text-2xl font-bold text-gray-900 mt-1">
                                         {metric.value}
                                       </p>
                                       {metric.subValue && (
-                                        <p className="text-sm text-gray-700 mt-1 font-medium">{metric.subValue}</p>
+                                        <p className="text-sm text-gray-700 mt-1 font-medium">
+                                          {metric.subValue}
+                                        </p>
                                       )}
-                                      <p className="text-xs text-gray-500 mt-2">{metric.description}</p>
+                                      <p className="text-xs text-gray-500 mt-2">
+                                        {metric.description}
+                                      </p>
                                     </div>
                                     <div className={`p-3 rounded-xl ${metric.iconBg} shadow-lg`}>
                                       <metric.icon className="h-6 w-6 text-white" />
@@ -413,25 +451,40 @@ export const EnhancedCreativeDetailModal: React.FC<CreativeDetailModalProps> = (
                               <div className="bg-white rounded-lg p-3">
                                 <span className="text-xs text-gray-600">エンゲージメント率</span>
                                 <p className="text-lg font-bold text-indigo-600 mt-1">
-                                  {((creative.metrics.clicks / creative.metrics.impressions) * 100).toFixed(2)}%
+                                  {(
+                                    (creative.metrics.clicks / creative.metrics.impressions) *
+                                    100
+                                  ).toFixed(2)}
+                                  %
                                 </p>
                               </div>
                               <div className="bg-white rounded-lg p-3">
                                 <span className="text-xs text-gray-600">コンバージョン率</span>
                                 <p className="text-lg font-bold text-green-600 mt-1">
-                                  {((creative.metrics.conversions / creative.metrics.clicks) * 100).toFixed(2)}%
+                                  {(
+                                    (creative.metrics.conversions / creative.metrics.clicks) *
+                                    100
+                                  ).toFixed(2)}
+                                  %
                                 </p>
                               </div>
                               <div className="bg-white rounded-lg p-3">
                                 <span className="text-xs text-gray-600">平均注文額</span>
                                 <p className="text-lg font-bold text-purple-600 mt-1">
-                                  {formatCurrency(creative.metrics.revenue / creative.metrics.conversions)}
+                                  {formatCurrency(
+                                    creative.metrics.revenue / creative.metrics.conversions
+                                  )}
                                 </p>
                               </div>
                               <div className="bg-white rounded-lg p-3">
                                 <span className="text-xs text-gray-600">利益率</span>
                                 <p className="text-lg font-bold text-amber-600 mt-1">
-                                  {(((creative.metrics.revenue - creative.metrics.spend) / creative.metrics.revenue) * 100).toFixed(1)}%
+                                  {(
+                                    ((creative.metrics.revenue - creative.metrics.spend) /
+                                      creative.metrics.revenue) *
+                                    100
+                                  ).toFixed(1)}
+                                  %
                                 </p>
                               </div>
                             </div>
@@ -443,16 +496,12 @@ export const EnhancedCreativeDetailModal: React.FC<CreativeDetailModalProps> = (
                           {isCalculating ? (
                             <div className="text-center py-12">
                               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500 mx-auto"></div>
-                              <p className="mt-2 text-sm text-gray-500">
-                                疲労度を分析中...
-                              </p>
+                              <p className="mt-2 text-sm text-gray-500">疲労度を分析中...</p>
                             </div>
                           ) : error ? (
                             <div className="text-center py-12">
                               <ExclamationTriangleIcon className="mx-auto h-12 w-12 text-red-400" />
-                              <p className="mt-2 text-sm text-red-500">
-                                {error}
-                              </p>
+                              <p className="mt-2 text-sm text-red-500">{error}</p>
                             </div>
                           ) : fatigueData ? (
                             <>
@@ -462,7 +511,7 @@ export const EnhancedCreativeDetailModal: React.FC<CreativeDetailModalProps> = (
                                 metrics={fatigueData.metrics}
                                 adName={fatigueData.adName}
                               />
-                              
+
                               {/* 疲労度アラート */}
                               {fatigueData.fatigueScore.status === 'critical' && (
                                 <FatigueAlert
@@ -473,7 +522,7 @@ export const EnhancedCreativeDetailModal: React.FC<CreativeDetailModalProps> = (
                                   metrics={fatigueData.metrics}
                                 />
                               )}
-                              
+
                               {/* 既存のCreativeInsightsも表示（追加情報として） */}
                               {fatigueAnalysis && (
                                 <div className="mt-6 pt-6 border-t border-gray-200">
@@ -499,7 +548,6 @@ export const EnhancedCreativeDetailModal: React.FC<CreativeDetailModalProps> = (
                     </div>
                   </div>
                 </div>
-
               </Dialog.Panel>
             </Transition.Child>
           </div>

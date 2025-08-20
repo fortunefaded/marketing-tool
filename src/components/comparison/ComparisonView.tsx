@@ -14,16 +14,9 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-  ResponsiveContainer
+  ResponsiveContainer,
 } from 'recharts'
-import {
-  TrendingUp,
-  TrendingDown,
-  Calendar,
-  Filter,
-  Download,
-  AlertCircle
-} from 'lucide-react'
+import { TrendingUp, TrendingDown, Calendar, Filter, Download, AlertCircle } from 'lucide-react'
 import { ECForceOrder } from '../../types/ecforce'
 
 interface ComparisonData {
@@ -65,11 +58,11 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ data }) => {
   // メトリクス計算
   const metrics = useMemo(() => {
     const period1Orders = filter.product
-      ? data.period1.orders.filter(o => o.購入商品.some(p => p.includes(filter.product)))
+      ? data.period1.orders.filter((o) => o.購入商品.some((p) => p.includes(filter.product)))
       : data.period1.orders
-    
+
     const period2Orders = filter.product
-      ? data.period2.orders.filter(o => o.購入商品.some(p => p.includes(filter.product)))
+      ? data.period2.orders.filter((o) => o.購入商品.some((p) => p.includes(filter.product)))
       : data.period2.orders
 
     const period1Revenue = period1Orders.reduce((sum, o) => sum + o.小計, 0)
@@ -78,20 +71,20 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ data }) => {
     const period2Count = period2Orders.length
     const period1AvgPrice = period1Count > 0 ? period1Revenue / period1Count : 0
     const period2AvgPrice = period2Count > 0 ? period2Revenue / period2Count : 0
-    
+
     // 顧客関連メトリクス
-    const period1Customers = new Set(period1Orders.map(o => o.顧客番号)).size
-    const period2Customers = new Set(period2Orders.map(o => o.顧客番号)).size
-    
+    const period1Customers = new Set(period1Orders.map((o) => o.顧客番号)).size
+    const period2Customers = new Set(period2Orders.map((o) => o.顧客番号)).size
+
     // CVR（仮想的な訪問者数から計算）
     const period1Visitors = Math.round(period1Count / 0.02) // 仮のCVR 2%
     const period2Visitors = Math.round(period2Count / 0.02)
     const period1CVR = period1Visitors > 0 ? (period1Count / period1Visitors) * 100 : 0
     const period2CVR = period2Visitors > 0 ? (period2Count / period2Visitors) * 100 : 0
-    
+
     // LTV（簡易計算）
-    const period1LTV = period1Customers > 0 ? period1Revenue / period1Customers * 3 : 0 // 3回購入想定
-    const period2LTV = period2Customers > 0 ? period2Revenue / period2Customers * 3 : 0
+    const period1LTV = period1Customers > 0 ? (period1Revenue / period1Customers) * 3 : 0 // 3回購入想定
+    const period2LTV = period2Customers > 0 ? (period2Revenue / period2Customers) * 3 : 0
 
     const metricsData: ComparisonMetric[] = [
       {
@@ -99,8 +92,9 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ data }) => {
         period1Value: period1Revenue,
         period2Value: period2Revenue,
         difference: period1Revenue - period2Revenue,
-        changeRate: period2Revenue > 0 ? ((period1Revenue - period2Revenue) / period2Revenue) * 100 : 0,
-        unit: '¥'
+        changeRate:
+          period2Revenue > 0 ? ((period1Revenue - period2Revenue) / period2Revenue) * 100 : 0,
+        unit: '¥',
       },
       {
         name: '注文数',
@@ -108,23 +102,27 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ data }) => {
         period2Value: period2Count,
         difference: period1Count - period2Count,
         changeRate: period2Count > 0 ? ((period1Count - period2Count) / period2Count) * 100 : 0,
-        unit: '件'
+        unit: '件',
       },
       {
         name: '平均単価',
         period1Value: period1AvgPrice,
         period2Value: period2AvgPrice,
         difference: period1AvgPrice - period2AvgPrice,
-        changeRate: period2AvgPrice > 0 ? ((period1AvgPrice - period2AvgPrice) / period2AvgPrice) * 100 : 0,
-        unit: '¥'
+        changeRate:
+          period2AvgPrice > 0 ? ((period1AvgPrice - period2AvgPrice) / period2AvgPrice) * 100 : 0,
+        unit: '¥',
       },
       {
         name: '顧客数',
         period1Value: period1Customers,
         period2Value: period2Customers,
         difference: period1Customers - period2Customers,
-        changeRate: period2Customers > 0 ? ((period1Customers - period2Customers) / period2Customers) * 100 : 0,
-        unit: '人'
+        changeRate:
+          period2Customers > 0
+            ? ((period1Customers - period2Customers) / period2Customers) * 100
+            : 0,
+        unit: '人',
       },
       {
         name: 'CVR',
@@ -132,7 +130,7 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ data }) => {
         period2Value: period2CVR,
         difference: period1CVR - period2CVR,
         changeRate: period2CVR > 0 ? ((period1CVR - period2CVR) / period2CVR) * 100 : 0,
-        unit: '%'
+        unit: '%',
       },
       {
         name: 'LTV',
@@ -140,8 +138,8 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ data }) => {
         period2Value: period2LTV,
         difference: period1LTV - period2LTV,
         changeRate: period2LTV > 0 ? ((period1LTV - period2LTV) / period2LTV) * 100 : 0,
-        unit: '¥'
-      }
+        unit: '¥',
+      },
     ]
 
     return metricsData
@@ -151,33 +149,35 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ data }) => {
   const segmentData = useMemo(() => {
     if (comparisonType !== 'segment') return []
 
-    const newCustomers1 = data.period1.orders.filter(o => o.顧客購入回数 === 1)
-    const existingCustomers1 = data.period1.orders.filter(o => o.顧客購入回数 > 1)
+    const newCustomers1 = data.period1.orders.filter((o) => o.顧客購入回数 === 1)
+    const existingCustomers1 = data.period1.orders.filter((o) => o.顧客購入回数 > 1)
 
     return [
       {
         segment: '新規顧客',
         売上: newCustomers1.reduce((sum, o) => sum + o.小計, 0),
         注文数: newCustomers1.length,
-        平均単価: newCustomers1.length > 0 
-          ? newCustomers1.reduce((sum, o) => sum + o.小計, 0) / newCustomers1.length 
-          : 0
+        平均単価:
+          newCustomers1.length > 0
+            ? newCustomers1.reduce((sum, o) => sum + o.小計, 0) / newCustomers1.length
+            : 0,
       },
       {
         segment: '既存顧客',
         売上: existingCustomers1.reduce((sum, o) => sum + o.小計, 0),
         注文数: existingCustomers1.length,
-        平均単価: existingCustomers1.length > 0
-          ? existingCustomers1.reduce((sum, o) => sum + o.小計, 0) / existingCustomers1.length
-          : 0
-      }
+        平均単価:
+          existingCustomers1.length > 0
+            ? existingCustomers1.reduce((sum, o) => sum + o.小計, 0) / existingCustomers1.length
+            : 0,
+      },
     ]
   }, [data, comparisonType])
 
   // アニメーション効果
   useEffect(() => {
     const targetValues: Record<string, number> = {}
-    metrics.forEach(metric => {
+    metrics.forEach((metric) => {
       targetValues[`${metric.name}-period1`] = metric.period1Value
       targetValues[`${metric.name}-period2`] = metric.period2Value
     })
@@ -196,7 +196,7 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ data }) => {
       Object.entries(targetValues).forEach(([key, target]) => {
         newValues[key] = target * easeProgress
       })
-      
+
       setAnimatedValues(newValues)
 
       if (currentStep >= steps) {
@@ -208,35 +208,39 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ data }) => {
   }, [metrics])
 
   // グラフデータ準備
-  const chartData = selectedMetrics.map(metricName => {
-    const metric = metrics.find(m => m.name === metricName)
-    if (!metric) return null
-    
-    return {
-      metric: metricName,
-      [data.period1.label]: metric.period1Value,
-      [data.period2.label]: metric.period2Value
-    }
-  }).filter(Boolean)
+  const chartData = selectedMetrics
+    .map((metricName) => {
+      const metric = metrics.find((m) => m.name === metricName)
+      if (!metric) return null
+
+      return {
+        metric: metricName,
+        [data.period1.label]: metric.period1Value,
+        [data.period2.label]: metric.period2Value,
+      }
+    })
+    .filter(Boolean)
 
   // レーダーチャート用データ
-  const radarData = selectedMetrics.map(metricName => {
-    const metric = metrics.find(m => m.name === metricName)
-    if (!metric) return null
-    
-    const maxValue = Math.max(metric.period1Value, metric.period2Value)
-    return {
-      metric: metricName,
-      [data.period1.label]: maxValue > 0 ? (metric.period1Value / maxValue) * 100 : 0,
-      [data.period2.label]: maxValue > 0 ? (metric.period2Value / maxValue) * 100 : 0
-    }
-  }).filter(Boolean)
+  const radarData = selectedMetrics
+    .map((metricName) => {
+      const metric = metrics.find((m) => m.name === metricName)
+      if (!metric) return null
+
+      const maxValue = Math.max(metric.period1Value, metric.period2Value)
+      return {
+        metric: metricName,
+        [data.period1.label]: maxValue > 0 ? (metric.period1Value / maxValue) * 100 : 0,
+        [data.period2.label]: maxValue > 0 ? (metric.period2Value / maxValue) * 100 : 0,
+      }
+    })
+    .filter(Boolean)
 
   // インサイト生成
   const insights = useMemo(() => {
     const insights: string[] = []
-    
-    metrics.forEach(metric => {
+
+    metrics.forEach((metric) => {
       if (metric.changeRate > 20) {
         insights.push(`${metric.name}が${metric.changeRate.toFixed(1)}%増加しています`)
       } else if (metric.changeRate < -20) {
@@ -263,11 +267,13 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ data }) => {
       <div className="bg-white rounded-lg shadow p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl font-bold text-gray-900">比較分析</h2>
-          
+
           <div className="flex items-center gap-4">
             {/* 比較タイプ選択 */}
             <div>
-              <label htmlFor="comparison-type" className="sr-only">比較タイプ</label>
+              <label htmlFor="comparison-type" className="sr-only">
+                比較タイプ
+              </label>
               <select
                 id="comparison-type"
                 value={comparisonType}
@@ -311,54 +317,57 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ data }) => {
 
       {/* 主要KPI比較 */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {metrics.slice(0, 3).map(metric => (
+        {metrics.slice(0, 3).map((metric) => (
           <div key={metric.name} className="bg-white rounded-lg shadow p-6">
             <h3 className="text-sm font-medium text-gray-500 mb-2">{metric.name}</h3>
-            
+
             <div className="space-y-3">
               <div>
                 <p className="text-xs text-gray-400">{data.period1.label}</p>
-                <p 
+                <p
                   className="text-2xl font-bold text-gray-900"
                   data-testid={`animated-value-${metric.name === '売上' ? 'revenue' : metric.name}`}
                 >
                   {metric.unit === '¥' ? '¥' : ''}
                   {(animatedValues[`${metric.name}-period1`] || 0).toLocaleString(undefined, {
-                    maximumFractionDigits: metric.unit === '%' ? 1 : 0
+                    maximumFractionDigits: metric.unit === '%' ? 1 : 0,
                   })}
                   {metric.unit === '%' ? '%' : ''}
                   {metric.unit === '件' ? '件' : ''}
                 </p>
               </div>
-              
+
               <div>
                 <p className="text-xs text-gray-400">{data.period2.label}</p>
                 <p className="text-2xl font-bold text-gray-900">
                   {metric.unit === '¥' ? '¥' : ''}
                   {metric.period2Value.toLocaleString(undefined, {
-                    maximumFractionDigits: metric.unit === '%' ? 1 : 0
+                    maximumFractionDigits: metric.unit === '%' ? 1 : 0,
                   })}
                   {metric.unit === '%' ? '%' : ''}
                   {metric.unit === '件' ? '件' : ''}
                 </p>
               </div>
-              
+
               <div className="pt-3 border-t border-gray-200">
-                <div className={`flex items-center ${metric.changeRate >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                <div
+                  className={`flex items-center ${metric.changeRate >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                >
                   {metric.changeRate >= 0 ? (
                     <TrendingUp className="h-4 w-4 mr-1" />
                   ) : (
                     <TrendingDown className="h-4 w-4 mr-1" />
                   )}
                   <span className="font-semibold">
-                    {metric.changeRate >= 0 ? '+' : ''}{metric.changeRate.toFixed(1)}%
+                    {metric.changeRate >= 0 ? '+' : ''}
+                    {metric.changeRate.toFixed(1)}%
                   </span>
                 </div>
                 <p className="text-sm text-gray-500 mt-1">
                   {metric.changeRate >= 0 ? '+' : ''}
                   {metric.unit === '¥' ? '¥' : ''}
                   {metric.difference.toLocaleString(undefined, {
-                    maximumFractionDigits: metric.unit === '%' ? 1 : 0
+                    maximumFractionDigits: metric.unit === '%' ? 1 : 0,
                   })}
                   {metric.unit === '%' ? '%' : ''}
                   {metric.unit === '件' ? '件' : ''}
@@ -375,10 +384,12 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ data }) => {
           <h3 className="text-lg font-semibold text-gray-900">
             {comparisonType === 'segment' ? 'セグメント比較' : '比較グラフ'}
           </h3>
-          
+
           <div className="flex items-center gap-4">
             {/* グラフタイプ選択 */}
-            <label htmlFor="chart-type" className="text-sm text-gray-700">グラフタイプ</label>
+            <label htmlFor="chart-type" className="text-sm text-gray-700">
+              グラフタイプ
+            </label>
             <select
               id="chart-type"
               value={chartType}
@@ -395,7 +406,10 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ data }) => {
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
             {chartType === 'bar' ? (
-              <BarChart data={comparisonType === 'segment' ? segmentData : chartData} data-testid="bar-chart-comparison">
+              <BarChart
+                data={comparisonType === 'segment' ? segmentData : chartData}
+                data-testid="bar-chart-comparison"
+              >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey={comparisonType === 'segment' ? 'segment' : 'metric'} />
                 <YAxis />
@@ -420,16 +434,38 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ data }) => {
                 <YAxis />
                 <Tooltip formatter={(value: any) => value.toLocaleString()} />
                 <Legend />
-                <Line type="monotone" dataKey={data.period1.label} stroke="#4F46E5" strokeWidth={2} />
-                <Line type="monotone" dataKey={data.period2.label} stroke="#10B981" strokeWidth={2} />
+                <Line
+                  type="monotone"
+                  dataKey={data.period1.label}
+                  stroke="#4F46E5"
+                  strokeWidth={2}
+                />
+                <Line
+                  type="monotone"
+                  dataKey={data.period2.label}
+                  stroke="#10B981"
+                  strokeWidth={2}
+                />
               </LineChart>
             ) : (
               <RadarChart data={radarData} data-testid="radar-chart-comparison">
                 <PolarGrid />
                 <PolarAngleAxis dataKey="metric" />
                 <PolarRadiusAxis angle={90} domain={[0, 100]} />
-                <Radar name={data.period1.label} dataKey={data.period1.label} stroke="#4F46E5" fill="#4F46E5" fillOpacity={0.6} />
-                <Radar name={data.period2.label} dataKey={data.period2.label} stroke="#10B981" fill="#10B981" fillOpacity={0.6} />
+                <Radar
+                  name={data.period1.label}
+                  dataKey={data.period1.label}
+                  stroke="#4F46E5"
+                  fill="#4F46E5"
+                  fillOpacity={0.6}
+                />
+                <Radar
+                  name={data.period2.label}
+                  dataKey={data.period2.label}
+                  stroke="#10B981"
+                  fill="#10B981"
+                  fillOpacity={0.6}
+                />
                 <Legend />
               </RadarChart>
             )}
@@ -442,7 +478,7 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ data }) => {
         <div className="px-6 py-4 border-b border-gray-200">
           <h3 className="text-lg font-semibold text-gray-900">詳細比較</h3>
         </div>
-        
+
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -473,7 +509,7 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ data }) => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
                     {metric.unit === '¥' ? '¥' : ''}
                     {metric.period1Value.toLocaleString(undefined, {
-                      maximumFractionDigits: metric.unit === '%' ? 1 : 0
+                      maximumFractionDigits: metric.unit === '%' ? 1 : 0,
                     })}
                     {metric.unit === '%' ? '%' : ''}
                     {metric.unit === '件' ? '件' : ''}
@@ -482,7 +518,7 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ data }) => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
                     {metric.unit === '¥' ? '¥' : ''}
                     {metric.period2Value.toLocaleString(undefined, {
-                      maximumFractionDigits: metric.unit === '%' ? 1 : 0
+                      maximumFractionDigits: metric.unit === '%' ? 1 : 0,
                     })}
                     {metric.unit === '%' ? '%' : ''}
                     {metric.unit === '件' ? '件' : ''}
@@ -493,7 +529,7 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ data }) => {
                       {metric.changeRate >= 0 ? '+' : ''}
                       {metric.unit === '¥' ? '¥' : ''}
                       {metric.difference.toLocaleString(undefined, {
-                        maximumFractionDigits: metric.unit === '%' ? 1 : 0
+                        maximumFractionDigits: metric.unit === '%' ? 1 : 0,
                       })}
                       {metric.unit === '%' ? '%' : ''}
                       {metric.unit === '件' ? '件' : ''}
@@ -502,7 +538,8 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ data }) => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
                     <span className={metric.changeRate >= 0 ? 'text-green-600' : 'text-red-600'}>
-                      {metric.changeRate >= 0 ? '+' : ''}{metric.changeRate.toFixed(1)}%
+                      {metric.changeRate >= 0 ? '+' : ''}
+                      {metric.changeRate.toFixed(1)}%
                     </span>
                   </td>
                 </tr>
@@ -514,11 +551,9 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ data }) => {
 
       {/* 指標選択 */}
       <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          指標を選択
-        </h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">指標を選択</h3>
         <div className="flex flex-wrap gap-3" data-testid="multi-metric-comparison">
-          {['売上', '注文数', '平均単価', 'CVR', 'LTV'].map(metricName => (
+          {['売上', '注文数', '平均単価', 'CVR', 'LTV'].map((metricName) => (
             <label key={metricName} className="flex items-center">
               <input
                 type="checkbox"
@@ -527,7 +562,7 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ data }) => {
                   if (e.target.checked) {
                     setSelectedMetrics([...selectedMetrics, metricName])
                   } else {
-                    setSelectedMetrics(selectedMetrics.filter(m => m !== metricName))
+                    setSelectedMetrics(selectedMetrics.filter((m) => m !== metricName))
                   }
                 }}
                 className="mr-2"
@@ -552,7 +587,7 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ data }) => {
             </li>
           ))}
         </ul>
-        
+
         <div className="mt-6">
           <h4 className="font-semibold text-gray-900 mb-2">推奨アクション</h4>
           <ul className="space-y-2">
@@ -565,7 +600,9 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ data }) => {
             {metrics[2].changeRate > 10 && (
               <li className="flex items-start">
                 <span className="inline-block w-2 h-2 bg-green-600 rounded-full mt-1.5 mr-3 flex-shrink-0" />
-                <span className="text-gray-700">アップセル施策が成功している可能性があります。継続を推奨</span>
+                <span className="text-gray-700">
+                  アップセル施策が成功している可能性があります。継続を推奨
+                </span>
               </li>
             )}
           </ul>
@@ -607,7 +644,10 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ data }) => {
             <h3 className="text-lg font-semibold text-gray-900 mb-4">フィルター</h3>
             <div className="space-y-4">
               <div>
-                <label htmlFor="product-filter" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="product-filter"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   商品
                 </label>
                 <input
@@ -637,11 +677,7 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ data }) => {
                 適用
               </button>
             </div>
-            {filter.product && (
-              <div className="mt-4 text-sm text-gray-600">
-                フィルター適用中
-              </div>
-            )}
+            {filter.product && <div className="mt-4 text-sm text-gray-600">フィルター適用中</div>}
           </div>
         </div>
       )}
@@ -651,7 +687,7 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ data }) => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl p-6 w-[500px]">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">比較期間を選択</h3>
-            
+
             <div className="space-y-4">
               <div>
                 <h4 className="font-medium text-gray-700 mb-2">プリセット期間</h4>
@@ -667,12 +703,14 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ data }) => {
                   </button>
                 </div>
               </div>
-              
+
               <div className="border-t pt-4">
                 <h4 className="font-medium text-gray-700 mb-2">カスタム期間</h4>
                 <div className="space-y-3">
                   <div>
-                    <label htmlFor="period1-start" className="block text-sm text-gray-600 mb-1">期間1開始日</label>
+                    <label htmlFor="period1-start" className="block text-sm text-gray-600 mb-1">
+                      期間1開始日
+                    </label>
                     <input
                       id="period1-start"
                       type="date"
@@ -680,7 +718,9 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ data }) => {
                     />
                   </div>
                   <div>
-                    <label htmlFor="period1-end" className="block text-sm text-gray-600 mb-1">期間1終了日</label>
+                    <label htmlFor="period1-end" className="block text-sm text-gray-600 mb-1">
+                      期間1終了日
+                    </label>
                     <input
                       id="period1-end"
                       type="date"
@@ -690,7 +730,7 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ data }) => {
                 </div>
               </div>
             </div>
-            
+
             <div className="flex justify-end gap-2 mt-6">
               <button
                 onClick={() => setShowPeriodModal(false)}

@@ -65,7 +65,7 @@ export const ImportHistoryComponent: React.FC = () => {
       month: '2-digit',
       day: '2-digit',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     })
   }
 
@@ -100,7 +100,9 @@ export const ImportHistoryComponent: React.FC = () => {
           </div>
           <div>
             <p className="text-sm text-gray-600">総レコード数</p>
-            <p className="text-2xl font-semibold text-gray-900">{stats.totalRecords.toLocaleString()}</p>
+            <p className="text-2xl font-semibold text-gray-900">
+              {stats.totalRecords.toLocaleString()}
+            </p>
           </div>
           <div>
             <p className="text-sm text-gray-600">成功率</p>
@@ -114,15 +116,12 @@ export const ImportHistoryComponent: React.FC = () => {
         <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
           <h3 className="text-lg font-semibold text-gray-900">インポート履歴</h3>
           {history.length > 0 && (
-            <button
-              onClick={handleClearAll}
-              className="text-sm text-red-600 hover:text-red-800"
-            >
+            <button onClick={handleClearAll} className="text-sm text-red-600 hover:text-red-800">
               すべて削除
             </button>
           )}
         </div>
-        
+
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">

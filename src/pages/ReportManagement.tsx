@@ -16,9 +16,7 @@ export const ReportManagement: React.FC = () => {
               <FileText className="h-8 w-8 mr-3 text-indigo-600" />
               レポート管理
             </h1>
-            <p className="mt-2 text-sm text-gray-600">
-              スケジュールレポートとお気に入り分析の管理
-            </p>
+            <p className="mt-2 text-sm text-gray-600">スケジュールレポートとお気に入り分析の管理</p>
           </div>
           <AddToFavoriteButton
             analysisName="レポート管理"
@@ -36,9 +34,10 @@ export const ReportManagement: React.FC = () => {
             onClick={() => setActiveTab('scheduled')}
             className={`
               py-2 px-1 border-b-2 font-medium text-sm transition-colors
-              ${activeTab === 'scheduled'
-                ? 'border-indigo-500 text-indigo-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              ${
+                activeTab === 'scheduled'
+                  ? 'border-indigo-500 text-indigo-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }
             `}
           >
@@ -51,9 +50,10 @@ export const ReportManagement: React.FC = () => {
             onClick={() => setActiveTab('favorites')}
             className={`
               py-2 px-1 border-b-2 font-medium text-sm transition-colors
-              ${activeTab === 'favorites'
-                ? 'border-indigo-500 text-indigo-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              ${
+                activeTab === 'favorites'
+                  ? 'border-indigo-500 text-indigo-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }
             `}
           >
@@ -70,12 +70,10 @@ export const ReportManagement: React.FC = () => {
         {activeTab === 'scheduled' ? (
           <div className="space-y-6">
             <ScheduledReportManager />
-            
+
             {/* レポート設定の説明 */}
             <div className="bg-blue-50 rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-blue-900 mb-3">
-                レポート配信について
-              </h3>
+              <h3 className="text-lg font-semibold text-blue-900 mb-3">レポート配信について</h3>
               <div className="space-y-2 text-sm text-blue-700">
                 <p>• レポートは指定された時刻に自動的に生成され、メールで配信されます</p>
                 <p>• 日次、週次、月次の頻度で配信スケジュールを設定できます</p>
@@ -87,12 +85,10 @@ export const ReportManagement: React.FC = () => {
         ) : (
           <div className="space-y-6">
             <FavoriteAnalysisList />
-            
+
             {/* お気に入りの説明 */}
             <div className="bg-yellow-50 rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-yellow-900 mb-3">
-                お気に入り分析について
-              </h3>
+              <h3 className="text-lg font-semibold text-yellow-900 mb-3">お気に入り分析について</h3>
               <div className="space-y-2 text-sm text-yellow-700">
                 <p>• よく使う分析画面をお気に入りに登録して、すぐにアクセスできます</p>
                 <p>• フィルター条件も一緒に保存されるため、同じ条件で分析を再開できます</p>

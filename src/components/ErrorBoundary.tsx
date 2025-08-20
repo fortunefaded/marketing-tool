@@ -14,14 +14,14 @@ export class ErrorBoundary extends Component<Props, State> {
   public state: State = {
     hasError: false,
     error: null,
-    errorInfo: null
+    errorInfo: null,
   }
 
   public static getDerivedStateFromError(error: Error): State {
-    return { 
+    return {
       hasError: true,
       error,
-      errorInfo: null
+      errorInfo: null,
     }
   }
 
@@ -29,7 +29,7 @@ export class ErrorBoundary extends Component<Props, State> {
     console.error('Uncaught error:', error, errorInfo)
     this.setState({
       error,
-      errorInfo
+      errorInfo,
     })
   }
 

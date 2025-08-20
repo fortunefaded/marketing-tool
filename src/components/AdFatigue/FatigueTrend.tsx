@@ -8,7 +8,7 @@ import {
   Title,
   Tooltip,
   Legend,
-  Filler
+  Filler,
 } from 'chart.js'
 import { Line } from 'react-chartjs-2'
 import { format } from 'date-fns'
@@ -46,55 +46,53 @@ interface FatigueTrendProps {
 export const FatigueTrend: React.FC<FatigueTrendProps> = ({
   data,
   showMetrics = false,
-  height = 300
+  height = 300,
 }) => {
   // データの整形
   const chartData = useMemo(() => {
-    const sortedData = [...data].sort((a, b) => 
-      new Date(a.date).getTime() - new Date(b.date).getTime()
+    const sortedData = [...data].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
     )
 
-    const labels = sortedData.map(d => 
-      format(new Date(d.date), 'M/d', { locale: ja })
-    )
+    const labels = sortedData.map((d) => format(new Date(d.date), 'M/d', { locale: ja }))
 
     const datasets = [
       {
         label: '総合スコア',
-        data: sortedData.map(d => d.totalScore),
+        data: sortedData.map((d) => d.totalScore),
         borderColor: 'rgb(99, 102, 241)',
         backgroundColor: 'rgba(99, 102, 241, 0.1)',
         borderWidth: 3,
         tension: 0.4,
-        fill: true
+        fill: true,
       },
       {
         label: 'オーディエンス',
-        data: sortedData.map(d => d.audienceScore),
+        data: sortedData.map((d) => d.audienceScore),
         borderColor: 'rgb(236, 72, 153)',
         backgroundColor: 'rgba(236, 72, 153, 0.1)',
         borderWidth: 2,
         tension: 0.4,
-        borderDash: [5, 5]
+        borderDash: [5, 5],
       },
       {
         label: 'クリエイティブ',
-        data: sortedData.map(d => d.creativeScore),
+        data: sortedData.map((d) => d.creativeScore),
         borderColor: 'rgb(59, 130, 246)',
         backgroundColor: 'rgba(59, 130, 246, 0.1)',
         borderWidth: 2,
         tension: 0.4,
-        borderDash: [5, 5]
+        borderDash: [5, 5],
       },
       {
         label: 'アルゴリズム',
-        data: sortedData.map(d => d.algorithmScore),
+        data: sortedData.map((d) => d.algorithmScore),
         borderColor: 'rgb(34, 197, 94)',
         backgroundColor: 'rgba(34, 197, 94, 0.1)',
         borderWidth: 2,
         tension: 0.4,
-        borderDash: [5, 5]
-      }
+        borderDash: [5, 5],
+      },
     ]
 
     return { labels, datasets }
@@ -104,59 +102,59 @@ export const FatigueTrend: React.FC<FatigueTrendProps> = ({
   const metricsChartData = useMemo(() => {
     if (!showMetrics) return null
 
-    const sortedData = [...data].sort((a, b) => 
-      new Date(a.date).getTime() - new Date(b.date).getTime()
+    const sortedData = [...data].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
     )
 
-    const labels = sortedData.map(d => 
-      format(new Date(d.date), 'M/d', { locale: ja })
-    )
+    const labels = sortedData.map((d) => format(new Date(d.date), 'M/d', { locale: ja }))
 
     return {
       frequency: {
         labels,
-        datasets: [{
-          label: 'フリークエンシー',
-          data: sortedData.map(d => d.frequency || 0),
-          borderColor: 'rgb(251, 146, 60)',
-          backgroundColor: 'rgba(251, 146, 60, 0.1)',
-          borderWidth: 2,
-          tension: 0.4,
-          fill: true
-        }]
+        datasets: [
+          {
+            label: 'フリークエンシー',
+            data: sortedData.map((d) => d.frequency || 0),
+            borderColor: 'rgb(251, 146, 60)',
+            backgroundColor: 'rgba(251, 146, 60, 0.1)',
+            borderWidth: 2,
+            tension: 0.4,
+            fill: true,
+          },
+        ],
       },
       performance: {
         labels,
         datasets: [
           {
             label: 'CTR (%)',
-            data: sortedData.map(d => (d.ctr || 0) * 100),
+            data: sortedData.map((d) => (d.ctr || 0) * 100),
             borderColor: 'rgb(147, 51, 234)',
             backgroundColor: 'rgba(147, 51, 234, 0.1)',
             borderWidth: 2,
             tension: 0.4,
-            yAxisID: 'y'
+            yAxisID: 'y',
           },
           {
             label: '新規リーチ率 (%)',
-            data: sortedData.map(d => (d.firstTimeRatio || 0) * 100),
+            data: sortedData.map((d) => (d.firstTimeRatio || 0) * 100),
             borderColor: 'rgb(20, 184, 166)',
             backgroundColor: 'rgba(20, 184, 166, 0.1)',
             borderWidth: 2,
             tension: 0.4,
-            yAxisID: 'y'
+            yAxisID: 'y',
           },
           {
             label: 'CPM (¥)',
-            data: sortedData.map(d => d.cpm || 0),
+            data: sortedData.map((d) => d.cpm || 0),
             borderColor: 'rgb(239, 68, 68)',
             backgroundColor: 'rgba(239, 68, 68, 0.1)',
             borderWidth: 2,
             tension: 0.4,
-            yAxisID: 'y1'
-          }
-        ]
-      }
+            yAxisID: 'y1',
+          },
+        ],
+      },
     }
   }, [data, showMetrics])
 
@@ -171,30 +169,30 @@ export const FatigueTrend: React.FC<FatigueTrendProps> = ({
           boxWidth: 12,
           padding: 15,
           font: {
-            size: 12
-          }
-        }
+            size: 12,
+          },
+        },
       },
       title: {
         display: true,
         text: '疲労度スコアの推移',
         font: {
           size: 16,
-          weight: 'bold' as const
+          weight: 'bold' as const,
         },
         padding: {
-          bottom: 20
-        }
+          bottom: 20,
+        },
       },
       tooltip: {
         mode: 'index' as const,
         intersect: false,
         backgroundColor: 'rgba(0, 0, 0, 0.8)',
         titleFont: {
-          size: 14
+          size: 14,
         },
         bodyFont: {
-          size: 13
+          size: 13,
         },
         padding: 12,
         cornerRadius: 8,
@@ -203,40 +201,40 @@ export const FatigueTrend: React.FC<FatigueTrendProps> = ({
             const label = context.dataset.label || ''
             const value = context.parsed.y.toFixed(0)
             return `${label}: ${value}`
-          }
-        }
-      }
+          },
+        },
+      },
     },
     scales: {
       x: {
         grid: {
-          display: false
+          display: false,
         },
         ticks: {
           font: {
-            size: 11
-          }
-        }
+            size: 11,
+          },
+        },
       },
       y: {
         min: 0,
         max: 100,
         grid: {
-          color: 'rgba(0, 0, 0, 0.05)'
+          color: 'rgba(0, 0, 0, 0.05)',
         },
         ticks: {
           font: {
-            size: 11
+            size: 11,
           },
-          callback: (value: any) => `${value}`
-        }
-      }
+          callback: (value: any) => `${value}`,
+        },
+      },
     },
     interaction: {
       mode: 'nearest' as const,
       axis: 'x' as const,
-      intersect: false
-    }
+      intersect: false,
+    },
   }
 
   // メトリクス用オプション
@@ -250,54 +248,54 @@ export const FatigueTrend: React.FC<FatigueTrendProps> = ({
           boxWidth: 12,
           padding: 10,
           font: {
-            size: 11
-          }
-        }
+            size: 11,
+          },
+        },
       },
       tooltip: {
         mode: 'index' as const,
-        intersect: false
-      }
+        intersect: false,
+      },
     },
     scales: {
       x: {
         grid: {
-          display: false
+          display: false,
         },
         ticks: {
           font: {
-            size: 10
-          }
-        }
+            size: 10,
+          },
+        },
       },
       y: {
         type: 'linear' as const,
         display: true,
         position: 'left' as const,
         grid: {
-          color: 'rgba(0, 0, 0, 0.05)'
+          color: 'rgba(0, 0, 0, 0.05)',
         },
         ticks: {
           font: {
-            size: 10
-          }
-        }
+            size: 10,
+          },
+        },
       },
       y1: {
         type: 'linear' as const,
         display: true,
         position: 'right' as const,
         grid: {
-          drawOnChartArea: false
+          drawOnChartArea: false,
         },
         ticks: {
           font: {
-            size: 10
+            size: 10,
           },
-          callback: (value: any) => `¥${value}`
-        }
-      }
-    }
+          callback: (value: any) => `¥${value}`,
+        },
+      },
+    },
   }
 
   // 危険域の背景を描画
@@ -334,7 +332,7 @@ export const FatigueTrend: React.FC<FatigueTrendProps> = ({
         chartArea.right - chartArea.left,
         yScale.getPixelForValue(30) - yScale.getPixelForValue(50)
       )
-    }
+    },
   }
 
   return (
@@ -342,11 +340,7 @@ export const FatigueTrend: React.FC<FatigueTrendProps> = ({
       {/* 疲労度スコアグラフ */}
       <div className="bg-white rounded-lg shadow p-6">
         <div style={{ height }}>
-          <Line 
-            data={chartData} 
-            options={options}
-            plugins={[dangerZonePlugin]}
-          />
+          <Line data={chartData} options={options} plugins={[dangerZonePlugin]} />
         </div>
 
         {/* 凡例 */}

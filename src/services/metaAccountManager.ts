@@ -32,7 +32,7 @@ export class MetaAccountManager {
           id: acc.id || acc.accountId, // 後方互換性のため
           fullAccountId: acc.fullAccountId || `act_${acc.accountId}`, // 後方互換性のため
           createdAt: new Date(acc.createdAt),
-          lastUsedAt: acc.lastUsedAt ? new Date(acc.lastUsedAt) : undefined
+          lastUsedAt: acc.lastUsedAt ? new Date(acc.lastUsedAt) : undefined,
         }))
         return data
       }
@@ -54,7 +54,9 @@ export class MetaAccountManager {
   // アクティブなアカウントを取得
   getActiveAccount(): MetaAccount | null {
     if (!this.storage.activeAccountId) return null
-    return this.storage.accounts.find(acc => acc.accountId === this.storage.activeAccountId) || null
+    return (
+      this.storage.accounts.find((acc) => acc.accountId === this.storage.activeAccountId) || null
+    )
   }
 
   // アカウントを追加または更新
@@ -64,8 +66,8 @@ export class MetaAccountManager {
     accessToken: string
     permissions?: string[]
   }): Promise<void> {
-    const existing = this.storage.accounts.find(acc => acc.accountId === account.accountId)
-    
+    const existing = this.storage.accounts.find((acc) => acc.accountId === account.accountId)
+
     if (existing) {
       // 既存のアカウントを更新
       existing.name = account.name
@@ -81,7 +83,7 @@ export class MetaAccountManager {
         permissions: account.permissions || [],
         createdAt: new Date(),
         lastUsedAt: new Date(),
-        isActive: true
+        isActive: true,
       }
       this.storage.accounts.push(newAccount)
     }
@@ -100,10 +102,12 @@ export class MetaAccountManager {
         },
         this.convexClient
       )
-      
+
       // アカウント情報を取得
       const accountInfo = await apiService.getAccountInfo()
-      const existingAccount = this.storage.accounts.find(acc => acc.accountId === account.accountId)
+      const existingAccount = this.storage.accounts.find(
+        (acc) => acc.accountId === account.accountId
+      )
       if (existingAccount && accountInfo) {
         existingAccount.name = accountInfo.name || existingAccount.name
         existingAccount.currency = accountInfo.currency
@@ -118,13 +122,12 @@ export class MetaAccountManager {
 
   // アカウントを削除
   removeAccount(accountId: string): void {
-    this.storage.accounts = this.storage.accounts.filter(acc => acc.accountId !== accountId)
-    
+    this.storage.accounts = this.storage.accounts.filter((acc) => acc.accountId !== accountId)
+
     // アクティブなアカウントが削除された場合、別のアカウントをアクティブにする
     if (this.storage.activeAccountId === accountId) {
-      this.storage.activeAccountId = this.storage.accounts.length > 0 
-        ? this.storage.accounts[0].accountId 
-        : undefined
+      this.storage.activeAccountId =
+        this.storage.accounts.length > 0 ? this.storage.accounts[0].accountId : undefined
     }
 
     this.saveStorage()
@@ -132,7 +135,7 @@ export class MetaAccountManager {
 
   // アクティブなアカウントを設定
   setActiveAccount(accountId: string): void {
-    const account = this.storage.accounts.find(acc => acc.accountId === accountId)
+    const account = this.storage.accounts.find((acc) => acc.accountId === accountId)
     if (account) {
       this.storage.activeAccountId = accountId
       account.lastUsedAt = new Date()
@@ -142,7 +145,7 @@ export class MetaAccountManager {
 
   // アカウント情報を更新
   updateAccount(accountId: string, updates: Partial<MetaAccount>): void {
-    const account = this.storage.accounts.find(acc => acc.accountId === accountId)
+    const account = this.storage.accounts.find((acc) => acc.accountId === accountId)
     if (account) {
       Object.assign(account, updates)
       this.saveStorage()
@@ -165,7 +168,7 @@ export class MetaAccountManager {
 
   // 指定されたアカウントのMetaApiServiceインスタンスを取得
   getApiService(accountId: string): MetaApiService | null {
-    const account = this.storage.accounts.find(acc => acc.accountId === accountId)
+    const account = this.storage.accounts.find((acc) => acc.accountId === accountId)
     if (!account) return null
 
     return new MetaApiService(
@@ -180,29 +183,29 @@ export class MetaAccountManager {
   // 全アカウントのデータ同期状況を取得
   async getAllAccountsData(): Promise<{ accountId: string; name: string; hasData: boolean }[]> {
     const results = []
-    
+
     for (const account of this.storage.accounts) {
       const accountData = {
         accountId: account.accountId,
         name: account.name,
-        hasData: false
+        hasData: false,
       }
-      
+
       // ローカルストレージのキーを確認
       const keys = [
         `meta_insights_${account.accountId}`,
         `meta_campaigns_${account.accountId}`,
-        `meta_creatives_${account.accountId}`
+        `meta_creatives_${account.accountId}`,
       ]
-      
-      accountData.hasData = keys.some(key => {
+
+      accountData.hasData = keys.some((key) => {
         const data = localStorage.getItem(key)
         return data && JSON.parse(data).length > 0
       })
-      
+
       results.push(accountData)
     }
-    
+
     return results
   }
 }

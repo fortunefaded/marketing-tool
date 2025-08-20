@@ -24,20 +24,18 @@ export class ECForceDuplicateHandler {
     newOrders: ECForceOrder[],
     strategy: DuplicateStrategy = 'skip'
   ): DuplicateHandlingResult {
-    const existingMap = new Map(
-      existingOrders.map(order => [order.受注ID, order])
-    )
-    
+    const existingMap = new Map(existingOrders.map((order) => [order.受注ID, order]))
+
     const result: DuplicateHandlingResult = {
       imported: [],
       skipped: [],
       replaced: [],
-      total: newOrders.length
+      total: newOrders.length,
     }
 
     for (const newOrder of newOrders) {
       const existingOrder = existingMap.get(newOrder.受注ID)
-      
+
       if (!existingOrder) {
         // 新規データ
         result.imported.push(newOrder)
@@ -49,7 +47,7 @@ export class ECForceDuplicateHandler {
             // スキップ
             result.skipped.push(newOrder)
             break
-            
+
           case 'replace':
             // 置き換え
             existingMap.set(newOrder.受注ID, newOrder)
@@ -61,7 +59,7 @@ export class ECForceDuplicateHandler {
 
     return {
       ...result,
-      imported: Array.from(existingMap.values())
+      imported: Array.from(existingMap.values()),
     }
   }
 
@@ -76,13 +74,13 @@ export class ECForceDuplicateHandler {
     duplicates: number
     unique: number
   } {
-    const existingIds = new Set(existingOrders.map(order => order.受注ID))
-    const duplicates = newOrders.filter(order => existingIds.has(order.受注ID))
-    
+    const existingIds = new Set(existingOrders.map((order) => order.受注ID))
+    const duplicates = newOrders.filter((order) => existingIds.has(order.受注ID))
+
     return {
       totalNew: newOrders.length,
       duplicates: duplicates.length,
-      unique: newOrders.length - duplicates.length
+      unique: newOrders.length - duplicates.length,
     }
   }
 }

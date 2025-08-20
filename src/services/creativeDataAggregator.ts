@@ -147,20 +147,20 @@ export class CreativeDataAggregator {
 
       console.log('包括的なクリエイティブデータを取得中...')
       console.log('dateRange:', options.dateRange)
-      
+
       // 日付範囲の検証
       if (!options.dateRange || !options.dateRange.since || !options.dateRange.until) {
         console.error('無効な日付範囲:', options.dateRange)
         throw new Error('有効な日付範囲を指定してください')
       }
-      
+
       // Step 1: 基本的なインサイトデータを取得
       const insights = await this.metaApi.getComprehensiveInsights(options.dateRange)
       console.log(`${insights.length}件のインサイトデータを取得`)
 
       // 広告IDのリストを作成
-      const adIds = [...new Set(insights.map(i => i.ad_id).filter(Boolean))] as string[]
-      
+      const adIds = [...new Set(insights.map((i) => i.ad_id).filter(Boolean))] as string[]
+
       if (adIds.length === 0) {
         console.warn('広告IDが見つかりません')
         return []
@@ -173,9 +173,9 @@ export class CreativeDataAggregator {
         // アカウントレベルメトリクス
         this.metaApi.getAccountLevelMetrics(options.dateRange),
         // 動画パフォーマンス（オプション）
-        options.includeVideoMetrics 
+        options.includeVideoMetrics
           ? this.metaApi.getVideoPerformanceData(adIds, options.dateRange)
-          : Promise.resolve([])
+          : Promise.resolve([]),
       ])
 
       console.log(`${creatives.length}件のクリエイティブ詳細を取得`)
@@ -208,7 +208,7 @@ export class CreativeDataAggregator {
   ): EnhancedCreativeData[] {
     // インサイトを広告IDでグループ化
     const insightsByAdId = new Map<string, MetaInsightsData[]>()
-    insights.forEach(insight => {
+    insights.forEach((insight) => {
       if (insight.ad_id) {
         const existing = insightsByAdId.get(insight.ad_id) || []
         existing.push(insight)
@@ -218,7 +218,7 @@ export class CreativeDataAggregator {
 
     // クリエイティブを広告IDでマップ化
     const creativesByAdId = new Map<string, any>()
-    creatives.forEach(creative => {
+    creatives.forEach((creative) => {
       if (creative.id) {
         creativesByAdId.set(creative.id, creative)
       }
@@ -226,7 +226,7 @@ export class CreativeDataAggregator {
 
     // 動画データを広告IDでマップ化
     const videoDataByAdId = new Map<string, any>()
-    videoData.forEach(data => {
+    videoData.forEach((data) => {
       if (data.adId) {
         videoDataByAdId.set(data.adId, data)
       }
@@ -238,27 +238,25 @@ export class CreativeDataAggregator {
     for (const [adId, adInsights] of insightsByAdId) {
       const creative = creativesByAdId.get(adId)
       const video = videoDataByAdId.get(adId)
-      
+
       if (!creative) continue
 
       // メトリクスを集計
       const aggregatedMetrics = this.aggregateMetrics(adInsights)
-      
+
       // クリエイティブタイプを判定
       const creativeType = this.detectCreativeType(creative)
-      
+
       // 動画メトリクスを処理
       const videoMetrics = video ? this.processVideoMetrics(video) : undefined
 
       // デモグラフィック別データを処理
-      const demographics = options.includeDemographics 
+      const demographics = options.includeDemographics
         ? this.processDemographics(adInsights)
         : undefined
 
       // 配置面別データを処理
-      const placements = options.includePlacements
-        ? this.processPlacements(adInsights)
-        : undefined
+      const placements = options.includePlacements ? this.processPlacements(adInsights) : undefined
 
       const enhanced: EnhancedCreativeData = {
         id: creative.creative?.id || adId,
@@ -282,18 +280,18 @@ export class CreativeDataAggregator {
           callToActionType: creative.creative?.call_to_action_type,
           linkUrl: creative.creative?.link_url,
           carouselCards: this.extractCarouselCards(creative),
-          videoData: this.extractVideoData(creative)
+          videoData: this.extractVideoData(creative),
         },
         metrics: {
           ...aggregatedMetrics,
-          videoMetrics
+          videoMetrics,
         },
         demographics,
         placements,
         targeting: options.includeTargeting ? creative.targeting : undefined,
         createdTime: creative.created_time || '',
         updatedTime: creative.updated_time || '',
-        lastSyncedAt: new Date().toISOString()
+        lastSyncedAt: new Date().toISOString(),
       }
 
       enhancedData.push(enhanced)
@@ -310,10 +308,10 @@ export class CreativeDataAggregator {
       reach: 0,
       frequency: 0,
       conversions: 0,
-      conversionValue: 0
+      conversionValue: 0,
     }
 
-    insights.forEach(insight => {
+    insights.forEach((insight) => {
       totals.impressions += Number(insight.impressions) || 0
       totals.clicks += Number(insight.clicks) || 0
       totals.spend += Number(insight.spend) || 0
@@ -337,26 +335,27 @@ export class CreativeDataAggregator {
       conversions: totals.conversions,
       conversionValue: totals.conversionValue,
       costPerConversion: totals.conversions > 0 ? totals.spend / totals.conversions : 0,
-      roas: totals.spend > 0 ? totals.conversionValue / totals.spend : 0
+      roas: totals.spend > 0 ? totals.conversionValue / totals.spend : 0,
     }
   }
 
   private detectCreativeType(creative: any): EnhancedCreativeData['type'] {
     const objectType = creative.creative?.object_type?.toLowerCase()
-    
+
     if (objectType?.includes('video')) return 'VIDEO'
     if (objectType?.includes('carousel')) return 'CAROUSEL'
     if (objectType?.includes('collection')) return 'COLLECTION'
     if (creative.creative?.asset_feed_spec) return 'DYNAMIC'
-    
+
     // カルーセルカードがあるかチェック
-    const hasCarouselCards = creative.creative?.object_story_spec?.link_data?.child_attachments?.length > 0
+    const hasCarouselCards =
+      creative.creative?.object_story_spec?.link_data?.child_attachments?.length > 0
     if (hasCarouselCards) return 'CAROUSEL'
-    
+
     // 動画データがあるかチェック
     const hasVideoData = creative.creative?.object_story_spec?.video_data?.video_id
     if (hasVideoData) return 'VIDEO'
-    
+
     return 'IMAGE'
   }
 
@@ -366,7 +365,7 @@ export class CreativeDataAggregator {
     const p50 = videoData.video_p50_watched_actions?.[0]?.value || 0
     const p75 = videoData.video_p75_watched_actions?.[0]?.value || 0
     const p100 = videoData.video_p100_watched_actions?.[0]?.value || 0
-    
+
     return {
       plays,
       thruPlays: videoData.video_thruplay_watched_actions?.[0]?.value || 0,
@@ -375,7 +374,7 @@ export class CreativeDataAggregator {
       p50Watched: p50,
       p75Watched: p75,
       p100Watched: p100,
-      completionRate: plays > 0 ? (p100 / plays) * 100 : 0
+      completionRate: plays > 0 ? (p100 / plays) * 100 : 0,
     }
   }
 
@@ -390,31 +389,32 @@ export class CreativeDataAggregator {
   }
 
   private extractVideoUrl(creative: any): string | undefined {
-    return creative.creative?.video_url || 
-           creative.creative?.object_story_spec?.video_data?.video_id
+    return (
+      creative.creative?.video_url || creative.creative?.object_story_spec?.video_data?.video_id
+    )
   }
 
   private extractCarouselCards(creative: any): any[] | undefined {
     const childAttachments = creative.creative?.object_story_spec?.link_data?.child_attachments
     if (!childAttachments || childAttachments.length === 0) return undefined
-    
+
     return childAttachments.map((attachment: any) => ({
       name: attachment.name || '',
       description: attachment.description || '',
       imageUrl: attachment.picture || '',
-      link: attachment.link || ''
+      link: attachment.link || '',
     }))
   }
 
   private extractVideoData(creative: any): any | undefined {
     const videoData = creative.creative?.object_story_spec?.video_data
     if (!videoData) return undefined
-    
+
     return {
       videoId: videoData.video_id,
       title: videoData.title,
       duration: undefined, // APIから取得できない場合がある
-      thumbnailUrl: creative.creative?.thumbnail_url
+      thumbnailUrl: creative.creative?.thumbnail_url,
     }
   }
 

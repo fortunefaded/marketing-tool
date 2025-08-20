@@ -7,7 +7,7 @@ import {
   BellIcon,
   ShieldCheckIcon,
   UserGroupIcon,
-  CircleStackIcon
+  CircleStackIcon,
 } from '@heroicons/react/24/outline'
 import { DataManagement } from '../components/settings/DataManagement'
 
@@ -20,44 +20,44 @@ export const SettingsManagement: React.FC = () => {
       id: 'api',
       title: 'API連携設定',
       icon: Cog6ToothIcon,
-      description: '外部サービスとの連携設定を管理します'
+      description: '外部サービスとの連携設定を管理します',
     },
     {
       id: 'import',
       title: 'データインポート',
       icon: CloudArrowUpIcon,
-      description: 'CSVファイルなどからデータをインポートします'
+      description: 'CSVファイルなどからデータをインポートします',
     },
     {
       id: 'notifications',
       title: '通知設定',
       icon: BellIcon,
-      description: 'アラートや通知の設定を管理します'
+      description: 'アラートや通知の設定を管理します',
     },
     {
       id: 'security',
       title: 'セキュリティ',
       icon: ShieldCheckIcon,
-      description: 'パスワードやアクセス権限の設定'
+      description: 'パスワードやアクセス権限の設定',
     },
     {
       id: 'users',
       title: 'ユーザー管理',
       icon: UserGroupIcon,
-      description: 'ユーザーの追加・編集・削除'
+      description: 'ユーザーの追加・編集・削除',
     },
     {
       id: 'reports',
       title: 'レポート設定',
       icon: DocumentTextIcon,
-      description: 'レポートの自動生成とエクスポート設定'
+      description: 'レポートの自動生成とエクスポート設定',
     },
     {
       id: 'storage',
       title: 'データ管理',
       icon: CircleStackIcon,
-      description: 'ローカルデータの管理とストレージ設定'
-    }
+      description: 'ローカルデータの管理とストレージ設定',
+    },
   ]
 
   const renderContent = () => {
@@ -66,7 +66,7 @@ export const SettingsManagement: React.FC = () => {
         return (
           <div className="space-y-6">
             <h3 className="text-lg font-medium text-gray-900">API連携設定</h3>
-            
+
             <div className="bg-white border border-gray-200 rounded-lg p-6">
               <div className="flex items-center justify-between mb-4">
                 <div>
@@ -86,7 +86,9 @@ export const SettingsManagement: React.FC = () => {
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h4 className="text-base font-medium text-gray-900">Google Ads API</h4>
-                  <p className="text-sm text-gray-500 mt-1">Google広告のデータを取得するための設定</p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Google広告のデータを取得するための設定
+                  </p>
                 </div>
                 <button
                   disabled
@@ -118,12 +120,14 @@ export const SettingsManagement: React.FC = () => {
         return (
           <div className="space-y-6">
             <h3 className="text-lg font-medium text-gray-900">データインポート</h3>
-            
+
             <div className="bg-white border border-gray-200 rounded-lg p-6">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h4 className="text-base font-medium text-gray-900">ECForce売上データ</h4>
-                  <p className="text-sm text-gray-500 mt-1">ECForceからエクスポートしたCSVファイルをインポート</p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    ECForceからエクスポートしたCSVファイルをインポート
+                  </p>
                 </div>
                 <button
                   onClick={() => navigate('/ecforce-import')}
@@ -138,7 +142,9 @@ export const SettingsManagement: React.FC = () => {
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h4 className="text-base font-medium text-gray-900">カスタムCSVインポート</h4>
-                  <p className="text-sm text-gray-500 mt-1">独自フォーマットのCSVファイルをインポート</p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    独自フォーマットのCSVファイルをインポート
+                  </p>
                 </div>
                 <button
                   disabled
@@ -208,9 +214,7 @@ export const SettingsManagement: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-gray-900">設定・管理</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            システムの各種設定とデータ管理を行います
-          </p>
+          <p className="mt-1 text-sm text-gray-500">システムの各種設定とデータ管理を行います</p>
         </div>
 
         <div className="flex gap-6">
@@ -238,9 +242,7 @@ export const SettingsManagement: React.FC = () => {
           </div>
 
           {/* コンテンツエリア */}
-          <div className="flex-1">
-            {renderContent()}
-          </div>
+          <div className="flex-1">{renderContent()}</div>
         </div>
       </div>
     </div>

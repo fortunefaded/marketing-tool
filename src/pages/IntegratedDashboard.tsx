@@ -14,19 +14,21 @@ import { LoadingSpinner } from '../components/common/LoadingSpinner'
 
 export const IntegratedDashboard: React.FC = () => {
   console.log('IntegratedDashboard component rendering')
-  const [activeTab, setActiveTab] = useState<'overview' | 'roas' | 'cohort' | 'rfm' | 'basket' | 'ltv'>('overview')
+  const [activeTab, setActiveTab] = useState<
+    'overview' | 'roas' | 'cohort' | 'rfm' | 'basket' | 'ltv'
+  >('overview')
   const [isTabLoading, setIsTabLoading] = useState(false)
   const [showAdvancedFilter, setShowAdvancedFilter] = useState(false)
   const [filteredOrders, setFilteredOrders] = useState<ECForceOrder[]>([])
-  
+
   // ConvexからECForceデータを取得
   const { orders: ecforceOrders, isLoading: ordersLoading } = useECForceData()
-  
+
   // フィルター適用時の処理
   useEffect(() => {
     setFilteredOrders(ecforceOrders)
   }, [ecforceOrders])
-  
+
   // Meta広告データ（モック）
   const [metaAdData] = useState({
     campaigns: [
@@ -37,7 +39,7 @@ export const IntegratedDashboard: React.FC = () => {
         impressions: 500000,
         clicks: 5000,
         conversions: 150,
-        dateRange: '2025/08/01 - 2025/08/10'
+        dateRange: '2025/08/01 - 2025/08/10',
       },
       {
         id: '2',
@@ -46,18 +48,18 @@ export const IntegratedDashboard: React.FC = () => {
         impressions: 600000,
         clicks: 6000,
         conversions: 180,
-        dateRange: '2025/08/01 - 2025/08/10'
-      }
+        dateRange: '2025/08/01 - 2025/08/10',
+      },
     ],
     totalSpend: 350000,
-    totalConversions: 330
+    totalConversions: 330,
   })
 
   // タブ切り替え時のローディングアニメーション
   const handleTabChange = (tab: typeof activeTab) => {
     setIsTabLoading(true)
     setActiveTab(tab)
-    
+
     // タブ内容の描画完了を待つ
     requestAnimationFrame(() => {
       setTimeout(() => {
@@ -72,7 +74,7 @@ export const IntegratedDashboard: React.FC = () => {
     { id: 'cohort', name: 'コホート分析', description: '顧客の時系列行動' },
     { id: 'rfm', name: 'RFM分析', description: '顧客セグメント' },
     { id: 'basket', name: 'バスケット分析', description: '商品の関連性' },
-    { id: 'ltv', name: 'LTV分析', description: '顧客生涯価値' }
+    { id: 'ltv', name: 'LTV分析', description: '顧客生涯価値' },
   ]
 
   // デバッグ用に最初にシンプルな表示
@@ -94,10 +96,22 @@ export const IntegratedDashboard: React.FC = () => {
             </p>
           </div>
           <AddToFavoriteButton
-            analysisName={`統合分析ダッシュボード - ${tabs.find(t => t.id === activeTab)?.name || '統合概要'}`}
-            analysisType={activeTab === 'roas' ? 'roas' : activeTab === 'cohort' ? 'cohort' : activeTab === 'rfm' ? 'rfm' : activeTab === 'basket' ? 'basket' : activeTab === 'ltv' ? 'ltv' : 'custom'}
+            analysisName={`統合分析ダッシュボード - ${tabs.find((t) => t.id === activeTab)?.name || '統合概要'}`}
+            analysisType={
+              activeTab === 'roas'
+                ? 'roas'
+                : activeTab === 'cohort'
+                  ? 'cohort'
+                  : activeTab === 'rfm'
+                    ? 'rfm'
+                    : activeTab === 'basket'
+                      ? 'basket'
+                      : activeTab === 'ltv'
+                        ? 'ltv'
+                        : 'custom'
+            }
             route={`/integrated-dashboard#${activeTab}`}
-            description={tabs.find(t => t.id === activeTab)?.description}
+            description={tabs.find((t) => t.id === activeTab)?.description}
             filters={{ activeTab, showAdvancedFilter }}
           />
         </div>
@@ -113,7 +127,7 @@ export const IntegratedDashboard: React.FC = () => {
           高度なフィルター
         </button>
       </div>
-      
+
       {/* 高度なフィルター */}
       {showAdvancedFilter && (
         <div className="mb-6">
@@ -134,9 +148,10 @@ export const IntegratedDashboard: React.FC = () => {
               onClick={() => handleTabChange(tab.id as any)}
               className={`
                 py-2 px-1 border-b-2 font-medium text-sm transition-colors
-                ${activeTab === tab.id
-                  ? 'border-indigo-500 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ${
+                  activeTab === tab.id
+                    ? 'border-indigo-500 text-indigo-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }
               `}
             >
@@ -160,34 +175,20 @@ export const IntegratedDashboard: React.FC = () => {
         ) : (
           <>
             {activeTab === 'overview' && (
-              <CrossChannelKPIs
-                ecforceOrders={filteredOrders}
-                metaAdData={metaAdData}
-              />
+              <CrossChannelKPIs ecforceOrders={filteredOrders} metaAdData={metaAdData} />
             )}
-            
+
             {activeTab === 'roas' && (
-              <ROASAnalysis
-                ecforceOrders={filteredOrders}
-                metaAdData={metaAdData}
-              />
+              <ROASAnalysis ecforceOrders={filteredOrders} metaAdData={metaAdData} />
             )}
-            
-            {activeTab === 'cohort' && (
-              <CohortAnalysis orders={filteredOrders} />
-            )}
-            
-            {activeTab === 'rfm' && (
-              <RFMAnalysis orders={filteredOrders} />
-            )}
-            
-            {activeTab === 'basket' && (
-              <BasketAnalysis orders={filteredOrders} />
-            )}
-            
-            {activeTab === 'ltv' && (
-              <LTVAnalysis orders={filteredOrders} />
-            )}
+
+            {activeTab === 'cohort' && <CohortAnalysis orders={filteredOrders} />}
+
+            {activeTab === 'rfm' && <RFMAnalysis orders={filteredOrders} />}
+
+            {activeTab === 'basket' && <BasketAnalysis orders={filteredOrders} />}
+
+            {activeTab === 'ltv' && <LTVAnalysis orders={filteredOrders} />}
           </>
         )}
       </div>

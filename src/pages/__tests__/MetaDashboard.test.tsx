@@ -13,7 +13,13 @@ vi.mock('../../components/dashboard/DashboardLayout', () => ({
 }))
 
 vi.mock('../../components/dashboard/DashboardLayoutWithFilters', () => ({
-  DashboardLayoutWithFilters: ({ children, title }: { children: React.ReactNode; title?: string }) => (
+  DashboardLayoutWithFilters: ({
+    children,
+    title,
+  }: {
+    children: React.ReactNode
+    title?: string
+  }) => (
     <div data-testid="dashboard-layout">
       <h1>{title}</h1>
       {children}

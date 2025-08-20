@@ -89,7 +89,7 @@ export class MetaAPIClientEnhanced extends EventEmitter {
       circuitBreakerTimeout: 60000, // 1 minute
       ...config,
     }
-    
+
     // Initialize in-memory token store
     this.tokenStore = this.createInMemoryTokenStore()
   }
@@ -152,7 +152,7 @@ export class MetaAPIClientEnhanced extends EventEmitter {
   private recordCircuitBreakerFailure(): void {
     this.circuitBreaker.failures++
     this.circuitBreaker.lastFailureTime = Date.now()
-    
+
     if (this.circuitBreaker.failures >= this.config.circuitBreakerThreshold) {
       this.circuitBreaker.isOpen = true
       this.circuitBreaker.nextAttemptTime = Date.now() + this.config.circuitBreakerTimeout
@@ -176,17 +176,20 @@ export class MetaAPIClientEnhanced extends EventEmitter {
     params: Record<string, string> = {},
     options: { cache?: boolean; method?: string; body?: any } = {}
   ): Promise<T> {
-    
     await this.checkCircuitBreaker()
 
     const startTime = Date.now()
     const cacheKey = `${endpoint}:${JSON.stringify(params)}`
-    
+
     // Check cache
-    if (options.cache && this.config.cacheEnabled && (options.method === 'GET' || !options.method)) {
+    if (
+      options.cache &&
+      this.config.cacheEnabled &&
+      (options.method === 'GET' || !options.method)
+    ) {
       const cached = this.cache.get(cacheKey)
       if (cached && Date.now() - cached.timestamp < cached.ttl) {
-          this.emit('cache-hit', { endpoint, params })
+        this.emit('cache-hit', { endpoint, params })
         return cached.data
       }
     }
@@ -195,15 +198,15 @@ export class MetaAPIClientEnhanced extends EventEmitter {
     if (this.rateLimitInfo.shouldThrottle) {
       const delay = Math.max(1000, this.rateLimitInfo.estimatedTimeToRegainAccess || 0)
       console.log(`🔧 Rate limit throttling - waiting ${delay}ms`)
-      await new Promise(resolve => setTimeout(resolve, delay))
+      await new Promise((resolve) => setTimeout(resolve, delay))
     }
 
     const url = new URL(`${this.baseUrl}/${this.apiVersion}/${endpoint}`)
-    
+
     // Get current access token
-    let accessToken = await this.tokenStore.get('access_token') || this.config.accessToken
+    let accessToken = (await this.tokenStore.get('access_token')) || this.config.accessToken
     url.searchParams.append('access_token', accessToken)
-    
+
     Object.entries(params).forEach(([key, value]) => {
       url.searchParams.append(key, value)
     })
@@ -214,7 +217,6 @@ export class MetaAPIClientEnhanced extends EventEmitter {
     let lastError: Error | null = null
     for (let attempt = 0; attempt < this.config.maxRetries; attempt++) {
       try {
-          
         const controller = new AbortController()
         const timeout = setTimeout(() => {
           console.log(`🔧 Request timeout for ${endpoint}`)
@@ -239,7 +241,6 @@ export class MetaAPIClientEnhanced extends EventEmitter {
         const duration = Date.now() - startTime
 
         if (!response.ok) {
-          
           // Handle token expiration
           if (response.status === 401 && this.tokenRefreshHandler) {
             const newToken = await this.tokenRefreshHandler()
@@ -253,13 +254,13 @@ export class MetaAPIClientEnhanced extends EventEmitter {
           if (response.status === 429) {
             this.metrics.rateLimitHits++
             const retryAfter = parseInt(response.headers.get('Retry-After') || '60')
-            await new Promise(resolve => setTimeout(resolve, retryAfter * 1000))
+            await new Promise((resolve) => setTimeout(resolve, retryAfter * 1000))
             continue
           }
 
           // Don't retry client errors
           if (response.status >= 400 && response.status < 500) {
-              const error = this.createStructuredError(data.error)
+            const error = this.createStructuredError(data.error)
             throw error
           }
 
@@ -270,7 +271,7 @@ export class MetaAPIClientEnhanced extends EventEmitter {
         this.metrics.successfulRequests++
         this.updateAverageResponseTime(duration)
         this.recordCircuitBreakerSuccess()
-        
+
         this.emit('response', {
           url: url.toString(),
           status: response.status,
@@ -278,8 +279,12 @@ export class MetaAPIClientEnhanced extends EventEmitter {
         })
 
         // Cache successful GET responses
-        if (options.cache && this.config.cacheEnabled && (options.method === 'GET' || !options.method)) {
-            this.cache.set(cacheKey, {
+        if (
+          options.cache &&
+          this.config.cacheEnabled &&
+          (options.method === 'GET' || !options.method)
+        ) {
+          this.cache.set(cacheKey, {
             data,
             timestamp: Date.now(),
             ttl: this.config.cacheTTL,
@@ -290,7 +295,7 @@ export class MetaAPIClientEnhanced extends EventEmitter {
       } catch (error) {
         lastError = error as Error
         this.emit('error', { error, attempt })
-        
+
         // Don't retry certain errors
         if (error instanceof Error && error.message.includes('Circuit breaker')) {
           throw error
@@ -304,7 +309,7 @@ export class MetaAPIClientEnhanced extends EventEmitter {
         // Exponential backoff
         if (attempt < this.config.maxRetries - 1) {
           const delay = this.config.retryDelay * Math.pow(2, attempt)
-          await new Promise(resolve => setTimeout(resolve, delay))
+          await new Promise((resolve) => setTimeout(resolve, delay))
         }
       }
     }
@@ -319,14 +324,14 @@ export class MetaAPIClientEnhanced extends EventEmitter {
       console.log('🔧 No headers or headers.get method available')
       return
     }
-    
+
     const usageHeader = headers.get('x-business-use-case-usage')
     if (!usageHeader) return
 
     try {
       const usage = JSON.parse(usageHeader)
       const accountUsage = usage[this.config.accountId.replace('act_', '')]
-      
+
       if (accountUsage && accountUsage.length > 0) {
         const adsUsage = accountUsage.find((u: any) => u.type === 'ads_management')
         if (adsUsage) {
@@ -360,7 +365,8 @@ export class MetaAPIClientEnhanced extends EventEmitter {
   }
 
   private updateAverageResponseTime(duration: number): void {
-    const total = this.metrics.averageResponseTime * (this.metrics.successfulRequests - 1) + duration
+    const total =
+      this.metrics.averageResponseTime * (this.metrics.successfulRequests - 1) + duration
     this.metrics.averageResponseTime = total / this.metrics.successfulRequests
     this.metrics.lastRequestTime = new Date()
   }
@@ -389,18 +395,20 @@ export class MetaAPIClientEnhanced extends EventEmitter {
       { cache: options.cache !== false }
     )
 
-    return response.data?.map((campaign) => ({
-      ...campaign,
-      insights: { data: [] },
-    })) || []
+    return (
+      response.data?.map((campaign) => ({
+        ...campaign,
+        insights: { data: [] },
+      })) || []
+    )
   }
 
   async getCampaignInsights(campaignId: string): Promise<any> {
     console.log(`🔧 getCampaignInsights called for ${campaignId}`)
-    
+
     // Check if there's already a batch request for insights
     const batchKey = `insights:${campaignId}`
-    
+
     if (this.batchQueue.has(batchKey)) {
       console.log(`🔧 Returning existing batch promise for ${campaignId}`)
       return this.batchQueue.get(batchKey)
@@ -408,69 +416,66 @@ export class MetaAPIClientEnhanced extends EventEmitter {
 
     // Create batch promise
     const batchPromise = new Promise((resolve, reject) => {
-      (async () => {
-      try {
-        console.log(`🔧 Creating new batch promise for ${campaignId}`)
-        
-        // Wait a bit to collect more requests
-        await new Promise(r => setTimeout(r, 50))
-        
-        // Collect all pending insight requests
-        const pendingIds = Array.from(this.batchQueue.keys())
-          .filter(k => k.startsWith('insights:'))
-          .map(k => k.replace('insights:', ''))
-        
-        console.log(`🔧 Pending IDs for batch: ${pendingIds.join(', ')}`)
-        
-        if (pendingIds.length > 1) {
-          console.log(`🔧 Making batch request for ${pendingIds.length} insights`)
-          // Make batch request
-          const batch = pendingIds.map(id => ({
-            method: 'GET',
-            relative_url: `${id}/insights?fields=impressions,clicks,spend,conversions,revenue`,
-          }))
-          
-          const response = await this.makeRequest<any>(
-            '',
-            { batch: JSON.stringify(batch) },
-            { method: 'POST' }
-          )
-          
-          console.log(`🔧 Batch response received:`, response)
-          
-          // Resolve individual promises - FIXED: resolve all promises, not just one
-          response.forEach((res: any, index: number) => {
-            const currentId = pendingIds[index]
-            const currentKey = `insights:${currentId}`
-            console.log(`🔧 Processing batch result for ${currentId}`)
-            
-            if (currentId === campaignId) {
-              resolve(JSON.parse(res.body))
-            }
-            
-            // Clean up this specific entry
-            this.batchQueue.delete(currentKey)
-          })
-        } else {
-          console.log(`🔧 Making single request for ${campaignId}`)
-          // Single request
-          const response = await this.makeRequest<any>(
-            `${campaignId}/insights`,
-            {
+      ;(async () => {
+        try {
+          console.log(`🔧 Creating new batch promise for ${campaignId}`)
+
+          // Wait a bit to collect more requests
+          await new Promise((r) => setTimeout(r, 50))
+
+          // Collect all pending insight requests
+          const pendingIds = Array.from(this.batchQueue.keys())
+            .filter((k) => k.startsWith('insights:'))
+            .map((k) => k.replace('insights:', ''))
+
+          console.log(`🔧 Pending IDs for batch: ${pendingIds.join(', ')}`)
+
+          if (pendingIds.length > 1) {
+            console.log(`🔧 Making batch request for ${pendingIds.length} insights`)
+            // Make batch request
+            const batch = pendingIds.map((id) => ({
+              method: 'GET',
+              relative_url: `${id}/insights?fields=impressions,clicks,spend,conversions,revenue`,
+            }))
+
+            const response = await this.makeRequest<any>(
+              '',
+              { batch: JSON.stringify(batch) },
+              { method: 'POST' }
+            )
+
+            console.log(`🔧 Batch response received:`, response)
+
+            // Resolve individual promises - FIXED: resolve all promises, not just one
+            response.forEach((res: any, index: number) => {
+              const currentId = pendingIds[index]
+              const currentKey = `insights:${currentId}`
+              console.log(`🔧 Processing batch result for ${currentId}`)
+
+              if (currentId === campaignId) {
+                resolve(JSON.parse(res.body))
+              }
+
+              // Clean up this specific entry
+              this.batchQueue.delete(currentKey)
+            })
+          } else {
+            console.log(`🔧 Making single request for ${campaignId}`)
+            // Single request
+            const response = await this.makeRequest<any>(`${campaignId}/insights`, {
               fields: 'impressions,clicks,spend,conversions,revenue',
-            }
-          )
-          console.log(`🔧 Single request response:`, response)
-          resolve(response)
-          
-          // Clean up
+            })
+            console.log(`🔧 Single request response:`, response)
+            resolve(response)
+
+            // Clean up
+            this.batchQueue.delete(batchKey)
+          }
+        } catch (error) {
+          console.error(`🔧 Error in batch promise for ${campaignId}:`, error)
           this.batchQueue.delete(batchKey)
+          reject(error)
         }
-      } catch (error) {
-        console.error(`🔧 Error in batch promise for ${campaignId}:`, error)
-        this.batchQueue.delete(batchKey)
-        reject(error)
-      }
       })()
     })
 
@@ -488,7 +493,7 @@ export class MetaAPIClientEnhanced extends EventEmitter {
         body: updates,
       }
     )
-    
+
     // Invalidate campaign-related cache
     this.invalidateCache('campaigns')
     this.invalidateCache(campaignId)

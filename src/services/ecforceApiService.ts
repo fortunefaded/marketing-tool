@@ -84,9 +84,9 @@ export class ECForceApiService {
   // 認証ヘッダーの生成
   private getAuthHeaders(): Headers {
     return new Headers({
-      'Authorization': `Bearer ${this.config.apiKey}`,
+      Authorization: `Bearer ${this.config.apiKey}`,
       'Content-Type': 'application/json',
-      'X-Shop-Id': this.config.shopId
+      'X-Shop-Id': this.config.shopId,
     })
   }
 
@@ -95,7 +95,7 @@ export class ECForceApiService {
     try {
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
         ...options,
-        headers: this.getAuthHeaders()
+        headers: this.getAuthHeaders(),
       })
 
       if (!response.ok) {
@@ -113,12 +113,7 @@ export class ECForceApiService {
       if (error instanceof ECForceApiError) {
         throw error
       }
-      throw new ECForceApiError(
-        'Network error',
-        'NETWORK_ERROR',
-        undefined,
-        error
-      )
+      throw new ECForceApiError('Network error', 'NETWORK_ERROR', undefined, error)
     }
   }
 
@@ -131,7 +126,7 @@ export class ECForceApiService {
     offset?: number
   }): Promise<ECForceOrder[]> {
     const queryParams = new URLSearchParams()
-    
+
     if (params?.startDate) queryParams.append('created_at_from', params.startDate)
     if (params?.endDate) queryParams.append('created_at_to', params.endDate)
     if (params?.status) queryParams.append('status', params.status)
@@ -141,7 +136,7 @@ export class ECForceApiService {
     const response = await this.apiCall<{ orders: ECForceOrder[] }>(
       `/orders?${queryParams.toString()}`
     )
-    
+
     return response.orders || []
   }
 
@@ -154,13 +149,13 @@ export class ECForceApiService {
     const queryParams = new URLSearchParams({
       start_date: params.startDate,
       end_date: params.endDate,
-      group_by: params.groupBy || 'day'
+      group_by: params.groupBy || 'day',
     })
 
     const response = await this.apiCall<{ sales: ECForceSalesData[] }>(
       `/sales/summary?${queryParams.toString()}`
     )
-    
+
     return response.sales || []
   }
 
@@ -171,7 +166,7 @@ export class ECForceApiService {
     offset?: number
   }): Promise<ECForceProduct[]> {
     const queryParams = new URLSearchParams()
-    
+
     if (params?.category) queryParams.append('category', params.category)
     if (params?.limit) queryParams.append('limit', params.limit.toString())
     if (params?.offset) queryParams.append('offset', params.offset.toString())
@@ -179,7 +174,7 @@ export class ECForceApiService {
     const response = await this.apiCall<{ products: ECForceProduct[] }>(
       `/products?${queryParams.toString()}`
     )
-    
+
     return response.products || []
   }
 
@@ -191,13 +186,13 @@ export class ECForceApiService {
   // Facebook Click IDによる注文検索
   async getOrdersByFbclid(fbclid: string): Promise<ECForceOrder[]> {
     const queryParams = new URLSearchParams({
-      fbclid: fbclid
+      fbclid: fbclid,
     })
 
     const response = await this.apiCall<{ orders: ECForceOrder[] }>(
       `/orders/search?${queryParams.toString()}`
     )
-    
+
     return response.orders || []
   }
 
@@ -211,7 +206,7 @@ export class ECForceApiService {
     endDate?: string
   }): Promise<ECForceOrder[]> {
     const queryParams = new URLSearchParams()
-    
+
     if (params.utm_source) queryParams.append('utm_source', params.utm_source)
     if (params.utm_medium) queryParams.append('utm_medium', params.utm_medium)
     if (params.utm_campaign) queryParams.append('utm_campaign', params.utm_campaign)
@@ -222,40 +217,42 @@ export class ECForceApiService {
     const response = await this.apiCall<{ orders: ECForceOrder[] }>(
       `/orders/search?${queryParams.toString()}`
     )
-    
+
     return response.orders || []
   }
 
   // 売上データとMeta広告データの紐付け
-  async matchOrdersWithMetaCampaigns(orders: ECForceOrder[]): Promise<Array<{
-    order: ECForceOrder
-    campaign_id?: string
-    ad_id?: string
-    creative_id?: string
-    attribution_type: 'direct' | 'utm' | 'unknown'
-  }>> {
-    return orders.map(order => {
+  async matchOrdersWithMetaCampaigns(orders: ECForceOrder[]): Promise<
+    Array<{
+      order: ECForceOrder
+      campaign_id?: string
+      ad_id?: string
+      creative_id?: string
+      attribution_type: 'direct' | 'utm' | 'unknown'
+    }>
+  > {
+    return orders.map((order) => {
       // Facebook Click IDがある場合は直接紐付け
       if (order.fbclid) {
         return {
           order,
-          attribution_type: 'direct' as const
+          attribution_type: 'direct' as const,
           // ここでMeta APIを使ってfbclidから広告情報を取得する処理を追加
         }
       }
-      
+
       // UTMパラメータで紐付け
       if (order.utm_source === 'facebook' && order.utm_campaign) {
         return {
           order,
-          attribution_type: 'utm' as const
+          attribution_type: 'utm' as const,
           // キャンペーン名から広告情報を特定する処理を追加
         }
       }
-      
+
       return {
         order,
-        attribution_type: 'unknown' as const
+        attribution_type: 'unknown' as const,
       }
     })
   }

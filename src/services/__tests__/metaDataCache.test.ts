@@ -14,7 +14,7 @@ describe('MetaDataCache', () => {
       frequency: '1.0',
       cpm: '100',
       cpc: '2',
-      ctr: '5'
+      ctr: '5',
     },
     {
       date_start: '2025-08-11',
@@ -26,8 +26,8 @@ describe('MetaDataCache', () => {
       frequency: '2.0',
       cpm: '100',
       cpc: '2',
-      ctr: '5'
-    }
+      ctr: '5',
+    },
   ]
 
   beforeEach(() => {
@@ -50,8 +50,8 @@ describe('MetaDataCache', () => {
         totalRecords: 2,
         dateRange: {
           earliest: '2025-07-18',
-          latest: '2025-08-11'
-        }
+          latest: '2025-08-11',
+        },
       })
 
       // キャッシュが存在することを確認
@@ -75,12 +75,12 @@ describe('MetaDataCache', () => {
       MetaDataCache.saveInsights(mockAccountId, mockInsightsData)
       MetaDataCache.saveSyncStatus(mockAccountId, {
         lastFullSync: '2025-08-11T10:00:00Z',
-        totalRecords: 2
+        totalRecords: 2,
       })
-      
+
       const dataKey = `meta_insights_cache_${mockAccountId}`
       const statusKey = `meta_sync_status_${mockAccountId}`
-      
+
       // キーが存在することを確認
       expect(localStorage.getItem(dataKey)).not.toBeNull()
       expect(localStorage.getItem(statusKey)).not.toBeNull()
@@ -99,7 +99,7 @@ describe('MetaDataCache', () => {
       // Given: キャッシュなし
       // When: データを取得
       const insights = MetaDataCache.getInsights(mockAccountId)
-      
+
       // Then: 空配列が返される
       expect(insights).toEqual([])
       expect(insights.length).toBe(0)
@@ -133,8 +133,8 @@ describe('MetaDataCache', () => {
         totalRecords: 0,
         dateRange: {
           earliest: null,
-          latest: null
-        }
+          latest: null,
+        },
       })
     })
   })

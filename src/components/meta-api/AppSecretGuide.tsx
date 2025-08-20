@@ -7,9 +7,7 @@ export function AppSecretGuide() {
   return (
     <div className="space-y-6">
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h3 className="text-lg font-semibold text-blue-900 mb-2">
-          App Secretの取得手順
-        </h3>
+        <h3 className="text-lg font-semibold text-blue-900 mb-2">App Secretの取得手順</h3>
         <p className="text-sm text-blue-800 mb-4">
           App Secretは、Meta開発者ダッシュボードから取得できます。以下の手順に従ってください。
         </p>
@@ -69,9 +67,7 @@ export function AppSecretGuide() {
               左側のメニューから「設定」→「ベーシック」を選択します。
             </p>
             <div className="mt-2 p-3 bg-gray-100 rounded-md">
-              <p className="text-xs text-gray-600">
-                直接アクセスする場合のURL形式：
-              </p>
+              <p className="text-xs text-gray-600">直接アクセスする場合のURL形式：</p>
               <code className="text-xs bg-white px-2 py-1 rounded mt-1 block">
                 https://developers.facebook.com/apps/[YOUR_APP_ID]/settings/basic/
               </code>
@@ -122,7 +118,9 @@ export function AppSecretGuide() {
               <p className="text-xs text-gray-600 mb-2">App Secretの形式：</p>
               <div className="flex items-center justify-between bg-white px-3 py-2 rounded">
                 <code className="text-xs font-mono">
-                  {showSecret ? 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6' : '••••••••••••••••••••••••••••••••'}
+                  {showSecret
+                    ? 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6'
+                    : '••••••••••••••••••••••••••••••••'}
                 </code>
                 <button
                   onClick={() => setShowSecret(!showSecret)}
@@ -176,9 +174,7 @@ export function AppSecretGuide() {
 
       {/* Additional Info */}
       <div className="bg-gray-50 rounded-lg p-4">
-        <h4 className="text-sm font-medium text-gray-900 mb-2">
-          App Secretが必要な理由
-        </h4>
+        <h4 className="text-sm font-medium text-gray-900 mb-2">App Secretが必要な理由</h4>
         <ul className="text-sm text-gray-600 space-y-1">
           <li>• 短期トークンを長期トークン（60日間有効）に交換するため</li>
           <li>• トークンの有効期限を正確に検証するため</li>

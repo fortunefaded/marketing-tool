@@ -28,7 +28,7 @@ export class ECForceStorage {
         console.log('[ECForceStorage] 保存されたデータがありません')
         return []
       }
-      
+
       const orders = JSON.parse(storedData) as ECForceOrder[]
       console.log(`[ECForceStorage] ${orders.length}件のデータを読み込みました`)
       return orders

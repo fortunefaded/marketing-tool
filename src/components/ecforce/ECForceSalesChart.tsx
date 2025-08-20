@@ -7,7 +7,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend
+  Legend,
 } from 'recharts'
 import { ECForceOrder } from '../../types/ecforce'
 
@@ -18,30 +18,33 @@ interface ECForceSalesChartProps {
 export const ECForceSalesChart: React.FC<ECForceSalesChartProps> = ({ orders }) => {
   const chartData = useMemo(() => {
     // 日付ごとに集計
-    const salesByDate = orders.reduce((acc, order) => {
-      const date = order.受注日.split(' ')[0] // YYYY/MM/DD部分のみ取得
-      
-      if (!acc[date]) {
-        acc[date] = {
-          date,
-          売上: 0,
-          注文数: 0,
-          定期注文: 0,
-          通常注文: 0
+    const salesByDate = orders.reduce(
+      (acc, order) => {
+        const date = order.受注日.split(' ')[0] // YYYY/MM/DD部分のみ取得
+
+        if (!acc[date]) {
+          acc[date] = {
+            date,
+            売上: 0,
+            注文数: 0,
+            定期注文: 0,
+            通常注文: 0,
+          }
         }
-      }
-      
-      acc[date].売上 += order.小計
-      acc[date].注文数 += 1
-      
-      if (order.定期ステータス === '有効') {
-        acc[date].定期注文 += order.小計
-      } else {
-        acc[date].通常注文 += order.小計
-      }
-      
-      return acc
-    }, {} as Record<string, any>)
+
+        acc[date].売上 += order.小計
+        acc[date].注文数 += 1
+
+        if (order.定期ステータス === '有効') {
+          acc[date].定期注文 += order.小計
+        } else {
+          acc[date].通常注文 += order.小計
+        }
+
+        return acc
+      },
+      {} as Record<string, any>
+    )
 
     // 配列に変換してソート
     return Object.values(salesByDate)
@@ -67,22 +70,16 @@ export const ECForceSalesChart: React.FC<ECForceSalesChartProps> = ({ orders }) 
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" />
-          <XAxis 
-            dataKey="date" 
+          <XAxis
+            dataKey="date"
             tick={{ fontSize: 12 }}
             tickFormatter={(value) => {
               const date = new Date(value)
               return `${date.getMonth() + 1}/${date.getDate()}`
             }}
           />
-          <YAxis 
-            tick={{ fontSize: 12 }}
-            tickFormatter={formatYAxis}
-          />
-          <Tooltip 
-            formatter={formatTooltip}
-            labelFormatter={(label) => `日付: ${label}`}
-          />
+          <YAxis tick={{ fontSize: 12 }} tickFormatter={formatYAxis} />
+          <Tooltip formatter={formatTooltip} labelFormatter={(label) => `日付: ${label}`} />
           <Legend />
           <Line
             type="monotone"

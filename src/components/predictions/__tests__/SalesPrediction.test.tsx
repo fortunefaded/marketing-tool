@@ -32,7 +32,7 @@ const mockOrders: ECForceOrder[] = [
     配送先都道府県: '東京都',
     配送先市区町村: '千代田区',
     配送先住所: '千代田1-1',
-    配送先氏名: '山田太郎'
+    配送先氏名: '山田太郎',
   },
   {
     受注ID: '2',
@@ -61,8 +61,8 @@ const mockOrders: ECForceOrder[] = [
     配送先都道府県: '東京都',
     配送先市区町村: '千代田区',
     配送先住所: '千代田2-2',
-    配送先氏名: '鈴木花子'
-  }
+    配送先氏名: '鈴木花子',
+  },
 ]
 
 describe('SalesPrediction', () => {
@@ -80,12 +80,12 @@ describe('SalesPrediction', () => {
         受注ID: `${i}`,
         受注番号: `ORDER-00${i}`,
         受注日: `2024-01-${String(i + 1).padStart(2, '0')} 10:00:00`,
-        合計: 1000 + i * 100 // 線形増加するデータ
+        合計: 1000 + i * 100, // 線形増加するデータ
       })
     }
 
     render(<SalesPrediction orders={orders} predictionDays={7} />)
-    
+
     // グラフが表示されることを確認
     expect(screen.getByText('売上予測（7日間）')).toBeInTheDocument()
     expect(screen.getByText('過去のトレンドに基づく予測値と95%信頼区間')).toBeInTheDocument()
@@ -100,12 +100,12 @@ describe('SalesPrediction', () => {
         受注ID: `${i}`,
         受注番号: `ORDER-00${i}`,
         受注日: `2024-01-${String(i + 1).padStart(2, '0')} 10:00:00`,
-        合計: 1000 + i * 50
+        合計: 1000 + i * 50,
       })
     }
 
     render(<SalesPrediction orders={orders} />)
-    
+
     // 成長率が表示されることを確認
     expect(screen.getByText('週間成長率')).toBeInTheDocument()
     expect(screen.getByText('月間成長率')).toBeInTheDocument()
@@ -115,7 +115,7 @@ describe('SalesPrediction', () => {
 
   it('ゼロ除算エラーが発生しないことを確認', () => {
     const singleOrder: ECForceOrder[] = [mockOrders[0]]
-    
+
     expect(() => {
       render(<SalesPrediction orders={singleOrder} />)
     }).not.toThrow()
@@ -129,7 +129,7 @@ describe('SalesPrediction', () => {
         受注ID: `${i}`,
         受注番号: `ORDER-00${i}`,
         受注日: `2024-01-${String(i + 1).padStart(2, '0')} 10:00:00`,
-        合計: 1000
+        合計: 1000,
       })
     }
 

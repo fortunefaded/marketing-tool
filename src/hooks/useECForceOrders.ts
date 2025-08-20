@@ -29,6 +29,6 @@ export const useECForceOrders = () => {
   return {
     orders,
     loading,
-    error
+    error,
   }
 }

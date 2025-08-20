@@ -17,7 +17,7 @@ export const AddToFavoriteButton: React.FC<AddToFavoriteButtonProps> = ({
   route,
   description,
   filters,
-  className = ''
+  className = '',
 }) => {
   const { favorites, addFavorite, removeFavorite } = useFavoriteAnalysis()
   const [showModal, setShowModal] = useState(false)
@@ -25,14 +25,14 @@ export const AddToFavoriteButton: React.FC<AddToFavoriteButtonProps> = ({
   const [customDescription, setCustomDescription] = useState(description || '')
   const [tags, setTags] = useState<string[]>([])
   const [tagInput, setTagInput] = useState('')
-  
+
   // 現在の分析が既にお気に入りかチェック
-  const isFavorited = favorites.some(fav => 
-    fav.route === route && JSON.stringify(fav.filters) === JSON.stringify(filters)
+  const isFavorited = favorites.some(
+    (fav) => fav.route === route && JSON.stringify(fav.filters) === JSON.stringify(filters)
   )
-  
-  const existingFavorite = favorites.find(fav => 
-    fav.route === route && JSON.stringify(fav.filters) === JSON.stringify(filters)
+
+  const existingFavorite = favorites.find(
+    (fav) => fav.route === route && JSON.stringify(fav.filters) === JSON.stringify(filters)
   )
 
   const handleToggleFavorite = () => {
@@ -52,7 +52,7 @@ export const AddToFavoriteButton: React.FC<AddToFavoriteButtonProps> = ({
       type: analysisType,
       route,
       filters,
-      tags
+      tags,
     })
     setShowModal(false)
     resetForm()
@@ -66,7 +66,7 @@ export const AddToFavoriteButton: React.FC<AddToFavoriteButtonProps> = ({
   }
 
   const handleRemoveTag = (tag: string) => {
-    setTags(tags.filter(t => t !== tag))
+    setTags(tags.filter((t) => t !== tag))
   }
 
   const resetForm = () => {
@@ -94,14 +94,15 @@ export const AddToFavoriteButton: React.FC<AddToFavoriteButtonProps> = ({
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              お気に入りに追加
-            </h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">お気に入りに追加</h3>
 
             <div className="space-y-4">
               {/* 名前 */}
               <div>
-                <label htmlFor="favorite-name" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="favorite-name"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   名前
                 </label>
                 <input
@@ -116,7 +117,10 @@ export const AddToFavoriteButton: React.FC<AddToFavoriteButtonProps> = ({
 
               {/* 説明 */}
               <div>
-                <label htmlFor="favorite-description" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="favorite-description"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   説明（任意）
                 </label>
                 <textarea
@@ -131,11 +135,9 @@ export const AddToFavoriteButton: React.FC<AddToFavoriteButtonProps> = ({
 
               {/* タグ */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  タグ（任意）
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">タグ（任意）</label>
                 <div className="flex flex-wrap gap-2 mb-2">
-                  {tags.map(tag => (
+                  {tags.map((tag) => (
                     <span
                       key={tag}
                       className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-200 text-gray-700"
@@ -176,9 +178,7 @@ export const AddToFavoriteButton: React.FC<AddToFavoriteButtonProps> = ({
               {/* 現在のフィルター情報 */}
               {filters && Object.keys(filters).length > 0 && (
                 <div className="bg-gray-50 rounded-md p-3">
-                  <p className="text-sm text-gray-600">
-                    現在のフィルター設定も保存されます
-                  </p>
+                  <p className="text-sm text-gray-600">現在のフィルター設定も保存されます</p>
                 </div>
               )}
             </div>

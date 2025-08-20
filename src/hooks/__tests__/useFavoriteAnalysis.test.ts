@@ -11,20 +11,20 @@ describe('useFavoriteAnalysis', () => {
 
   it('初期状態で空の配列を返す', () => {
     const { result } = renderHook(() => useFavoriteAnalysis())
-    
+
     expect(result.current.favorites).toEqual([])
   })
 
   it('お気に入りを追加できる', () => {
     const { result } = renderHook(() => useFavoriteAnalysis())
-    
+
     const newFavorite = {
       name: 'テスト分析',
       description: 'テスト用の分析',
       type: 'roas' as const,
       route: '/test-analysis',
       filters: { category: 'test' },
-      tags: ['テスト', 'ROAS']
+      tags: ['テスト', 'ROAS'],
     }
 
     act(() => {
@@ -36,19 +36,19 @@ describe('useFavoriteAnalysis', () => {
       ...newFavorite,
       id: expect.stringMatching(/^fav-/),
       createdAt: expect.any(Date),
-      accessCount: 0
+      accessCount: 0,
     })
   })
 
   it('お気に入りを削除できる', () => {
     const { result } = renderHook(() => useFavoriteAnalysis())
-    
+
     // お気に入りを追加
     act(() => {
       result.current.addFavorite({
         name: '削除テスト',
         type: 'cohort',
-        route: '/delete-test'
+        route: '/delete-test',
       })
     })
 
@@ -64,13 +64,13 @@ describe('useFavoriteAnalysis', () => {
 
   it('お気に入りを更新できる', () => {
     const { result } = renderHook(() => useFavoriteAnalysis())
-    
+
     // お気に入りを追加
     act(() => {
       result.current.addFavorite({
         name: '更新前',
         type: 'rfm',
-        route: '/update-test'
+        route: '/update-test',
       })
     })
 
@@ -80,7 +80,7 @@ describe('useFavoriteAnalysis', () => {
     act(() => {
       result.current.updateFavorite(favoriteId, {
         name: '更新後',
-        description: '更新されました'
+        description: '更新されました',
       })
     })
 
@@ -90,13 +90,13 @@ describe('useFavoriteAnalysis', () => {
 
   it('IDでお気に入りを取得できる', () => {
     const { result } = renderHook(() => useFavoriteAnalysis())
-    
+
     // お気に入りを追加
     act(() => {
       result.current.addFavorite({
         name: 'ID検索テスト',
         type: 'basket',
-        route: '/id-test'
+        route: '/id-test',
       })
     })
 
@@ -109,40 +109,40 @@ describe('useFavoriteAnalysis', () => {
 
   it('タイプ別にお気に入りを取得できる', () => {
     const { result } = renderHook(() => useFavoriteAnalysis())
-    
+
     // 複数のお気に入りを追加
     act(() => {
       result.current.addFavorite({
         name: 'ROAS分析1',
         type: 'roas',
-        route: '/roas-1'
+        route: '/roas-1',
       })
       result.current.addFavorite({
         name: 'ROAS分析2',
         type: 'roas',
-        route: '/roas-2'
+        route: '/roas-2',
       })
       result.current.addFavorite({
         name: 'コホート分析',
         type: 'cohort',
-        route: '/cohort-1'
+        route: '/cohort-1',
       })
     })
 
     const roasFavorites = result.current.getFavoritesByType('roas')
     expect(roasFavorites).toHaveLength(2)
-    expect(roasFavorites.every(f => f.type === 'roas')).toBe(true)
+    expect(roasFavorites.every((f) => f.type === 'roas')).toBe(true)
   })
 
   it('アクセスを記録できる', () => {
     const { result } = renderHook(() => useFavoriteAnalysis())
-    
+
     // お気に入りを追加
     act(() => {
       result.current.addFavorite({
         name: 'アクセステスト',
         type: 'ltv',
-        route: '/access-test'
+        route: '/access-test',
       })
     })
 
@@ -160,7 +160,7 @@ describe('useFavoriteAnalysis', () => {
 
   it('お気に入りを検索できる', () => {
     const { result } = renderHook(() => useFavoriteAnalysis())
-    
+
     // 複数のお気に入りを追加
     act(() => {
       result.current.addFavorite({
@@ -168,14 +168,14 @@ describe('useFavoriteAnalysis', () => {
         description: '広告効果の最適化',
         type: 'roas',
         route: '/roas-optimization',
-        tags: ['広告', '最適化']
+        tags: ['広告', '最適化'],
       })
       result.current.addFavorite({
         name: 'コホート分析',
         description: '顧客セグメント分析',
         type: 'cohort',
         route: '/cohort-analysis',
-        tags: ['顧客', 'セグメント']
+        tags: ['顧客', 'セグメント'],
       })
     })
 
@@ -195,24 +195,24 @@ describe('useFavoriteAnalysis', () => {
 
   it('複数のお気に入りを同時に管理できる', () => {
     const { result } = renderHook(() => useFavoriteAnalysis())
-    
+
     // 5つのお気に入りを追加
     act(() => {
       for (let i = 1; i <= 5; i++) {
         result.current.addFavorite({
           name: `分析${i}`,
           type: i % 2 === 0 ? 'roas' : 'rfm',
-          route: `/analysis-${i}`
+          route: `/analysis-${i}`,
         })
       }
     })
 
     expect(result.current.favorites).toHaveLength(5)
-    
+
     // タイプ別にカウント
     const roasFavorites = result.current.getFavoritesByType('roas')
     const rfmFavorites = result.current.getFavoritesByType('rfm')
-    
+
     expect(roasFavorites).toHaveLength(2)
     expect(rfmFavorites).toHaveLength(3)
   })

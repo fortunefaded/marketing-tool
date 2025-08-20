@@ -1,9 +1,9 @@
 /**
  * トークン交換用のAPIエンドポイント
- * 
+ *
  * 本番環境では、このロジックをサーバーサイドのAPIとして実装してください。
  * App Secretをクライアントサイドに公開することは絶対に避けてください。
- * 
+ *
  * 例：
  * - Next.js: /api/meta/exchange-token
  * - Express: /api/meta/exchange-token
@@ -70,9 +70,9 @@ export async function exchangeToken(shortLivedToken: string): Promise<TokenExcha
   if (import.meta.env.VITE_META_APP_SECRET) {
     console.warn(
       '⚠️ 警告: App Secretがクライアントサイドに公開されています。\n' +
-      '本番環境では必ずサーバーサイドAPIを使用してください。'
+        '本番環境では必ずサーバーサイドAPIを使用してください。'
     )
-    
+
     // 開発環境のみ：直接交換（非推奨）
     return exchangeTokenServerSide(
       shortLivedToken,

@@ -67,7 +67,7 @@ export class MetaSyncService {
   async syncCampaigns(options: SyncOptions = {}) {
     try {
       console.log('[Sync] Starting campaign sync...')
-      
+
       // Get campaigns from Meta API with caching
       const campaigns = await this.client.getCampaigns({ cache: true })
       console.log(`[Sync] Fetched ${campaigns.length} campaigns from Meta API`)
@@ -92,7 +92,7 @@ export class MetaSyncService {
         filteredCampaigns.map(async (campaign) => {
           // Get insights for each campaign
           const insights = await this.client.getCampaignInsights(campaign.id)
-          
+
           return {
             metaId: campaign.id,
             accountId: campaign.account_id,
@@ -103,20 +103,23 @@ export class MetaSyncService {
             lifetimeBudget: campaign.lifetime_budget,
             startTime: campaign.start_time,
             stopTime: campaign.stop_time,
-            insights: insights.data && insights.data.length > 0 ? {
-              impressions: insights.data[0].impressions || 0,
-              clicks: insights.data[0].clicks || 0,
-              spend: parseFloat(insights.data[0].spend || '0'),
-              conversions: insights.data[0].conversions || 0,
-              revenue: parseFloat(insights.data[0].revenue || '0'),
-            } : undefined,
+            insights:
+              insights.data && insights.data.length > 0
+                ? {
+                    impressions: insights.data[0].impressions || 0,
+                    clicks: insights.data[0].clicks || 0,
+                    spend: parseFloat(insights.data[0].spend || '0'),
+                    conversions: insights.data[0].conversions || 0,
+                    revenue: parseFloat(insights.data[0].revenue || '0'),
+                  }
+                : undefined,
           }
         })
       )
 
       // Sync to Convex
       const result = await this.convex.mutation(api.metaSync.syncMetaCampaigns, {
-        campaigns: transformedCampaigns
+        campaigns: transformedCampaigns,
       })
 
       console.log('[Sync] Campaign sync completed:', result)
@@ -130,7 +133,7 @@ export class MetaSyncService {
   async syncCreatives(campaignIds?: string[]) {
     try {
       console.log('[Sync] Starting creative sync...')
-      
+
       // If no campaign IDs provided, get all campaigns first
       if (!campaignIds) {
         const campaigns = await this.client.getCampaigns({ cache: true })
@@ -138,7 +141,7 @@ export class MetaSyncService {
       }
 
       const allCreatives = []
-      
+
       // Get creatives for each campaign
       for (const campaignId of campaignIds) {
         const creatives = await this.client.getCreativesByCampaign(campaignId)

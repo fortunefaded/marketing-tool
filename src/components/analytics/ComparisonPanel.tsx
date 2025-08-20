@@ -86,7 +86,7 @@ export const ComparisonPanel: React.FC<ComparisonPanelProps> = ({
   const getChangeIndicator = (change: number, inverse: boolean) => {
     const isPositive = change > 0
     const isImprovement = inverse ? !isPositive : isPositive
-    
+
     return {
       icon: isPositive ? ArrowUpIcon : ArrowDownIcon,
       color: isImprovement ? 'text-green-600' : 'text-red-600',
@@ -118,7 +118,10 @@ export const ComparisonPanel: React.FC<ComparisonPanelProps> = ({
 
   if (isLoading) {
     return (
-      <div className={`bg-white shadow rounded-lg p-6 ${className}`} data-testid="comparison-skeleton">
+      <div
+        className={`bg-white shadow rounded-lg p-6 ${className}`}
+        data-testid="comparison-skeleton"
+      >
         <div className="animate-pulse">
           <div className="h-6 bg-gray-200 rounded w-1/3 mb-4"></div>
           <div className="space-y-3">

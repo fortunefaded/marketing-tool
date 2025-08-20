@@ -22,7 +22,7 @@ export const Pagination: React.FC<PaginationProps> = ({
   pageInfo,
   itemsPerPageOptions = [10, 20, 50, 100],
   onItemsPerPageChange,
-  itemsPerPage = 20
+  itemsPerPage = 20,
 }) => {
   // ページ番号の配列を生成
   const getPageNumbers = () => {
@@ -68,7 +68,7 @@ export const Pagination: React.FC<PaginationProps> = ({
               {' 件'}
             </p>
           )}
-          
+
           {onItemsPerPageChange && (
             <div className="ml-6 flex items-center">
               <label htmlFor="items-per-page" className="text-sm text-gray-700 mr-2">
@@ -80,7 +80,7 @@ export const Pagination: React.FC<PaginationProps> = ({
                 onChange={(e) => onItemsPerPageChange(Number(e.target.value))}
                 className="px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
-                {itemsPerPageOptions.map(option => (
+                {itemsPerPageOptions.map((option) => (
                   <option key={option} value={option}>
                     {option}件
                   </option>
@@ -91,7 +91,10 @@ export const Pagination: React.FC<PaginationProps> = ({
         </div>
 
         <div>
-          <nav className="relative z-0 inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+          <nav
+            className="relative z-0 inline-flex -space-x-px rounded-md shadow-sm"
+            aria-label="Pagination"
+          >
             {/* 最初のページへ */}
             <button
               onClick={() => onPageChange(1)}
@@ -121,7 +124,7 @@ export const Pagination: React.FC<PaginationProps> = ({
             </button>
 
             {/* ページ番号 */}
-            {getPageNumbers().map((page, index) => (
+            {getPageNumbers().map((page, index) =>
               page === '...' ? (
                 <span
                   key={`dots-${index}`}
@@ -143,7 +146,7 @@ export const Pagination: React.FC<PaginationProps> = ({
                   {page}
                 </button>
               )
-            ))}
+            )}
 
             {/* 次のページへ */}
             <button

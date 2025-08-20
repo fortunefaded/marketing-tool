@@ -11,7 +11,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   Cell,
-  Legend
+  Legend,
 } from 'recharts'
 import { ChevronRightIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline'
 
@@ -36,83 +36,77 @@ export const DrillDownAnalysis: React.FC<DrillDownAnalysisProps> = ({ orders }) 
   // フィルタリングされた注文データ
   const filteredOrders = useMemo(() => {
     let filtered = [...orders]
-    
+
     if (dateFilter) {
-      filtered = filtered.filter(order => 
-        order.受注日.startsWith(dateFilter)
-      )
+      filtered = filtered.filter((order) => order.受注日.startsWith(dateFilter))
     }
-    
+
     if (selectedAdvertiser) {
-      filtered = filtered.filter(order => 
-        order.広告主名 === selectedAdvertiser
-      )
+      filtered = filtered.filter((order) => order.広告主名 === selectedAdvertiser)
     }
-    
+
     if (selectedProduct) {
-      filtered = filtered.filter(order => 
-        order.購入商品?.includes(selectedProduct)
-      )
+      filtered = filtered.filter((order) => order.購入商品?.includes(selectedProduct))
     }
-    
+
     return filtered
   }, [orders, dateFilter, selectedAdvertiser, selectedProduct])
 
   // レベル1: 広告主別データ
   const advertiserData = useMemo(() => {
     const data = new Map<string, number>()
-    
-    filteredOrders.forEach(order => {
+
+    filteredOrders.forEach((order) => {
       const advertiser = order.広告主名 || '不明'
       data.set(advertiser, (data.get(advertiser) || 0) + order.小計)
     })
-    
+
     const total = Array.from(data.values()).reduce((sum, val) => sum + val, 0)
-    
+
     return Array.from(data.entries()).map(([name, value]) => ({
       name,
       value,
       displayValue: `¥${value.toLocaleString()}`,
-      percentage: ((value / total) * 100).toFixed(1)
+      percentage: ((value / total) * 100).toFixed(1),
     }))
   }, [filteredOrders])
 
   // レベル2: 商品別データ
   const productData = useMemo(() => {
     if (!selectedAdvertiser) return []
-    
+
     const data = new Map<string, number>()
-    
-    filteredOrders.forEach(order => {
-      order.購入商品?.forEach(product => {
+
+    filteredOrders.forEach((order) => {
+      order.購入商品?.forEach((product) => {
         data.set(product, (data.get(product) || 0) + order.小計)
       })
     })
-    
+
     return Array.from(data.entries()).map(([name, value]) => ({
       name,
       value,
-      displayValue: `¥${value.toLocaleString()}`
+      displayValue: `¥${value.toLocaleString()}`,
     }))
   }, [filteredOrders, selectedAdvertiser])
 
   // レベル3: 日別データ
   const dailyData = useMemo(() => {
     if (!selectedProduct) return []
-    
+
     const data = new Map<string, number>()
-    
-    filteredOrders.forEach(order => {
+
+    filteredOrders.forEach((order) => {
       const date = order.受注日.split(' ')[0]
       data.set(date, (data.get(date) || 0) + order.小計)
     })
-    
+
     return Array.from(data.entries())
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([date, value]) => ({
         date,
         value,
-        displayValue: `¥${value.toLocaleString()}`
+        displayValue: `¥${value.toLocaleString()}`,
       }))
   }, [filteredOrders, selectedProduct])
 
@@ -128,29 +122,27 @@ export const DrillDownAnalysis: React.FC<DrillDownAnalysisProps> = ({ orders }) 
   }
 
   // パンくずナビゲーション
-  const breadcrumbs: BreadcrumbItem[] = [
-    { label: '広告主別', level: 'advertiser' }
-  ]
-  
+  const breadcrumbs: BreadcrumbItem[] = [{ label: '広告主別', level: 'advertiser' }]
+
   if (selectedAdvertiser) {
-    breadcrumbs.push({ 
-      label: selectedAdvertiser, 
+    breadcrumbs.push({
+      label: selectedAdvertiser,
       level: 'product',
-      value: selectedAdvertiser
+      value: selectedAdvertiser,
     })
   }
-  
+
   if (selectedProduct) {
-    breadcrumbs.push({ 
-      label: selectedProduct, 
+    breadcrumbs.push({
+      label: selectedProduct,
       level: 'daily',
-      value: selectedProduct
+      value: selectedProduct,
     })
   }
 
   const handleBreadcrumbClick = (item: BreadcrumbItem) => {
     setCurrentLevel(item.level)
-    
+
     if (item.level === 'advertiser') {
       setSelectedAdvertiser(null)
       setSelectedProduct(null)
@@ -177,7 +169,9 @@ export const DrillDownAnalysis: React.FC<DrillDownAnalysisProps> = ({ orders }) 
         <h2 className="text-xl font-semibold text-gray-900">ドリルダウン分析</h2>
         <div className="flex items-center gap-4">
           <div>
-            <label htmlFor="date-filter" className="sr-only">期間</label>
+            <label htmlFor="date-filter" className="sr-only">
+              期間
+            </label>
             <input
               id="date-filter"
               type="date"
@@ -216,7 +210,7 @@ export const DrillDownAnalysis: React.FC<DrillDownAnalysisProps> = ({ orders }) 
       </div>
 
       {/* グラフ表示 */}
-      <div 
+      <div
         data-testid="drill-down-container"
         className="transition-opacity duration-300 opacity-100"
       >
@@ -236,7 +230,7 @@ export const DrillDownAnalysis: React.FC<DrillDownAnalysisProps> = ({ orders }) 
                   dataKey="value"
                 >
                   {advertiserData.map((entry, index) => (
-                    <Cell 
+                    <Cell
                       key={`cell-${index}`}
                       fill={COLORS[index % COLORS.length]}
                       onClick={() => handleDrillDown(entry.name, 'advertiser')}
@@ -245,7 +239,7 @@ export const DrillDownAnalysis: React.FC<DrillDownAnalysisProps> = ({ orders }) 
                     />
                   ))}
                 </Pie>
-                <Tooltip 
+                <Tooltip
                   content={({ active, payload }) => {
                     if (active && payload && payload[0]) {
                       const data = payload[0].payload
@@ -275,8 +269,8 @@ export const DrillDownAnalysis: React.FC<DrillDownAnalysisProps> = ({ orders }) 
                 <XAxis dataKey="name" />
                 <YAxis />
                 <Tooltip />
-                <Bar 
-                  dataKey="value" 
+                <Bar
+                  dataKey="value"
                   fill="#3B82F6"
                   onClick={(data) => handleDrillDown(data.name || '', 'product')}
                   style={{ cursor: 'pointer' }}

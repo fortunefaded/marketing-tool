@@ -23,7 +23,7 @@ export function VirtualizedTable<T>({
   rowHeight = 48,
   height = 600,
   getRowKey,
-  onRowClick
+  onRowClick,
 }: VirtualizedTableProps<T>) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [scrollTop, setScrollTop] = useState(0)
@@ -35,7 +35,7 @@ export function VirtualizedTable<T>({
     const buffer = 5 // 上下に余分に描画する行数
     const start = Math.max(0, Math.floor(scrollTop / rowHeight) - buffer)
     const end = Math.min(data.length, start + visibleCount + buffer * 2)
-    
+
     setVisibleRange({ start, end })
   }, [scrollTop, rowHeight, height, data.length])
 
@@ -82,13 +82,13 @@ export function VirtualizedTable<T>({
               position: 'absolute',
               top: 0,
               left: 0,
-              right: 0
+              right: 0,
             }}
           >
             {visibleData.map((item, index) => {
               const actualIndex = visibleRange.start + index
               const key = getRowKey(item, actualIndex)
-              
+
               return (
                 <div
                   key={key}
@@ -104,10 +104,9 @@ export function VirtualizedTable<T>({
                       className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 flex items-center"
                       style={{ width: column.width || 'auto', flex: column.width ? 'none' : 1 }}
                     >
-                      {column.render 
+                      {column.render
                         ? column.render(item)
-                        : (item[column.key as keyof T] as React.ReactNode)
-                      }
+                        : (item[column.key as keyof T] as React.ReactNode)}
                     </div>
                   ))}
                 </div>
@@ -119,7 +118,8 @@ export function VirtualizedTable<T>({
 
       {/* 行数情報 */}
       <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-2 text-sm text-gray-600">
-        表示中: {visibleRange.start + 1} - {Math.min(visibleRange.end, data.length)} / 全{data.length}件
+        表示中: {visibleRange.start + 1} - {Math.min(visibleRange.end, data.length)} / 全
+        {data.length}件
       </div>
     </div>
   )

@@ -1,11 +1,11 @@
 import React, { useState } from 'react'
-import { 
+import {
   CalculatorIcon,
   ArrowUturnLeftIcon,
   ArrowUturnRightIcon,
   BeakerIcon,
   DocumentTextIcon,
-  XMarkIcon
+  XMarkIcon,
 } from '@heroicons/react/24/outline'
 
 export interface KPIField {
@@ -38,7 +38,7 @@ const OPERATORS = [
   { value: '+', label: '+' },
   { value: '-', label: '-' },
   { value: '*', label: '×' },
-  { value: '/', label: '÷' }
+  { value: '/', label: '÷' },
 ]
 
 const FUNCTIONS = [
@@ -46,19 +46,19 @@ const FUNCTIONS = [
   { value: 'AVG', label: 'AVG (平均)' },
   { value: 'MAX', label: 'MAX (最大)' },
   { value: 'MIN', label: 'MIN (最小)' },
-  { value: 'COUNT', label: 'COUNT (件数)' }
+  { value: 'COUNT', label: 'COUNT (件数)' },
 ]
 
 const TEMPLATES = [
   { name: 'ROAS (売上 ÷ 広告費)', formula: 'revenue / adSpend' },
   { name: 'CTR (クリック ÷ インプレッション × 100)', formula: 'clicks / impressions * 100' },
-  { name: 'CPA (広告費 ÷ 注文数)', formula: 'adSpend / orders' }
+  { name: 'CPA (広告費 ÷ 注文数)', formula: 'adSpend / orders' },
 ]
 
 export const CustomKPIBuilder: React.FC<CustomKPIBuilderProps> = ({
   availableFields,
   previewData,
-  onSave
+  onSave,
 }) => {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
@@ -74,17 +74,22 @@ export const CustomKPIBuilder: React.FC<CustomKPIBuilderProps> = ({
 
   // 計算式を文字列に変換
   const getFormulaString = () => {
-    return formula.map(token => {
-      if (token.type === 'field') return token.value
-      if (token.type === 'operator') return ` ${token.value} `
-      if (token.type === 'function') return `${token.value}(`
-      return token.value
-    }).join('')
+    return formula
+      .map((token) => {
+        if (token.type === 'field') return token.value
+        if (token.type === 'operator') return ` ${token.value} `
+        if (token.type === 'function') return `${token.value}(`
+        return token.value
+      })
+      .join('')
   }
 
   // フィールドを追加
   const addField = (field: KPIField) => {
-    const newFormula = [...formula, { type: 'field' as const, value: field.name, label: field.label }]
+    const newFormula = [
+      ...formula,
+      { type: 'field' as const, value: field.name, label: field.label },
+    ]
     updateFormula(newFormula)
   }
 
@@ -109,7 +114,7 @@ export const CustomKPIBuilder: React.FC<CustomKPIBuilderProps> = ({
   // 計算式を更新（履歴も管理）
   const updateFormula = (newFormula: FormulaToken[]) => {
     setFormula(newFormula)
-    
+
     // 履歴を更新
     const newHistory = history.slice(0, historyIndex + 1)
     newHistory.push(newFormula)
@@ -143,53 +148,53 @@ export const CustomKPIBuilder: React.FC<CustomKPIBuilderProps> = ({
   // 計算式の検証
   const validateFormula = () => {
     setError(null)
-    
+
     if (formula.length === 0) {
       setError('計算式を入力してください')
       return false
     }
-    
+
     // 最後のトークンが演算子の場合はエラー
     const lastToken = formula[formula.length - 1]
     if (lastToken.type === 'operator') {
       setError('計算式が不完全です')
       return false
     }
-    
+
     // 括弧の数をチェック
-    const openParens = formula.filter(t => t.value === '(').length
-    const closeParens = formula.filter(t => t.value === ')').length
+    const openParens = formula.filter((t) => t.value === '(').length
+    const closeParens = formula.filter((t) => t.value === ')').length
     if (openParens !== closeParens) {
       setError('括弧が対応していません')
       return false
     }
-    
+
     return true
   }
 
   // プレビューを計算
   const calculatePreview = () => {
     if (!validateFormula() || !previewData) return
-    
+
     try {
       // 簡易的な計算実装（実際はより堅牢な実装が必要）
       let formulaStr = getFormulaString()
-      
+
       // フィールド名を値に置換
       Object.entries(previewData).forEach(([field, value]) => {
         formulaStr = formulaStr.replace(new RegExp(field, 'g'), value.toString())
       })
-      
+
       // ゼロ除算チェック
       if (formulaStr.includes('/ 0')) {
         setError('エラー: ゼロ除算')
         return
       }
-      
+
       // 計算実行（evalの代わりに安全な方法を使うべき）
       const result = Function(`"use strict"; return (${formulaStr})`)()
       setPreviewResult(result)
-    } catch (e) {
+    } catch {
       setError('計算エラーが発生しました')
     }
   }
@@ -198,14 +203,14 @@ export const CustomKPIBuilder: React.FC<CustomKPIBuilderProps> = ({
   const applyTemplate = (template: string) => {
     const tokens: FormulaToken[] = []
     const parts = template.split(/\s+/)
-    
-    parts.forEach(part => {
+
+    parts.forEach((part) => {
       if (['+', '-', '*', '/'].includes(part)) {
         tokens.push({ type: 'operator', value: part })
       } else if (['(', ')'].includes(part)) {
         tokens.push({ type: 'parenthesis', value: part })
       } else {
-        const field = availableFields.find(f => f.name === part)
+        const field = availableFields.find((f) => f.name === part)
         if (field) {
           tokens.push({ type: 'field', value: field.name, label: field.label })
         } else if (!isNaN(Number(part))) {
@@ -213,7 +218,7 @@ export const CustomKPIBuilder: React.FC<CustomKPIBuilderProps> = ({
         }
       }
     })
-    
+
     updateFormula(tokens)
     setShowTemplates(false)
   }
@@ -221,20 +226,20 @@ export const CustomKPIBuilder: React.FC<CustomKPIBuilderProps> = ({
   // 保存処理
   const handleSave = () => {
     setError(null)
-    
+
     if (!name) {
       setError('KPI名を入力してください')
       return
     }
-    
+
     if (!validateFormula()) return
-    
+
     onSave({
       name,
       description,
       formula: getFormulaString(),
       format,
-      decimals
+      decimals,
     })
   }
 
@@ -293,17 +298,23 @@ export const CustomKPIBuilder: React.FC<CustomKPIBuilderProps> = ({
             </button>
           </div>
         </div>
-        <div 
+        <div
           data-testid="formula-display"
           className="p-4 bg-gray-50 border border-gray-200 rounded-md min-h-[60px] font-mono"
         >
           {formula.map((token, index) => (
-            <span key={index} className={
-              token.type === 'field' ? 'text-blue-600' :
-              token.type === 'operator' ? 'text-orange-600 mx-1' :
-              token.type === 'function' ? 'text-purple-600' :
-              'text-gray-900'
-            }>
+            <span
+              key={index}
+              className={
+                token.type === 'field'
+                  ? 'text-blue-600'
+                  : token.type === 'operator'
+                    ? 'text-orange-600 mx-1'
+                    : token.type === 'function'
+                      ? 'text-purple-600'
+                      : 'text-gray-900'
+              }
+            >
               {token.label || token.value}
             </span>
           ))}
@@ -314,7 +325,7 @@ export const CustomKPIBuilder: React.FC<CustomKPIBuilderProps> = ({
       <div className="mb-4">
         <h3 className="text-sm font-medium text-gray-700 mb-2">フィールド</h3>
         <div className="flex flex-wrap gap-2">
-          {availableFields.map(field => (
+          {availableFields.map((field) => (
             <button
               key={field.name}
               onClick={() => addField(field)}
@@ -330,7 +341,7 @@ export const CustomKPIBuilder: React.FC<CustomKPIBuilderProps> = ({
       <div className="mb-4">
         <h3 className="text-sm font-medium text-gray-700 mb-2">演算子</h3>
         <div className="flex gap-2">
-          {OPERATORS.map(op => (
+          {OPERATORS.map((op) => (
             <button
               key={op.value}
               onClick={() => addOperator(op.value)}
@@ -397,7 +408,7 @@ export const CustomKPIBuilder: React.FC<CustomKPIBuilderProps> = ({
         <div className="mb-4 p-4 bg-gray-50 rounded-md">
           <h3 className="text-sm font-medium text-gray-700 mb-2">テンプレート</h3>
           <div className="space-y-2">
-            {TEMPLATES.map(template => (
+            {TEMPLATES.map((template) => (
               <button
                 key={template.name}
                 onClick={() => applyTemplate(template.formula)}
@@ -415,7 +426,7 @@ export const CustomKPIBuilder: React.FC<CustomKPIBuilderProps> = ({
         <div className="mb-4 p-4 bg-gray-50 rounded-md">
           <h3 className="text-sm font-medium text-gray-700 mb-2">関数</h3>
           <div className="flex gap-2">
-            {FUNCTIONS.map(func => (
+            {FUNCTIONS.map((func) => (
               <button
                 key={func.value}
                 onClick={() => addFunction(func.value)}
@@ -431,9 +442,7 @@ export const CustomKPIBuilder: React.FC<CustomKPIBuilderProps> = ({
       {/* プレビュー結果 */}
       {previewResult !== null && (
         <div className="mb-4 p-4 bg-blue-50 rounded-md">
-          <p className="text-lg font-medium text-blue-900">
-            計算結果: {previewResult.toFixed(2)}
-          </p>
+          <p className="text-lg font-medium text-blue-900">計算結果: {previewResult.toFixed(2)}</p>
         </div>
       )}
 

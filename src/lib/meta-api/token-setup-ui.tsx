@@ -59,9 +59,10 @@ export const MetaTokenSetup: React.FC<TokenSetupProps> = ({
         tokenManager.setToken({
           token: tokenInput,
           type: tokenType,
-          expiresAt: tokenType === 'long' 
-            ? new Date(Date.now() + 60 * 24 * 60 * 60 * 1000) // 60 days
-            : undefined,
+          expiresAt:
+            tokenType === 'long'
+              ? new Date(Date.now() + 60 * 24 * 60 * 60 * 1000) // 60 days
+              : undefined,
         })
       }
 
@@ -83,11 +84,11 @@ export const MetaTokenSetup: React.FC<TokenSetupProps> = ({
 
   const formatExpiryTime = (expiresAt?: Date) => {
     if (!expiresAt) return '期限なし'
-    
+
     const remaining = expiresAt.getTime() - Date.now()
     const days = Math.floor(remaining / (24 * 60 * 60 * 1000))
     const hours = Math.floor((remaining % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000))
-    
+
     if (days > 0) {
       return `${days}日 ${hours}時間後`
     } else if (hours > 0) {
@@ -98,23 +99,18 @@ export const MetaTokenSetup: React.FC<TokenSetupProps> = ({
   }
 
   const requiredScopes = ['ads_read', 'ads_management', 'business_management']
-  const hasRequiredScopes = tokenInfo?.scopes?.some(scope => 
-    requiredScopes.includes(scope)
-  ) ?? false
+  const hasRequiredScopes =
+    tokenInfo?.scopes?.some((scope) => requiredScopes.includes(scope)) ?? false
 
   return (
     <div className="max-w-2xl mx-auto p-6">
       <div className="bg-white shadow rounded-lg p-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">
-          Meta APIトークン設定
-        </h2>
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">Meta APIトークン設定</h2>
 
         {step === 'input' && (
           <div className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                トークンタイプ
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">トークンタイプ</label>
               <select
                 value={tokenType}
                 onChange={(e) => setTokenType(e.target.value as any)}
@@ -216,9 +212,7 @@ export const MetaTokenSetup: React.FC<TokenSetupProps> = ({
 
             {tokenInfo.scopes && (
               <div>
-                <h4 className="text-sm font-medium text-gray-700 mb-2">
-                  付与された権限:
-                </h4>
+                <h4 className="text-sm font-medium text-gray-700 mb-2">付与された権限:</h4>
                 <div className="flex flex-wrap gap-2">
                   {tokenInfo.scopes.map((scope) => (
                     <span
@@ -253,9 +247,7 @@ export const MetaTokenSetup: React.FC<TokenSetupProps> = ({
               <div className="flex">
                 <XCircleIcon className="h-5 w-5 text-red-400 mr-3" />
                 <div className="flex-1">
-                  <h3 className="text-sm font-medium text-red-800">
-                    トークンの設定に失敗しました
-                  </h3>
+                  <h3 className="text-sm font-medium text-red-800">トークンの設定に失敗しました</h3>
                   <p className="mt-1 text-sm text-red-700">{error}</p>
                 </div>
               </div>

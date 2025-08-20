@@ -63,12 +63,7 @@ describe('CustomFilterPanel', () => {
 
   it('handles campaign selection', () => {
     const onChange = vi.fn()
-    render(
-      <CustomFilterPanel 
-        onChange={onChange} 
-        campaignOptions={mockCampaignOptions}
-      />
-    )
+    render(<CustomFilterPanel onChange={onChange} campaignOptions={mockCampaignOptions} />)
 
     const campaignCheckbox = screen.getByRole('checkbox', { name: 'Campaign 1' })
     fireEvent.click(campaignCheckbox)

@@ -15,7 +15,7 @@ import {
   ArrowTopRightOnSquareIcon,
   CalendarIcon,
   PhotoIcon,
-  ExclamationTriangleIcon
+  ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline'
 import { MetricCard } from '../components/metrics/MetricCard'
 import { PerformanceChart } from '../components/charts/PerformanceChart'
@@ -35,12 +35,12 @@ export const UnifiedDashboard: React.FC = () => {
   // const [apiService, setApiService] = useState<MetaApiService | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  
+
   // Metaデータ
   const [metaInsights, setMetaInsights] = useState<MetaInsightsData[]>([])
   const [metaSyncStatus, setMetaSyncStatus] = useState<any>(null)
   // const [metaCacheInfo, setMetaCacheInfo] = useState({ sizeKB: 0, records: 0 })
-  
+
   // ECForceデータ
   // const [selectedPeriod, setSelectedPeriod] = useState('last_30_days')
   const [ecforceDateRange, setEcforceDateRange] = useState<{
@@ -48,17 +48,19 @@ export const UnifiedDashboard: React.FC = () => {
     end: Date | null
   }>({
     start: null,
-    end: null
+    end: null,
   })
-  
+
   // ConvexからECForceデータを取得
   const { orders: ecforceOrders, isLoading: ecforceLoading } = useECForceData({
     startDate: ecforceDateRange.start?.toISOString().split('T')[0],
     endDate: ecforceDateRange.end?.toISOString().split('T')[0],
   })
-  
+
   // タブ管理
-  const [activeTab, setActiveTab] = useState<'overview' | 'meta' | 'ecforce' | 'integrated'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'meta' | 'ecforce' | 'integrated'>(
+    'overview'
+  )
 
   useEffect(() => {
     try {
@@ -69,31 +71,30 @@ export const UnifiedDashboard: React.FC = () => {
         setIsLoading(false)
         return
       }
-    
-    // キャッシュされたデータを読み込み
-    const cachedData = MetaDataCache.getInsights(activeAccount.accountId)
-    const status = MetaDataCache.getSyncStatus(activeAccount.accountId)
-    
-    if (cachedData.length > 0) {
-      setMetaInsights(cachedData)
-      setMetaSyncStatus(status)
-      // const cacheUsage = MetaDataCache.getCacheUsage(activeAccount.accountId)
-      // setMetaCacheInfo(cacheUsage)
-    }
-    
-    const service = manager.getActiveApiService()
-    if (service) {
-      // setApiService(service)
-    }
-    
-    setIsLoading(false)
+
+      // キャッシュされたデータを読み込み
+      const cachedData = MetaDataCache.getInsights(activeAccount.accountId)
+      const status = MetaDataCache.getSyncStatus(activeAccount.accountId)
+
+      if (cachedData.length > 0) {
+        setMetaInsights(cachedData)
+        setMetaSyncStatus(status)
+        // const cacheUsage = MetaDataCache.getCacheUsage(activeAccount.accountId)
+        // setMetaCacheInfo(cacheUsage)
+      }
+
+      const service = manager.getActiveApiService()
+      if (service) {
+        // setApiService(service)
+      }
+
+      setIsLoading(false)
     } catch (err) {
       console.error('Dashboard initialization error:', err)
       setError('ダッシュボードの初期化中にエラーが発生しました')
       setIsLoading(false)
     }
   }, [])
-
 
   // ECForceデータはすでにフィルタリング済みなので、そのまま使用
   const filteredEcforceOrders = ecforceOrders
@@ -102,19 +103,25 @@ export const UnifiedDashboard: React.FC = () => {
   const calculateMetrics = () => {
     // Meta広告メトリクス
     const totalAdSpend = metaInsights.reduce((sum, insight) => sum + Number(insight.spend || 0), 0)
-    const totalImpressions = metaInsights.reduce((sum, insight) => sum + Number(insight.impressions || 0), 0)
+    const totalImpressions = metaInsights.reduce(
+      (sum, insight) => sum + Number(insight.impressions || 0),
+      0
+    )
     const totalClicks = metaInsights.reduce((sum, insight) => sum + Number(insight.clicks || 0), 0)
-    const totalConversions = metaInsights.reduce((sum, insight) => sum + Number(insight.conversions || 0), 0)
-    
+    const totalConversions = metaInsights.reduce(
+      (sum, insight) => sum + Number(insight.conversions || 0),
+      0
+    )
+
     // ECForce売上メトリクス（フィルタリングされたデータを使用）
     const totalRevenue = filteredEcforceOrders.reduce((sum, order) => sum + (order.小計 || 0), 0)
     const totalOrders = filteredEcforceOrders.length
     const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0
-    
+
     // 統合メトリクス
     const trueROAS = totalAdSpend > 0 ? totalRevenue / totalAdSpend : 0
     const trueCPA = totalOrders > 0 ? totalAdSpend / totalOrders : 0
-    
+
     return {
       // Meta広告
       totalAdSpend,
@@ -123,15 +130,15 @@ export const UnifiedDashboard: React.FC = () => {
       totalConversions,
       ctr: totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0,
       cpc: totalClicks > 0 ? totalAdSpend / totalClicks : 0,
-      
+
       // ECForce
       totalRevenue,
       totalOrders,
       avgOrderValue,
-      
+
       // 統合
       trueROAS,
-      trueCPA
+      trueCPA,
     }
   }
 
@@ -140,34 +147,34 @@ export const UnifiedDashboard: React.FC = () => {
   // チャートデータの準備
   const prepareChartData = () => {
     // 日付ごとにデータを集計
-    const dataByDate = new Map<string, { adSpend: number, revenue: number, orders: number }>()
-    
+    const dataByDate = new Map<string, { adSpend: number; revenue: number; orders: number }>()
+
     // Meta広告データを集計
-    metaInsights.forEach(insight => {
+    metaInsights.forEach((insight) => {
       const dateValue = insight.date_start || insight.dateStart || ''
       const date = String(dateValue)
       if (!date) return
-      
+
       const existing = dataByDate.get(date) || { adSpend: 0, revenue: 0, orders: 0 }
       dataByDate.set(date, {
         ...existing,
-        adSpend: existing.adSpend + Number(insight.spend || 0)
+        adSpend: existing.adSpend + Number(insight.spend || 0),
       })
     })
-    
+
     // ECForceデータを集計
-    ecforceOrders.forEach(order => {
+    ecforceOrders.forEach((order) => {
       const date = order.注文日
       if (!date) return
-      
+
       const existing = dataByDate.get(date) || { adSpend: 0, revenue: 0, orders: 0 }
       dataByDate.set(date, {
         ...existing,
         revenue: existing.revenue + (order.小計 || 0),
-        orders: existing.orders + 1
+        orders: existing.orders + 1,
       })
     })
-    
+
     // ソートして配列に変換
     return Array.from(dataByDate.entries())
       .sort(([a], [b]) => a.localeCompare(b))
@@ -177,7 +184,7 @@ export const UnifiedDashboard: React.FC = () => {
         cost: data.adSpend,
         revenue: data.revenue,
         orders: data.orders,
-        roas: data.adSpend > 0 ? data.revenue / data.adSpend : 0
+        roas: data.adSpend > 0 ? data.revenue / data.adSpend : 0,
       }))
   }
 
@@ -283,12 +290,12 @@ export const UnifiedDashboard: React.FC = () => {
         {activeTab === 'overview' && (
           <>
             {/* 統合KPIダッシュボード */}
-            <KPIDashboard 
+            <KPIDashboard
               insights={metaInsights}
               ecforceOrders={filteredEcforceOrders}
               dateRange={{
                 start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                end: new Date().toISOString().split('T')[0]
+                end: new Date().toISOString().split('T')[0],
               }}
               showComparison={false}
             />
@@ -296,7 +303,7 @@ export const UnifiedDashboard: React.FC = () => {
             {/* パフォーマンスチャート */}
             <div className="bg-white rounded-lg shadow p-6 mb-8">
               <h3 className="text-lg font-medium text-gray-900 mb-4">売上とROASの推移</h3>
-              <PerformanceChart 
+              <PerformanceChart
                 data={prepareChartData()}
                 metrics={['revenue', 'roas']}
                 height={400}
@@ -320,7 +327,7 @@ export const UnifiedDashboard: React.FC = () => {
                   <ArrowTopRightOnSquareIcon className="h-6 w-6" />
                 </div>
               </button>
-              
+
               <button
                 onClick={() => navigate('/ecforce')}
                 className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-6 shadow-sm hover:shadow-lg transition-shadow text-left"
@@ -381,49 +388,69 @@ export const UnifiedDashboard: React.FC = () => {
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">広告費</p>
-                    <p className="text-xl font-semibold">{new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY' }).format(metrics.totalAdSpend)}</p>
+                    <p className="text-xl font-semibold">
+                      {new Intl.NumberFormat('ja-JP', {
+                        style: 'currency',
+                        currency: 'JPY',
+                      }).format(metrics.totalAdSpend)}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">CPA</p>
                     <p className="text-xl font-semibold">
-                      {metrics.totalConversions > 0 
-                        ? new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY' }).format(metrics.totalAdSpend / metrics.totalConversions)
+                      {metrics.totalConversions > 0
+                        ? new Intl.NumberFormat('ja-JP', {
+                            style: 'currency',
+                            currency: 'JPY',
+                          }).format(metrics.totalAdSpend / metrics.totalConversions)
                         : '-'}
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">ROAS</p>
                     <p className="text-xl font-semibold">
-                      {metrics.totalAdSpend > 0 
-                        ? `${((metrics.totalConversions * 10000) / metrics.totalAdSpend * 100).toFixed(0)}%`
+                      {metrics.totalAdSpend > 0
+                        ? `${(((metrics.totalConversions * 10000) / metrics.totalAdSpend) * 100).toFixed(0)}%`
                         : '-'}
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">CPM</p>
                     <p className="text-xl font-semibold">
-                      {metrics.totalImpressions > 0 
-                        ? new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY' }).format((metrics.totalAdSpend / metrics.totalImpressions) * 1000)
+                      {metrics.totalImpressions > 0
+                        ? new Intl.NumberFormat('ja-JP', {
+                            style: 'currency',
+                            currency: 'JPY',
+                          }).format((metrics.totalAdSpend / metrics.totalImpressions) * 1000)
                         : '-'}
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">リーチ</p>
-                    <p className="text-xl font-semibold">{new Intl.NumberFormat('ja-JP').format(metaInsights.reduce((sum, i) => sum + Number(i.reach || 0), 0))}</p>
+                    <p className="text-xl font-semibold">
+                      {new Intl.NumberFormat('ja-JP').format(
+                        metaInsights.reduce((sum, i) => sum + Number(i.reach || 0), 0)
+                      )}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">フリークエンシー</p>
                     <p className="text-xl font-semibold">
                       {(() => {
-                        const totalReach = metaInsights.reduce((sum, i) => sum + Number(i.reach || 0), 0);
-                        return totalReach > 0 ? (metrics.totalImpressions / totalReach).toFixed(2) : '-';
+                        const totalReach = metaInsights.reduce(
+                          (sum, i) => sum + Number(i.reach || 0),
+                          0
+                        )
+                        return totalReach > 0
+                          ? (metrics.totalImpressions / totalReach).toFixed(2)
+                          : '-'
                       })()}
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">CV率</p>
                     <p className="text-xl font-semibold">
-                      {metrics.totalClicks > 0 
+                      {metrics.totalClicks > 0
                         ? `${((metrics.totalConversions / metrics.totalClicks) * 100).toFixed(2)}%`
                         : '-'}
                     </p>
@@ -431,7 +458,7 @@ export const UnifiedDashboard: React.FC = () => {
                 </div>
               </div>
             )}
-            
+
             {!manager.getActiveAccount() && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
                 <p className="text-blue-800 mb-4">Meta広告アカウントが接続されていません</p>
@@ -449,7 +476,7 @@ export const UnifiedDashboard: React.FC = () => {
         {activeTab === 'ecforce' && (
           <div className="space-y-6">
             {/* 日付フィルター */}
-            <ECForceDateFilter 
+            <ECForceDateFilter
               dateRange={ecforceDateRange}
               onDateRangeChange={setEcforceDateRange}
             />
@@ -491,7 +518,9 @@ export const UnifiedDashboard: React.FC = () => {
                       </div>
                     </div>
                     <p className="text-2xl font-bold text-gray-900">
-                      {new Intl.NumberFormat('ja-JP').format(new Set(filteredEcforceOrders.map(o => o.顧客番号)).size)}
+                      {new Intl.NumberFormat('ja-JP').format(
+                        new Set(filteredEcforceOrders.map((o) => o.顧客番号)).size
+                      )}
                     </p>
                   </div>
                   {/* 最高注文額 */}
@@ -505,9 +534,10 @@ export const UnifiedDashboard: React.FC = () => {
                       </div>
                     </div>
                     <p className="text-2xl font-bold text-gray-900">
-                      {new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY' }).format(
-                        Math.max(...filteredEcforceOrders.map(o => o.小計 || 0))
-                      )}
+                      {new Intl.NumberFormat('ja-JP', {
+                        style: 'currency',
+                        currency: 'JPY',
+                      }).format(Math.max(...filteredEcforceOrders.map((o) => o.小計 || 0)))}
                     </p>
                   </div>
                   {/* 最低注文額 */}
@@ -521,9 +551,10 @@ export const UnifiedDashboard: React.FC = () => {
                       </div>
                     </div>
                     <p className="text-2xl font-bold text-gray-900">
-                      {new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY' }).format(
-                        Math.min(...filteredEcforceOrders.map(o => o.小計 || 0))
-                      )}
+                      {new Intl.NumberFormat('ja-JP', {
+                        style: 'currency',
+                        currency: 'JPY',
+                      }).format(Math.min(...filteredEcforceOrders.map((o) => o.小計 || 0)))}
                     </p>
                   </div>
                   {/* 注文頻度 */}
@@ -538,8 +569,8 @@ export const UnifiedDashboard: React.FC = () => {
                     </div>
                     <p className="text-2xl font-bold text-gray-900">
                       {(() => {
-                        const dateRange = 30; // 30日間
-                        return (metrics.totalOrders / dateRange).toFixed(1);
+                        const dateRange = 30 // 30日間
+                        return (metrics.totalOrders / dateRange).toFixed(1)
                       })()}
                       <span className="text-base font-normal text-gray-600 ml-1">件/日</span>
                     </p>
@@ -556,11 +587,16 @@ export const UnifiedDashboard: React.FC = () => {
                     </div>
                     <p className="text-2xl font-bold text-gray-900">
                       {(() => {
-                        const midPoint = Math.floor(filteredEcforceOrders.length / 2);
-                        const firstHalf = filteredEcforceOrders.slice(0, midPoint).reduce((sum, o) => sum + (o.小計 || 0), 0);
-                        const secondHalf = filteredEcforceOrders.slice(midPoint).reduce((sum, o) => sum + (o.小計 || 0), 0);
-                        const growth = firstHalf > 0 ? ((secondHalf - firstHalf) / firstHalf) * 100 : 0;
-                        return growth > 0 ? `+${growth.toFixed(1)}%` : `${growth.toFixed(1)}%`;
+                        const midPoint = Math.floor(filteredEcforceOrders.length / 2)
+                        const firstHalf = filteredEcforceOrders
+                          .slice(0, midPoint)
+                          .reduce((sum, o) => sum + (o.小計 || 0), 0)
+                        const secondHalf = filteredEcforceOrders
+                          .slice(midPoint)
+                          .reduce((sum, o) => sum + (o.小計 || 0), 0)
+                        const growth =
+                          firstHalf > 0 ? ((secondHalf - firstHalf) / firstHalf) * 100 : 0
+                        return growth > 0 ? `+${growth.toFixed(1)}%` : `${growth.toFixed(1)}%`
                       })()}
                     </p>
                   </div>
@@ -576,10 +612,15 @@ export const UnifiedDashboard: React.FC = () => {
                     </div>
                     <p className="text-2xl font-bold text-gray-900">
                       {(() => {
-                        const customerIds = filteredEcforceOrders.map(o => o.顧客番号);
-                        const uniqueCustomers = new Set(customerIds).size;
-                        const repeatRate = uniqueCustomers > 0 ? ((filteredEcforceOrders.length - uniqueCustomers) / filteredEcforceOrders.length) * 100 : 0;
-                        return `${repeatRate.toFixed(1)}%`;
+                        const customerIds = filteredEcforceOrders.map((o) => o.顧客番号)
+                        const uniqueCustomers = new Set(customerIds).size
+                        const repeatRate =
+                          uniqueCustomers > 0
+                            ? ((filteredEcforceOrders.length - uniqueCustomers) /
+                                filteredEcforceOrders.length) *
+                              100
+                            : 0
+                        return `${repeatRate.toFixed(1)}%`
                       })()}
                     </p>
                   </div>
@@ -595,8 +636,12 @@ export const UnifiedDashboard: React.FC = () => {
                     </div>
                     <p className="text-2xl font-bold text-gray-900">
                       {(() => {
-                        const uniqueCustomers = new Set(filteredEcforceOrders.map(o => o.顧客番号)).size;
-                        return uniqueCustomers > 0 ? (filteredEcforceOrders.length / uniqueCustomers).toFixed(1) : '0';
+                        const uniqueCustomers = new Set(
+                          filteredEcforceOrders.map((o) => o.顧客番号)
+                        ).size
+                        return uniqueCustomers > 0
+                          ? (filteredEcforceOrders.length / uniqueCustomers).toFixed(1)
+                          : '0'
                       })()}
                       <span className="text-base font-normal text-gray-600 ml-1">回</span>
                     </p>
@@ -613,10 +658,13 @@ export const UnifiedDashboard: React.FC = () => {
                     </div>
                     <p className="text-2xl font-bold text-gray-900">
                       {(() => {
-                        const uniqueCustomers = new Set(filteredEcforceOrders.map(o => o.顧客番号)).size;
-                        return new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY' }).format(
-                          uniqueCustomers > 0 ? metrics.totalRevenue / uniqueCustomers : 0
-                        );
+                        const uniqueCustomers = new Set(
+                          filteredEcforceOrders.map((o) => o.顧客番号)
+                        ).size
+                        return new Intl.NumberFormat('ja-JP', {
+                          style: 'currency',
+                          currency: 'JPY',
+                        }).format(uniqueCustomers > 0 ? metrics.totalRevenue / uniqueCustomers : 0)
                       })()}
                     </p>
                   </div>
@@ -663,13 +711,13 @@ export const UnifiedDashboard: React.FC = () => {
                 </div>
               </>
             )}
-            
+
             {filteredEcforceOrders.length === 0 && ecforceOrders.length > 0 && (
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
                 <p className="text-yellow-800">指定された期間にデータがありません</p>
               </div>
             )}
-            
+
             {ecforceOrders.length === 0 && (
               <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
                 <p className="text-green-800 mb-4">ECForceのデータがインポートされていません</p>
@@ -687,42 +735,37 @@ export const UnifiedDashboard: React.FC = () => {
         {activeTab === 'integrated' && (
           <div className="space-y-6">
             {/* 日付フィルター */}
-            <ECForceDateFilter 
+            <ECForceDateFilter
               dateRange={ecforceDateRange}
               onDateRangeChange={setEcforceDateRange}
             />
 
             {/* 統合KPIダッシュボード */}
-            <KPIDashboard 
+            <KPIDashboard
               insights={metaInsights}
               ecforceOrders={filteredEcforceOrders}
               dateRange={{
-                start: ecforceDateRange.start?.toISOString().split('T')[0] || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                end: ecforceDateRange.end?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0]
+                start:
+                  ecforceDateRange.start?.toISOString().split('T')[0] ||
+                  new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                end:
+                  ecforceDateRange.end?.toISOString().split('T')[0] ||
+                  new Date().toISOString().split('T')[0],
               }}
               showComparison={true}
             />
 
             {/* ECForce統合分析 */}
-            <ECForceIntegration 
-              metaInsights={metaInsights}
-              dateRange={metaSyncStatus?.dateRange}
-            />
+            <ECForceIntegration metaInsights={metaInsights} dateRange={metaSyncStatus?.dateRange} />
 
             {/* コホート分析 */}
-            {filteredEcforceOrders.length > 0 && (
-              <CohortAnalysis orders={filteredEcforceOrders} />
-            )}
+            {filteredEcforceOrders.length > 0 && <CohortAnalysis orders={filteredEcforceOrders} />}
 
             {/* LTV分析 */}
-            {filteredEcforceOrders.length > 0 && (
-              <LTVAnalysis orders={filteredEcforceOrders} />
-            )}
+            {filteredEcforceOrders.length > 0 && <LTVAnalysis orders={filteredEcforceOrders} />}
 
             {/* RFM分析 */}
-            {filteredEcforceOrders.length > 0 && (
-              <RFMAnalysis orders={filteredEcforceOrders} />
-            )}
+            {filteredEcforceOrders.length > 0 && <RFMAnalysis orders={filteredEcforceOrders} />}
           </div>
         )}
       </div>

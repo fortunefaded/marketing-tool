@@ -157,7 +157,7 @@ export const CreativePerformanceGrid: React.FC<CreativePerformanceGridProps> = (
 
   const handleCreativeSelect = (id: string, isSelected: boolean) => {
     if (!onSelectionChange) return
-    
+
     if (isSelected) {
       onSelectionChange([...selectedCreativeIds, id])
     } else {
@@ -167,7 +167,7 @@ export const CreativePerformanceGrid: React.FC<CreativePerformanceGridProps> = (
 
   const handleSelectAll = (isSelected: boolean) => {
     if (!onSelectionChange) return
-    
+
     if (isSelected) {
       onSelectionChange(filteredAndSortedCreatives.map((c) => c.id))
     } else {
@@ -332,16 +332,18 @@ export const CreativePerformanceGrid: React.FC<CreativePerformanceGridProps> = (
                           alt={creative.name}
                           className="w-full h-full object-cover"
                         />
-                        {creative.type === 'VIDEO' && hoveredId === creative.id && creative.videoUrl && (
-                          <video
-                            data-testid="video-preview"
-                            src={creative.videoUrl}
-                            className="absolute inset-0 w-full h-full object-cover"
-                            autoPlay
-                            muted
-                            loop
-                          />
-                        )}
+                        {creative.type === 'VIDEO' &&
+                          hoveredId === creative.id &&
+                          creative.videoUrl && (
+                            <video
+                              data-testid="video-preview"
+                              src={creative.videoUrl}
+                              className="absolute inset-0 w-full h-full object-cover"
+                              autoPlay
+                              muted
+                              loop
+                            />
+                          )}
                         {creative.type === 'VIDEO' && (
                           <div className="absolute inset-0 flex items-center justify-center">
                             <PlayIcon className="h-12 w-12 text-white opacity-80" />
@@ -353,7 +355,7 @@ export const CreativePerformanceGrid: React.FC<CreativePerformanceGridProps> = (
                         <TypeIcon className="h-12 w-12 text-gray-400" />
                       </div>
                     )}
-                    
+
                     {/* Type Badge */}
                     <div className="absolute top-2 left-2 flex items-center gap-2">
                       {showSelection && onSelectionChange && (
@@ -371,7 +373,7 @@ export const CreativePerformanceGrid: React.FC<CreativePerformanceGridProps> = (
                         {CREATIVE_TYPE_LABELS[creative.type]}
                       </span>
                     </div>
-                    
+
                     {/* Status Badge */}
                     {creative.status !== 'ACTIVE' && (
                       <div className="absolute top-2 right-2">
@@ -384,7 +386,10 @@ export const CreativePerformanceGrid: React.FC<CreativePerformanceGridProps> = (
 
                   {/* Info */}
                   <div className="p-4">
-                    <h4 data-testid="creative-name" className="text-sm font-medium text-gray-900 truncate">
+                    <h4
+                      data-testid="creative-name"
+                      className="text-sm font-medium text-gray-900 truncate"
+                    >
                       {creative.name}
                     </h4>
                     <p className="text-xs text-gray-500 mt-1 truncate">{creative.campaignName}</p>
@@ -393,17 +398,23 @@ export const CreativePerformanceGrid: React.FC<CreativePerformanceGridProps> = (
                     <div className="mt-4 grid grid-cols-3 gap-2 text-xs">
                       <div className="text-center">
                         <EyeIcon className="h-4 w-4 mx-auto text-gray-400 mb-1" />
-                        <p className="text-gray-900 font-medium">{formatNumber(creative.metrics.impressions)}</p>
+                        <p className="text-gray-900 font-medium">
+                          {formatNumber(creative.metrics.impressions)}
+                        </p>
                         <p className="text-gray-500">表示</p>
                       </div>
                       <div className="text-center">
                         <CursorArrowRaysIcon className="h-4 w-4 mx-auto text-gray-400 mb-1" />
-                        <p className="text-gray-900 font-medium">{creative.metrics.ctr.toFixed(2)}%</p>
+                        <p className="text-gray-900 font-medium">
+                          {creative.metrics.ctr.toFixed(2)}%
+                        </p>
                         <p className="text-gray-500">CTR</p>
                       </div>
                       <div className="text-center">
                         <BanknotesIcon className="h-4 w-4 mx-auto text-gray-400 mb-1" />
-                        <p className="text-gray-900 font-medium">{creative.metrics.roas.toFixed(2)}x</p>
+                        <p className="text-gray-900 font-medium">
+                          {creative.metrics.roas.toFixed(2)}x
+                        </p>
                         <p className="text-gray-500">ROAS</p>
                       </div>
                     </div>
@@ -440,7 +451,9 @@ export const CreativePerformanceGrid: React.FC<CreativePerformanceGridProps> = (
                   {/* Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center space-x-2">
-                      <h4 className="text-sm font-medium text-gray-900 truncate">{creative.name}</h4>
+                      <h4 className="text-sm font-medium text-gray-900 truncate">
+                        {creative.name}
+                      </h4>
                       <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
                         {CREATIVE_TYPE_LABELS[creative.type]}
                       </span>

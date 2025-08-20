@@ -6,17 +6,17 @@ import {
   Draggable,
   DropResult,
   DraggableProvided,
-  DroppableProvided
+  DroppableProvided,
 } from '@hello-pangea/dnd'
-import { 
-  PlusIcon, 
-  PencilIcon, 
-  TrashIcon, 
+import {
+  PlusIcon,
+  PencilIcon,
+  TrashIcon,
   CheckIcon,
   BookmarkIcon,
   ArrowsPointingOutIcon,
   ArrowDownTrayIcon,
-  ArrowUpTrayIcon
+  ArrowUpTrayIcon,
 } from '@heroicons/react/24/outline'
 import { GripVertical } from 'lucide-react'
 import { useDashboardSettings } from '../../hooks/useDashboardSettings'
@@ -38,7 +38,7 @@ interface InteractiveDashboardProps {
 export const InteractiveDashboard: React.FC<InteractiveDashboardProps> = ({
   initialWidgets = [],
   gridColumns = 12,
-  onLayoutChange
+  onLayoutChange,
 }) => {
   const [widgets, setWidgets] = useState<DashboardWidget[]>(initialWidgets)
   const [isEditMode, setIsEditMode] = useState(false)
@@ -50,14 +50,8 @@ export const InteractiveDashboard: React.FC<InteractiveDashboardProps> = ({
   const [isMobile, setIsMobile] = useState(false)
   const [showLoadModal, setShowLoadModal] = useState(false)
   const [selectedLayoutId, setSelectedLayoutId] = useState<string | null>(null)
-  
-  const { 
-    layouts, 
-    saveLayout, 
-    loadLayout, 
-    importLayout,
-    currentLayout 
-  } = useDashboardSettings()
+
+  const { layouts, saveLayout, loadLayout, importLayout, currentLayout } = useDashboardSettings()
 
   // レスポンシブ対応
   useEffect(() => {
@@ -80,7 +74,7 @@ export const InteractiveDashboard: React.FC<InteractiveDashboardProps> = ({
     // 位置を再計算
     const updatedWidgets = items.map((widget, index) => ({
       ...widget,
-      position: calculatePosition(index, gridColumns)
+      position: calculatePosition(index, gridColumns),
     }))
 
     setWidgets(updatedWidgets)
@@ -101,7 +95,7 @@ export const InteractiveDashboard: React.FC<InteractiveDashboardProps> = ({
       type,
       title,
       position: calculatePosition(widgets.length, gridColumns),
-      size: { width: 6, height: 4 }
+      size: { width: 6, height: 4 },
     }
     setWidgets([...widgets, newWidget])
     setShowAddModal(false)
@@ -109,18 +103,18 @@ export const InteractiveDashboard: React.FC<InteractiveDashboardProps> = ({
 
   // ウィジェット削除
   const handleDeleteWidget = (id: string) => {
-    setWidgets(widgets.filter(w => w.id !== id))
+    setWidgets(widgets.filter((w) => w.id !== id))
     setShowDeleteConfirm(null)
   }
 
   // レイアウト保存
   const handleSaveLayout = () => {
-    const widgetConfigs = widgets.map(w => ({
+    const widgetConfigs = widgets.map((w) => ({
       id: w.id,
       type: w.type,
       position: w.position,
       size: w.size,
-      settings: {}
+      settings: {},
     }))
     saveLayout(layoutName, widgetConfigs)
     setShowSaveModal(false)
@@ -128,28 +122,28 @@ export const InteractiveDashboard: React.FC<InteractiveDashboardProps> = ({
     setShowSuccessMessage(true)
     setTimeout(() => setShowSuccessMessage(false), 3000)
   }
-  
+
   // レイアウト読み込み
   const handleLoadLayout = () => {
     if (!selectedLayoutId) return
     loadLayout(selectedLayoutId)
     setShowLoadModal(false)
   }
-  
+
   // 現在のレイアウトを監視
   useEffect(() => {
     if (currentLayout) {
-      const loadedWidgets = currentLayout.widgets.map(w => ({
+      const loadedWidgets = currentLayout.widgets.map((w) => ({
         id: w.id,
         type: w.type,
         title: getWidgetTitle(w.type),
         position: w.position,
-        size: w.size
+        size: w.size,
       }))
       setWidgets(loadedWidgets)
     }
   }, [currentLayout])
-  
+
   // ウィジェットタイトル取得
   const getWidgetTitle = (type: string) => {
     const titles: Record<string, string> = {
@@ -158,16 +152,16 @@ export const InteractiveDashboard: React.FC<InteractiveDashboardProps> = ({
       'churn-prediction': 'チャーン予測',
       'cohort-analysis': 'コホート分析',
       'ltv-analysis': 'LTV分析',
-      'basket-analysis': 'バスケット分析'
+      'basket-analysis': 'バスケット分析',
     }
     return titles[type] || type
   }
-  
+
   // インポートハンドラー
   const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
-    
+
     try {
       await importLayout(file)
       setShowSuccessMessage(true)
@@ -275,7 +269,7 @@ export const InteractiveDashboard: React.FC<InteractiveDashboardProps> = ({
                         top: isMobile ? `${index * 200}px` : `${widget.position.y * 50}px`,
                         width: isMobile ? '100%' : `${(widget.size.width / gridColumns) * 100}%`,
                         height: `${widget.size.height * 50}px`,
-                        padding: '8px'
+                        padding: '8px',
                       }}
                     >
                       <div className="bg-white rounded-lg shadow-lg h-full relative">
@@ -306,9 +300,7 @@ export const InteractiveDashboard: React.FC<InteractiveDashboardProps> = ({
                             </div>
                           </>
                         )}
-                        <div className="p-4 h-full">
-                          {renderWidget(widget)}
-                        </div>
+                        <div className="p-4 h-full">{renderWidget(widget)}</div>
                       </div>
                     </div>
                   )}
@@ -414,7 +406,7 @@ export const InteractiveDashboard: React.FC<InteractiveDashboardProps> = ({
           <div className="bg-white rounded-lg p-6 w-96">
             <h3 className="text-lg font-semibold mb-4">レイアウトを読み込み</h3>
             <div className="space-y-2 mb-4">
-              {layouts.map(layout => (
+              {layouts.map((layout) => (
                 <div
                   key={layout.id}
                   onClick={() => setSelectedLayoutId(layout.id)}
@@ -431,9 +423,7 @@ export const InteractiveDashboard: React.FC<InteractiveDashboardProps> = ({
                 </div>
               ))}
               {layouts.length === 0 && (
-                <p className="text-gray-500 text-center py-4">
-                  保存されたレイアウトがありません
-                </p>
+                <p className="text-gray-500 text-center py-4">保存されたレイアウトがありません</p>
               )}
             </div>
             <div className="flex gap-2">
@@ -445,12 +435,7 @@ export const InteractiveDashboard: React.FC<InteractiveDashboardProps> = ({
                 読み込み
               </button>
               <label className="flex-1">
-                <input
-                  type="file"
-                  accept=".json"
-                  onChange={handleImport}
-                  className="hidden"
-                />
+                <input type="file" accept=".json" onChange={handleImport} className="hidden" />
                 <span className="block p-2 bg-green-600 text-white rounded hover:bg-green-700 text-center cursor-pointer">
                   <ArrowUpTrayIcon className="h-5 w-5 inline mr-1" />
                   インポート
