@@ -73,9 +73,10 @@ function formatPeriod(start: Date, _end: Date, comparisonType: string): string {
       return `${year}年${month}月`
     case 'year-over-year':
       return `${year}年`
-    case 'quarter-over-quarter':
+    case 'quarter-over-quarter': {
       const quarter = Math.floor(start.getMonth() / 3) + 1
       return `${year}年Q${quarter}`
+    }
     default:
       return `${year}年${month}月`
   }

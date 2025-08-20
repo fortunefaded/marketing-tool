@@ -1,3 +1,4 @@
+/* eslint-env browser */
 import React, { useState, useCallback } from 'react'
 import { Upload, AlertCircle, CheckCircle } from 'lucide-react'
 import { useMutation } from 'convex/react'

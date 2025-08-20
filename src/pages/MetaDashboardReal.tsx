@@ -21,7 +21,7 @@ import { KPIDashboard } from '../components/analytics/KPIDashboard'
 import { CreativePerformance } from '../components/analytics/CreativePerformance'
 import { DataHistoryViewer } from '../components/debug/DataHistoryViewer'
 import { ComparisonDashboard } from '../components/analytics/ComparisonDashboard'
-import { SyncSettings, type SyncSettings as SyncSettingsType } from '../components/settings/SyncSettings'
+import { SyncSettings, type SyncSettingsData } from '../components/settings/SyncSettings'
 import { FatigueDashboard } from '../components/AdFatigue/FatigueDashboard'
 import { FatigueDashboardErrorBoundary } from '../components/AdFatigue/FatigueDashboardErrorBoundary'
 
@@ -43,7 +43,7 @@ export const MetaDashboardReal: React.FC = () => {
   const [cacheInfo, setCacheInfo] = useState({ sizeKB: 0, records: 0 })
   const [activeTab, setActiveTab] = useState<'overview' | 'kpi' | 'creative' | 'comparison' | 'fatigue'>('overview')
   const [creativeAggregationPeriod, setCreativeAggregationPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily')
-  const [syncSettings, setSyncSettings] = useState<SyncSettingsType | null>(null)
+  const [syncSettings, setSyncSettings] = useState<SyncSettingsData | null>(null)
   
   // ConvexからECForceデータを取得
   const { orders: ecforceOrders } = useECForceData()

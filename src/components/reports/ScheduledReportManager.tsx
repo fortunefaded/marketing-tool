@@ -197,9 +197,10 @@ export const ScheduledReportManager: React.FC = () => {
     switch (report.type) {
       case 'daily':
         return `毎日 ${time}`
-      case 'weekly':
+      case 'weekly': {
         const days = ['日', '月', '火', '水', '木', '金', '土']
         return `毎週${days[report.schedule.dayOfWeek || 0]}曜日 ${time}`
+      }
       case 'monthly':
         return `毎月${report.schedule.dayOfMonth}日 ${time}`
       default:

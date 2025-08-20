@@ -9,17 +9,17 @@ import {
 } from '@heroicons/react/24/outline'
 
 interface SyncSettingsProps {
-  onSettingsChange?: (settings: SyncSettings) => void
+  onSettingsChange?: (settings: SyncSettingsData) => void
 }
 
-export interface SyncSettings {
+export interface SyncSettingsData {
   maxMonths: number
   limitPerRequest: number
   skipCreatives: boolean
   debugMode: boolean
 }
 
-const DEFAULT_SETTINGS: SyncSettings = {
+const DEFAULT_SETTINGS: SyncSettingsData = {
   maxMonths: 37, // フル同期のデフォルト
   limitPerRequest: 500, // 1リクエストあたりの最大件数
   skipCreatives: false, // クリエイティブ取得をスキップ
@@ -38,7 +38,7 @@ const PRESET_OPTIONS = [
 
 export const SyncSettings: React.FC<SyncSettingsProps> = ({ onSettingsChange }) => {
   const [isOpen, setIsOpen] = useState(false)
-  const [settings, setSettings] = useState<SyncSettings>(() => {
+  const [settings, setSettings] = useState<SyncSettingsData>(() => {
     // LocalStorageから設定を読み込み
     const saved = localStorage.getItem('meta_sync_settings')
     if (saved) {
@@ -57,7 +57,7 @@ export const SyncSettings: React.FC<SyncSettingsProps> = ({ onSettingsChange }) 
     onSettingsChange?.(settings)
   }, [settings, onSettingsChange])
 
-  const updateSetting = <K extends keyof SyncSettings>(key: K, value: SyncSettings[K]) => {
+  const updateSetting = <K extends keyof SyncSettingsData>(key: K, value: SyncSettingsData[K]) => {
     setSettings(prev => ({ ...prev, [key]: value }))
   }
 

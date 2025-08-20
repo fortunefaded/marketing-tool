@@ -1,3 +1,4 @@
+/* eslint-env browser */
 import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { InteractiveDashboard } from '../InteractiveDashboard'
@@ -150,8 +151,8 @@ describe('InteractiveDashboard', () => {
 
   it('レスポンシブ対応でモバイル時は1カラムになる', () => {
     // ビューポートサイズを変更
-    global.innerWidth = 500
-    global.dispatchEvent(new Event('resize'))
+    ;(globalThis as any).innerWidth = 500
+    globalThis.dispatchEvent(new Event('resize'))
     
     render(<InteractiveDashboard initialWidgets={mockWidgets} />)
     

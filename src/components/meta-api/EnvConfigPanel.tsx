@@ -1,3 +1,4 @@
+/* eslint-env browser */
 import { useState, useEffect } from 'react'
 import { CheckCircleIcon, ExclamationCircleIcon } from '@heroicons/react/24/outline'
 

@@ -1,5 +1,7 @@
-const fs = require('fs');
-const path = require('path');
+/* eslint-env node */
+/* eslint-disable no-undef */
+// const fs = require('fs'); // 未使用
+// const path = require('path'); // 未使用
 
 // ESLint設定に基づいて未使用インポートを自動修正
 const fixUnusedImports = () => {

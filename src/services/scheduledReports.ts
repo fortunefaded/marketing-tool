@@ -114,7 +114,7 @@ class ScheduledReportService {
         }
         break
         
-      case 'weekly':
+      case 'weekly': {
         const targetDay = report.schedule.dayOfWeek || 1 // デフォルトは月曜日
         let daysUntilTarget = (targetDay - nextRun.getDay() + 7) % 7
         if (daysUntilTarget === 0 && nextRun <= now) {
@@ -122,14 +122,16 @@ class ScheduledReportService {
         }
         nextRun.setDate(nextRun.getDate() + daysUntilTarget)
         break
+      }
         
-      case 'monthly':
+      case 'monthly': {
         const targetDate = report.schedule.dayOfMonth || 1
         nextRun.setDate(targetDate)
         if (nextRun <= now) {
           nextRun.setMonth(nextRun.getMonth() + 1)
         }
         break
+      }
     }
 
     return nextRun

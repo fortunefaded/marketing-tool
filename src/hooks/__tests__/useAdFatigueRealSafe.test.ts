@@ -1,6 +1,7 @@
 import { describe, test, expect, vi } from 'vitest'
 import { renderHook } from '@testing-library/react'
 import { useAdFatigueRealSafe } from '../useAdFatigueRealSafe'
+import { useQuery } from 'convex/react'
 
 // Mock convex/react
 vi.mock('convex/react', () => ({
@@ -22,10 +23,10 @@ vi.mock('../../../convex/_generated/api', () => ({
 
 describe('useAdFatigueRealSafe', () => {
   test('should handle undefined allAdsAnalysis gracefully', () => {
-    const { useQuery } = require('convex/react')
+    const mockedUseQuery = vi.mocked(useQuery)
     
     // Mock all queries to return undefined
-    useQuery.mockReturnValue(undefined)
+    mockedUseQuery.mockReturnValue(undefined)
     
     const { result } = renderHook(() => useAdFatigueRealSafe('test-account'))
     
@@ -36,19 +37,16 @@ describe('useAdFatigueRealSafe', () => {
   })
 
   test('should handle savedAnalysis with missing properties', () => {
-    const { useQuery } = require('convex/react')
+    const mockedUseQuery = vi.mocked(useQuery)
     
     // Mock different return values for different queries
-    useQuery.mockImplementation((query: any) => {
-      if (query === 'getSavedFatigueAnalysis') {
-        // Return incomplete savedAnalysis
-        return {
-          adId: 'test-ad',
-          // Missing other properties
-        }
+    mockedUseQuery.mockImplementation((() => {
+      // Return incomplete savedAnalysis
+      return {
+        adId: 'test-ad',
+        // Missing other properties
       }
-      return undefined
-    })
+    }) as any)
     
     const { result } = renderHook(() => useAdFatigueRealSafe('test-account', 'test-ad'))
     
@@ -57,10 +55,10 @@ describe('useAdFatigueRealSafe', () => {
   })
 
   test('should handle null values in queries', () => {
-    const { useQuery } = require('convex/react')
+    const mockedUseQuery = vi.mocked(useQuery)
     
     // Mock all queries to return null
-    useQuery.mockReturnValue(null)
+    mockedUseQuery.mockReturnValue(null)
     
     const { result } = renderHook(() => useAdFatigueRealSafe('test-account'))
     

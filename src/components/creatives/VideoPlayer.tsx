@@ -1,3 +1,4 @@
+/* eslint-env browser */
 import React, { useState, useEffect } from 'react'
 import { PlayIcon, XMarkIcon } from '@heroicons/react/24/solid'
 

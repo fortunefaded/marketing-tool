@@ -24,7 +24,8 @@ export const scheduleFatigueAnalysis = mutation({
     }
     
     if (existing) {
-      const { accountId, ...updateData } = data
+      const { accountId: _accountId, ...updateData } = data
+      void _accountId // accountIdは除外して更新（重複を避けるため）
       await ctx.db.patch(existing._id, updateData)
     } else {
       await ctx.db.insert("fatigueAnalysisSchedules", {

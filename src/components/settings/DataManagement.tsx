@@ -1,3 +1,4 @@
+/* eslint-env browser */
 import React, { useState, useEffect } from 'react'
 import { localDB } from '../../services/localDataStore'
 import { storageManager } from '../../services/localStorageManager'

@@ -52,7 +52,7 @@ export async function exchangeTokenServerSide(
       accessToken: data.access_token,
       expiresIn: data.expires_in || 5184000, // 60 days default
     }
-  } catch (error) {
+  } catch {
     return {
       accessToken: '',
       expiresIn: 0,

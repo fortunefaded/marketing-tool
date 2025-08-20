@@ -256,13 +256,13 @@ export const SalesPrediction: React.FC<SalesPredictionProps> = ({
             <div>
               <p className="text-sm font-medium text-gray-600">週間成長率</p>
               <p className={`text-2xl font-semibold mt-1 ${
-                metrics?.weeklyGrowth! >= 0 ? 'text-green-600' : 'text-red-600'
+                (metrics?.weeklyGrowth ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'
               }`}>
-                {metrics?.weeklyGrowth! >= 0 ? '+' : ''}{metrics?.weeklyGrowth!.toFixed(1)}%
+                {(metrics?.weeklyGrowth ?? 0) >= 0 ? '+' : ''}{(metrics?.weeklyGrowth ?? 0).toFixed(1)}%
               </p>
             </div>
             <TrendingUp className={`h-8 w-8 ${
-              metrics?.weeklyGrowth! >= 0 ? 'text-green-500' : 'text-red-500'
+              (metrics?.weeklyGrowth ?? 0) >= 0 ? 'text-green-500' : 'text-red-500'
             }`} />
           </div>
         </div>
@@ -272,13 +272,13 @@ export const SalesPrediction: React.FC<SalesPredictionProps> = ({
             <div>
               <p className="text-sm font-medium text-gray-600">月間成長率</p>
               <p className={`text-2xl font-semibold mt-1 ${
-                metrics?.monthlyGrowth! >= 0 ? 'text-green-600' : 'text-red-600'
+                (metrics?.monthlyGrowth ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'
               }`}>
-                {metrics?.monthlyGrowth! >= 0 ? '+' : ''}{metrics?.monthlyGrowth!.toFixed(1)}%
+                {(metrics?.monthlyGrowth ?? 0) >= 0 ? '+' : ''}{(metrics?.monthlyGrowth ?? 0).toFixed(1)}%
               </p>
             </div>
             <TrendingUp className={`h-8 w-8 ${
-              metrics?.monthlyGrowth! >= 0 ? 'text-green-500' : 'text-red-500'
+              (metrics?.monthlyGrowth ?? 0) >= 0 ? 'text-green-500' : 'text-red-500'
             }`} />
           </div>
         </div>
@@ -299,8 +299,8 @@ export const SalesPrediction: React.FC<SalesPredictionProps> = ({
               {((metrics?.volatility || 0) * 100).toFixed(1)}%
             </p>
             <p className="text-xs text-gray-500 mt-1">
-              {metrics?.volatility! < 0.2 ? '安定' : 
-               metrics?.volatility! < 0.5 ? '中程度' : '高変動'}
+              {(metrics?.volatility ?? 0) < 0.2 ? '安定' : 
+               (metrics?.volatility ?? 0) < 0.5 ? '中程度' : '高変動'}
             </p>
           </div>
         </div>
@@ -336,8 +336,8 @@ export const SalesPrediction: React.FC<SalesPredictionProps> = ({
           <p>
             • 予測の信頼性: 
             <span className="font-medium">
-              {metrics?.volatility! < 0.3 ? '高' : 
-               metrics?.volatility! < 0.6 ? '中' : '低'}
+              {(metrics?.volatility ?? 0) < 0.3 ? '高' : 
+               (metrics?.volatility ?? 0) < 0.6 ? '中' : '低'}
             </span>
           </p>
         </div>

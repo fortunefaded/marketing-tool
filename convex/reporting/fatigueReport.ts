@@ -36,7 +36,7 @@ export const generateFatigueReport = mutation({
     
     // レポート生成
     const report = {
-      id: crypto.randomUUID(),
+      id: `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
       generatedAt: new Date().toISOString(),
       accountId,
       adId,

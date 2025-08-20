@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'vitest'
 import { convexTest } from 'convex-test'
-import { api } from '../_generated/api'
+// import { api } from '../_generated/api' // 未使用
 import schema from '../schema'
 
 describe('Analytics Functions', () => {

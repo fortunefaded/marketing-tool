@@ -1,3 +1,4 @@
+/* eslint-env browser */
 import React, { useState, useMemo } from 'react'
 import {
   PhotoIcon,

@@ -1,14 +1,13 @@
 import type { MetaApiConfig, MetaCampaign, MetaCreative, MetaApiError } from './types'
 
-/* global fetch, URL */
-
 export class MetaApiClient {
   private config: Required<Omit<MetaApiConfig, 'apiVersion'>>
   private readonly apiVersion = 'v23.0'
   private baseUrl = 'https://graph.facebook.com'
 
   constructor(config: MetaApiConfig) {
-    const { apiVersion, ...configWithoutVersion } = config
+    const { apiVersion: _apiVersion, ...configWithoutVersion } = config
+    void _apiVersion // 使用されないが、型から除外するために必要
     this.config = configWithoutVersion as Required<Omit<MetaApiConfig, 'apiVersion'>>
   }
 

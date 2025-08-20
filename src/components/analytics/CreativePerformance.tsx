@@ -1,3 +1,4 @@
+/* eslint-env browser */
 import React, { useState, useEffect } from 'react'
 import { MetaInsightsData } from '../../services/metaApiService'
 import {
@@ -494,8 +495,8 @@ export const CreativePerformance: React.FC<CreativePerformanceProps> = ({
                               // エラー時は非表示にしてアイコンを表示
                               e.currentTarget.style.display = 'none'
                               const fallback = e.currentTarget.nextElementSibling
-                              if (fallback) {
-                                (fallback as HTMLElement).style.display = 'flex'
+                              if (fallback && fallback instanceof HTMLElement) {
+                                fallback.style.display = 'flex'
                               }
                             }}
                           />

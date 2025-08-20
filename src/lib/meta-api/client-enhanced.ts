@@ -1,8 +1,6 @@
 import type { MetaApiConfig, MetaCampaign, MetaCreative, MetaApiError } from './types'
 import { EventEmitter } from './event-emitter'
 
-/* global fetch, URL, Headers, AbortController */
-
 interface RateLimitInfo {
   callCount: number
   cpuTime: number
@@ -342,7 +340,7 @@ export class MetaAPIClientEnhanced extends EventEmitter {
           }
         }
       }
-    } catch (error) {
+    } catch {
       // Ignore parsing errors
     }
   }
@@ -409,7 +407,8 @@ export class MetaAPIClientEnhanced extends EventEmitter {
     }
 
     // Create batch promise
-    const batchPromise = new Promise(async (resolve, reject) => {
+    const batchPromise = new Promise((resolve, reject) => {
+      (async () => {
       try {
         console.log(`🔧 Creating new batch promise for ${campaignId}`)
         
@@ -472,6 +471,7 @@ export class MetaAPIClientEnhanced extends EventEmitter {
         this.batchQueue.delete(batchKey)
         reject(error)
       }
+      })()
     })
 
     this.batchQueue.set(batchKey, batchPromise)

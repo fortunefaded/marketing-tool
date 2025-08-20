@@ -18,7 +18,7 @@ import { PerformanceChart } from '../components/charts/PerformanceChart'
 import { KPIDashboard } from '../components/analytics/KPIDashboard'
 import { CreativePerformance } from '../components/analytics/CreativePerformance'
 import { ComparisonDashboard } from '../components/analytics/ComparisonDashboard'
-import { SyncSettings, type SyncSettings as SyncSettingsType } from '../components/settings/SyncSettings'
+import { SyncSettings, type SyncSettingsData } from '../components/settings/SyncSettings'
 
 export const MetaDashboardRealV2: React.FC = () => {
   const navigate = useNavigate()
@@ -35,7 +35,7 @@ export const MetaDashboardRealV2: React.FC = () => {
   const [syncProgress, setSyncProgress] = useState({ current: 0, total: 0, message: '' })
   const [activeTab, setActiveTab] = useState<'overview' | 'kpi' | 'creative' | 'comparison'>('overview')
   const [creativeAggregationPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily')
-  const [syncSettings, setSyncSettings] = useState<SyncSettingsType | null>(null)
+  const [syncSettings, setSyncSettings] = useState<SyncSettingsData | null>(null)
   
   // アクティブアカウントを取得
   const activeAccount = manager.getActiveAccount()
@@ -382,6 +382,7 @@ export const MetaDashboardRealV2: React.FC = () => {
           
         } catch (error) {
           console.warn(`広告レベルデータ取得エラー (${range.start}-${range.end}):`, error)
+          void error // ESLintエラー回避
         }
       }
       

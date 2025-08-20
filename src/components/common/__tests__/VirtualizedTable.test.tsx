@@ -1,9 +1,10 @@
+/* eslint-env browser */
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { VirtualizedTable } from '../VirtualizedTable'
 
 // ResizeObserverモック（既に設定済みだが念のため）
-global.ResizeObserver = class ResizeObserver {
+;(globalThis as any).ResizeObserver = class ResizeObserver {
   observe() {}
   unobserve() {}
   disconnect() {}
