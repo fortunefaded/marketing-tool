@@ -5,10 +5,12 @@ import { query, mutation } from './_generated/server'
 export const getEnhancedCreativeData = query({
   args: {
     accountId: v.string(),
-    dateRange: v.optional(v.object({
-      since: v.string(),
-      until: v.string(),
-    })),
+    dateRange: v.optional(
+      v.object({
+        since: v.string(),
+        until: v.string(),
+      })
+    ),
     includeVideoMetrics: v.optional(v.boolean()),
     includeDemographics: v.optional(v.boolean()),
     includePlacements: v.optional(v.boolean()),
@@ -221,8 +223,7 @@ export const getVideoPerformanceSummary = query({
       summary.avgWatchTime = summary.avgWatchTime / data.length
     }
 
-    summary.videoROAS =
-      summary.totalSpend > 0 ? summary.totalRevenue / summary.totalSpend : 0
+    summary.videoROAS = summary.totalSpend > 0 ? summary.totalRevenue / summary.totalSpend : 0
 
     return summary
   },
@@ -301,9 +302,7 @@ export const getCreativeComparison = query({
       })
       .collect()
 
-    const filteredData = data.filter((d) =>
-      args.creativeIds.includes(d.creativeId)
-    )
+    const filteredData = data.filter((d) => args.creativeIds.includes(d.creativeId))
 
     const comparison = filteredData.map((item) => {
       const metricValues: Record<string, number> = {}

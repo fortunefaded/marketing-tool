@@ -1,11 +1,13 @@
 # Meta広告アカウント取得 - 実装詳細
 
 ## 概要
-Meta広告アカウント（act_から始まるID）を取得するための実装ガイド
+
+Meta広告アカウント（act\_から始まるID）を取得するための実装ガイド
 
 ## 認証フロー
 
 ### 1. Facebook OAuth認証
+
 ```typescript
 // 認証URL生成
 const authUrl = `https://www.facebook.com/v18.0/dialog/oauth?
@@ -16,6 +18,7 @@ const authUrl = `https://www.facebook.com/v18.0/dialog/oauth?
 ```
 
 ### 2. アクセストークン取得
+
 ```typescript
 // コールバックでcodeを受け取り、トークンと交換
 POST https://graph.facebook.com/v18.0/oauth/access_token
@@ -30,21 +33,24 @@ POST https://graph.facebook.com/v18.0/oauth/access_token
 ### 3. 広告アカウント取得方法
 
 #### 方法1: ユーザー経由
+
 ```typescript
 GET /me/adaccounts?fields=id,name,account_status,currency
 ```
 
 #### 方法2: ビジネスマネージャー経由
+
 ```typescript
 // まずビジネスID取得
-GET /me/businesses
+GET / me / businesses
 
 // 次にビジネス配下のアカウント取得
-GET /{business_id}/owned_ad_accounts
-GET /{business_id}/client_ad_accounts
+GET / { business_id } / owned_ad_accounts
+GET / { business_id } / client_ad_accounts
 ```
 
 #### 方法3: アクセス可能な全アカウント
+
 ```typescript
 GET /me/adaccounts?fields=id,name,business{id,name}
 ```
@@ -70,18 +76,21 @@ GET /me/adaccounts?fields=id,name,business{id,name}
 ## エラーハンドリング
 
 ### よくあるエラー
+
 1. **Error 190**: アクセストークン期限切れ
 2. **Error 200**: 権限不足
 3. **Error 17**: レート制限
 4. **Error 100**: 無効なパラメータ
 
 ### リトライ戦略
+
 ```typescript
 const fetchWithRetry = async (url: string, retries = 3) => {
   for (let i = 0; i < retries; i++) {
     try {
       const response = await fetch(url)
-      if (response.status === 429) { // Rate limit
+      if (response.status === 429) {
+        // Rate limit
         await sleep(Math.pow(2, i) * 1000) // Exponential backoff
         continue
       }

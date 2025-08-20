@@ -1,17 +1,17 @@
-import { v } from "convex/values"
-import { query, mutation } from "./_generated/server"
+import { v } from 'convex/values'
+import { query, mutation } from './_generated/server'
 
 // Instagram価値スコアインターフェース
 export interface InstagramValueScore {
-  saves: number                   // 保存数
-  saveRate: number               // 保存率（最重要）
-  profileVisits: number          // プロフィール訪問
-  follows: number                // フォロー数
-  profileToFollowRate: number    // プロフィール→フォロー転換率
-  comments: number               // コメント数
-  shares: number                 // シェア数
-  commentSentiment?: number      // コメントセンチメント（-1〜1）
-  totalValueScore: number        // 総合価値スコア（疲労度への補正値）
+  saves: number // 保存数
+  saveRate: number // 保存率（最重要）
+  profileVisits: number // プロフィール訪問
+  follows: number // フォロー数
+  profileToFollowRate: number // プロフィール→フォロー転換率
+  comments: number // コメント数
+  shares: number // シェア数
+  commentSentiment?: number // コメントセンチメント（-1〜1）
+  totalValueScore: number // 総合価値スコア（疲労度への補正値）
 }
 
 // Instagram特有のメトリクス
@@ -33,43 +33,57 @@ export interface InstagramMetrics {
 export function calculateInstagramValue(metrics: InstagramMetrics): InstagramValueScore {
   const impressions = metrics.impressions || 1 // ゼロ除算を防ぐ
   const profileVisits = metrics.profileVisits || 1
-  
+
   // 各率の計算
   const saveRate = metrics.saves / impressions
   const profileToFollowRate = metrics.follows / profileVisits
   const shareRate = metrics.shares / impressions
-  const engagementRate = (metrics.saves + metrics.shares + metrics.comments + metrics.likes) / impressions
-  
+  const engagementRate =
+    (metrics.saves + metrics.shares + metrics.comments + metrics.likes) / impressions
+
   let valueScore = 0
-  
+
   // 保存率による加点（最大25点）
-  if (saveRate > 0.02) valueScore += 25      // 2%超で満点
-  else if (saveRate > 0.015) valueScore += 20 // 1.5%超
-  else if (saveRate > 0.01) valueScore += 15  // 1%超
-  else if (saveRate > 0.005) valueScore += 10 // 0.5%超
-  else if (saveRate > 0.003) valueScore += 5  // 0.3%超
-  
+  if (saveRate > 0.02)
+    valueScore += 25 // 2%超で満点
+  else if (saveRate > 0.015)
+    valueScore += 20 // 1.5%超
+  else if (saveRate > 0.01)
+    valueScore += 15 // 1%超
+  else if (saveRate > 0.005)
+    valueScore += 10 // 0.5%超
+  else if (saveRate > 0.003) valueScore += 5 // 0.3%超
+
   // フォロー転換による加点（最大20点）
-  if (profileToFollowRate > 0.10) valueScore += 20    // 10%超で満点
-  else if (profileToFollowRate > 0.07) valueScore += 15 // 7%超
-  else if (profileToFollowRate > 0.05) valueScore += 12 // 5%超
-  else if (profileToFollowRate > 0.03) valueScore += 8  // 3%超
-  else if (profileToFollowRate > 0.01) valueScore += 4  // 1%超
-  
+  if (profileToFollowRate > 0.1)
+    valueScore += 20 // 10%超で満点
+  else if (profileToFollowRate > 0.07)
+    valueScore += 15 // 7%超
+  else if (profileToFollowRate > 0.05)
+    valueScore += 12 // 5%超
+  else if (profileToFollowRate > 0.03)
+    valueScore += 8 // 3%超
+  else if (profileToFollowRate > 0.01) valueScore += 4 // 1%超
+
   // シェア率による加点（最大10点）
-  if (shareRate > 0.005) valueScore += 10     // 0.5%超
-  else if (shareRate > 0.003) valueScore += 7 // 0.3%超
+  if (shareRate > 0.005)
+    valueScore += 10 // 0.5%超
+  else if (shareRate > 0.003)
+    valueScore += 7 // 0.3%超
   else if (shareRate > 0.001) valueScore += 4 // 0.1%超
-  
+
   // エンゲージメント率による加点（最大10点）
-  if (engagementRate > 0.05) valueScore += 10    // 5%超
-  else if (engagementRate > 0.03) valueScore += 7 // 3%超
-  else if (engagementRate > 0.02) valueScore += 5 // 2%超
+  if (engagementRate > 0.05)
+    valueScore += 10 // 5%超
+  else if (engagementRate > 0.03)
+    valueScore += 7 // 3%超
+  else if (engagementRate > 0.02)
+    valueScore += 5 // 2%超
   else if (engagementRate > 0.01) valueScore += 3 // 1%超
-  
+
   // コメントの質による加点（将来実装用）
   // if (commentSentiment > 0.5) valueScore += 10
-  
+
   return {
     saves: metrics.saves,
     saveRate,
@@ -78,7 +92,7 @@ export function calculateInstagramValue(metrics: InstagramMetrics): InstagramVal
     profileToFollowRate,
     comments: metrics.comments,
     shares: metrics.shares,
-    totalValueScore: Math.min(65, valueScore) // 最大65点（疲労度への過剰な補正を防ぐ）
+    totalValueScore: Math.min(65, valueScore), // 最大65点（疲労度への過剰な補正を防ぐ）
   }
 }
 
@@ -92,24 +106,24 @@ export const getInstagramMetrics = query({
   handler: async (ctx, args) => {
     // Instagram関連のインサイトデータを取得
     const insights = await ctx.db
-      .query("metaInsights")
-      .filter((q) => 
+      .query('metaInsights')
+      .filter((q) =>
         q.and(
-          q.eq(q.field("ad_id"), args.adId),
+          q.eq(q.field('ad_id'), args.adId),
           // Instagram配置を含むデータのみ
           q.or(
-            q.eq(q.field("publisher_platform"), "instagram"),
-            q.eq(q.field("placement"), "instagram_feed"),
-            q.eq(q.field("placement"), "instagram_stories")
+            q.eq(q.field('publisher_platform'), 'instagram'),
+            q.eq(q.field('placement'), 'instagram_feed'),
+            q.eq(q.field('placement'), 'instagram_stories')
           )
         )
       )
       .collect()
-    
+
     if (insights.length === 0) {
       return null
     }
-    
+
     // メトリクスの集計
     const aggregated: InstagramMetrics = {
       impressions: 0,
@@ -124,8 +138,8 @@ export const getInstagramMetrics = query({
       storyReplies: 0,
       storyExits: 0,
     }
-    
-    insights.forEach(insight => {
+
+    insights.forEach((insight) => {
       aggregated.impressions += insight.impressions || 0
       aggregated.reach += insight.reach || 0
       aggregated.saves += insight.saves || 0
@@ -138,7 +152,7 @@ export const getInstagramMetrics = query({
       aggregated.storyReplies = (aggregated.storyReplies || 0) + (insight.story_replies || 0)
       aggregated.storyExits = (aggregated.storyExits || 0) + (insight.story_exits || 0)
     })
-    
+
     return aggregated
   },
 })
@@ -163,12 +177,10 @@ export const saveInstagramValueScore = mutation({
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
-      .query("instagramValue")
-      .withIndex("by_ad_date", (q) => 
-        q.eq("adId", args.adId).eq("date", args.date)
-      )
+      .query('instagramValue')
+      .withIndex('by_ad_date', (q) => q.eq('adId', args.adId).eq('date', args.date))
       .first()
-    
+
     if (existing) {
       await ctx.db.patch(existing._id, {
         ...args.metrics,
@@ -176,7 +188,7 @@ export const saveInstagramValueScore = mutation({
         updatedAt: new Date().toISOString(),
       })
     } else {
-      await ctx.db.insert("instagramValue", {
+      await ctx.db.insert('instagramValue', {
         accountId: args.accountId,
         creativeId: args.creativeId,
         adId: args.adId,
@@ -196,7 +208,7 @@ export const saveInstagramValueScore = mutation({
         updatedAt: new Date().toISOString(),
       })
     }
-    
+
     return { success: true }
   },
 })
@@ -211,26 +223,26 @@ export const getHighValueInstagramAds = query({
   handler: async (ctx, args) => {
     const minScore = args.minValueScore || 20
     const limit = args.limit || 10
-    
+
     // 最新の価値スコアを取得
     const valueScores = await ctx.db
-      .query("instagramValue")
-      .filter((q) => q.gte(q.field("valueScore"), minScore))
-      .order("desc")
+      .query('instagramValue')
+      .filter((q) => q.gte(q.field('valueScore'), minScore))
+      .order('desc')
       .take(limit)
-    
+
     // 広告情報を結合
     const highValueAds = await Promise.all(
       valueScores.map(async (score) => {
         const adInfo = await ctx.db
-          .query("metaInsights")
-          .filter((q) => q.eq(q.field("ad_id"), score.adId))
+          .query('metaInsights')
+          .filter((q) => q.eq(q.field('ad_id'), score.adId))
           .first()
-        
+
         return {
           adId: score.adId,
-          adName: adInfo?.ad_name || "Unknown",
-          campaignName: adInfo?.campaign_name || "Unknown",
+          adName: adInfo?.ad_name || 'Unknown',
+          campaignName: adInfo?.campaign_name || 'Unknown',
           valueScore: score.valueScore,
           saveRate: score.saveRate,
           profileToFollowRate: score.profileToFollowRate,
@@ -238,7 +250,7 @@ export const getHighValueInstagramAds = query({
         }
       })
     )
-    
+
     return highValueAds
   },
 })

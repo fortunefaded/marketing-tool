@@ -32,7 +32,7 @@ class RateLimitTester {
     startTime: Date.now(),
     endTime: 0,
     averageResponseTime: 0,
-    peakRequestsPerMinute: 0
+    peakRequestsPerMinute: 0,
   }
   private responseTimes: number[] = []
   private requestTimestamps: number[] = []
@@ -57,7 +57,7 @@ class RateLimitTester {
     await this.testSustainedLoad()
     await this.testRateLimitHeaders()
     await this.testAdaptiveRateLimiting()
-    
+
     // 結果を表示
     this.printResults()
   }
@@ -72,18 +72,16 @@ class RateLimitTester {
 
     const promises = []
     const batchSize = 10
-    
+
     for (let i = 0; i < batchSize; i++) {
-      promises.push(this.makeTimedRequest(() => 
-        this.client.getCampaigns({ limit: 5 })
-      ))
+      promises.push(this.makeTimedRequest(() => this.client.getCampaigns({ limit: 5 })))
     }
 
     const results = await Promise.allSettled(promises)
-    
+
     let successCount = 0
     let rateLimitCount = 0
-    
+
     results.forEach((result, index) => {
       if (result.status === 'fulfilled') {
         successCount++
@@ -99,7 +97,9 @@ class RateLimitTester {
       }
     })
 
-    console.log(chalk.gray(`\n  結果: ${successCount}/${batchSize} 成功, ${rateLimitCount} レート制限`))
+    console.log(
+      chalk.gray(`\n  結果: ${successCount}/${batchSize} 成功, ${rateLimitCount} レート制限`)
+    )
   }
 
   /**
@@ -113,32 +113,32 @@ class RateLimitTester {
     const duration = 30000 // 30秒
     const interval = 1000 // 1秒
     const startTime = Date.now()
-    
+
     while (Date.now() - startTime < duration) {
       try {
         const response = await this.makeTimedRequest(() =>
-          this.client.getInsights({ 
+          this.client.getInsights({
             datePreset: 'yesterday',
-            fields: ['impressions', 'clicks', 'spend']
+            fields: ['impressions', 'clicks', 'spend'],
           })
         )
-        
+
         console.log(chalk.green(`  ✓ ${new Date().toLocaleTimeString()}: 成功`))
       } catch (error) {
         if ((error as Error).message.includes('rate limit')) {
           console.log(chalk.yellow(`  ⚠️  ${new Date().toLocaleTimeString()}: レート制限`))
           this.metrics.rateLimitedRequests++
-          
+
           // レート制限に達したら少し待機
           console.log(chalk.gray('     60秒待機中...'))
-          await new Promise(resolve => setTimeout(resolve, 60000))
+          await new Promise((resolve) => setTimeout(resolve, 60000))
         } else {
           console.log(chalk.red(`  ✗ ${new Date().toLocaleTimeString()}: エラー`))
           this.metrics.errors++
         }
       }
-      
-      await new Promise(resolve => setTimeout(resolve, interval))
+
+      await new Promise((resolve) => setTimeout(resolve, interval))
     }
   }
 
@@ -148,20 +148,20 @@ class RateLimitTester {
    */
   private async testRateLimitHeaders() {
     console.log(chalk.cyan('\n▶ レート制限ヘッダー確認'))
-    
+
     try {
       // 直接fetchを使用してヘッダーを確認
       const response = await fetch(
         `https://graph.facebook.com/v23.0/${this.config.accountId}/campaigns?limit=1&access_token=${this.config.accessToken}`
       )
-      
+
       // レート制限関連のヘッダーを取得
       const headers = {
         'x-business-use-case-usage': response.headers.get('x-business-use-case-usage'),
         'x-app-usage': response.headers.get('x-app-usage'),
         'x-ad-account-usage': response.headers.get('x-ad-account-usage'),
       }
-      
+
       console.log(chalk.gray('\n  レート制限情報:'))
       Object.entries(headers).forEach(([key, value]) => {
         if (value) {
@@ -194,13 +194,11 @@ class RateLimitTester {
 
     for (let i = 0; i < maxRequests; i++) {
       try {
-        await this.makeTimedRequest(() => 
-          this.client.getCampaigns({ limit: 1 })
-        )
-        
+        await this.makeTimedRequest(() => this.client.getCampaigns({ limit: 1 }))
+
         consecutiveSuccesses++
         consecutiveFailures = 0
-        
+
         // 成功が続いたら遅延を減らす（より速く）
         if (consecutiveSuccesses >= 3 && delay > 100) {
           delay = Math.max(100, delay - 50)
@@ -211,7 +209,7 @@ class RateLimitTester {
       } catch (error) {
         consecutiveSuccesses = 0
         consecutiveFailures++
-        
+
         if ((error as Error).message.includes('rate limit')) {
           // レート制限に達したら遅延を増やす
           delay = Math.min(5000, delay * 2)
@@ -222,8 +220,8 @@ class RateLimitTester {
           this.metrics.errors++
         }
       }
-      
-      await new Promise(resolve => setTimeout(resolve, delay))
+
+      await new Promise((resolve) => setTimeout(resolve, delay))
     }
   }
 
@@ -234,7 +232,7 @@ class RateLimitTester {
     const startTime = Date.now()
     this.metrics.totalRequests++
     this.requestTimestamps.push(startTime)
-    
+
     try {
       const result = await request()
       const responseTime = Date.now() - startTime
@@ -257,7 +255,7 @@ class RateLimitTester {
 
     // 平均レスポンスタイムを計算
     if (this.responseTimes.length > 0) {
-      this.metrics.averageResponseTime = 
+      this.metrics.averageResponseTime =
         this.responseTimes.reduce((a, b) => a + b, 0) / this.responseTimes.length
     }
 
@@ -266,24 +264,29 @@ class RateLimitTester {
     this.metrics.peakRequestsPerMinute = Math.max(...requestsPerMinute)
 
     console.log(chalk.blue('\n\n📊 レート制限テスト結果\n'))
-    
+
     console.log(chalk.white('基本統計:'))
     console.log(chalk.gray(`  総リクエスト数: ${this.metrics.totalRequests}`))
     console.log(chalk.green(`  成功: ${this.metrics.successfulRequests}`))
     console.log(chalk.yellow(`  レート制限: ${this.metrics.rateLimitedRequests}`))
     console.log(chalk.red(`  エラー: ${this.metrics.errors}`))
     console.log(chalk.gray(`  実行時間: ${duration.toFixed(2)}秒`))
-    
+
     console.log(chalk.white('\nパフォーマンス指標:'))
-    console.log(chalk.gray(`  平均レスポンスタイム: ${this.metrics.averageResponseTime.toFixed(0)}ms`))
+    console.log(
+      chalk.gray(`  平均レスポンスタイム: ${this.metrics.averageResponseTime.toFixed(0)}ms`)
+    )
     console.log(chalk.gray(`  最小レスポンスタイム: ${Math.min(...this.responseTimes)}ms`))
     console.log(chalk.gray(`  最大レスポンスタイム: ${Math.max(...this.responseTimes)}ms`))
     console.log(chalk.gray(`  ピークリクエスト数/分: ${this.metrics.peakRequestsPerMinute}`))
-    
+
     console.log(chalk.white('\nレート制限対策の効果:'))
-    const successRate = (this.metrics.successfulRequests / this.metrics.totalRequests * 100).toFixed(1)
+    const successRate = (
+      (this.metrics.successfulRequests / this.metrics.totalRequests) *
+      100
+    ).toFixed(1)
     console.log(chalk.gray(`  成功率: ${successRate}%`))
-    
+
     if (this.metrics.rateLimitedRequests > 0) {
       console.log(chalk.yellow('\n⚠️  レート制限に達しました'))
       console.log(chalk.gray('  推奨事項:'))
@@ -306,12 +309,12 @@ class RateLimitTester {
    */
   private calculateRequestsPerMinute(): number[] {
     const minuteBuckets: { [key: number]: number } = {}
-    
-    this.requestTimestamps.forEach(timestamp => {
+
+    this.requestTimestamps.forEach((timestamp) => {
       const minute = Math.floor(timestamp / 60000)
       minuteBuckets[minute] = (minuteBuckets[minute] || 0) + 1
     })
-    
+
     return Object.values(minuteBuckets)
   }
 }
@@ -340,7 +343,7 @@ class RateLimitStrategies {
     console.log(chalk.gray('  複数のAPIコールを1つのバッチにまとめます'))
 
     const individualStartTime = Date.now()
-    
+
     // 個別リクエスト（比較用）
     try {
       await this.client.getCampaigns({ limit: 5 })
@@ -348,30 +351,34 @@ class RateLimitStrategies {
     } catch (error) {
       console.log(chalk.red('  個別リクエストでエラー'))
     }
-    
+
     const individualTime = Date.now() - individualStartTime
 
     // バッチリクエスト
     const batchStartTime = Date.now()
-    
+
     try {
       const batch = await this.client.batchRequest([
         {
           method: 'GET',
-          relative_url: `${this.client['accountId']}/campaigns?limit=5`
+          relative_url: `${this.client['accountId']}/campaigns?limit=5`,
         },
         {
           method: 'GET',
-          relative_url: `${this.client['accountId']}/insights?date_preset=yesterday`
-        }
+          relative_url: `${this.client['accountId']}/insights?date_preset=yesterday`,
+        },
       ])
-      
+
       const batchTime = Date.now() - batchStartTime
-      
+
       console.log(chalk.green(`  ✓ バッチリクエスト成功`))
       console.log(chalk.gray(`    個別リクエスト時間: ${individualTime}ms`))
       console.log(chalk.gray(`    バッチリクエスト時間: ${batchTime}ms`))
-      console.log(chalk.gray(`    改善率: ${((individualTime - batchTime) / individualTime * 100).toFixed(1)}%`))
+      console.log(
+        chalk.gray(
+          `    改善率: ${(((individualTime - batchTime) / individualTime) * 100).toFixed(1)}%`
+        )
+      )
     } catch (error) {
       console.log(chalk.red(`  バッチリクエストでエラー: ${(error as Error).message}`))
     }
@@ -386,12 +393,12 @@ class RateLimitStrategies {
 
     const getCachedData = async (key: string, fetcher: () => Promise<any>) => {
       const cached = cache.get(key)
-      
+
       if (cached && Date.now() - cached.timestamp < cacheTimeout) {
         console.log(chalk.green(`  ✓ キャッシュヒット: ${key}`))
         return cached.data
       }
-      
+
       console.log(chalk.yellow(`  ⚠️  キャッシュミス: ${key}`))
       const data = await fetcher()
       cache.set(key, { data, timestamp: Date.now() })
@@ -400,10 +407,10 @@ class RateLimitStrategies {
 
     // 初回リクエスト
     await getCachedData('campaigns', () => this.client.getCampaigns({ limit: 5 }))
-    
+
     // 2回目（キャッシュから）
     await getCachedData('campaigns', () => this.client.getCampaigns({ limit: 5 }))
-    
+
     console.log(chalk.gray(`  キャッシュサイズ: ${cache.size}`))
   }
 
@@ -420,14 +427,16 @@ class RateLimitStrategies {
       // 必要なフィールドのみ
       const filteredStartTime = Date.now()
       await this.client.getCampaigns({
-        fields: ['name', 'status', 'objective']
+        fields: ['name', 'status', 'objective'],
       })
       const filteredTime = Date.now() - filteredStartTime
 
       console.log(chalk.green('  ✓ フィールドフィルタリング成功'))
       console.log(chalk.gray(`    全フィールド取得時間: ${fullTime}ms`))
       console.log(chalk.gray(`    フィルター適用時間: ${filteredTime}ms`))
-      console.log(chalk.gray(`    改善率: ${((fullTime - filteredTime) / fullTime * 100).toFixed(1)}%`))
+      console.log(
+        chalk.gray(`    改善率: ${(((fullTime - filteredTime) / fullTime) * 100).toFixed(1)}%`)
+      )
     } catch (error) {
       console.log(chalk.red(`  エラー: ${(error as Error).message}`))
     }
@@ -443,7 +452,9 @@ async function main() {
 
   if (!config.accessToken || !config.accountId) {
     console.error(chalk.red('環境変数が設定されていません'))
-    console.error(chalk.gray('VITE_META_ACCESS_TOKEN と VITE_META_AD_ACCOUNT_ID を設定してください'))
+    console.error(
+      chalk.gray('VITE_META_ACCESS_TOKEN と VITE_META_AD_ACCOUNT_ID を設定してください')
+    )
     process.exit(1)
   }
 
@@ -457,7 +468,7 @@ async function main() {
 }
 
 // エラーハンドリング
-main().catch(error => {
+main().catch((error) => {
   console.error(chalk.red('\n\n❌ テスト実行中にエラーが発生しました:'))
   console.error(error)
   process.exit(1)

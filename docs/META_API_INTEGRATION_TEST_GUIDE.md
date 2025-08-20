@@ -42,6 +42,7 @@ VITE_META_ACCESS_TOKEN=your_access_token
 #### 方法1: UIから取得（推奨）
 
 1. アプリケーションを起動
+
    ```bash
    npm run dev
    ```
@@ -120,6 +121,7 @@ npm run test:meta-api
 **原因**: トークンの有効期限切れ
 
 **解決方法**:
+
 ```bash
 # 新しいトークンを取得
 # UIまたはGraph API Explorerから再取得
@@ -130,6 +132,7 @@ npm run test:meta-api
 **原因**: 必要な権限が不足
 
 **解決方法**:
+
 - Facebook Business Managerで権限を確認
 - 必要な権限を追加申請
 
@@ -138,6 +141,7 @@ npm run test:meta-api
 **原因**: API呼び出し回数の超過
 
 **解決方法**:
+
 - テスト実行間隔を空ける
 - バッチAPIを使用
 
@@ -154,9 +158,11 @@ DEBUG=* npm run test:meta-api
 すべてのテストが成功したら：
 
 1. **ダッシュボードの動作確認**
+
    ```bash
    npm run dev
    ```
+
    http://localhost:3000/meta-dashboard にアクセス
 
 2. **データ同期のテスト**

@@ -1,34 +1,34 @@
-import { v } from "convex/values"
-import { query, mutation } from "./_generated/server"
+import { v } from 'convex/values'
+import { query, mutation } from './_generated/server'
 
 // 動画疲労度メトリクス
 export interface VideoFatigueMetrics {
-  avgWatchTime: number           // 平均視聴時間（秒）
+  avgWatchTime: number // 平均視聴時間（秒）
   completionFunnel: {
-    p25: number  // 25%到達率
-    p50: number  // 50%到達率
-    p75: number  // 75%到達率
-    p95: number  // 95%到達率
+    p25: number // 25%到達率
+    p50: number // 50%到達率
+    p75: number // 75%到達率
+    p95: number // 95%到達率
   }
-  thruplayRate: number           // 15秒/全体視聴率
-  dropoffPoint: number           // 主要離脱ポイント（秒）
-  engagementDecay: number        // エンゲージメント減衰率
-  retentionScore: number         // 視聴維持スコア（0-100）
+  thruplayRate: number // 15秒/全体視聴率
+  dropoffPoint: number // 主要離脱ポイント（秒）
+  engagementDecay: number // エンゲージメント減衰率
+  retentionScore: number // 視聴維持スコア（0-100）
 }
 
 // 動画メトリクスデータ
 export interface VideoMetrics {
   date: string
-  videoPlays: number              // 動画再生数
-  videoViews: number              // 3秒以上視聴数
-  videoAvgWatchTime: number       // 平均視聴時間
-  videoP25Watched: number         // 25%到達数
-  videoP50Watched: number         // 50%到達数
-  videoP75Watched: number         // 75%到達数
-  videoP95Watched: number         // 95%到達数
-  videoP100Watched: number        // 完全視聴数
-  video15sViews: number           // 15秒視聴数（ThruPlay）
-  videoSoundOnViews?: number      // 音声オン視聴数
+  videoPlays: number // 動画再生数
+  videoViews: number // 3秒以上視聴数
+  videoAvgWatchTime: number // 平均視聴時間
+  videoP25Watched: number // 25%到達数
+  videoP50Watched: number // 50%到達数
+  videoP75Watched: number // 75%到達数
+  videoP95Watched: number // 95%到達数
+  videoP100Watched: number // 完全視聴数
+  video15sViews: number // 15秒視聴数（ThruPlay）
+  videoSoundOnViews?: number // 音声オン視聴数
   impressions: number
 }
 
@@ -41,13 +41,13 @@ export function analyzeVideoFunnel(metrics: VideoMetrics[]): VideoFatigueMetrics
       thruplayRate: 0,
       dropoffPoint: 0,
       engagementDecay: 0,
-      retentionScore: 0
+      retentionScore: 0,
     }
   }
 
   // 時系列でソート
-  const sortedMetrics = [...metrics].sort((a, b) => 
-    new Date(a.date).getTime() - new Date(b.date).getTime()
+  const sortedMetrics = [...metrics].sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
   )
 
   // 最近のメトリクスと初期のメトリクスを比較
@@ -63,7 +63,7 @@ export function analyzeVideoFunnel(metrics: VideoMetrics[]): VideoFatigueMetrics
   // 現在の完了率を計算
   const currentMetrics = recentMetrics[recentMetrics.length - 1] || metrics[0]
   const plays = currentMetrics.videoPlays || 1
-  
+
   const completionFunnel = {
     p25: (currentMetrics.videoP25Watched / plays) * 100,
     p50: (currentMetrics.videoP50Watched / plays) * 100,
@@ -79,21 +79,19 @@ export function analyzeVideoFunnel(metrics: VideoMetrics[]): VideoFatigueMetrics
     { point: 75, rate: completionFunnel.p50 - completionFunnel.p75 },
     { point: 95, rate: completionFunnel.p75 - completionFunnel.p95 },
   ]
-  
-  const maxDropoff = dropoffs.reduce((max, current) => 
-    current.rate > max.rate ? current : max
-  )
+
+  const maxDropoff = dropoffs.reduce((max, current) => (current.rate > max.rate ? current : max))
   dropoffPoint = maxDropoff.point
 
   // エンゲージメント減衰率の計算
-  const baselineP95 = calculateAverage(baselineMetrics, 'videoP95Watched') / 
-                      calculateAverage(baselineMetrics, 'videoPlays')
-  const recentP95 = calculateAverage(recentMetrics, 'videoP95Watched') / 
-                    calculateAverage(recentMetrics, 'videoPlays')
-  
-  const engagementDecay = baselineP95 > 0 
-    ? Math.max(0, (baselineP95 - recentP95) / baselineP95) 
-    : 0
+  const baselineP95 =
+    calculateAverage(baselineMetrics, 'videoP95Watched') /
+    calculateAverage(baselineMetrics, 'videoPlays')
+  const recentP95 =
+    calculateAverage(recentMetrics, 'videoP95Watched') /
+    calculateAverage(recentMetrics, 'videoPlays')
+
+  const engagementDecay = baselineP95 > 0 ? Math.max(0, (baselineP95 - recentP95) / baselineP95) : 0
 
   // ThruPlay率の計算
   const thruplayRate = (currentMetrics.video15sViews / currentMetrics.impressions) * 100
@@ -110,7 +108,7 @@ export function analyzeVideoFunnel(metrics: VideoMetrics[]): VideoFatigueMetrics
     thruplayRate,
     dropoffPoint,
     engagementDecay,
-    retentionScore
+    retentionScore,
   }
 }
 
@@ -146,24 +144,24 @@ export const getVideoMetrics = query({
   },
   handler: async (ctx, args) => {
     const endDate = args.endDate || new Date().toISOString().split('T')[0]
-    const startDate = args.startDate || 
-      new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    const startDate =
+      args.startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
     const insights = await ctx.db
-      .query("metaInsights")
-      .filter((q) => 
+      .query('metaInsights')
+      .filter((q) =>
         q.and(
-          q.eq(q.field("ad_id"), args.adId),
-          q.gte(q.field("date_start"), startDate),
-          q.lte(q.field("date_start"), endDate)
+          q.eq(q.field('ad_id'), args.adId),
+          q.gte(q.field('date_start'), startDate),
+          q.lte(q.field('date_start'), endDate)
         )
       )
       .collect()
 
     // 動画メトリクスのみを抽出
     const videoMetrics: VideoMetrics[] = insights
-      .filter(i => i.video_plays || i.video_views) // 動画関連データがあるもののみ
-      .map(i => ({
+      .filter((i) => i.video_plays || i.video_views) // 動画関連データがあるもののみ
+      .map((i) => ({
         date: i.date_start || '',
         videoPlays: i.video_plays || 0,
         videoViews: i.video_views || 0,
@@ -175,7 +173,7 @@ export const getVideoMetrics = query({
         videoP100Watched: i.video_p100_watched || 0,
         video15sViews: i.video_15s_views || i.video_thruplay || 0,
         videoSoundOnViews: i.video_sound_on || 0,
-        impressions: i.impressions || 0
+        impressions: i.impressions || 0,
       }))
 
     return videoMetrics
@@ -202,13 +200,8 @@ export const saveVideoPerformance = mutation({
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
-      .query("videoPerformance")
-      .filter((q) => 
-        q.and(
-          q.eq(q.field("adId"), args.adId),
-          q.eq(q.field("date"), args.date)
-        )
-      )
+      .query('videoPerformance')
+      .filter((q) => q.and(q.eq(q.field('adId'), args.adId), q.eq(q.field('date'), args.date)))
       .first()
 
     const data = {
@@ -231,7 +224,7 @@ export const saveVideoPerformance = mutation({
         updatedAt: new Date().toISOString(),
       })
     } else {
-      await ctx.db.insert("videoPerformance", {
+      await ctx.db.insert('videoPerformance', {
         ...data,
         accountId: args.accountId,
         p100Reached: 0, // TODO: 実際の値を計算
@@ -256,14 +249,11 @@ export const getVideoFatigueAds = query({
     const limit = args.limit || 10
 
     // 最新の動画パフォーマンスデータを取得
-    const performances = await ctx.db
-      .query("videoPerformance")
-      .order("desc")
-      .take(100)
+    const performances = await ctx.db.query('videoPerformance').order('desc').take(100)
 
     // 疲労度スコアを計算してフィルタリング
     const fatigueAds = performances
-      .map(perf => {
+      .map((perf) => {
         const fatigueMetrics: VideoFatigueMetrics = {
           avgWatchTime: perf.avgWatchTime,
           completionFunnel: {
@@ -277,17 +267,17 @@ export const getVideoFatigueAds = query({
           engagementDecay: perf.engagementDecay,
           retentionScore: perf.retentionScore,
         }
-        
+
         const fatigueScore = calculateVideoFatigueScore(fatigueMetrics)
-        
+
         return {
           adId: perf.adId,
           date: perf.date,
           fatigueScore,
-          metrics: fatigueMetrics
+          metrics: fatigueMetrics,
         }
       })
-      .filter(ad => ad.fatigueScore >= minScore)
+      .filter((ad) => ad.fatigueScore >= minScore)
       .slice(0, limit)
 
     return fatigueAds

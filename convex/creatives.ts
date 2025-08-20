@@ -12,12 +12,10 @@ export const getCreativePerformance = query({
     const creatives = args.campaignId
       ? await ctx.db
           .query('metaCreatives')
-          .withIndex('by_campaignId', (q) => 
-            q.eq('campaignId', args.campaignId!)
-          )
+          .withIndex('by_campaignId', (q) => q.eq('campaignId', args.campaignId!))
           .collect()
       : await ctx.db.query('metaCreatives').collect()
-    
+
     // 各クリエイティブのパフォーマンスデータを集計
     const creativesWithPerformance = await Promise.all(
       creatives.map(async (creative) => {
@@ -26,7 +24,7 @@ export const getCreativePerformance = query({
           .query('metaInsights')
           .filter((q) => q.eq(q.field('creative_id'), creative.metaId))
           .collect()
-        
+
         // メトリクスを集計
         const aggregatedMetrics = insights.reduce(
           (acc, insight) => ({
@@ -38,27 +36,27 @@ export const getCreativePerformance = query({
           }),
           { impressions: 0, clicks: 0, spend: 0, conversions: 0, revenue: 0 }
         )
-        
+
         // KPIを計算
-        const ctr = aggregatedMetrics.impressions > 0 
-          ? (aggregatedMetrics.clicks / aggregatedMetrics.impressions) * 100 
-          : 0
-        const cpc = aggregatedMetrics.clicks > 0 
-          ? aggregatedMetrics.spend / aggregatedMetrics.clicks 
-          : 0
-        const cpa = aggregatedMetrics.conversions > 0 
-          ? aggregatedMetrics.spend / aggregatedMetrics.conversions 
-          : 0
-        const roas = aggregatedMetrics.spend > 0 
-          ? aggregatedMetrics.revenue / aggregatedMetrics.spend 
-          : 0
-        
+        const ctr =
+          aggregatedMetrics.impressions > 0
+            ? (aggregatedMetrics.clicks / aggregatedMetrics.impressions) * 100
+            : 0
+        const cpc =
+          aggregatedMetrics.clicks > 0 ? aggregatedMetrics.spend / aggregatedMetrics.clicks : 0
+        const cpa =
+          aggregatedMetrics.conversions > 0
+            ? aggregatedMetrics.spend / aggregatedMetrics.conversions
+            : 0
+        const roas =
+          aggregatedMetrics.spend > 0 ? aggregatedMetrics.revenue / aggregatedMetrics.spend : 0
+
         // キャンペーン名を取得
         const campaign = await ctx.db
           .query('metaCampaigns')
           .withIndex('by_metaId', (q) => q.eq('metaId', creative.campaignId))
           .first()
-        
+
         return {
           id: creative.metaId,
           name: creative.name,
@@ -77,15 +75,15 @@ export const getCreativePerformance = query({
         }
       })
     )
-    
+
     // ROASで降順ソート
     creativesWithPerformance.sort((a, b) => b.metrics.roas - a.metrics.roas)
-    
+
     // limitが指定されている場合は制限
     if (args.limit) {
       return creativesWithPerformance.slice(0, args.limit)
     }
-    
+
     return creativesWithPerformance
   },
 })
@@ -95,21 +93,21 @@ export const getCreativeSummaryByCampaign = query({
   args: {},
   handler: async (ctx) => {
     const campaigns = await ctx.db.query('metaCampaigns').collect()
-    
+
     const summaries = await Promise.all(
       campaigns.map(async (campaign) => {
         const creatives = await ctx.db
           .query('metaCreatives')
           .withIndex('by_campaignId', (q) => q.eq('campaignId', campaign.metaId))
           .collect()
-        
+
         const creativeCounts = {
           total: creatives.length,
           image: creatives.filter((c) => c.creativeType === 'IMAGE').length,
           video: creatives.filter((c) => c.creativeType === 'VIDEO').length,
           carousel: creatives.filter((c) => c.creativeType === 'CAROUSEL').length,
         }
-        
+
         // 全クリエイティブのインサイトを集計
         const allInsights = await Promise.all(
           creatives.map(async (creative) => {
@@ -120,7 +118,7 @@ export const getCreativeSummaryByCampaign = query({
             return insights
           })
         )
-        
+
         const flatInsights = allInsights.flat()
         const totalMetrics = flatInsights.reduce(
           (acc, insight) => ({
@@ -132,19 +130,17 @@ export const getCreativeSummaryByCampaign = query({
           }),
           { impressions: 0, clicks: 0, spend: 0, conversions: 0, revenue: 0 }
         )
-        
+
         return {
           campaignId: campaign.metaId,
           campaignName: campaign.name,
           creativeCounts,
           totalMetrics,
-          averageRoas: totalMetrics.spend > 0 
-            ? totalMetrics.revenue / totalMetrics.spend 
-            : 0,
+          averageRoas: totalMetrics.spend > 0 ? totalMetrics.revenue / totalMetrics.spend : 0,
         }
       })
     )
-    
+
     return summaries
   },
 })
@@ -156,24 +152,20 @@ export const getCreativePerformanceByPeriod = query({
     startDate: v.string(),
     endDate: v.string(),
     period: v.union(v.literal('daily'), v.literal('weekly'), v.literal('monthly')),
-    creativeTypes: v.optional(v.array(v.union(
-      v.literal('IMAGE'),
-      v.literal('VIDEO'),
-      v.literal('CAROUSEL')
-    ))),
+    creativeTypes: v.optional(
+      v.array(v.union(v.literal('IMAGE'), v.literal('VIDEO'), v.literal('CAROUSEL')))
+    ),
   },
   handler: async (ctx, args) => {
     // creative_metricsテーブルから期間・集計期間でフィルタリング
-    let metricsQuery = ctx.db
-      .query('creative_metrics')
-      .withIndex('by_account')
-    
+    let metricsQuery = ctx.db.query('creative_metrics').withIndex('by_account')
+
     if (args.accountId) {
       metricsQuery = metricsQuery.filter((q) => q.eq(q.field('accountId'), args.accountId))
     }
-    
+
     const metrics = await metricsQuery
-      .filter((q) => 
+      .filter((q) =>
         q.and(
           q.gte(q.field('period_start'), args.startDate),
           q.lte(q.field('period_end'), args.endDate),
@@ -181,36 +173,39 @@ export const getCreativePerformanceByPeriod = query({
         )
       )
       .collect()
-    
+
     // クリエイティブタイプでフィルタリング
     let filteredMetrics = metrics
     if (args.creativeTypes && args.creativeTypes.length > 0) {
       const typeMap = {
-        'IMAGE': 'image',
-        'VIDEO': 'video',
-        'CAROUSEL': 'carousel'
+        IMAGE: 'image',
+        VIDEO: 'video',
+        CAROUSEL: 'carousel',
       } as const
-      
-      const mappedTypes = args.creativeTypes.map(t => typeMap[t])
-      filteredMetrics = metrics.filter(m => 
-        mappedTypes.includes(m.creative_type as any)
-      )
+
+      const mappedTypes = args.creativeTypes.map((t) => typeMap[t])
+      filteredMetrics = metrics.filter((m) => mappedTypes.includes(m.creative_type as any))
     }
-    
+
     // クリエイティブごとに最新のメトリクスを集計
     const creativeMap = new Map<string, any>()
-    
-    filteredMetrics.forEach(metric => {
+
+    filteredMetrics.forEach((metric) => {
       const existing = creativeMap.get(metric.creative_id)
-      
+
       if (!existing || new Date(metric.updatedAt) > new Date(existing.updatedAt)) {
         // metaCreativesから追加情報を取得
         creativeMap.set(metric.creative_id, {
           id: metric.creative_id,
           name: metric.creative_name,
-          type: metric.creative_type === 'image' ? 'IMAGE' : 
-                metric.creative_type === 'video' ? 'VIDEO' : 
-                metric.creative_type === 'carousel' ? 'CAROUSEL' : 'IMAGE',
+          type:
+            metric.creative_type === 'image'
+              ? 'IMAGE'
+              : metric.creative_type === 'video'
+                ? 'VIDEO'
+                : metric.creative_type === 'carousel'
+                  ? 'CAROUSEL'
+                  : 'IMAGE',
           thumbnailUrl: metric.thumbnail_url,
           videoUrl: metric.video_url,
           campaignName: metric.campaign_name || 'Unknown Campaign',
@@ -229,7 +224,7 @@ export const getCreativePerformanceByPeriod = query({
         })
       }
     })
-    
+
     return Array.from(creativeMap.values())
   },
 })
@@ -242,47 +237,45 @@ export const getCreativeTypeSummary = query({
     endDate: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    let metricsQuery = ctx.db
-      .query('creative_metrics')
-      .withIndex('by_account')
-    
+    let metricsQuery = ctx.db.query('creative_metrics').withIndex('by_account')
+
     if (args.accountId) {
       metricsQuery = metricsQuery.filter((q) => q.eq(q.field('accountId'), args.accountId))
     }
-    
+
     let metrics = await metricsQuery.collect()
-    
+
     // 日付でフィルタリング
     if (args.startDate) {
-      metrics = metrics.filter(m => m.period_start >= args.startDate!)
+      metrics = metrics.filter((m) => m.period_start >= args.startDate!)
     }
     if (args.endDate) {
-      metrics = metrics.filter(m => m.period_end <= args.endDate!)
+      metrics = metrics.filter((m) => m.period_end <= args.endDate!)
     }
-    
+
     // タイプ別に集計
     const summary = {
       image: { count: 0, spend: 0, revenue: 0, conversions: 0, impressions: 0 },
       video: { count: 0, spend: 0, revenue: 0, conversions: 0, impressions: 0 },
       carousel: { count: 0, spend: 0, revenue: 0, conversions: 0, impressions: 0 },
     }
-    
+
     const countedCreatives = new Set<string>()
-    
-    metrics.forEach(metric => {
+
+    metrics.forEach((metric) => {
       const type = metric.creative_type as 'image' | 'video' | 'carousel'
-      
+
       if (!countedCreatives.has(metric.creative_id)) {
         summary[type].count++
         countedCreatives.add(metric.creative_id)
       }
-      
+
       summary[type].spend += metric.spend
       summary[type].revenue += metric.conversion_value
       summary[type].conversions += metric.conversions
       summary[type].impressions += metric.impressions
     })
-    
+
     return summary
   },
 })

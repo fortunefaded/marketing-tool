@@ -141,7 +141,7 @@ export default defineSchema({
     .index('by_account_date', ['accountId', 'date_start'])
     .index('by_campaign', ['accountId', 'campaign_id'])
     .index('by_ad', ['accountId', 'ad_id']),
-  
+
   // Meta同期ステータステーブル
   metaSyncStatus: defineTable({
     accountId: v.string(),
@@ -151,8 +151,7 @@ export default defineSchema({
     earliestDate: v.optional(v.string()),
     latestDate: v.optional(v.string()),
     updatedAt: v.optional(v.string()),
-  })
-    .index('by_account', ['accountId']),
+  }).index('by_account', ['accountId']),
 
   // 同期履歴テーブル
   syncHistory: defineTable({
@@ -166,10 +165,14 @@ export default defineSchema({
       updated: v.number(),
       failed: v.number(),
     }),
-    errors: v.optional(v.array(v.object({
-      metaId: v.string(),
-      error: v.string(),
-    }))),
+    errors: v.optional(
+      v.array(
+        v.object({
+          metaId: v.string(),
+          error: v.string(),
+        })
+      )
+    ),
     startedAt: v.string(),
     completedAt: v.optional(v.string()),
     duration: v.optional(v.number()),
@@ -239,11 +242,7 @@ export default defineSchema({
     cvr: v.number(),
     period_start: v.string(),
     period_end: v.string(),
-    aggregation_period: v.union(
-      v.literal('daily'),
-      v.literal('weekly'),
-      v.literal('monthly')
-    ),
+    aggregation_period: v.union(v.literal('daily'), v.literal('weekly'), v.literal('monthly')),
     updatedAt: v.number(),
   })
     .index('by_account', ['accountId'])
@@ -282,18 +281,24 @@ export default defineSchema({
       videoUrl: v.optional(v.string()),
       callToActionType: v.optional(v.string()),
       linkUrl: v.optional(v.string()),
-      carouselCards: v.optional(v.array(v.object({
-        name: v.string(),
-        description: v.string(),
-        imageUrl: v.string(),
-        link: v.string(),
-      }))),
-      videoData: v.optional(v.object({
-        videoId: v.string(),
-        title: v.optional(v.string()),
-        duration: v.optional(v.number()),
-        thumbnailUrl: v.optional(v.string()),
-      })),
+      carouselCards: v.optional(
+        v.array(
+          v.object({
+            name: v.string(),
+            description: v.string(),
+            imageUrl: v.string(),
+            link: v.string(),
+          })
+        )
+      ),
+      videoData: v.optional(
+        v.object({
+          videoId: v.string(),
+          title: v.optional(v.string()),
+          duration: v.optional(v.number()),
+          thumbnailUrl: v.optional(v.string()),
+        })
+      ),
     }),
     // パフォーマンスメトリクス
     metrics: v.object({
@@ -309,47 +314,65 @@ export default defineSchema({
       conversionValue: v.number(),
       costPerConversion: v.number(),
       roas: v.number(),
-      videoMetrics: v.optional(v.object({
-        plays: v.number(),
-        thruPlays: v.number(),
-        avgWatchTime: v.number(),
-        p25Watched: v.number(),
-        p50Watched: v.number(),
-        p75Watched: v.number(),
-        p100Watched: v.number(),
-        completionRate: v.number(),
-      })),
+      videoMetrics: v.optional(
+        v.object({
+          plays: v.number(),
+          thruPlays: v.number(),
+          avgWatchTime: v.number(),
+          p25Watched: v.number(),
+          p50Watched: v.number(),
+          p75Watched: v.number(),
+          p100Watched: v.number(),
+          completionRate: v.number(),
+        })
+      ),
       qualityRanking: v.optional(v.string()),
       engagementRateRanking: v.optional(v.string()),
       conversionRateRanking: v.optional(v.string()),
     }),
     // デモグラフィック別パフォーマンス
-    demographics: v.optional(v.object({
-      age: v.optional(v.array(v.object({
-        range: v.string(),
-        metrics: v.any(),
-      }))),
-      gender: v.optional(v.array(v.object({
-        value: v.string(),
-        metrics: v.any(),
-      }))),
-    })),
+    demographics: v.optional(
+      v.object({
+        age: v.optional(
+          v.array(
+            v.object({
+              range: v.string(),
+              metrics: v.any(),
+            })
+          )
+        ),
+        gender: v.optional(
+          v.array(
+            v.object({
+              value: v.string(),
+              metrics: v.any(),
+            })
+          )
+        ),
+      })
+    ),
     // 配置面別パフォーマンス
-    placements: v.optional(v.array(v.object({
-      platform: v.string(),
-      position: v.string(),
-      metrics: v.any(),
-    }))),
+    placements: v.optional(
+      v.array(
+        v.object({
+          platform: v.string(),
+          position: v.string(),
+          metrics: v.any(),
+        })
+      )
+    ),
     // ターゲティング情報
-    targeting: v.optional(v.object({
-      ageMin: v.optional(v.number()),
-      ageMax: v.optional(v.number()),
-      genders: v.optional(v.array(v.string())),
-      locations: v.optional(v.any()),
-      interests: v.optional(v.any()),
-      behaviors: v.optional(v.any()),
-      customAudiences: v.optional(v.any()),
-    })),
+    targeting: v.optional(
+      v.object({
+        ageMin: v.optional(v.number()),
+        ageMax: v.optional(v.number()),
+        genders: v.optional(v.array(v.string())),
+        locations: v.optional(v.any()),
+        interests: v.optional(v.any()),
+        behaviors: v.optional(v.any()),
+        customAudiences: v.optional(v.any()),
+      })
+    ),
     // メタデータ
     dateRangeSince: v.string(),
     dateRangeUntil: v.string(),
@@ -370,20 +393,20 @@ export default defineSchema({
     adName: v.string(),
     creativeId: v.string(),
     campaignId: v.string(),
-    
+
     // 疲労タイプ別スコア（0-100）
     audienceFatigueScore: v.number(),
     creativeFatigueScore: v.number(),
     algorithmFatigueScore: v.number(),
     totalFatigueScore: v.number(),
-    
+
     // 主要メトリクス
     frequency: v.number(),
     firstTimeImpressionRatio: v.number(),
     ctrDeclineRate: v.number(),
     cpmIncreaseRate: v.number(),
     negativeFeeedbackRate: v.optional(v.number()),
-    
+
     // 補足メトリクス
     reach: v.number(),
     impressions: v.number(),
@@ -391,15 +414,15 @@ export default defineSchema({
     cpm: v.number(),
     conversions: v.optional(v.number()),
     daysActive: v.number(),
-    
+
     // Instagram特有指標
     instagramSaveRate: v.optional(v.number()),
     profileToFollowRate: v.optional(v.number()),
-    
+
     // 動画指標（動画広告の場合）
     videoCompletionRate: v.optional(v.number()),
     avgWatchTime: v.optional(v.number()),
-    
+
     // 状態とアクション
     fatigueLevel: v.union(
       v.literal('healthy'),
@@ -409,7 +432,7 @@ export default defineSchema({
     ),
     recommendedAction: v.string(),
     alertTriggered: v.boolean(),
-    
+
     // メタデータ
     calculatedAt: v.string(),
     baselineDate: v.string(),
@@ -425,22 +448,21 @@ export default defineSchema({
     accountId: v.string(),
     adId: v.string(),
     creativeId: v.string(),
-    
+
     // ベースライン値（最初の3日間の平均）
     baselineCtr: v.number(),
     baselineCpm: v.number(),
     baselineEngagementRate: v.optional(v.number()),
     baselineConversionRate: v.optional(v.number()),
-    
+
     // ベースライン期間
     baselineStartDate: v.string(),
     baselineEndDate: v.string(),
     recordsCount: v.number(),
-    
+
     createdAt: v.string(),
     updatedAt: v.string(),
-  })
-    .index('by_account_ad', ['accountId', 'adId']),
+  }).index('by_account_ad', ['accountId', 'adId']),
 
   // 疲労度アラート履歴
   fatigueAlerts: defineTable({
@@ -448,7 +470,7 @@ export default defineSchema({
     adId: v.string(),
     adName: v.string(),
     campaignId: v.string(),
-    
+
     alertLevel: v.union(
       v.literal('info'),
       v.literal('caution'),
@@ -463,7 +485,7 @@ export default defineSchema({
       v.literal('first_time_ratio_low'),
       v.literal('multiple_factors')
     ),
-    
+
     // トリガー条件
     triggerMetrics: v.object({
       frequency: v.optional(v.number()),
@@ -472,16 +494,16 @@ export default defineSchema({
       negativeFeeedback: v.optional(v.number()),
       firstTimeRatio: v.optional(v.number()),
     }),
-    
+
     // アクション
     actionTaken: v.optional(v.string()),
     actionResult: v.optional(v.string()),
-    
+
     // 通知
     notificationSent: v.boolean(),
     acknowledgedBy: v.optional(v.string()),
     acknowledgedAt: v.optional(v.string()),
-    
+
     createdAt: v.string(),
     resolvedAt: v.optional(v.string()),
   })
@@ -495,7 +517,7 @@ export default defineSchema({
     adId: v.string(),
     adName: v.string(),
     campaignId: v.string(),
-    
+
     // 疲労度スコア
     fatigueScore: v.object({
       total: v.number(),
@@ -505,9 +527,14 @@ export default defineSchema({
         algorithm: v.number(),
       }),
       primaryIssue: v.union(v.literal('audience'), v.literal('creative'), v.literal('algorithm')),
-      status: v.union(v.literal('healthy'), v.literal('caution'), v.literal('warning'), v.literal('critical')),
+      status: v.union(
+        v.literal('healthy'),
+        v.literal('caution'),
+        v.literal('warning'),
+        v.literal('critical')
+      ),
     }),
-    
+
     // メトリクス
     metrics: v.object({
       frequency: v.number(),
@@ -525,29 +552,42 @@ export default defineSchema({
       avgWatchTime: v.optional(v.number()),
       instagramSaveRate: v.optional(v.number()),
       profileToFollowRate: v.optional(v.number()),
-      algorithm: v.optional(v.object({
-        cpmIncreaseRate: v.number(),
-        deliveryRate: v.number(),
-        penaltyDetected: v.boolean(),
-        severity: v.union(v.literal('low'), v.literal('medium'), v.literal('high'), v.literal('none')),
-      })),
-      negative: v.optional(v.object({
-        hideClicks: v.number(),
-        reportSpamClicks: v.number(),
-        unlikePageClicks: v.number(),
-        totalNegativeActions: v.number(),
-        negativeRate: v.number(),
-        userSentiment: v.union(v.literal('positive'), v.literal('neutral'), v.literal('negative')),
-      })),
+      algorithm: v.optional(
+        v.object({
+          cpmIncreaseRate: v.number(),
+          deliveryRate: v.number(),
+          penaltyDetected: v.boolean(),
+          severity: v.union(
+            v.literal('low'),
+            v.literal('medium'),
+            v.literal('high'),
+            v.literal('none')
+          ),
+        })
+      ),
+      negative: v.optional(
+        v.object({
+          hideClicks: v.number(),
+          reportSpamClicks: v.number(),
+          unlikePageClicks: v.number(),
+          totalNegativeActions: v.number(),
+          negativeRate: v.number(),
+          userSentiment: v.union(
+            v.literal('positive'),
+            v.literal('neutral'),
+            v.literal('negative')
+          ),
+        })
+      ),
     }),
-    
+
     // 推奨アクション
     recommendedAction: v.string(),
-    
+
     // データ範囲
     dataRangeStart: v.string(),
     dataRangeEnd: v.string(),
-    
+
     // タイムスタンプ
     analyzedAt: v.string(),
     createdAt: v.string(),
@@ -560,7 +600,7 @@ export default defineSchema({
   fatigueTrends: defineTable({
     accountId: v.string(),
     adId: v.string(),
-    
+
     // 日次記録
     date: v.string(),
     frequency: v.number(),
@@ -570,18 +610,18 @@ export default defineSchema({
     newReach: v.number(),
     impressions: v.number(),
     conversions: v.optional(v.number()),
-    
+
     // 計算値
     firstTimeRatio: v.number(),
     ctrChangeFromBaseline: v.number(),
     cpmChangeFromBaseline: v.number(),
-    
+
     // スコア履歴
     audienceFatigueScore: v.number(),
     creativeFatigueScore: v.number(),
     algorithmFatigueScore: v.number(),
     totalFatigueScore: v.number(),
-    
+
     createdAt: v.string(),
   })
     .index('by_ad_date', ['adId', 'date'])
@@ -632,7 +672,12 @@ export default defineSchema({
   // 疲労度分析スケジュール
   fatigueAnalysisSchedules: defineTable({
     accountId: v.string(),
-    interval: v.union(v.literal('15min'), v.literal('30min'), v.literal('hourly'), v.literal('daily')),
+    interval: v.union(
+      v.literal('15min'),
+      v.literal('30min'),
+      v.literal('hourly'),
+      v.literal('daily')
+    ),
     enabled: v.boolean(),
     lastRun: v.optional(v.string()),
     nextRun: v.string(),
@@ -654,26 +699,31 @@ export default defineSchema({
     campaignId: v.string(),
     dateRange: v.object({
       start: v.string(),
-      end: v.string()
+      end: v.string(),
     }),
     generatedAt: v.string(),
     executiveSummary: v.string(),
     overallScore: v.object({
       score: v.number(),
-      status: v.union(v.literal('healthy'), v.literal('caution'), v.literal('warning'), v.literal('critical')),
+      status: v.union(
+        v.literal('healthy'),
+        v.literal('caution'),
+        v.literal('warning'),
+        v.literal('critical')
+      ),
       trend: v.string(),
-      primaryIssue: v.union(v.literal('audience'), v.literal('creative'), v.literal('algorithm'))
+      primaryIssue: v.union(v.literal('audience'), v.literal('creative'), v.literal('algorithm')),
     }),
     detailedAnalysis: v.any(),
     recommendations: v.any(),
     predictions: v.any(),
     benchmarks: v.any(),
     appendix: v.optional(v.any()),
-    createdAt: v.number()
+    createdAt: v.number(),
   })
-    .index("by_account", ["accountId"])
-    .index("by_ad", ["adId"])
-    .index("by_created", ["createdAt"]),
+    .index('by_account', ['accountId'])
+    .index('by_ad', ['adId'])
+    .index('by_created', ['createdAt']),
 
   // Instagram価値分析テーブル
   instagramValue: defineTable({

@@ -9,6 +9,7 @@
 ### 1. データアクセス方法
 
 **Before (localStorage):**
+
 ```typescript
 import { MetaDataCache } from '../services/metaDataCache'
 
@@ -21,16 +22,12 @@ MetaDataCache.saveInsights(accountId, insights)
 ```
 
 **After (Convex):**
+
 ```typescript
 import { useMetaInsights } from '../hooks/useMetaInsights'
 
 // フックを使用
-const { 
-  insights, 
-  syncStatus, 
-  importInsights,
-  isLoading 
-} = useMetaInsights({ accountId })
+const { insights, syncStatus, importInsights, isLoading } = useMetaInsights({ accountId })
 
 // データ保存
 await importInsights(newInsights, 'merge')
@@ -39,32 +36,39 @@ await importInsights(newInsights, 'merge')
 ### 2. MetaApiServiceの初期化
 
 **Before:**
+
 ```typescript
 const apiService = new MetaApiService({
   accessToken: account.accessToken,
-  accountId: account.accountId
+  accountId: account.accountId,
 })
 ```
 
 **After:**
+
 ```typescript
 import { useConvex } from 'convex/react'
 
 const convex = useConvex()
-const apiService = new MetaApiService({
-  accessToken: account.accessToken,
-  accountId: account.accountId
-}, convex)
+const apiService = new MetaApiService(
+  {
+    accessToken: account.accessToken,
+    accountId: account.accountId,
+  },
+  convex
+)
 ```
 
 ### 3. MetaAccountManagerの使用
 
 **Before:**
+
 ```typescript
 const manager = new MetaAccountManager()
 ```
 
 **After:**
+
 ```typescript
 import { useConvex } from 'convex/react'
 
@@ -86,24 +90,24 @@ import { useConvex } from 'convex/react'
 export const MyComponent: React.FC = () => {
   const convex = useConvex()
   const { accountId } = useParams()
-  
+
   // Convexフックを使用
-  const { 
-    insights, 
+  const {
+    insights,
     syncStatus,
     importInsights,
     clearAccountData
-  } = useMetaInsights({ 
+  } = useMetaInsights({
     accountId,
     startDate: '2024-01-01',
     endDate: '2024-12-31'
   })
-  
+
   // データ同期
   const handleSync = async () => {
     const manager = MetaAccountManager.getInstance(convex)
     const apiService = manager.getActiveApiService()
-    
+
     if (apiService) {
       const newData = await apiService.getInsightsWithConvexSave(
         startDate,
@@ -112,7 +116,7 @@ export const MyComponent: React.FC = () => {
       // データは自動的にConvexに保存されます
     }
   }
-  
+
   return (
     <div>
       {/* UIコンポーネント */}
@@ -130,10 +134,7 @@ import { MetaDataCacheConvex } from '../services/metaDataCacheConvex'
 
 // 移行関数
 const migrateAccount = async (accountId: string) => {
-  await MetaDataCacheConvex.migrateFromLocalStorage(
-    accountId, 
-    convexClient
-  )
+  await MetaDataCacheConvex.migrateFromLocalStorage(accountId, convexClient)
 }
 ```
 
@@ -153,11 +154,13 @@ const migrateAccount = async (accountId: string) => {
 ## トラブルシューティング
 
 ### 問題: データが表示されない
+
 - Convexクライアントが正しく初期化されているか確認
 - アカウントIDが正しいか確認
 - Convexダッシュボードでデータが存在するか確認
 
 ### 問題: 同期が遅い
+
 - バッチサイズを調整（デフォルト: 100レコード）
 - ネットワーク接続を確認
 - Convexのレート制限を確認

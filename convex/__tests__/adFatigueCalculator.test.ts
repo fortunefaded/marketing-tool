@@ -6,20 +6,20 @@ import schema from '../schema'
 describe('AdFatigueCalculator Functions', () => {
   test('calculateFatigueFromInsights should be callable', async () => {
     const t = convexTest(schema)
-    
+
     // テストデータを作成
     await t.run(async (ctx) => {
       // 複数日のインサイトデータを作成
       const dates = ['2024-01-01', '2024-01-02', '2024-01-03', '2024-01-04', '2024-01-05']
       for (const date of dates) {
-        await ctx.db.insert("metaInsights", {
-          accountId: "test-account",
-          ad_id: "test-ad-123",
-          ad_name: "Test Ad",
-          campaign_id: "test-campaign",
-          campaign_name: "Test Campaign",
-          creative_id: "test-creative",
-          creative_type: "VIDEO",
+        await ctx.db.insert('metaInsights', {
+          accountId: 'test-account',
+          ad_id: 'test-ad-123',
+          ad_name: 'Test Ad',
+          campaign_id: 'test-campaign',
+          campaign_name: 'Test Campaign',
+          creative_id: 'test-creative',
+          creative_type: 'VIDEO',
           date_start: date,
           impressions: 1000,
           clicks: 50,
@@ -33,17 +33,17 @@ describe('AdFatigueCalculator Functions', () => {
         })
       }
     })
-    
+
     // 関数を呼び出す
     const result = await t.query(api.adFatigueCalculator.calculateFatigueFromInsights, {
-      accountId: "test-account",
-      adId: "test-ad-123",
-      lookbackDays: 5
+      accountId: 'test-account',
+      adId: 'test-ad-123',
+      lookbackDays: 5,
     })
-    
+
     // 結果を検証
     expect(result).not.toBeNull()
-    expect(result?.adId).toBe("test-ad-123")
+    expect(result?.adId).toBe('test-ad-123')
     expect(result?.metrics).toBeDefined()
     expect(result?.fatigueScore).toBeDefined()
     expect(result?.fatigueScore.total).toBeGreaterThanOrEqual(0)
@@ -52,25 +52,25 @@ describe('AdFatigueCalculator Functions', () => {
 
   test('calculateFatigueFromInsights should return null for missing data', async () => {
     const t = convexTest(schema)
-    
+
     const result = await t.query(api.adFatigueCalculator.calculateFatigueFromInsights, {
-      accountId: "test-account",
-      adId: "non-existent-ad",
-      lookbackDays: 21
+      accountId: 'test-account',
+      adId: 'non-existent-ad',
+      lookbackDays: 21,
     })
-    
+
     expect(result).toBeNull()
   })
 
   test('saveFatigueAnalysis should save analysis results', async () => {
     const t = convexTest(schema)
-    
+
     const analysis = {
-      adName: "Test Ad",
-      campaignId: "test-campaign",
-      campaignName: "Test Campaign",
-      creativeId: "test-creative",
-      creativeType: "VIDEO",
+      adName: 'Test Ad',
+      campaignId: 'test-campaign',
+      campaignName: 'Test Campaign',
+      creativeId: 'test-creative',
+      creativeType: 'VIDEO',
       metrics: {
         frequency: 3.2,
         firstTimeRatio: 0.35,
@@ -88,32 +88,32 @@ describe('AdFatigueCalculator Functions', () => {
         breakdown: {
           audience: 70,
           creative: 60,
-          algorithm: 65
+          algorithm: 65,
         },
         primaryIssue: 'audience' as const,
-        status: 'warning' as const
+        status: 'warning' as const,
       },
       dataRange: {
-        start: "2024-01-01",
-        end: "2024-01-05"
+        start: '2024-01-01',
+        end: '2024-01-05',
       },
-      analyzedAt: new Date().toISOString()
+      analyzedAt: new Date().toISOString(),
     }
-    
+
     await t.mutation(api.adFatigueCalculator.saveFatigueAnalysis, {
-      accountId: "test-account",
-      adId: "test-ad-123",
-      analysis
+      accountId: 'test-account',
+      adId: 'test-ad-123',
+      analysis,
     })
-    
+
     // 保存されたデータを確認
     const saved = await t.query(api.adFatigueCalculator.getSavedFatigueAnalysis, {
-      accountId: "test-account",
-      adId: "test-ad-123"
+      accountId: 'test-account',
+      adId: 'test-ad-123',
     })
-    
+
     expect(saved).not.toBeNull()
-    expect(saved?.adId).toBe("test-ad-123")
+    expect(saved?.adId).toBe('test-ad-123')
     expect(saved?.fatigueScore.total).toBe(65)
   })
 })

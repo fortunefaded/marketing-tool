@@ -28,7 +28,7 @@ describe('useAdFatigueRealSafe', () => {
     // Mock all queries to return undefined
     mockedUseQuery.mockReturnValue(undefined)
 
-    const { result } = renderHook(() => useAdFatigueRealSafe('test-account'))
+    const { result } = renderHook(() => useAdFatigueRealSafe('test-account-123'))
 
     // Should return empty array for allAdsAnalysis instead of undefined
     expect(result.current.allAdsAnalysis).toEqual([])
@@ -48,7 +48,7 @@ describe('useAdFatigueRealSafe', () => {
       }
     }) as any)
 
-    const { result } = renderHook(() => useAdFatigueRealSafe('test-account', 'test-ad'))
+    const { result } = renderHook(() => useAdFatigueRealSafe('test-account-123', 'test-ad'))
 
     // Should not throw error
     expect(() => result.current).not.toThrow()
@@ -60,7 +60,7 @@ describe('useAdFatigueRealSafe', () => {
     // Mock all queries to return null
     mockedUseQuery.mockReturnValue(null)
 
-    const { result } = renderHook(() => useAdFatigueRealSafe('test-account'))
+    const { result } = renderHook(() => useAdFatigueRealSafe('test-account-123'))
 
     expect(result.current.allAdsAnalysis).toEqual([])
     expect(result.current.error).toBeNull()

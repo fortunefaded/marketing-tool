@@ -9,6 +9,7 @@
 ### 実装済みのエラー対策
 
 #### 1. 自動リトライ機能
+
 ```typescript
 // 実装例
 async makeRequestWithRetry(request: () => Promise<T>, maxRetries = 3): Promise<T> {
@@ -17,7 +18,7 @@ async makeRequestWithRetry(request: () => Promise<T>, maxRetries = 3): Promise<T
       return await request()
     } catch (error) {
       if (i === maxRetries - 1) throw error
-      
+
       // 指数バックオフで待機
       const delay = Math.min(1000 * Math.pow(2, i), 10000)
       await new Promise(resolve => setTimeout(resolve, delay))
@@ -27,6 +28,7 @@ async makeRequestWithRetry(request: () => Promise<T>, maxRetries = 3): Promise<T
 ```
 
 #### 2. エラー種別による処理分岐
+
 - **認証エラー (401)**: トークン再取得を促す
 - **権限エラー (403)**: 必要な権限を表示
 - **レート制限 (429)**: 自動的に待機
@@ -41,6 +43,7 @@ npm run test:error-scenarios
 ```
 
 テストされるシナリオ：
+
 - 無効なアクセストークン
 - 期限切れトークン
 - 権限不足エラー
@@ -72,25 +75,28 @@ Meta APIには以下のレート制限があります：
 ### 実装済みの対策
 
 #### 1. レート制限監視
+
 ```typescript
 // レート制限状態の監視
 const rateLimitStatus = {
   callCount: 0,
   windowStart: Date.now(),
-  windowCalls: 0
+  windowCalls: 0,
 }
 ```
 
 #### 2. 自動スロットリング
+
 - API呼び出し間隔の自動調整
 - レート制限に近づいたら警告
 
 #### 3. バッチリクエスト
+
 ```typescript
 // 複数のリクエストを1つにまとめる
 const batch = await client.batchRequest([
   { method: 'GET', relative_url: 'campaigns' },
-  { method: 'GET', relative_url: 'insights' }
+  { method: 'GET', relative_url: 'insights' },
 ])
 ```
 
@@ -103,6 +109,7 @@ npm run test:rate-limiting
 ```
 
 テスト内容：
+
 - バーストリクエスト（短時間の大量リクエスト）
 - 持続的負荷（長時間の継続的リクエスト）
 - レート制限ヘッダーの確認
@@ -132,6 +139,7 @@ try {
 ### 2. レート制限回避
 
 #### バッチリクエストの活用
+
 ```typescript
 // 悪い例：個別リクエスト
 const campaigns = await client.getCampaigns()
@@ -142,22 +150,23 @@ const creatives = await client.getCreatives()
 const [campaigns, insights, creatives] = await client.batchRequest([
   { method: 'GET', relative_url: 'campaigns' },
   { method: 'GET', relative_url: 'insights' },
-  { method: 'GET', relative_url: 'creatives' }
+  { method: 'GET', relative_url: 'creatives' },
 ])
 ```
 
 #### キャッシュの実装
+
 ```typescript
 const cache = new Map()
 const CACHE_TTL = 60000 // 1分
 
 async function getCachedData(key: string, fetcher: () => Promise<any>) {
   const cached = cache.get(key)
-  
+
   if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
     return cached.data
   }
-  
+
   const data = await fetcher()
   cache.set(key, { data, timestamp: Date.now() })
   return data
@@ -165,10 +174,11 @@ async function getCachedData(key: string, fetcher: () => Promise<any>) {
 ```
 
 #### フィールドフィルタリング
+
 ```typescript
 // 必要なフィールドのみ取得
 const campaigns = await client.getCampaigns({
-  fields: ['name', 'status', 'objective'] // 必要なフィールドのみ
+  fields: ['name', 'status', 'objective'], // 必要なフィールドのみ
 })
 ```
 
@@ -191,20 +201,26 @@ if (status.windowCalls > 150) {
 ### よくある問題
 
 #### 1. "User request limit reached"
+
 **原因**: ユーザーレベルのレート制限
-**解決策**: 
+**解決策**:
+
 - システムユーザートークンの使用
 - リクエスト間隔を増やす
 
 #### 2. "Application request limit reached"
+
 **原因**: アプリレベルのレート制限
 **解決策**:
+
 - ビジネス認証を申請
 - バッチAPIを使用
 
 #### 3. "Too many calls to this ad account"
+
 **原因**: 広告アカウントレベルの制限
 **解決策**:
+
 - キャッシュを実装
 - 不要なAPIコールを削減
 

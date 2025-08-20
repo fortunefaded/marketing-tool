@@ -60,11 +60,13 @@ VITE_USE_MOCK_DATA=true
 ### 開発環境
 
 1. `.env.example`をコピーして`.env.local`を作成
+
    ```bash
    cp .env.example .env.local
    ```
 
 2. 各値を実際の値に置き換え
+
    ```env
    VITE_CONVEX_URL=https://your-project.convex.cloud
    VITE_META_APP_ID=123456789012345
@@ -137,12 +139,14 @@ VITE_USE_MOCK_DATA=true
 ## 環境別の推奨設定
 
 ### 開発環境
+
 ```env
 VITE_USE_MOCK_DATA=true
 NODE_ENV=development
 ```
 
 ### ステージング環境
+
 ```env
 VITE_USE_MOCK_DATA=false
 NODE_ENV=staging
@@ -150,6 +154,7 @@ VITE_ENCRYPTION_KEY=staging_encryption_key_32_chars_min
 ```
 
 ### 本番環境
+
 ```env
 VITE_USE_MOCK_DATA=false
 NODE_ENV=production

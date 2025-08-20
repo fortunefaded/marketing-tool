@@ -12,30 +12,33 @@ export const subscribeToCampaignUpdates = query({
     const campaigns = args.accountId
       ? await ctx.db
           .query('metaCampaigns')
-          .withIndex('by_accountId', (q) => 
-            q.eq('accountId', args.accountId!)
-          )
+          .withIndex('by_accountId', (q) => q.eq('accountId', args.accountId!))
           .collect()
       : await ctx.db.query('metaCampaigns').collect()
-    
+
     // Filter by campaign IDs if specified
     const filteredCampaigns = args.campaignIds
       ? campaigns.filter((c) => args.campaignIds!.includes(c.metaId))
       : campaigns
-    
+
     // Get recent insights for each campaign
     const campaignsWithInsights = await Promise.all(
       filteredCampaigns.map(async (campaign) => {
         const allInsights = await ctx.db
           .query('metaInsights')
-          .withIndex('by_campaign', (q) => q.eq('accountId', campaign.accountId).eq('campaign_id', campaign.metaId))
+          .withIndex('by_campaign', (q) =>
+            q.eq('accountId', campaign.accountId).eq('campaign_id', campaign.metaId)
+          )
           .collect()
-        
+
         // Sort by date and take last 7
         const recentInsights = allInsights
-          .sort((a, b) => new Date(b.date_start || '').getTime() - new Date(a.date_start || '').getTime())
+          .sort(
+            (a, b) =>
+              new Date(b.date_start || '').getTime() - new Date(a.date_start || '').getTime()
+          )
           .slice(0, 7)
-        
+
         // Calculate current metrics
         const currentMetrics = recentInsights.reduce(
           (acc, insight) => ({
@@ -47,7 +50,7 @@ export const subscribeToCampaignUpdates = query({
           }),
           { impressions: 0, clicks: 0, spend: 0, conversions: 0, revenue: 0 }
         )
-        
+
         return {
           ...campaign,
           currentMetrics,
@@ -55,7 +58,7 @@ export const subscribeToCampaignUpdates = query({
         }
       })
     )
-    
+
     return campaignsWithInsights
   },
 })
@@ -70,13 +73,11 @@ export const subscribeToCreativeUpdates = query({
     const creatives = args.campaignId
       ? await ctx.db
           .query('metaCreatives')
-          .withIndex('by_campaignId', (q) => 
-            q.eq('campaignId', args.campaignId!)
-          )
+          .withIndex('by_campaignId', (q) => q.eq('campaignId', args.campaignId!))
           .collect()
       : await ctx.db.query('metaCreatives').collect()
     const limitedCreatives = creatives.slice(0, args.limit || 50)
-    
+
     // Get real-time performance for each creative
     const creativesWithPerformance = await Promise.all(
       limitedCreatives.map(async (creative) => {
@@ -84,14 +85,17 @@ export const subscribeToCreativeUpdates = query({
           .query('metaInsights')
           .filter((q) => q.eq(q.field('creative_id'), creative.metaId))
           .collect()
-        
+
         // Get most recent
         const recentInsights = allInsights
-          .sort((a, b) => new Date(b.date_start || '').getTime() - new Date(a.date_start || '').getTime())
+          .sort(
+            (a, b) =>
+              new Date(b.date_start || '').getTime() - new Date(a.date_start || '').getTime()
+          )
           .slice(0, 1)
-        
+
         const latestInsight = recentInsights[0]
-        
+
         return {
           ...creative,
           performance: latestInsight || null,
@@ -99,7 +103,7 @@ export const subscribeToCreativeUpdates = query({
         }
       })
     )
-    
+
     return creativesWithPerformance
   },
 })
@@ -114,15 +118,15 @@ export const subscribeToAlerts = query({
     }),
   },
   handler: async (ctx, args) => {
-    const allInsights = await ctx.db
-      .query('metaInsights')
-      .collect()
-    
+    const allInsights = await ctx.db.query('metaInsights').collect()
+
     // Sort by date and take recent 100
     const recentInsights = allInsights
-      .sort((a, b) => new Date(b.date_start || '').getTime() - new Date(a.date_start || '').getTime())
+      .sort(
+        (a, b) => new Date(b.date_start || '').getTime() - new Date(a.date_start || '').getTime()
+      )
       .slice(0, 100)
-    
+
     const alerts: Array<{
       type: 'warning' | 'critical'
       message: string
@@ -131,18 +135,18 @@ export const subscribeToAlerts = query({
       value: number
       threshold: number
     }> = []
-    
+
     // Group by campaign
     const byCampaign = new Map<string, Doc<'metaInsights'>[]>()
     recentInsights.forEach((insight) => {
       if (!insight.campaign_id) return
-      
+
       if (!byCampaign.has(insight.campaign_id)) {
         byCampaign.set(insight.campaign_id, [])
       }
       byCampaign.get(insight.campaign_id)!.push(insight)
     })
-    
+
     // Check thresholds for each campaign
     for (const [campaignId, insights] of byCampaign) {
       const totals = insights.reduce(
@@ -153,7 +157,7 @@ export const subscribeToAlerts = query({
         }),
         { spend: 0, conversions: 0, revenue: 0 }
       )
-      
+
       // Check CPA threshold
       if (args.thresholds.maxCpa && totals.conversions > 0) {
         const cpa = totals.spend / totals.conversions
@@ -168,7 +172,7 @@ export const subscribeToAlerts = query({
           })
         }
       }
-      
+
       // Check ROAS threshold
       if (args.thresholds.minRoas && totals.spend > 0) {
         const roas = totals.revenue / totals.spend
@@ -183,7 +187,7 @@ export const subscribeToAlerts = query({
           })
         }
       }
-      
+
       // Check spend threshold
       if (args.thresholds.maxSpend && totals.spend > args.thresholds.maxSpend) {
         alerts.push({
@@ -196,7 +200,7 @@ export const subscribeToAlerts = query({
         })
       }
     }
-    
+
     return {
       alerts,
       checkedAt: new Date().toISOString(),
@@ -230,19 +234,19 @@ export const updateCampaignMetrics = mutation({
       dateStop: new Date().toISOString(),
       createdAt: new Date().toISOString(),
     })
-    
+
     // Update campaign last sync time
     const campaign = await ctx.db
       .query('metaCampaigns')
       .withIndex('by_metaId', (q) => q.eq('metaId', args.campaignId))
       .first()
-    
+
     if (campaign) {
       await ctx.db.patch(campaign._id, {
         lastSyncedAt: new Date().toISOString(),
       })
     }
-    
+
     return { success: true, insightId: insight }
   },
 })

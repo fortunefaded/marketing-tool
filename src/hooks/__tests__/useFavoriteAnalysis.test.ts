@@ -110,18 +110,24 @@ describe('useFavoriteAnalysis', () => {
   it('タイプ別にお気に入りを取得できる', () => {
     const { result } = renderHook(() => useFavoriteAnalysis())
 
-    // 複数のお気に入りを追加
+    // 複数のお気に入りを追加 - 各追加を個別のactで囲む
     act(() => {
       result.current.addFavorite({
         name: 'ROAS分析1',
         type: 'roas',
         route: '/roas-1',
       })
+    })
+    
+    act(() => {
       result.current.addFavorite({
         name: 'ROAS分析2',
         type: 'roas',
         route: '/roas-2',
       })
+    })
+    
+    act(() => {
       result.current.addFavorite({
         name: 'コホート分析',
         type: 'cohort',
@@ -129,6 +135,9 @@ describe('useFavoriteAnalysis', () => {
       })
     })
 
+    // Wait for state to update
+    expect(result.current.favorites).toHaveLength(3)
+    
     const roasFavorites = result.current.getFavoritesByType('roas')
     expect(roasFavorites).toHaveLength(2)
     expect(roasFavorites.every((f) => f.type === 'roas')).toBe(true)

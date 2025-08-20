@@ -224,11 +224,20 @@ describe('MetaAPIClient - Enhanced Features', () => {
     it('should implement circuit breaker pattern', async () => {
       console.log('🔧 Starting circuit breaker test')
 
+      // Create client with lower thresholds for faster testing
+      client = new MetaAPIClientEnhanced({
+        accessToken: 'test-token',
+        accountId: 'act_123456789',
+        maxRetries: 1, // Reduce retries
+        retryDelay: 10, // Reduce delay
+        circuitBreakerThreshold: 3, // Lower threshold
+      })
+
       // Simulate multiple failures
       mockFetch.mockRejectedValue(new Error('Service unavailable'))
 
       // Make several failed requests
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < 3; i++) {
         try {
           await client.getCampaigns()
         } catch {
@@ -238,11 +247,11 @@ describe('MetaAPIClient - Enhanced Features', () => {
 
       // Circuit should be open now - next call should fail fast
       console.log('🔧 Circuit should be open now')
-      await expect(client.getCampaigns()).rejects.toThrow()
+      await expect(client.getCampaigns()).rejects.toThrow('Circuit breaker is open')
 
-      // Verify multiple calls were made (retries)
-      expect(mockFetch.mock.calls.length).toBeGreaterThan(5)
-    }, 20000)
+      // Verify the expected number of calls (1 retry per request, 3 requests)
+      expect(mockFetch).toHaveBeenCalledTimes(3)
+    })
   })
 
   describe('Batch Operations', () => {

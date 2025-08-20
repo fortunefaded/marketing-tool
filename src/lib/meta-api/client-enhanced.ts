@@ -575,4 +575,29 @@ export class MetaAPIClientEnhanced extends EventEmitter {
         return 'IMAGE'
     }
   }
+
+  // Batch operations support
+  async batch(requests: Array<{ relative_url: string; method: string; body?: any }>): Promise<any[]> {
+    const response = await this.makeRequest<any[]>(
+      '',
+      { batch: JSON.stringify(requests) },
+      { method: 'POST' }
+    )
+
+    return response.map((res: any) => {
+      if (res.code === 200) {
+        return JSON.parse(res.body)
+      } else {
+        throw new Error(`Batch request failed: ${res.body}`)
+      }
+    })
+  }
+
+  // Public method to set token refresh handler (remove duplicate)
+
+  // Event emitter methods are inherited from EventEmitter
+  // Override emit to make it private
+  private emit(event: string, data?: any): void {
+    super.emit(event, data)
+  }
 }

@@ -326,10 +326,7 @@ export const getSyncHistory = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const query = ctx.db
-      .query('syncHistory')
-      .withIndex('by_startedAt')
-      .order('desc')
+    const query = ctx.db.query('syncHistory').withIndex('by_startedAt').order('desc')
 
     if (args.limit) {
       return await query.take(args.limit)

@@ -45,11 +45,7 @@ export const saveCreativeMetrics = mutation({
         cvr: v.number(),
         period_start: v.string(),
         period_end: v.string(),
-        aggregation_period: v.union(
-          v.literal('daily'),
-          v.literal('weekly'),
-          v.literal('monthly')
-        ),
+        aggregation_period: v.union(v.literal('daily'), v.literal('weekly'), v.literal('monthly')),
       })
     ),
   },
@@ -129,21 +125,15 @@ export const getCreativeMetrics = query({
     }
 
     if (args.creativeTypes && args.creativeTypes.length > 0) {
-      filtered = filtered.filter((m) =>
-        args.creativeTypes!.includes(m.creative_type)
-      )
+      filtered = filtered.filter((m) => args.creativeTypes!.includes(m.creative_type))
     }
 
     if (args.campaignIds && args.campaignIds.length > 0) {
-      filtered = filtered.filter(
-        (m) => m.campaign_id && args.campaignIds!.includes(m.campaign_id)
-      )
+      filtered = filtered.filter((m) => m.campaign_id && args.campaignIds!.includes(m.campaign_id))
     }
 
     if (args.aggregationPeriod) {
-      filtered = filtered.filter(
-        (m) => m.aggregation_period === args.aggregationPeriod
-      )
+      filtered = filtered.filter((m) => m.aggregation_period === args.aggregationPeriod)
     }
 
     // 最新のデータを優先してソート
@@ -173,9 +163,7 @@ export const getCampaigns = query({
       }
     })
 
-    return Array.from(campaignsMap.values()).sort((a, b) =>
-      a.name.localeCompare(b.name)
-    )
+    return Array.from(campaignsMap.values()).sort((a, b) => a.name.localeCompare(b.name))
   },
 })
 
@@ -211,13 +199,9 @@ export const getMetricsSummary = query({
       totalSpend: filtered.reduce((sum, m) => sum + m.spend, 0),
       totalRevenue: filtered.reduce((sum, m) => sum + m.conversion_value, 0),
       avgCtr:
-        filtered.length > 0
-          ? filtered.reduce((sum, m) => sum + m.ctr, 0) / filtered.length
-          : 0,
+        filtered.length > 0 ? filtered.reduce((sum, m) => sum + m.ctr, 0) / filtered.length : 0,
       avgRoas:
-        filtered.length > 0
-          ? filtered.reduce((sum, m) => sum + m.roas, 0) / filtered.length
-          : 0,
+        filtered.length > 0 ? filtered.reduce((sum, m) => sum + m.roas, 0) / filtered.length : 0,
     }
 
     return summary

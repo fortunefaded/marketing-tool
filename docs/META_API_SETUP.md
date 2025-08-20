@@ -5,12 +5,14 @@
 ## 1. Meta開発者アカウントの作成
 
 ### 1.1 Facebook開発者アカウントの登録
+
 1. [Facebook for Developers](https://developers.facebook.com/)にアクセス
 2. 「スタート」をクリックして開発者アカウントを作成
 3. 既存のFacebookアカウントでログイン、または新規作成
 4. 開発者規約に同意
 
 ### 1.2 アプリの作成
+
 1. ダッシュボードから「アプリを作成」をクリック
 2. アプリタイプは「ビジネス」を選択
 3. アプリ名と連絡先メールアドレスを入力
@@ -19,12 +21,15 @@
 ## 2. Marketing APIの設定
 
 ### 2.1 Marketing APIの追加
+
 1. アプリダッシュボードで「製品を追加」をクリック
 2. 「Marketing API」を見つけて「設定」をクリック
 3. 利用規約に同意
 
 ### 2.2 必要な権限の設定
+
 以下の権限が必要です：
+
 - `ads_read` - 広告データの読み取り
 - `ads_management` - 広告の管理（オプション）
 - `business_management` - ビジネスアカウントの管理
@@ -34,18 +39,21 @@
 ## 3. アクセストークンの取得
 
 ### 3.1 短期アクセストークン（開発用）
+
 1. [Graph API Explorer](https://developers.facebook.com/tools/explorer/)にアクセス
 2. アプリを選択
 3. 「Get Token」→「Get User Access Token」を選択
 4. 必要な権限にチェックを入れて「Generate Access Token」
 
 ### 3.2 長期アクセストークン（本番用）
+
 ```bash
 # 短期トークンを長期トークンに交換
 curl -X GET "https://graph.facebook.com/v23.0/oauth/access_token?grant_type=fb_exchange_token&client_id={app-id}&client_secret={app-secret}&fb_exchange_token={short-lived-token}"
 ```
 
 ### 3.3 システムユーザートークン（推奨）
+
 1. Business Managerで「ビジネス設定」→「システムユーザー」
 2. 「追加」をクリックしてシステムユーザーを作成
 3. 「トークンを生成」で必要な権限を選択
@@ -54,12 +62,14 @@ curl -X GET "https://graph.facebook.com/v23.0/oauth/access_token?grant_type=fb_e
 ## 4. 広告アカウントIDの取得
 
 ### 4.1 Business Managerから取得
+
 1. [Business Manager](https://business.facebook.com/)にログイン
 2. 「ビジネス設定」→「アカウント」→「広告アカウント」
 3. 対象の広告アカウントを選択
 4. アカウントIDをコピー（例：act_123456789）
 
 ### 4.2 Graph APIで取得
+
 ```bash
 curl -X GET "https://graph.facebook.com/v23.0/me/adaccounts?access_token={access-token}"
 ```
@@ -85,12 +95,15 @@ VITE_USE_MOCK_DATA=false
 ## 6. APIレート制限について
 
 ### 6.1 レート制限の種類
+
 - **アプリレベル**: 1時間あたり200リクエスト×MAU（月間アクティブユーザー数）
 - **ユーザーレベル**: 1時間あたり200リクエスト
 - **広告アカウントレベル**: より複雑な計算式
 
 ### 6.2 レート制限の確認
+
 レスポンスヘッダーで確認：
+
 ```
 X-Business-Use-Case-Usage: {
   "{business-id}": [
@@ -110,15 +123,18 @@ X-Business-Use-Case-Usage: {
 ### よくあるエラー
 
 #### エラー: Invalid OAuth 2.0 Access Token
+
 - トークンの有効期限切れ
 - 権限不足
 - アプリIDとトークンの不一致
 
 #### エラー: (#17) User request limit reached
+
 - レート制限に到達
 - 待機するか、バッチリクエストを使用
 
 #### エラー: (#100) Invalid parameter
+
 - APIバージョンの不一致
 - 必須パラメータの欠落
 - 無効なフィールド名

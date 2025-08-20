@@ -42,7 +42,7 @@ class MetaAPIIntegrationTester {
       if (!this.config.appId) throw new Error('VITE_META_APP_ID が設定されていません')
       if (!this.config.adAccountId) throw new Error('VITE_META_AD_ACCOUNT_ID が設定されていません')
       if (!this.config.accessToken) throw new Error('VITE_META_ACCESS_TOKEN が設定されていません')
-      
+
       console.log(chalk.gray(`App ID: ${this.config.appId}`))
       console.log(chalk.gray(`Ad Account ID: ${this.config.adAccountId}`))
       console.log(chalk.gray(`Access Token: ${this.config.accessToken.substring(0, 10)}...`))
@@ -68,7 +68,7 @@ class MetaAPIIntegrationTester {
       const response = await fetch(
         `https://graph.facebook.com/v23.0/me?access_token=${this.config.accessToken}`
       )
-      
+
       if (!response.ok) {
         const error = await response.json()
         throw new Error(error.error?.message || `HTTP ${response.status}`)
@@ -86,7 +86,7 @@ class MetaAPIIntegrationTester {
       const response = await fetch(
         `https://graph.facebook.com/v23.0/${this.config.adAccountId}?fields=id,name,currency,timezone_name,account_status&access_token=${this.config.accessToken}`
       )
-      
+
       if (!response.ok) {
         const error = await response.json()
         throw new Error(error.error?.message || `HTTP ${response.status}`)
@@ -96,7 +96,9 @@ class MetaAPIIntegrationTester {
       console.log(chalk.gray(`アカウント名: ${account.name}`))
       console.log(chalk.gray(`通貨: ${account.currency}`))
       console.log(chalk.gray(`タイムゾーン: ${account.timezone_name}`))
-      console.log(chalk.gray(`ステータス: ${account.account_status === 1 ? 'アクティブ' : '非アクティブ'}`))
+      console.log(
+        chalk.gray(`ステータス: ${account.account_status === 1 ? 'アクティブ' : '非アクティブ'}`)
+      )
     })
 
     // キャンペーン一覧取得
@@ -105,10 +107,10 @@ class MetaAPIIntegrationTester {
 
       const campaigns = await this.client.getCampaigns()
       console.log(chalk.gray(`取得したキャンペーン数: ${campaigns.length}`))
-      
+
       if (campaigns.length > 0) {
         console.log(chalk.gray('\n最初の3件:'))
-        campaigns.slice(0, 3).forEach(campaign => {
+        campaigns.slice(0, 3).forEach((campaign) => {
           console.log(chalk.gray(`  - ${campaign.name} (${campaign.status})`))
         })
       }
@@ -123,7 +125,7 @@ class MetaAPIIntegrationTester {
       startDate.setDate(startDate.getDate() - 7) // 過去7日間
 
       const insights = await this.client.getInsights({
-        datePreset: 'last_7d'
+        datePreset: 'last_7d',
       })
 
       if (insights.length > 0) {
@@ -178,7 +180,11 @@ class MetaAPIIntegrationTester {
 
       const rateLimitStatus = (this.client as any).getRateLimitStatus()
       console.log(chalk.gray(`API呼び出し回数: ${rateLimitStatus.callCount}`))
-      console.log(chalk.gray(`最後の呼び出し: ${rateLimitStatus.lastCallTime ? new Date(rateLimitStatus.lastCallTime).toLocaleTimeString() : 'なし'}`))
+      console.log(
+        chalk.gray(
+          `最後の呼び出し: ${rateLimitStatus.lastCallTime ? new Date(rateLimitStatus.lastCallTime).toLocaleTimeString() : 'なし'}`
+        )
+      )
     })
 
     // バッチリクエストテスト
@@ -188,12 +194,12 @@ class MetaAPIIntegrationTester {
       const batch = await this.client.batchRequest([
         {
           method: 'GET',
-          relative_url: `${this.config.adAccountId}?fields=name,currency`
+          relative_url: `${this.config.adAccountId}?fields=name,currency`,
         },
         {
           method: 'GET',
-          relative_url: `${this.config.adAccountId}/campaigns?fields=name,status&limit=5`
-        }
+          relative_url: `${this.config.adAccountId}/campaigns?fields=name,status&limit=5`,
+        },
       ])
 
       console.log(chalk.gray(`バッチリクエスト成功: ${batch.length}件のレスポンス`))
@@ -206,7 +212,7 @@ class MetaAPIIntegrationTester {
         const response = await fetch(
           `https://graph.facebook.com/v23.0/act_invalid_account_id?access_token=${this.config.accessToken}`
         )
-        
+
         if (!response.ok) {
           const error = await response.json()
           console.log(chalk.gray('期待通りエラーが発生しました'))
@@ -226,30 +232,30 @@ class MetaAPIIntegrationTester {
 
   private async test(name: string, fn: () => Promise<void>) {
     const startTime = Date.now()
-    
+
     try {
       console.log(chalk.cyan(`\n▶ ${name}`))
       await fn()
       const duration = Date.now() - startTime
-      
+
       this.results.push({
         name,
         status: 'passed',
-        duration
+        duration,
       })
-      
+
       console.log(chalk.green(`✓ 成功 (${duration}ms)`))
     } catch (error) {
       const duration = Date.now() - startTime
-      
+
       this.results.push({
         name,
         status: 'failed',
         error: error as Error,
         message: (error as Error).message,
-        duration
+        duration,
       })
-      
+
       console.log(chalk.red(`✗ 失敗: ${(error as Error).message} (${duration}ms)`))
     }
   }
@@ -257,8 +263,8 @@ class MetaAPIIntegrationTester {
   private printSummary() {
     console.log(chalk.blue('\n\n📊 テスト結果サマリー\n'))
 
-    const passed = this.results.filter(r => r.status === 'passed').length
-    const failed = this.results.filter(r => r.status === 'failed').length
+    const passed = this.results.filter((r) => r.status === 'passed').length
+    const failed = this.results.filter((r) => r.status === 'failed').length
     const total = this.results.length
 
     console.log(chalk.green(`✓ 成功: ${passed}/${total}`))
@@ -272,8 +278,8 @@ class MetaAPIIntegrationTester {
     if (failed > 0) {
       console.log(chalk.red('\n\n失敗したテスト:'))
       this.results
-        .filter(r => r.status === 'failed')
-        .forEach(r => {
+        .filter((r) => r.status === 'failed')
+        .forEach((r) => {
           console.log(chalk.red(`  - ${r.name}: ${r.message}`))
         })
     }
@@ -296,7 +302,7 @@ async function main() {
 }
 
 // エラーハンドリング
-main().catch(error => {
+main().catch((error) => {
   console.error(chalk.red('\n\n❌ テスト実行中にエラーが発生しました:'))
   console.error(error)
   process.exit(1)

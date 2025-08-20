@@ -99,11 +99,11 @@ describe('useAdFatigueReal', () => {
       await result.current.analyzeFatigue('test-ad')
     } catch (error) {
       expect(error).toBeInstanceOf(Error)
-      expect((error as Error).message).toBe('Analysis failed')
+      expect((error as Error).message).toBe('分析するデータが見つかりません')
     }
 
     await waitFor(() => {
-      expect(result.current.error).toBe('Analysis failed')
+      expect(result.current.error).toBe('分析するデータが見つかりません')
     })
   })
 })

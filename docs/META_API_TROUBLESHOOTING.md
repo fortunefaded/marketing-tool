@@ -8,15 +8,17 @@
 
 ### 原因1: アクセストークンの権限不足
 
-**症状**: 
+**症状**:
+
 - エラーコード: 190
 - メッセージ: "Invalid OAuth access token" または "Permissions error"
 
 **解決方法**:
+
 1. Graph API Explorer (https://developers.facebook.com/tools/explorer/) にアクセス
 2. 以下の権限すべてにチェックを入れる：
    - `ads_read`
-   - `ads_management` 
+   - `ads_management`
    - `business_management`
 3. 「Generate Access Token」をクリックして新しいトークンを生成
 4. 新しいトークンでアカウントを再接続
@@ -24,10 +26,12 @@
 ### 原因2: 広告アカウントIDの形式が間違っている
 
 **症状**:
+
 - エラーコード: 100
 - メッセージ: "Invalid parameter" または "Unsupported get request"
 
 **解決方法**:
+
 - アカウントIDは数字のみを入力（例: 123456789012345）
 - システムが自動的に`act_`プレフィックスを追加します
 - ビジネスマネージャーで正しいアカウントIDを確認
@@ -35,10 +39,12 @@
 ### 原因3: アカウントへのアクセス権限がない
 
 **症状**:
+
 - エラーコード: 10
 - メッセージ: "You do not have permission to access this account"
 
 **解決方法**:
+
 1. Meta Business Manager にログイン
 2. 「設定」→「ユーザー」→「アカウント」を確認
 3. 対象の広告アカウントへのアクセス権限があることを確認
@@ -47,26 +53,31 @@
 ### 原因4: アクセストークンの有効期限切れ
 
 **症状**:
+
 - エラーコード: 190
 - メッセージ: "Error validating access token"
 
 **解決方法**:
+
 - Graph API Explorerで新しいトークンを生成
 - 長期トークンの使用を検討（60日間有効）
 
 ### 原因5: APIバージョンの非互換性
 
 **症状**:
+
 - エラーコード: 3
 - メッセージ: "Unknown method"
 
 **解決方法**:
+
 - 最新のAPIバージョン（v18.0以上）を使用していることを確認
 - 古いバージョンの機能は使用しない
 
 ## 2. デバッグ手順
 
 ### ステップ1: エラー詳細を確認
+
 1. テスト画面で「エラー詳細を表示」をクリック
 2. 以下の情報を確認：
    - リクエストURL
@@ -74,6 +85,7 @@
    - エラーコード
 
 ### ステップ2: トークンの検証
+
 ```bash
 # Graph API Explorerでトークンをデバッグ
 https://developers.facebook.com/tools/debug/accesstoken/
@@ -87,6 +99,7 @@ https://developers.facebook.com/tools/debug/accesstoken/
    - アプリID
 
 ### ステップ3: 手動でAPIをテスト
+
 Graph API Explorerで直接テスト：
 
 ```
@@ -98,24 +111,28 @@ GET /v18.0/act_{account_id}/campaigns
 ## 3. 具体的なエラー別対処法
 
 ### エラー: "(#100) param account_id must be a valid account ID"
+
 - 原因: アカウントIDの形式が正しくない
-- 対処: 
+- 対処:
   1. ビジネスマネージャーでアカウントIDを確認
-  2. 数字のみを入力（act_は不要）
+  2. 数字のみを入力（act\_は不要）
 
 ### エラー: "(#200) Permissions error"
+
 - 原因: 必要な権限が不足
 - 対処:
   1. ads_read権限があることを確認
   2. ビジネスマネージャーでアカウントへのアクセス権を確認
 
 ### エラー: "(#17) User request limit reached"
+
 - 原因: APIレート制限に達した
 - 対処:
   1. 数分待ってから再試行
   2. バッチリクエストの使用を検討
 
 ### エラー: "Network Error" または "CORS Error"
+
 - 原因: ネットワーク接続の問題
 - 対処:
   1. インターネット接続を確認
@@ -125,6 +142,7 @@ GET /v18.0/act_{account_id}/campaigns
 ## 4. それでも解決しない場合
 
 ### 確認事項チェックリスト
+
 - [ ] アクセストークンは最新か？
 - [ ] すべての必要な権限が付与されているか？
 - [ ] アカウントIDは正しいか？
@@ -139,6 +157,7 @@ GET /v18.0/act_{account_id}/campaigns
    - Networkタブで失敗したリクエストの詳細を確認
 
 2. **cURLでテスト**
+
    ```bash
    curl -G \
      -d "access_token=YOUR_ACCESS_TOKEN" \

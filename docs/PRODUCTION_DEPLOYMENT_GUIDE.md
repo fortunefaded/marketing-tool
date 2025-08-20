@@ -133,7 +133,7 @@ const trackApiPerformance = async (endpoint: string, duration: number) => {
     window.analytics.track('API Performance', {
       endpoint,
       duration,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     })
   }
 }
@@ -149,14 +149,12 @@ npm install @sentry/react
 
 ```typescript
 // src/main.tsx
-import * as Sentry from "@sentry/react"
+import * as Sentry from '@sentry/react'
 
 Sentry.init({
   dsn: process.env.VITE_SENTRY_DSN,
-  environment: "production",
-  integrations: [
-    new Sentry.BrowserTracing(),
-  ],
+  environment: 'production',
+  integrations: [new Sentry.BrowserTracing()],
   tracesSampleRate: 0.1,
 })
 ```
@@ -167,7 +165,7 @@ Sentry.init({
 // レート制限監視
 const monitorRateLimit = () => {
   const status = client.getRateLimitStatus()
-  
+
   if (status.windowCalls > 150) {
     // アラートを送信
     console.warn('Rate limit threshold reached', status)
@@ -185,6 +183,7 @@ setInterval(monitorRateLimit, 60000) // 1分ごと
 #### 1. "Production app not approved"
 
 **解決策**:
+
 1. Facebook App Reviewを申請
 2. 必要な権限の使用理由を説明
 3. スクリーンキャストを提供
@@ -192,6 +191,7 @@ setInterval(monitorRateLimit, 60000) // 1分ごと
 #### 2. "System user token expired"
 
 **解決策**:
+
 1. Business Managerで新しいトークンを生成
 2. 環境変数を更新
 3. デプロイメントを再実行
@@ -199,6 +199,7 @@ setInterval(monitorRateLimit, 60000) // 1分ごと
 #### 3. "CORS policy error"
 
 **解決策**:
+
 ```javascript
 // vercel.json
 {
@@ -223,6 +224,7 @@ setInterval(monitorRateLimit, 60000) // 1分ごと
    - 環境変数を更新
 
 2. **依存関係の更新**（月次）
+
    ```bash
    npm update
    npm audit fix
@@ -247,10 +249,11 @@ setInterval(monitorRateLimit, 60000) // 1分ごと
 ### パフォーマンス最適化
 
 1. **キャッシュ戦略**
+
    ```typescript
    // Redisキャッシュの実装
    const cache = new Redis({
-     url: process.env.REDIS_URL
+     url: process.env.REDIS_URL,
    })
    ```
 

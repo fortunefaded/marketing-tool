@@ -52,7 +52,7 @@ export function useFavoriteAnalysis(): UseFavoriteAnalysisReturn {
   const addFavorite = (analysis: Omit<FavoriteAnalysis, 'id' | 'createdAt' | 'accessCount'>) => {
     const newFavorite: FavoriteAnalysis = {
       ...analysis,
-      id: `fav-${Date.now()}`,
+      id: `fav-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
       createdAt: new Date(),
       accessCount: 0,
     }

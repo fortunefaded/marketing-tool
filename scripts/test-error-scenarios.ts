@@ -49,7 +49,7 @@ class MetaAPIErrorTester {
           await client.getCampaigns()
         },
         expectedError: 'Invalid OAuth 2.0 Access Token',
-        expectedBehavior: 'エラーメッセージが表示され、リトライしない'
+        expectedBehavior: 'エラーメッセージが表示され、リトライしない',
       },
       {
         name: '期限切れトークン',
@@ -63,7 +63,7 @@ class MetaAPIErrorTester {
           await client.getInsights({ datePreset: 'yesterday' })
         },
         expectedError: 'Error validating access token',
-        expectedBehavior: '再認証を促すメッセージが表示される'
+        expectedBehavior: '再認証を促すメッセージが表示される',
       },
       {
         name: '権限不足エラー',
@@ -76,7 +76,7 @@ class MetaAPIErrorTester {
           await client.getCampaigns()
         },
         expectedError: 'does not have permission',
-        expectedBehavior: '権限エラーメッセージが表示される'
+        expectedBehavior: '権限エラーメッセージが表示される',
       },
       {
         name: '存在しないリソース',
@@ -96,7 +96,7 @@ class MetaAPIErrorTester {
           }
         },
         expectedError: 'does not exist',
-        expectedBehavior: 'リソースが見つからないエラーが表示される'
+        expectedBehavior: 'リソースが見つからないエラーが表示される',
       },
       {
         name: '不正なパラメータ',
@@ -110,7 +110,7 @@ class MetaAPIErrorTester {
           await this.client.getInsights({ datePreset: 'invalid_date_preset' as any })
         },
         expectedError: 'Invalid parameter',
-        expectedBehavior: 'パラメータエラーが表示される'
+        expectedBehavior: 'パラメータエラーが表示される',
       },
       {
         name: 'レート制限エラー（シミュレート）',
@@ -120,17 +120,17 @@ class MetaAPIErrorTester {
             accessToken: this.validAccessToken,
             accountId: this.validAccountId,
           })
-          
+
           // 10回連続でリクエストを送信
           const promises = []
           for (let i = 0; i < 10; i++) {
             promises.push(this.client.getCampaigns())
           }
-          
+
           await Promise.all(promises)
           console.log(chalk.gray('レート制限状態:', (this.client as any).getRateLimitStatus()))
         },
-        expectedBehavior: 'リクエストが自動的に調整される'
+        expectedBehavior: 'リクエストが自動的に調整される',
       },
       {
         name: 'ネットワークタイムアウト',
@@ -139,13 +139,13 @@ class MetaAPIErrorTester {
           // タイムアウトをシミュレート（存在しないエンドポイント）
           const controller = new AbortController()
           setTimeout(() => controller.abort(), 1000) // 1秒でタイムアウト
-          
+
           await fetch('https://httpstat.us/200?sleep=5000', {
-            signal: controller.signal
+            signal: controller.signal,
           })
         },
         expectedError: 'aborted',
-        expectedBehavior: 'タイムアウトエラーが表示され、リトライが実行される'
+        expectedBehavior: 'タイムアウトエラーが表示され、リトライが実行される',
       },
       {
         name: 'JSONパースエラー',
@@ -156,7 +156,7 @@ class MetaAPIErrorTester {
           const data = await response.json() // これはエラーになる
         },
         expectedError: 'JSON',
-        expectedBehavior: '予期しないレスポンス形式エラーが表示される'
+        expectedBehavior: '予期しないレスポンス形式エラーが表示される',
       },
       {
         name: 'バッチリクエストの部分的失敗',
@@ -166,21 +166,21 @@ class MetaAPIErrorTester {
             accessToken: this.validAccessToken,
             accountId: this.validAccountId,
           })
-          
+
           const batch = await this.client.batchRequest([
             {
               method: 'GET',
-              relative_url: `${this.validAccountId}?fields=name` // 成功するリクエスト
+              relative_url: `${this.validAccountId}?fields=name`, // 成功するリクエスト
             },
             {
               method: 'GET',
-              relative_url: 'invalid_endpoint_12345' // 失敗するリクエスト
-            }
+              relative_url: 'invalid_endpoint_12345', // 失敗するリクエスト
+            },
           ])
-          
+
           console.log(chalk.gray('バッチ結果:', batch))
         },
-        expectedBehavior: '成功したリクエストの結果は取得でき、失敗分はエラーとして報告される'
+        expectedBehavior: '成功したリクエストの結果は取得でき、失敗分はエラーとして報告される',
       },
       {
         name: 'サーバーエラー（5xx）',
@@ -193,8 +193,8 @@ class MetaAPIErrorTester {
           }
         },
         expectedError: 'Server error: 500',
-        expectedBehavior: '自動的にリトライが実行される'
-      }
+        expectedBehavior: '自動的にリトライが実行される',
+      },
     ]
 
     // 各テストケースを実行
@@ -209,14 +209,17 @@ class MetaAPIErrorTester {
   private async runTestCase(testCase: ErrorTestCase) {
     console.log(chalk.cyan(`\n▶ ${testCase.name}`))
     console.log(chalk.gray(`   ${testCase.description}`))
-    
+
     try {
       await testCase.test()
       console.log(chalk.yellow('⚠️  エラーが発生しませんでした（予期しない結果）'))
     } catch (error) {
       const errorMessage = (error as Error).message
-      
-      if (testCase.expectedError && errorMessage.toLowerCase().includes(testCase.expectedError.toLowerCase())) {
+
+      if (
+        testCase.expectedError &&
+        errorMessage.toLowerCase().includes(testCase.expectedError.toLowerCase())
+      ) {
         console.log(chalk.green('✓ 期待通りのエラーが発生しました'))
         console.log(chalk.gray(`   エラー: ${errorMessage}`))
       } else {
@@ -224,14 +227,16 @@ class MetaAPIErrorTester {
         console.log(chalk.red(`   エラー: ${errorMessage}`))
       }
     }
-    
+
     console.log(chalk.blue(`   期待される動作: ${testCase.expectedBehavior}`))
   }
 
   private printSummary() {
     console.log(chalk.blue('\n\n📊 エラーハンドリングテスト完了\n'))
     console.log(chalk.gray('すべてのエラーシナリオをテストしました。'))
-    console.log(chalk.gray('アプリケーションが各種エラーに対して適切に対応できることを確認してください。'))
+    console.log(
+      chalk.gray('アプリケーションが各種エラーに対して適切に対応できることを確認してください。')
+    )
   }
 }
 
@@ -280,10 +285,10 @@ class ErrorRecoveryTester {
         return await fn()
       } catch (error) {
         if (i === maxRetries - 1) throw error
-        
+
         const backoffDelay = delay * Math.pow(2, i)
         console.log(chalk.yellow(`   リトライ ${i + 1}/${maxRetries} (${backoffDelay}ms待機)`))
-        await new Promise(resolve => setTimeout(resolve, backoffDelay))
+        await new Promise((resolve) => setTimeout(resolve, backoffDelay))
       }
     }
   }
@@ -304,7 +309,7 @@ class ErrorRecoveryTester {
         failureCount = 0 // 成功したらカウンターリセット
       } catch (error) {
         failureCount++
-        
+
         if (failureCount >= threshold) {
           console.log(chalk.red(`⛔ サーキットブレーカー作動 (失敗数: ${failureCount})`))
           console.log(chalk.yellow('   30秒間新規リクエストを停止'))
@@ -325,7 +330,7 @@ async function main() {
   // リカバリー機能のテスト
   const accessToken = process.env.VITE_META_ACCESS_TOKEN || ''
   const accountId = process.env.VITE_META_AD_ACCOUNT_ID || ''
-  
+
   if (accessToken && accountId) {
     const recoveryTester = new ErrorRecoveryTester(accessToken, accountId)
     await recoveryTester.testRetryMechanism()
@@ -334,7 +339,7 @@ async function main() {
 }
 
 // エラーハンドリング
-main().catch(error => {
+main().catch((error) => {
   console.error(chalk.red('\n\n❌ テスト実行中に予期しないエラーが発生しました:'))
   console.error(error)
   process.exit(1)
