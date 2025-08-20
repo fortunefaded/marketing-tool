@@ -5,8 +5,9 @@ import {
   PuzzlePieceIcon,
   MagnifyingGlassIcon,
   CalendarDaysIcon,
-  FolderIcon,
-  PlayIcon,
+  ChartBarIcon,
+  ExclamationTriangleIcon,
+  AcademicCapIcon,
 } from '@heroicons/react/24/outline'
 import { ComponentType } from 'react'
 
@@ -25,9 +26,29 @@ export default function Sidebar() {
 
   const menuItems: MenuItem[] = [
     {
-      name: 'ダッシュボード',
+      name: '統合ダッシュボード',
       path: '/',
       icon: Squares2X2Icon,
+    },
+    {
+      name: 'Meta広告詳細',
+      path: '/meta-dashboard',
+      icon: ChartBarIcon,
+    },
+    {
+      name: '広告疲労度分析',
+      path: '/ad-fatigue',
+      icon: ExclamationTriangleIcon,
+    },
+    {
+      name: '疲労度教育センター',
+      path: '/fatigue-education',
+      icon: AcademicCapIcon,
+    },
+    {
+      name: 'ECForce詳細',
+      path: '/ecforce',
+      icon: ChartBarIcon,
     },
     {
       name: 'カテゴリ分析',
@@ -43,16 +64,6 @@ export default function Sidebar() {
       name: '期間分析',
       path: '/period',
       icon: CalendarDaysIcon,
-    },
-    {
-      name: 'ランディングページ分析',
-      path: '/landing',
-      icon: FolderIcon,
-    },
-    {
-      name: 'コストアロケーション分析',
-      path: '/cost-allocation',
-      icon: PlayIcon,
     },
   ]
 

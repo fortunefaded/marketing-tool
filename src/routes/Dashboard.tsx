@@ -3,7 +3,13 @@ import { useQuery } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import { useVibeLogger } from '../hooks/useVibeLogger'
 import MetricCard, { MetricData } from '../components/MetricCard'
-import { CalendarIcon, ChevronDownIcon } from '@heroicons/react/24/outline'
+import {
+  CalendarIcon,
+  ChevronDownIcon,
+  ChartBarIcon,
+  ArrowRightIcon,
+} from '@heroicons/react/24/outline'
+import { Link } from 'react-router-dom'
 
 export default function Dashboard() {
   const logger = useVibeLogger('Dashboard')
@@ -203,6 +209,27 @@ export default function Dashboard() {
               onClick={() => logger.action('メトリックカードクリック', { metric: metric.label })}
             />
           ))}
+        </div>
+
+        {/* Meta広告ダッシュボードへのクイックアクセス */}
+        <div className="mb-8">
+          <Link
+            to="/meta-dashboard"
+            className="block bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-6 shadow-sm hover:shadow-lg transition-shadow"
+          >
+            <div className="flex items-center justify-between text-white">
+              <div className="flex items-center space-x-4">
+                <ChartBarIcon className="h-10 w-10" />
+                <div>
+                  <h3 className="text-lg font-bold">Meta広告ダッシュボード</h3>
+                  <p className="text-sm text-blue-100">
+                    リアルタイム分析・比較分析・アラート機能を確認
+                  </p>
+                </div>
+              </div>
+              <ArrowRightIcon className="h-6 w-6" />
+            </div>
+          </Link>
         </div>
 
         <div className="mb-8">
