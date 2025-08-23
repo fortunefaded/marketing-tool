@@ -13,31 +13,31 @@ export const fetchInstagramMetrics = mutation({
   handler: async (ctx, args) => {
     // Instagram Insights APIから取得する指標
     // const metrics = [
-      // エンゲージメント系
-      'saved',                    // 保存数（最重要）
-      'video_views',             // 動画再生数
-      'shares',                  // シェア数
-      
-      // プロフィール系
-      'profile_visits',          // プロフィール訪問数
-      'follows',                 // フォロー数
-      'website_clicks',          // ウェブサイトクリック
-      
-      // リーチの質
-      'reached_audience',        // リーチしたユーザー
-      'impressions_by_source',   // ソース別インプレッション
-      
-      // Stories特有（該当する場合）
-      'stories_replies',         // ストーリーズ返信
-      'stories_exits',          // 離脱数
-      'stories_taps_forward',   // 次へタップ
-      'stories_taps_back',      // 前へタップ
-      
-      // Reels特有（該当する場合）
-      'reels_plays',            // リール再生数
-      'reels_interactions',     // インタラクション総数
-      'average_watch_time'      // 平均視聴時間
-    ];
+    //   // エンゲージメント系
+    //   'saved',                    // 保存数（最重要）
+    //   'video_views',             // 動画再生数
+    //   'shares',                  // シェア数
+    //   
+    //   // プロフィール系
+    //   'profile_visits',          // プロフィール訪問数
+    //   'follows',                 // フォロー数
+    //   'website_clicks',          // ウェブサイトクリック
+    //   
+    //   // リーチの質
+    //   'reached_audience',        // リーチしたユーザー
+    //   'impressions_by_source',   // ソース別インプレッション
+    //   
+    //   // Stories特有（該当する場合）
+    //   'stories_replies',         // ストーリーズ返信
+    //   'stories_exits',          // 離脱数
+    //   'stories_taps_forward',   // 次へタップ
+    //   'stories_taps_back',      // 前へタップ
+    //   
+    //   // Reels特有（該当する場合）
+    //   'reels_plays',            // リール再生数
+    //   'reels_interactions',     // インタラクション総数
+    //   'average_watch_time'      // 平均視聴時間
+    // ];
     
     // 既存のmetaInsightsデータから関連情報を取得
     const insights = await ctx.db
