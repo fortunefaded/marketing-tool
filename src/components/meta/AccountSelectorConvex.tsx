@@ -43,7 +43,7 @@ export const AccountSelectorConvex: React.FC<AccountSelectorProps> = ({
         onAccountChange(active)
       }
     } catch (error) {
-      console.error('Failed to load accounts:', error)
+      logger.error('Failed to load accounts:', error)
     } finally {
       setIsLoading(false)
     }
@@ -59,7 +59,7 @@ export const AccountSelectorConvex: React.FC<AccountSelectorProps> = ({
         onAccountChange(account)
       }
     } catch (error) {
-      console.error('Failed to select account:', error)
+      logger.error('Failed to select account:', error)
     }
   }
 
@@ -69,7 +69,7 @@ export const AccountSelectorConvex: React.FC<AccountSelectorProps> = ({
         await manager.removeAccount(accountId)
         await loadAccounts()
       } catch (error) {
-        console.error('Failed to remove account:', error)
+        logger.error('Failed to remove account:', error)
       }
     }
   }

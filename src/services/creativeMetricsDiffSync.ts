@@ -36,12 +36,12 @@ export class CreativeMetricsDiffSync {
 
     // 完全同期が必要かチェック
     if (forceFullSync || !lastSyncTime || this.needsFullSync(lastSyncTime)) {
-      console.log('完全同期を実行')
+      logger.debug('完全同期を実行')
       return this.performFullSync(accountId, options, startTime)
     }
 
     // 差分同期を実行
-    console.log(`差分同期を実行 (最終同期: ${new Date(lastSyncTime).toLocaleString()})`)
+    logger.debug(`差分同期を実行 (最終同期: ${new Date(lastSyncTime).toLocaleString()})`)
     return this.performDiffSync(accountId, options, lastSyncTime, startTime)
   }
 

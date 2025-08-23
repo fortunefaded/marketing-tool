@@ -2,63 +2,68 @@ import React, { useState, useEffect } from 'react'
 import {
   CogIcon,
   CalendarIcon,
-  ChartBarIcon,
   ExclamationTriangleIcon,
   CheckIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline'
+import { useSyncSettingsConvex } from '../../hooks/useSyncSettingsConvex'
 
 interface SyncSettingsProps {
+  accountId?: string
   onSettingsChange?: (settings: SyncSettingsData) => void
 }
 
 export interface SyncSettingsData {
-  maxMonths: number
-  limitPerRequest: number
-  skipCreatives: boolean
+  autoSync: boolean
+  syncInterval: 'manual' | 'hourly' | 'daily' | 'weekly'
   debugMode: boolean
-}
-
-const DEFAULT_SETTINGS: SyncSettingsData = {
-  maxMonths: 37, // フル同期のデフォルト
-  limitPerRequest: 500, // 1リクエストあたりの最大件数
-  skipCreatives: false, // クリエイティブ取得をスキップ
-  debugMode: false, // デバッグモード
+  retentionDays: number
+  excludeTestCampaigns: boolean
+  maxMonths?: number
+  limitPerRequest?: number
+  skipCreatives?: boolean
 }
 
 const PRESET_OPTIONS = [
-  { label: '1週間', months: 0.25, description: 'テスト用（最小）' },
-  { label: '1ヶ月', months: 1, description: '開発用' },
-  { label: '3ヶ月', months: 3, description: '四半期分析' },
-  { label: '6ヶ月', months: 6, description: '半期分析' },
-  { label: '1年', months: 12, description: '年次分析' },
-  { label: '2年', months: 24, description: '長期分析' },
-  { label: '3年（推奨）', months: 37, description: 'Meta APIの最大期間' },
+  { label: '1週間', days: 7, description: 'テスト用（最小）' },
+  { label: '1ヶ月', days: 30, description: '開発用' },
+  { label: '3ヶ月', days: 90, description: '四半期分析' },
+  { label: '6ヶ月', days: 180, description: '半期分析' },
+  { label: '1年', days: 365, description: '年次分析' },
+  { label: '2年', days: 730, description: '長期分析' },
+  { label: '3年（推奨）', days: 1095, description: 'Meta APIの最大期間' },
 ]
 
-export const SyncSettings: React.FC<SyncSettingsProps> = ({ onSettingsChange }) => {
+export const SyncSettings: React.FC<SyncSettingsProps> = ({ accountId, onSettingsChange }) => {
   const [isOpen, setIsOpen] = useState(false)
-  const [settings, setSettings] = useState<SyncSettingsData>(() => {
-    // LocalStorageから設定を読み込み
-    const saved = localStorage.getItem('meta_sync_settings')
-    if (saved) {
-      try {
-        return { ...DEFAULT_SETTINGS, ...JSON.parse(saved) }
-      } catch (e) {
-        console.error('設定の読み込みエラー:', e)
-      }
-    }
-    return DEFAULT_SETTINGS
-  })
+  
+  // Convexフックを使用
+  const {
+    settings,
+    updateSetting,
+    resetSettings,
+  } = useSyncSettingsConvex(accountId || '')
 
   useEffect(() => {
-    // 設定を保存
-    localStorage.setItem('meta_sync_settings', JSON.stringify(settings))
+    // 設定が変更されたらコールバックを呼ぶ
     onSettingsChange?.(settings)
   }, [settings, onSettingsChange])
 
-  const updateSetting = <K extends keyof SyncSettingsData>(key: K, value: SyncSettingsData[K]) => {
-    setSettings((prev) => ({ ...prev, [key]: value }))
+  // updateSettingの非同期ラッパー
+  const handleUpdateSetting = async <K extends keyof SyncSettingsData>(key: K, value: SyncSettingsData[K]) => {
+    try {
+      await updateSetting(key, value)
+    } catch (error) {
+      logger.error('設定の更新に失敗しました:', error)
+    }
+  }
+
+  const handleResetSettings = async () => {
+    try {
+      await resetSettings()
+    } catch (error) {
+      logger.error('設定のリセットに失敗しました:', error)
+    }
   }
 
   return (
@@ -106,10 +111,10 @@ export const SyncSettings: React.FC<SyncSettingsProps> = ({ onSettingsChange }) 
                     <div className="grid grid-cols-2 gap-2">
                       {PRESET_OPTIONS.map((option) => (
                         <button
-                          key={option.months}
-                          onClick={() => updateSetting('maxMonths', option.months)}
+                          key={option.days}
+                          onClick={() => handleUpdateSetting('retentionDays', option.days)}
                           className={`px-3 py-2 text-sm rounded-md border ${
-                            settings.maxMonths === option.months
+                            settings.retentionDays === option.days
                               ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
                               : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
                           }`}
@@ -120,38 +125,19 @@ export const SyncSettings: React.FC<SyncSettingsProps> = ({ onSettingsChange }) 
                       ))}
                     </div>
                     <div className="mt-2">
-                      <label className="text-xs text-gray-600">カスタム期間（月数）:</label>
+                      <label className="text-xs text-gray-600">カスタム期間（日数）:</label>
                       <input
                         type="number"
-                        min="0.1"
-                        max="60"
-                        step="0.1"
-                        value={settings.maxMonths}
+                        min="1"
+                        max="1095"
+                        step="1"
+                        value={settings.retentionDays}
                         onChange={(e) =>
-                          updateSetting('maxMonths', parseFloat(e.target.value) || 1)
+                          handleUpdateSetting('retentionDays', parseInt(e.target.value) || 30)
                         }
                         className="ml-2 w-20 px-2 py-1 text-sm border border-gray-300 rounded-md"
                       />
                     </div>
-                  </div>
-
-                  {/* リクエストあたりの件数 */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      <ChartBarIcon className="inline h-4 w-4 mr-1" />
-                      1リクエストあたりの最大件数
-                    </label>
-                    <select
-                      value={settings.limitPerRequest}
-                      onChange={(e) => updateSetting('limitPerRequest', parseInt(e.target.value))}
-                      className="block w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                    >
-                      <option value={50}>50件（高速・テスト用）</option>
-                      <option value={100}>100件（開発用）</option>
-                      <option value={250}>250件（バランス）</option>
-                      <option value={500}>500件（デフォルト）</option>
-                      <option value={1000}>1000件（大量データ）</option>
-                    </select>
                   </div>
 
                   {/* オプション */}
@@ -159,12 +145,41 @@ export const SyncSettings: React.FC<SyncSettingsProps> = ({ onSettingsChange }) 
                     <label className="flex items-center">
                       <input
                         type="checkbox"
-                        checked={settings.skipCreatives}
-                        onChange={(e) => updateSetting('skipCreatives', e.target.checked)}
+                        checked={settings.autoSync}
+                        onChange={(e) => handleUpdateSetting('autoSync', e.target.checked)}
                         className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                       />
                       <span className="ml-2 text-sm text-gray-700">
-                        クリエイティブ取得をスキップ（高速化）
+                        自動同期を有効にする
+                      </span>
+                    </label>
+
+                    {settings.autoSync && (
+                      <div className="ml-6">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          同期間隔
+                        </label>
+                        <select
+                          value={settings.syncInterval}
+                          onChange={(e) => handleUpdateSetting('syncInterval', e.target.value as any)}
+                          className="block w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        >
+                          <option value="manual">手動</option>
+                          <option value="hourly">毎時</option>
+                          <option value="daily">毎日</option>
+                          <option value="weekly">毎週</option>
+                        </select>
+                      </div>
+                    )}
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={settings.excludeTestCampaigns}
+                        onChange={(e) => handleUpdateSetting('excludeTestCampaigns', e.target.checked)}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">
+                        テストキャンペーンを除外
                       </span>
                     </label>
 
@@ -172,7 +187,7 @@ export const SyncSettings: React.FC<SyncSettingsProps> = ({ onSettingsChange }) 
                       <input
                         type="checkbox"
                         checked={settings.debugMode}
-                        onChange={(e) => updateSetting('debugMode', e.target.checked)}
+                        onChange={(e) => handleUpdateSetting('debugMode', e.target.checked)}
                         className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                       />
                       <span className="ml-2 text-sm text-gray-700">
@@ -182,7 +197,7 @@ export const SyncSettings: React.FC<SyncSettingsProps> = ({ onSettingsChange }) 
                   </div>
 
                   {/* 警告メッセージ */}
-                  {settings.maxMonths < 1 && (
+                  {settings.retentionDays < 30 && (
                     <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
                       <div className="flex">
                         <ExclamationTriangleIcon className="h-5 w-5 text-yellow-400" />
@@ -199,9 +214,7 @@ export const SyncSettings: React.FC<SyncSettingsProps> = ({ onSettingsChange }) 
 
               <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
                 <button
-                  onClick={() => {
-                    setSettings(DEFAULT_SETTINGS)
-                  }}
+                  onClick={handleResetSettings}
                   className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
                 >
                   デフォルトに戻す

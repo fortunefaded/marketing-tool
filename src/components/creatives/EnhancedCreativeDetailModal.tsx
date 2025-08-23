@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react'
 import { Fragment } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { XMarkIcon } from '@heroicons/react/24/outline'
+import { logger } from '../../utils/logger'
 import {
   ChartBarIcon,
   CurrencyYenIcon,
@@ -13,15 +14,13 @@ import {
   FireIcon,
   BoltIcon,
   TrophyIcon,
-  ExclamationTriangleIcon,
 } from '@heroicons/react/24/solid'
 import { CreativeData } from './CreativePerformanceGrid'
 import { VideoPlayer } from './VideoPlayer'
 import { CreativeInsights } from './CreativeInsights'
+import { VideoFatigueAnalysis } from '../AdFatigue/VideoFatigueAnalysis'
 import { CreativeFatigueAnalyzer } from '../../services/creativeFatigueAnalyzer'
 import { useAdFatigueRealSafe as useAdFatigueReal } from '../../hooks/useAdFatigueRealSafe'
-import { FatigueScoreCard } from '../AdFatigue/FatigueScoreCard'
-import { FatigueAlert } from '../AdFatigue/FatigueAlert'
 import { MetaAccountManager } from '../../services/metaAccountManager'
 
 interface CreativeDetailModalProps {
@@ -35,6 +34,11 @@ interface CreativeDetailModalProps {
     impressions: number
     clicks: number
     spend: number
+    // 動画メトリクス（オプション）
+    videoViews?: number
+    videoCompletionRate?: number
+    averageWatchTime?: number
+    soundOnRate?: number
   }>
 }
 
@@ -63,7 +67,7 @@ export const EnhancedCreativeDetailModal: React.FC<CreativeDetailModalProps> = (
   useEffect(() => {
     if (activeTab === 'insights' && creative?.adId && !fatigueData && !isCalculating && !error) {
       // 疲労度分析を実行
-      analyzeFatigue(creative.adId).catch(console.error)
+      analyzeFatigue(creative.adId).catch(logger.error)
     }
   }, [activeTab, creative?.adId, fatigueData, isCalculating, error, analyzeFatigue])
 
@@ -491,39 +495,26 @@ export const EnhancedCreativeDetailModal: React.FC<CreativeDetailModalProps> = (
                           </div>
                         </div>
                       ) : (
-                        // Insights Tab - 高度な疲労度分析
+                        // 疲労度分析タブ - 高度な疲労度分析
                         <div className="space-y-4">
-                          {isCalculating ? (
-                            <div className="text-center py-12">
-                              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500 mx-auto"></div>
-                              <p className="mt-2 text-sm text-gray-500">疲労度を分析中...</p>
-                            </div>
-                          ) : error ? (
-                            <div className="text-center py-12">
-                              <ExclamationTriangleIcon className="mx-auto h-12 w-12 text-red-400" />
-                              <p className="mt-2 text-sm text-red-500">{error}</p>
-                            </div>
-                          ) : fatigueData ? (
+                          {creative.type === 'VIDEO' ? (
                             <>
-                              {/* Phase 2の高度な疲労度分析表示 */}
-                              <FatigueScoreCard
-                                fatigueScore={fatigueData.fatigueScore}
-                                metrics={fatigueData.metrics}
-                                adName={fatigueData.adName}
+                              {/* 動画クリエイティブの場合は専用の分析を表示 */}
+                              <VideoFatigueAnalysis
+                                creativeName={creative.name}
+                                videoId={creative.videoId}
+                                performanceHistory={performanceHistory.map(h => ({
+                                  date: h.date,
+                                  videoViews: h.videoViews || h.impressions * 0.3,
+                                  videoCompletionRate: h.videoCompletionRate || 65,
+                                  averageWatchTime: h.averageWatchTime || 12,
+                                  soundOnRate: h.soundOnRate || 0.4,
+                                  ctr: h.ctr,
+                                  frequency: h.frequency,
+                                }))}
                               />
-
-                              {/* 疲労度アラート */}
-                              {fatigueData.fatigueScore.status === 'critical' && (
-                                <FatigueAlert
-                                  adName={creative.creative_name || ''}
-                                  level="critical"
-                                  primaryIssue="広告疲労"
-                                  recommendedAction={fatigueData.recommendedAction}
-                                  metrics={fatigueData.metrics}
-                                />
-                              )}
-
-                              {/* 既存のCreativeInsightsも表示（追加情報として） */}
+                              
+                              {/* 既存の疲労度分析（補足情報として） */}
                               {fatigueAnalysis && (
                                 <div className="mt-6 pt-6 border-t border-gray-200">
                                   <CreativeInsights
@@ -536,12 +527,24 @@ export const EnhancedCreativeDetailModal: React.FC<CreativeDetailModalProps> = (
                               )}
                             </>
                           ) : (
-                            <div className="text-center py-12">
-                              <ChartBarIcon className="mx-auto h-12 w-12 text-gray-400" />
-                              <p className="mt-2 text-sm text-gray-500">
-                                データを取得中...しばらくお待ちください
-                              </p>
-                            </div>
+                            <>
+                              {/* 通常の疲労度分析 */}
+                              {fatigueAnalysis ? (
+                                <CreativeInsights
+                                  analysis={fatigueAnalysis}
+                                  performanceHistory={performanceHistory}
+                                  creativeName={creative.name}
+                                  compact={false}
+                                />
+                              ) : (
+                                <div className="text-center py-12">
+                                  <ChartBarIcon className="mx-auto h-12 w-12 text-gray-400" />
+                                  <p className="mt-2 text-sm text-gray-500">
+                                    分析に必要なデータが不足しています
+                                  </p>
+                                </div>
+                              )}
+                            </>
                           )}
                         </div>
                       )}

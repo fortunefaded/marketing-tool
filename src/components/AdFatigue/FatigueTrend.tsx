@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -13,6 +13,7 @@ import {
 import { Line } from 'react-chartjs-2'
 import { format } from 'date-fns'
 import { ja } from 'date-fns/locale'
+import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline'
 
 ChartJS.register(
   CategoryScale,
@@ -48,6 +49,10 @@ export const FatigueTrend: React.FC<FatigueTrendProps> = ({
   showMetrics = false,
   height = 300,
 }) => {
+  // 折りたたみ状態の管理
+  const [isExpanded, setIsExpanded] = useState(true)
+  const [isFrequencyExpanded, setIsFrequencyExpanded] = useState(true)
+  const [isPerformanceExpanded, setIsPerformanceExpanded] = useState(true)
   // データの整形
   const chartData = useMemo(() => {
     const sortedData = [...data].sort(
@@ -164,7 +169,7 @@ export const FatigueTrend: React.FC<FatigueTrendProps> = ({
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        position: 'top' as const,
+        position: 'bottom' as const,
         labels: {
           boxWidth: 12,
           padding: 15,
@@ -174,15 +179,7 @@ export const FatigueTrend: React.FC<FatigueTrendProps> = ({
         },
       },
       title: {
-        display: true,
-        text: '疲労度スコアの推移',
-        font: {
-          size: 16,
-          weight: 'bold' as const,
-        },
-        padding: {
-          bottom: 20,
-        },
+        display: false,
       },
       tooltip: {
         mode: 'index' as const,
@@ -243,7 +240,7 @@ export const FatigueTrend: React.FC<FatigueTrendProps> = ({
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        position: 'top' as const,
+        position: 'bottom' as const,
         labels: {
           boxWidth: 12,
           padding: 10,
@@ -336,30 +333,55 @@ export const FatigueTrend: React.FC<FatigueTrendProps> = ({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="w-full space-y-6">
       {/* 疲労度スコアグラフ */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <div style={{ height }}>
-          <Line data={chartData} options={options} plugins={[dangerZonePlugin]} />
-        </div>
+      <div className="w-full">
+        <div className="bg-white rounded-lg shadow">
+          <div className="p-4 md:p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">疲労度スコアの推移</h3>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setIsExpanded(!isExpanded)
+                }}
+                className="p-1 hover:bg-gray-100 rounded transition-colors"
+              >
+                {isExpanded ? (
+                  <ChevronUpIcon className="h-5 w-5 text-gray-500" />
+                ) : (
+                  <ChevronDownIcon className="h-5 w-5 text-gray-500" />
+                )}
+              </button>
+            </div>
+            
+            {isExpanded && (
+              <>
+                <div className="w-full" style={{ height: `${height}px` }}>
+                  <Line data={chartData} options={options} plugins={[dangerZonePlugin]} />
+                </div>
 
-        {/* 凡例 */}
-        <div className="mt-4 flex flex-wrap gap-4 text-xs text-gray-600">
-          <div className="flex items-center">
-            <div className="w-3 h-3 bg-red-100 rounded mr-2"></div>
-            <span>危険域 (70-100)</span>
-          </div>
-          <div className="flex items-center">
-            <div className="w-3 h-3 bg-orange-100 rounded mr-2"></div>
-            <span>警告域 (50-70)</span>
-          </div>
-          <div className="flex items-center">
-            <div className="w-3 h-3 bg-yellow-100 rounded mr-2"></div>
-            <span>注意域 (30-50)</span>
-          </div>
-          <div className="flex items-center">
-            <div className="w-3 h-3 bg-green-100 rounded mr-2"></div>
-            <span>健全域 (0-30)</span>
+                {/* 凡例 */}
+                <div className="mt-4 flex flex-wrap gap-3 text-xs text-gray-600 border-t pt-3">
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-red-100 border border-red-300 rounded mr-2"></div>
+                    <span>危険域 (70-100)</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-orange-100 border border-orange-300 rounded mr-2"></div>
+                    <span>警告域 (50-70)</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-yellow-100 border border-yellow-300 rounded mr-2"></div>
+                    <span>注意域 (30-50)</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-green-100 border border-green-300 rounded mr-2"></div>
+                    <span>健全域 (0-30)</span>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -368,18 +390,60 @@ export const FatigueTrend: React.FC<FatigueTrendProps> = ({
       {showMetrics && metricsChartData && (
         <>
           {/* フリークエンシー */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h4 className="text-sm font-medium text-gray-700 mb-4">フリークエンシーの推移</h4>
-            <div style={{ height: 200 }}>
-              <Line data={metricsChartData.frequency} options={metricsOptions} />
+          <div className="w-full">
+            <div className="bg-white rounded-lg shadow">
+              <div className="p-4 md:p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="text-md font-semibold text-gray-900">フリークエンシーの推移</h4>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setIsFrequencyExpanded(!isFrequencyExpanded)
+                    }}
+                    className="p-1 hover:bg-gray-100 rounded transition-colors"
+                  >
+                    {isFrequencyExpanded ? (
+                      <ChevronUpIcon className="h-5 w-5 text-gray-500" />
+                    ) : (
+                      <ChevronDownIcon className="h-5 w-5 text-gray-500" />
+                    )}
+                  </button>
+                </div>
+                {isFrequencyExpanded && (
+                  <div className="w-full" style={{ height: '250px' }}>
+                    <Line data={metricsChartData.frequency} options={metricsOptions} />
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
           {/* パフォーマンスメトリクス */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h4 className="text-sm font-medium text-gray-700 mb-4">パフォーマンス指標の推移</h4>
-            <div style={{ height: 200 }}>
-              <Line data={metricsChartData.performance} options={metricsOptions} />
+          <div className="w-full">
+            <div className="bg-white rounded-lg shadow">
+              <div className="p-4 md:p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="text-md font-semibold text-gray-900">エンゲージメント指標</h4>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setIsPerformanceExpanded(!isPerformanceExpanded)
+                    }}
+                    className="p-1 hover:bg-gray-100 rounded transition-colors"
+                  >
+                    {isPerformanceExpanded ? (
+                      <ChevronUpIcon className="h-5 w-5 text-gray-500" />
+                    ) : (
+                      <ChevronDownIcon className="h-5 w-5 text-gray-500" />
+                    )}
+                  </button>
+                </div>
+                {isPerformanceExpanded && (
+                  <div className="w-full" style={{ height: '250px' }}>
+                    <Line data={metricsChartData.performance} options={metricsOptions} />
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </>

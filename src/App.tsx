@@ -18,8 +18,9 @@ import { ECForceContainer } from './pages/ECForceContainer'
 import { IntegratedDashboard } from './pages/IntegratedDashboard'
 import { ReportManagement } from './pages/ReportManagement'
 import { SettingsManagement } from './pages/SettingsManagement'
-import { FatigueDashboard } from './components/AdFatigue/FatigueDashboard'
+import { FatigueDashboardWithAccount } from './components/AdFatigue/FatigueDashboardWithAccount'
 import { FatigueEducation } from './pages/FatigueEducation'
+import { NewMetaApiTest } from './components/test/NewMetaApiTest'
 import Sidebar from './components/Sidebar'
 import Header from './components/Header'
 import { vibe } from './lib/vibelogger'
@@ -73,8 +74,9 @@ function AppContent() {
             <Route path="/period" element={<PeriodAnalysis />} />
             <Route path="/reports" element={<ReportManagement />} />
             <Route path="/settings" element={<SettingsManagement />} />
-            <Route path="/ad-fatigue" element={<FatigueDashboard accountId="test-account-001" />} />
+            <Route path="/ad-fatigue" element={<FatigueDashboardWithAccount />} />
             <Route path="/fatigue-education" element={<FatigueEducation />} />
+            <Route path="/test-new-meta-api" element={<NewMetaApiTest />} />
             <Route
               path="/media"
               element={

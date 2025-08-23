@@ -1,6 +1,6 @@
 import { describe, test, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { FatigueDashboard } from '../FatigueDashboard'
+import { FatigueDashboardFull as FatigueDashboard } from '../FatigueDashboardFull'
 // import React from 'react'
 
 // より現実的なモックデータ

@@ -35,30 +35,30 @@ export class MetaSyncService {
     // Set up token refresh handler
     this.client.setTokenRefreshHandler(async () => {
       // In a real implementation, this would refresh the token from your auth server
-      console.log('Token refresh requested')
+      logger.debug('Token refresh requested')
       // For now, just return the same token
       return accessToken
     })
 
     // Set up event listeners for monitoring
     this.client.on('request', (event) => {
-      console.log(`[Meta API] Request: ${event.method} ${event.url}`)
+      logger.debug(`[Meta API] Request: ${event.method} ${event.url}`)
     })
 
     this.client.on('response', (event) => {
-      console.log(`[Meta API] Response: ${event.status} in ${event.duration}ms`)
+      logger.debug(`[Meta API] Response: ${event.status} in ${event.duration}ms`)
     })
 
     this.client.on('error', (event) => {
-      console.error(`[Meta API] Error on attempt ${event.attempt}:`, event.error)
+      logger.error(`[Meta API] Error on attempt ${event.attempt}:`, event.error)
     })
 
     this.client.on('circuit-breaker-open', (event) => {
-      console.warn('[Meta API] Circuit breaker opened:', event)
+      logger.warn('[Meta API] Circuit breaker opened:', event)
     })
 
     this.client.on('rate-limit', (event) => {
-      console.warn('[Meta API] Rate limit approaching:', event)
+      logger.warn('[Meta API] Rate limit approaching:', event)
     })
 
     this.convex = new ConvexClient(import.meta.env.VITE_CONVEX_URL!)
@@ -66,11 +66,11 @@ export class MetaSyncService {
 
   async syncCampaigns(options: SyncOptions = {}) {
     try {
-      console.log('[Sync] Starting campaign sync...')
+      logger.debug('[Sync] Starting campaign sync...')
 
       // Get campaigns from Meta API with caching
       const campaigns = await this.client.getCampaigns({ cache: true })
-      console.log(`[Sync] Fetched ${campaigns.length} campaigns from Meta API`)
+      logger.debug(`[Sync] Fetched ${campaigns.length} campaigns from Meta API`)
 
       // Apply filters if specified
       let filteredCampaigns = campaigns
@@ -122,17 +122,17 @@ export class MetaSyncService {
         campaigns: transformedCampaigns,
       })
 
-      console.log('[Sync] Campaign sync completed:', result)
+      logger.debug('[Sync] Campaign sync completed:', result)
       return result
     } catch (error) {
-      console.error('[Sync] Campaign sync failed:', error)
+      logger.error('[Sync] Campaign sync failed:', error)
       throw error
     }
   }
 
   async syncCreatives(campaignIds?: string[]) {
     try {
-      console.log('[Sync] Starting creative sync...')
+      logger.debug('[Sync] Starting creative sync...')
 
       // If no campaign IDs provided, get all campaigns first
       if (!campaignIds) {
@@ -148,7 +148,7 @@ export class MetaSyncService {
         allCreatives.push(...creatives)
       }
 
-      console.log(`[Sync] Fetched ${allCreatives.length} creatives from Meta API`)
+      logger.debug(`[Sync] Fetched ${allCreatives.length} creatives from Meta API`)
 
       // Transform creatives for Convex
       // TODO: Implement when syncMetaCreatives is available
@@ -171,10 +171,10 @@ export class MetaSyncService {
       // })
       const result = 'Not implemented'
 
-      console.log('[Sync] Creative sync completed:', result)
+      logger.debug('[Sync] Creative sync completed:', result)
       return result
     } catch (error) {
-      console.error('[Sync] Creative sync failed:', error)
+      logger.error('[Sync] Creative sync failed:', error)
       throw error
     }
   }
@@ -193,10 +193,10 @@ export class MetaSyncService {
       // })
       const result = { success: false, message: 'Not implemented' }
 
-      console.log(`[Sync] Scheduled ${_type} sync with ${_interval} interval:`, result)
+      logger.debug(`[Sync] Scheduled ${_type} sync with ${_interval} interval:`, result)
       return result
     } catch (error) {
-      console.error('[Sync] Failed to schedule sync:', error)
+      logger.error('[Sync] Failed to schedule sync:', error)
       throw error
     }
   }
@@ -210,7 +210,7 @@ export class MetaSyncService {
       const history: any[] = []
       return history
     } catch (error) {
-      console.error('[Sync] Failed to get sync history:', error)
+      logger.error('[Sync] Failed to get sync history:', error)
       throw error
     }
   }

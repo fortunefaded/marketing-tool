@@ -257,7 +257,7 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ data }) => {
 
   // エクスポート処理
   const handleExport = (format: 'pdf' | 'excel' | 'csv') => {
-    console.log(`Exporting comparison report in ${format} format`)
+    logger.debug(`Exporting comparison report in ${format} format`)
     // 実際のエクスポート処理はここに実装
   }
 

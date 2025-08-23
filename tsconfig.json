@@ -17,7 +17,14 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@modules/*": ["./src/modules/*"],
+      "@meta/*": ["./src/modules/meta/*"],
+      "@creative/*": ["./src/modules/creative/*"],
+      "@ad-fatigue/*": ["./src/modules/ad-fatigue/*"],
+      "@ecforce/*": ["./src/modules/ecforce/*"],
+      "@storage/*": ["./src/modules/storage/*"],
+      "@shared/*": ["./src/modules/shared/*"]
     },
     "baseUrl": "."
   },

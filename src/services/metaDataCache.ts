@@ -44,7 +44,7 @@ export class MetaDataCache {
         history.push(...JSON.parse(existingHistory))
       }
     } catch (e) {
-      console.error('履歴の読み込みエラー:', e)
+      logger.error('履歴の読み込みエラー:', e)
     }
 
     // 最新の変更を追加
@@ -59,7 +59,7 @@ export class MetaDataCache {
     try {
       localStorage.setItem(key, JSON.stringify(recentHistory))
     } catch (e) {
-      console.error('履歴の保存エラー:', e)
+      logger.error('履歴の保存エラー:', e)
     }
   }
 
@@ -72,7 +72,7 @@ export class MetaDataCache {
         return JSON.parse(history)
       }
     } catch (e) {
-      console.error('履歴の読み込みエラー:', e)
+      logger.error('履歴の読み込みエラー:', e)
     }
     return []
   }
@@ -97,8 +97,8 @@ export class MetaDataCache {
 
     // データ数の変化を警告
     if (existingCount > 100 && cachedData.length < existingCount * 0.5) {
-      console.warn(`⚠️ データ数が大幅に減少しています: ${existingCount}件 → ${cachedData.length}件`)
-      console.trace('データ減少の呼び出し元:')
+      logger.warn(`⚠️ データ数が大幅に減少しています: ${existingCount}件 → ${cachedData.length}件`)
+      logger.debug('データ減少の呼び出し元:')
     }
 
     // データ変更履歴を記録
@@ -115,24 +115,24 @@ export class MetaDataCache {
       const compressed = LZString.compressToUTF16(jsonStr)
       const originalSize = new Blob([jsonStr]).size
       const compressedSize = new Blob([compressed]).size
-      console.log(
+      logger.debug(
         `データ圧縮: ${(originalSize / 1024).toFixed(1)}KB → ${(compressedSize / 1024).toFixed(1)}KB (${Math.round((1 - compressedSize / originalSize) * 100)}%削減)`
       )
 
       // 重要: 既存のデータを完全に置き換える（マージはmergeInsightsで行う）
       localStorage.setItem(key, compressed)
-      console.log(`キャッシュに保存: ${cachedData.length}件 (アカウント: ${accountId})`)
+      logger.debug(`キャッシュに保存: ${cachedData.length}件 (アカウント: ${accountId})`)
 
       // 正常保存完了の履歴も記録
       if (existingCount !== cachedData.length) {
-        console.log(`データ数変更: ${existingCount} → ${cachedData.length}`)
+        logger.debug(`データ数変更: ${existingCount} → ${cachedData.length}`)
       }
     } catch (error) {
-      console.error('キャッシュ保存エラー:', error)
+      logger.error('キャッシュ保存エラー:', error)
 
       // ストレージの状態を確認
       const storageInfo = this.getStorageInfo()
-      console.warn(
+      logger.warn(
         `ストレージ使用状況: ${storageInfo.usedKB}KB / ${storageInfo.estimatedMaxKB}KB (${storageInfo.percentUsed}%)`
       )
 
@@ -151,7 +151,7 @@ export class MetaDataCache {
           })
           const retainCount = Math.floor(sortedData.length * 0.7) // 70%を保持
           const reducedData = sortedData.slice(-retainCount) // 新しいデータを保持
-          console.log(
+          logger.debug(
             `容量不足のため、古いデータを削減: ${cachedData.length}件 → ${reducedData.length}件`
           )
 
@@ -159,12 +159,12 @@ export class MetaDataCache {
             const jsonStr = JSON.stringify(reducedData)
             const compressed = LZString.compressToUTF16(jsonStr)
             localStorage.setItem(key, compressed)
-            console.log('削減後のキャッシュ保存成功')
+            logger.debug('削減後のキャッシュ保存成功')
 
             // ユーザーに通知
-            console.warn('⚠️ ストレージ容量不足のため、古いデータの一部を削除しました。')
+            logger.warn('⚠️ ストレージ容量不足のため、古いデータの一部を削除しました。')
           } catch (retryError) {
-            console.error('キャッシュ再保存失敗:', retryError)
+            logger.error('キャッシュ再保存失敗:', retryError)
             // それでも失敗したら、最新の90日分のみ保存
             const ninetyDaysAgo = new Date()
             ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
@@ -179,12 +179,12 @@ export class MetaDataCache {
                 const jsonStr = JSON.stringify(recentData)
                 const compressed = LZString.compressToUTF16(jsonStr)
                 localStorage.setItem(key, compressed)
-                console.log(`最新90日分のみ保存: ${recentData.length}件`)
-                console.warn(
+                logger.debug(`最新90日分のみ保存: ${recentData.length}件`)
+                logger.warn(
                   '⚠️ ストレージ容量が極めて不足しているため、最新90日分のデータのみ保持しています。'
                 )
               } catch (finalError) {
-                console.error('最終的な保存も失敗:', finalError)
+                logger.error('最終的な保存も失敗:', finalError)
                 throw new Error(
                   'ストレージ容量が不足しています。ブラウザのキャッシュをクリアしてください。'
                 )
@@ -195,9 +195,9 @@ export class MetaDataCache {
           // データが少ない場合は圧縮なしで保存を試みる
           try {
             localStorage.setItem(key, JSON.stringify(cachedData))
-            console.log('圧縮なしでキャッシュ保存成功')
+            logger.debug('圧縮なしでキャッシュ保存成功')
           } catch (retryError) {
-            console.error('圧縮なしでも保存失敗:', retryError)
+            logger.error('圧縮なしでも保存失敗:', retryError)
             throw new Error(
               'ストレージ容量が不足しています。ブラウザのキャッシュをクリアしてください。'
             )
@@ -227,11 +227,11 @@ export class MetaDataCache {
         }
 
         const parsed = JSON.parse(jsonStr) as CachedInsightsData[]
-        console.log(`キャッシュから読み込み: ${parsed.length}件 (アカウント: ${accountId})`)
+        logger.debug(`キャッシュから読み込み: ${parsed.length}件 (アカウント: ${accountId})`)
         return parsed
       }
     } catch (error) {
-      console.error('キャッシュ読み込みエラー:', error)
+      logger.error('キャッシュ読み込みエラー:', error)
     }
     return []
   }
@@ -275,11 +275,11 @@ export class MetaDataCache {
     })
 
     const merged = Array.from(existingMap.values())
-    console.log(`データマージ完了: ${existing.length} + ${newData.length} = ${merged.length}件`)
+    logger.debug(`データマージ完了: ${existing.length} + ${newData.length} = ${merged.length}件`)
 
     // 広告レベルのデータ数を確認
     const adLevelData = merged.filter((item) => item.ad_id)
-    console.log(`広告レベルデータ: ${adLevelData.length}件`)
+    logger.debug(`広告レベルデータ: ${adLevelData.length}件`)
 
     return merged
   }
@@ -296,9 +296,9 @@ export class MetaDataCache {
 
     try {
       localStorage.setItem(key, JSON.stringify(updated))
-      console.log('同期ステータス保存:', updated)
+      logger.debug('同期ステータス保存:', updated)
     } catch (error) {
-      console.error('同期ステータス保存エラー:', error)
+      logger.error('同期ステータス保存エラー:', error)
     }
   }
 
@@ -311,7 +311,7 @@ export class MetaDataCache {
         return JSON.parse(data) as DataSyncStatus
       }
     } catch (error) {
-      console.error('同期ステータス読み込みエラー:', error)
+      logger.error('同期ステータス読み込みエラー:', error)
     }
 
     return {
@@ -359,7 +359,7 @@ export class MetaDataCache {
 
     keysToRemove.forEach((key) => {
       localStorage.removeItem(key)
-      console.log(`古いキャッシュを削除: ${key}`)
+      logger.debug(`古いキャッシュを削除: ${key}`)
     })
   }
 
@@ -370,11 +370,11 @@ export class MetaDataCache {
 
     // クリア前のデータ数を記録
     const existingData = this.getInsights(accountId)
-    console.log(`キャッシュクリア前のデータ数: ${existingData.length}件`)
+    logger.debug(`キャッシュクリア前のデータ数: ${existingData.length}件`)
 
     localStorage.removeItem(dataKey)
     localStorage.removeItem(statusKey)
-    console.log(`アカウントキャッシュをクリア: ${accountId}`)
+    logger.debug(`アカウントキャッシュをクリア: ${accountId}`)
 
     // データ変更履歴を記録
     this.recordDataChange(accountId, {
@@ -487,7 +487,7 @@ export class MetaDataCache {
       }
     }
 
-    console.log(`欠損期間検出: ${missing.length}個の月範囲`, missing)
+    logger.debug(`欠損期間検出: ${missing.length}個の月範囲`, missing)
     return missing
   }
 

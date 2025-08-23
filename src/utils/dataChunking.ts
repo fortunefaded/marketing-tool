@@ -195,7 +195,7 @@ export class BackgroundProcessor {
       try {
         this.worker = new Worker(workerScript)
       } catch (error) {
-        console.error('Failed to create Web Worker:', error)
+        logger.error('Failed to create Web Worker:', error)
       }
     }
   }

@@ -222,7 +222,7 @@ export class MetaDataCacheConvex {
     accountId: string,
     convexClient: ConvexClient
   ): Promise<void> {
-    console.log(`Starting migration from localStorage to Convex for account ${accountId}`)
+    logger.debug(`Starting migration from localStorage to Convex for account ${accountId}`)
 
     const cache = new MetaDataCacheConvex(convexClient)
 
@@ -231,7 +231,7 @@ export class MetaDataCacheConvex {
     const compressedData = localStorage.getItem(localStorageKey)
 
     if (!compressedData) {
-      console.log('No data found in localStorage')
+      logger.debug('No data found in localStorage')
       return
     }
 
@@ -241,22 +241,22 @@ export class MetaDataCacheConvex {
       const jsonString = LZString.decompressFromUTF16(compressedData)
 
       if (!jsonString) {
-        console.error('Failed to decompress data')
+        logger.error('Failed to decompress data')
         return
       }
 
       const data = JSON.parse(jsonString) as MetaInsightsData[]
-      console.log(`Found ${data.length} records in localStorage`)
+      logger.debug(`Found ${data.length} records in localStorage`)
 
       // Convex に保存
       await cache.saveData(accountId, data)
 
-      console.log('Migration completed successfully')
+      logger.debug('Migration completed successfully')
 
       // 移行成功後、localStorage のデータを削除（オプション）
       // localStorage.removeItem(localStorageKey)
     } catch (error) {
-      console.error('Migration failed:', error)
+      logger.error('Migration failed:', error)
       throw error
     }
   }

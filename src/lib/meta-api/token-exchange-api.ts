@@ -68,7 +68,7 @@ export async function exchangeTokenServerSide(
 export async function exchangeToken(shortLivedToken: string): Promise<TokenExchangeResponse> {
   // 開発環境の警告
   if (import.meta.env.VITE_META_APP_SECRET) {
-    console.warn(
+    logger.warn(
       '⚠️ 警告: App Secretがクライアントサイドに公開されています。\n' +
         '本番環境では必ずサーバーサイドAPIを使用してください。'
     )

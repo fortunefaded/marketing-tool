@@ -31,7 +31,7 @@ class LocalStorageManager {
       const serialized = JSON.stringify(value)
       localStorage.setItem(this.prefix + 'settings_' + key, serialized)
     } catch (error) {
-      console.error('設定の保存に失敗しました:', error)
+      logger.error('設定の保存に失敗しました:', error)
       // 容量不足の場合は古いデータを削除
       if (error instanceof DOMException && error.name === 'QuotaExceededError') {
         this.cleanupOldData()
@@ -39,7 +39,7 @@ class LocalStorageManager {
         try {
           localStorage.setItem(this.prefix + 'settings_' + key, JSON.stringify(value))
         } catch (retryError) {
-          console.error('リトライも失敗しました:', retryError)
+          logger.error('リトライも失敗しました:', retryError)
         }
       }
     }
@@ -51,7 +51,7 @@ class LocalStorageManager {
       const item = localStorage.getItem(this.prefix + 'settings_' + key)
       return item ? JSON.parse(item) : null
     } catch (error) {
-      console.error('設定の取得に失敗しました:', error)
+      logger.error('設定の取得に失敗しました:', error)
       return null
     }
   }
@@ -76,7 +76,7 @@ class LocalStorageManager {
         localStorage.setItem(key, serialized)
       }
     } catch (error) {
-      console.error('APIレスポンスのキャッシュに失敗しました:', error)
+      logger.error('APIレスポンスのキャッシュに失敗しました:', error)
     }
   }
 
@@ -104,10 +104,10 @@ class LocalStorageManager {
         return null
       }
 
-      console.log('キャッシュヒット:', endpoint)
+      logger.debug('キャッシュヒット:', endpoint)
       return cached.data
     } catch (error) {
-      console.error('キャッシュの取得に失敗しました:', error)
+      logger.error('キャッシュの取得に失敗しました:', error)
       return null
     }
   }
@@ -175,7 +175,7 @@ class LocalStorageManager {
     keysToRemove.forEach((key) => localStorage.removeItem(key))
 
     if (keysToRemove.length > 0) {
-      console.log(`${keysToRemove.length}件の古いキャッシュを削除しました`)
+      logger.debug(`${keysToRemove.length}件の古いキャッシュを削除しました`)
     }
   }
 
@@ -247,7 +247,7 @@ class LocalStorageManager {
     }
     sessionKeysToRemove.forEach((key) => sessionStorage.removeItem(key))
 
-    console.log('全てのローカルストレージデータをクリアしました')
+    logger.debug('全てのローカルストレージデータをクリアしました')
   }
 }
 

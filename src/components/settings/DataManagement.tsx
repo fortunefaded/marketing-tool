@@ -40,7 +40,7 @@ export const DataManagement: React.FC = () => {
         setLastCleanup(new Date(cleanupTime))
       }
     } catch (error) {
-      console.error('ストレージ情報の取得に失敗:', error)
+      logger.error('ストレージ情報の取得に失敗:', error)
     }
   }
 
@@ -66,7 +66,7 @@ export const DataManagement: React.FC = () => {
       alert('キャッシュをクリアしました')
       await loadStorageInfo()
     } catch (error) {
-      console.error('キャッシュのクリアに失敗:', error)
+      logger.error('キャッシュのクリアに失敗:', error)
       alert('キャッシュのクリアに失敗しました')
     } finally {
       setLoading(false)
@@ -84,7 +84,7 @@ export const DataManagement: React.FC = () => {
       await loadStorageInfo()
       setLastCleanup(new Date())
     } catch (error) {
-      console.error('クリーンアップに失敗:', error)
+      logger.error('クリーンアップに失敗:', error)
       alert('クリーンアップに失敗しました')
     } finally {
       setLoading(false)
@@ -106,7 +106,7 @@ export const DataManagement: React.FC = () => {
       a.click()
       URL.revokeObjectURL(url)
     } catch (error) {
-      console.error('エクスポートに失敗:', error)
+      logger.error('エクスポートに失敗:', error)
       alert('データのエクスポートに失敗しました')
     } finally {
       setLoading(false)
@@ -131,7 +131,7 @@ export const DataManagement: React.FC = () => {
       alert('データをインポートしました')
       await loadStorageInfo()
     } catch (error) {
-      console.error('インポートに失敗:', error)
+      logger.error('インポートに失敗:', error)
       alert('データのインポートに失敗しました。ファイル形式を確認してください。')
     } finally {
       setLoading(false)

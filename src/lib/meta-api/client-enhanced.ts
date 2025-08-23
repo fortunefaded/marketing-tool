@@ -133,7 +133,7 @@ export class MetaAPIClientEnhanced extends EventEmitter {
       })
       return !!response.id
     } catch (error) {
-      console.error('Access token validation failed:', error)
+      logger.error('Access token validation failed:', error)
       return false
     }
   }
@@ -197,7 +197,7 @@ export class MetaAPIClientEnhanced extends EventEmitter {
     // Rate limit check
     if (this.rateLimitInfo.shouldThrottle) {
       const delay = Math.max(1000, this.rateLimitInfo.estimatedTimeToRegainAccess || 0)
-      console.log(`🔧 Rate limit throttling - waiting ${delay}ms`)
+      logger.debug(`🔧 Rate limit throttling - waiting ${delay}ms`)
       await new Promise((resolve) => setTimeout(resolve, delay))
     }
 
@@ -219,7 +219,7 @@ export class MetaAPIClientEnhanced extends EventEmitter {
       try {
         const controller = new AbortController()
         const timeout = setTimeout(() => {
-          console.log(`🔧 Request timeout for ${endpoint}`)
+          logger.debug(`🔧 Request timeout for ${endpoint}`)
           controller.abort()
         }, 30000) // 30s timeout
 
@@ -321,7 +321,7 @@ export class MetaAPIClientEnhanced extends EventEmitter {
 
   private parseRateLimitHeaders(headers: Headers): void {
     if (!headers || !headers.get) {
-      console.log('🔧 No headers or headers.get method available')
+      logger.debug('🔧 No headers or headers.get method available')
       return
     }
 
@@ -404,13 +404,13 @@ export class MetaAPIClientEnhanced extends EventEmitter {
   }
 
   async getCampaignInsights(campaignId: string): Promise<any> {
-    console.log(`🔧 getCampaignInsights called for ${campaignId}`)
+    logger.debug(`🔧 getCampaignInsights called for ${campaignId}`)
 
     // Check if there's already a batch request for insights
     const batchKey = `insights:${campaignId}`
 
     if (this.batchQueue.has(batchKey)) {
-      console.log(`🔧 Returning existing batch promise for ${campaignId}`)
+      logger.debug(`🔧 Returning existing batch promise for ${campaignId}`)
       return this.batchQueue.get(batchKey)
     }
 
@@ -418,7 +418,7 @@ export class MetaAPIClientEnhanced extends EventEmitter {
     const batchPromise = new Promise((resolve, reject) => {
       ;(async () => {
         try {
-          console.log(`🔧 Creating new batch promise for ${campaignId}`)
+          logger.debug(`🔧 Creating new batch promise for ${campaignId}`)
 
           // Wait a bit to collect more requests
           await new Promise((r) => setTimeout(r, 50))
@@ -428,10 +428,10 @@ export class MetaAPIClientEnhanced extends EventEmitter {
             .filter((k) => k.startsWith('insights:'))
             .map((k) => k.replace('insights:', ''))
 
-          console.log(`🔧 Pending IDs for batch: ${pendingIds.join(', ')}`)
+          logger.debug(`🔧 Pending IDs for batch: ${pendingIds.join(', ')}`)
 
           if (pendingIds.length > 1) {
-            console.log(`🔧 Making batch request for ${pendingIds.length} insights`)
+            logger.debug(`🔧 Making batch request for ${pendingIds.length} insights`)
             // Make batch request
             const batch = pendingIds.map((id) => ({
               method: 'GET',
@@ -444,13 +444,13 @@ export class MetaAPIClientEnhanced extends EventEmitter {
               { method: 'POST' }
             )
 
-            console.log(`🔧 Batch response received:`, response)
+            logger.debug(`🔧 Batch response received:`, response)
 
             // Resolve individual promises - FIXED: resolve all promises, not just one
             response.forEach((res: any, index: number) => {
               const currentId = pendingIds[index]
               const currentKey = `insights:${currentId}`
-              console.log(`🔧 Processing batch result for ${currentId}`)
+              logger.debug(`🔧 Processing batch result for ${currentId}`)
 
               if (currentId === campaignId) {
                 resolve(JSON.parse(res.body))
@@ -460,19 +460,19 @@ export class MetaAPIClientEnhanced extends EventEmitter {
               this.batchQueue.delete(currentKey)
             })
           } else {
-            console.log(`🔧 Making single request for ${campaignId}`)
+            logger.debug(`🔧 Making single request for ${campaignId}`)
             // Single request
             const response = await this.makeRequest<any>(`${campaignId}/insights`, {
               fields: 'impressions,clicks,spend,conversions,revenue',
             })
-            console.log(`🔧 Single request response:`, response)
+            logger.debug(`🔧 Single request response:`, response)
             resolve(response)
 
             // Clean up
             this.batchQueue.delete(batchKey)
           }
         } catch (error) {
-          console.error(`🔧 Error in batch promise for ${campaignId}:`, error)
+          logger.error(`🔧 Error in batch promise for ${campaignId}:`, error)
           this.batchQueue.delete(batchKey)
           reject(error)
         }
@@ -480,7 +480,7 @@ export class MetaAPIClientEnhanced extends EventEmitter {
     })
 
     this.batchQueue.set(batchKey, batchPromise)
-    console.log(`🔧 Batch promise set for ${campaignId}`)
+    logger.debug(`🔧 Batch promise set for ${campaignId}`)
     return batchPromise
   }
 

@@ -66,7 +66,7 @@ export class ECForceCSVParserV2 {
     }
 
     if (errors.length > 0) {
-      console.warn('CSVパース中の警告:', errors)
+      logger.warn('CSVパース中の警告:', errors)
     }
 
     return orders
@@ -197,7 +197,7 @@ export class ECForceCSVParserV2 {
         return this.parse(text)
       }
     } catch (error) {
-      console.warn('Shift-JIS読み込みエラー:', error)
+      logger.warn('Shift-JIS読み込みエラー:', error)
     }
 
     // 次にUTF-8で試す
@@ -207,7 +207,7 @@ export class ECForceCSVParserV2 {
         return this.parse(text)
       }
     } catch (error) {
-      console.warn('UTF-8読み込みエラー:', error)
+      logger.warn('UTF-8読み込みエラー:', error)
     }
 
     throw new Error('CSVファイルの読み込みに失敗しました。エンコーディングを確認してください。')

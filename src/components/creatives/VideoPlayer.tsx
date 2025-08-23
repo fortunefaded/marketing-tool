@@ -50,7 +50,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
   const handleVideoError = (e: React.SyntheticEvent<HTMLVideoElement>) => {
     const videoElement = e.currentTarget
-    console.error('Video playback error:', {
+    logger.error('Video playback error:', {
       videoUrl,
       videoId,
       error: e,
@@ -68,7 +68,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       videoId ||
       (videoUrl && (videoUrl.includes('facebook.com') || videoUrl.includes('/videos/')))
     ) {
-      console.log('Trying iframe fallback')
+      logger.debug('Trying iframe fallback')
       setUseIframe(true)
     }
   }
@@ -92,7 +92,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         if (match) {
           // /page_id/videos/video_id パターンの場合、2番目のグループを返す
           const vidId = match[2] || match[1]
-          console.log('Extracted video ID from URL pattern:', vidId)
+          logger.debug('Extracted video ID from URL pattern:', vidId)
           return vidId
         }
       }
@@ -114,7 +114,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     if (vidId) {
       // video IDがある場合、直接埋め込みURLを生成
       const embedUrl = `https://www.facebook.com/plugins/video.php?height=${height}&href=${encodeURIComponent(`https://www.facebook.com/facebook/videos/${vidId}/`)}&show_text=false&width=${width}&t=0`
-      console.log('Generated Facebook embed URL:', embedUrl)
+      logger.debug('Generated Facebook embed URL:', embedUrl)
       return embedUrl
     } else if (videoUrl) {
       // 完全なURLがある場合
@@ -129,7 +129,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       }
 
       const embedUrl = `https://www.facebook.com/plugins/video.php?height=${height}&href=${encodeURIComponent(fullUrl)}&show_text=false&width=${width}&t=0`
-      console.log('Generated Facebook embed URL from full URL:', embedUrl)
+      logger.debug('Generated Facebook embed URL from full URL:', embedUrl)
       return embedUrl
     }
 
@@ -159,7 +159,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
   const proxiedVideoUrl = getProxiedVideoUrl()
 
-  console.log('VideoPlayer Debug:', {
+  logger.debug('VideoPlayer Debug:', {
     originalUrl: videoUrl,
     videoId: videoId,
     extractedVideoId: extractedVideoId,
@@ -232,9 +232,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           muted
           playsInline
           onError={handleVideoError}
-          onLoadStart={() => console.log('Video load started:', proxiedVideoUrl)}
-          onLoadedData={() => console.log('Video loaded:', proxiedVideoUrl)}
-          onCanPlay={() => console.log('Video can play:', proxiedVideoUrl)}
+          onLoadStart={() => logger.debug('Video load started:', proxiedVideoUrl)}
+          onLoadedData={() => logger.debug('Video loaded:', proxiedVideoUrl)}
+          onCanPlay={() => logger.debug('Video can play:', proxiedVideoUrl)}
         />
         {onClose && (
           <button

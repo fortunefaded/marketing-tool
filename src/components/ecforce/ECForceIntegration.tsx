@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react'
+import { useQuery, useMutation } from 'convex/react'
+import { api } from '../../../convex/_generated/api'
 import {
   ECForceApiService,
   ECForceConfig,
@@ -46,22 +48,23 @@ export const ECForceIntegration: React.FC<ECForceIntegrationProps> = ({
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [orders, setOrders] = useState<ECForceOrder[]>([])
-  console.log('Orders:', orders) // TODO: ordersを使用する実装を追加
+  logger.debug('Orders:', orders) // TODO: ordersを使用する実装を追加
   const [salesData, setSalesData] = useState<ECForceSalesData[]>([])
   const [attributionResult, setAttributionResult] = useState<AttributionResult | null>(null)
   const [showSettings, setShowSettings] = useState(false)
 
-  // 保存された設定を読み込み
+  // Convexから保存された設定を読み込み
+  const savedConfig = useQuery(api.ecforceConfig.getConfig)
+  const saveConfigMutation = useMutation(api.ecforceConfig.saveConfig)
+
   useEffect(() => {
-    const savedConfig = localStorage.getItem('ecforce_config')
     if (savedConfig) {
-      const parsed = JSON.parse(savedConfig) as ECForceConfig
-      setConfig(parsed)
+      setConfig(savedConfig as ECForceConfig)
       setIsConnected(true)
     } else {
       setShowSettings(true)
     }
-  }, [])
+  }, [savedConfig])
 
   // ECForce接続テスト
   const testConnection = async (testConfig: ECForceConfig) => {
@@ -70,7 +73,7 @@ export const ECForceIntegration: React.FC<ECForceIntegrationProps> = ({
       await service.getProducts({ limit: 1 })
       return true
     } catch (error) {
-      console.error('ECForce connection test failed:', error)
+      logger.error('ECForce connection test failed:', error)
       return false
     }
   }
@@ -88,7 +91,12 @@ export const ECForceIntegration: React.FC<ECForceIntegrationProps> = ({
         )
       }
 
-      localStorage.setItem('ecforce_config', JSON.stringify(newConfig))
+      await saveConfigMutation({
+        apiKey: newConfig.apiKey,
+        shopId: newConfig.shopId,
+        apiUrl: newConfig.apiEndpoint || 'https://api.ecforce.jp/v1',
+        syncEnabled: true,
+      })
       setConfig(newConfig)
       setIsConnected(true)
       setShowSettings(false)

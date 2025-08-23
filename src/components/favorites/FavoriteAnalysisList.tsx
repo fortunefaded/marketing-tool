@@ -15,7 +15,8 @@ import {
   Zap,
   Beaker,
 } from 'lucide-react'
-import { useFavoriteAnalysis, FavoriteAnalysis } from '../../hooks/useFavoriteAnalysis'
+import { useFavoriteAnalysisConvex } from '../../hooks/useFavoriteAnalysisConvex'
+import { FavoriteAnalysis } from '../../hooks/useFavoriteAnalysisConvex'
 
 const typeIcons: Record<FavoriteAnalysis['type'], React.ReactNode> = {
   roas: <DollarSign className="h-5 w-5" />,
@@ -26,6 +27,9 @@ const typeIcons: Record<FavoriteAnalysis['type'], React.ReactNode> = {
   prediction: <Zap className="h-5 w-5" />,
   abtest: <Beaker className="h-5 w-5" />,
   custom: <Star className="h-5 w-5" />,
+  campaign: <BarChart3 className="h-5 w-5" />,
+  creative: <Star className="h-5 w-5" />,
+  period: <Clock className="h-5 w-5" />,
 }
 
 const typeLabels: Record<FavoriteAnalysis['type'], string> = {
@@ -37,10 +41,23 @@ const typeLabels: Record<FavoriteAnalysis['type'], string> = {
   prediction: '予測分析',
   abtest: 'A/Bテスト',
   custom: 'カスタム分析',
+  campaign: 'キャンペーン分析',
+  creative: 'クリエイティブ分析',
+  period: '期間分析',
 }
 
 export const FavoriteAnalysisList: React.FC = () => {
-  const { favorites, removeFavorite, recordAccess, searchFavorites } = useFavoriteAnalysis()
+  const { favorites, removeFavorite, recordAccess } = useFavoriteAnalysisConvex()
+  
+  // searchFavoritesは現在の実装には含まれていないため、ローカルで実装
+  const searchFavorites = (query: string) => {
+    const lowerQuery = query.toLowerCase()
+    return favorites.filter(
+      (fav) =>
+        fav.name.toLowerCase().includes(lowerQuery) ||
+        fav.type.toLowerCase().includes(lowerQuery)
+    )
+  }
 
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedType, setSelectedType] = useState<FavoriteAnalysis['type'] | 'all'>('all')

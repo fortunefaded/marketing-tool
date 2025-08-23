@@ -33,7 +33,7 @@ export const ImportHistoryManager = {
       const history = JSON.parse(stored)
       return Array.isArray(history) ? history : []
     } catch (error) {
-      console.error('履歴の読み込みエラー:', error)
+      logger.error('履歴の読み込みエラー:', error)
       return []
     }
   },
@@ -58,7 +58,7 @@ export const ImportHistoryManager = {
 
       localStorage.setItem(HISTORY_KEY, JSON.stringify(history))
     } catch (error) {
-      console.error('履歴の保存エラー:', error)
+      logger.error('履歴の保存エラー:', error)
     }
   },
 
@@ -69,7 +69,7 @@ export const ImportHistoryManager = {
       const filtered = history.filter((item) => item.id !== id)
       localStorage.setItem(HISTORY_KEY, JSON.stringify(filtered))
     } catch (error) {
-      console.error('履歴の削除エラー:', error)
+      logger.error('履歴の削除エラー:', error)
     }
   },
 
@@ -78,7 +78,7 @@ export const ImportHistoryManager = {
     try {
       localStorage.removeItem(HISTORY_KEY)
     } catch (error) {
-      console.error('履歴のクリアエラー:', error)
+      logger.error('履歴のクリアエラー:', error)
     }
   },
 

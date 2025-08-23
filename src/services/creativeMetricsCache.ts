@@ -63,10 +63,10 @@ export class CreativeMetricsCache {
         return null
       }
 
-      console.log(`キャッシュヒット: ${data.data.length}件のクリエイティブメトリクス`)
+      logger.debug(`キャッシュヒット: ${data.data.length}件のクリエイティブメトリクス`)
       return data.data
     } catch (error) {
-      console.error('キャッシュ読み込みエラー:', error)
+      logger.error('キャッシュ読み込みエラー:', error)
       return null
     }
   }
@@ -94,9 +94,9 @@ export class CreativeMetricsCache {
       this.manageCacheSize()
 
       localStorage.setItem(cacheKey, compressed)
-      console.log(`キャッシュに保存: ${data.length}件のクリエイティブメトリクス`)
+      logger.debug(`キャッシュに保存: ${data.length}件のクリエイティブメトリクス`)
     } catch (error) {
-      console.error('キャッシュ保存エラー:', error)
+      logger.error('キャッシュ保存エラー:', error)
       // キャッシュの保存に失敗してもアプリケーションは続行
     }
   }
@@ -127,9 +127,9 @@ export class CreativeMetricsCache {
       }
 
       keys.forEach((key) => localStorage.removeItem(key))
-      console.log(`${keys.length}件のキャッシュエントリを削除`)
+      logger.debug(`${keys.length}件のキャッシュエントリを削除`)
     } catch (error) {
-      console.error('キャッシュ無効化エラー:', error)
+      logger.error('キャッシュ無効化エラー:', error)
     }
   }
 
@@ -170,10 +170,10 @@ export class CreativeMetricsCache {
         const toRemove = cacheEntries.slice(0, cacheEntries.length - this.MAX_CACHE_SIZE)
         toRemove.forEach((entry) => localStorage.removeItem(entry.key))
 
-        console.log(`キャッシュサイズ管理: ${toRemove.length}件の古いエントリを削除`)
+        logger.debug(`キャッシュサイズ管理: ${toRemove.length}件の古いエントリを削除`)
       }
     } catch (error) {
-      console.error('キャッシュサイズ管理エラー:', error)
+      logger.error('キャッシュサイズ管理エラー:', error)
     }
   }
 
@@ -216,7 +216,7 @@ export class CreativeMetricsCache {
         }
       }
     } catch (error) {
-      console.error('デバッグ情報取得エラー:', error)
+      logger.error('デバッグ情報取得エラー:', error)
     }
 
     return {

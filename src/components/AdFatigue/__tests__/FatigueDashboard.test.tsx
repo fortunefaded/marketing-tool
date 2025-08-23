@@ -1,6 +1,6 @@
 import { describe, test, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { FatigueDashboard } from '../FatigueDashboard'
+import { FatigueDashboardFull as FatigueDashboard } from '../FatigueDashboardFull'
 
 // Convexモックを作成
 vi.mock('../../../hooks/useAdFatigue', () => ({

@@ -37,7 +37,7 @@ export class MetaAccountManager {
         return data
       }
     } catch (error) {
-      console.error('Failed to load Meta accounts:', error)
+      logger.error('Failed to load Meta accounts:', error)
     }
     return { accounts: [] }
   }
@@ -114,7 +114,7 @@ export class MetaAccountManager {
         existingAccount.timezone = accountInfo.timezone_name
       }
     } catch (error) {
-      console.error('Failed to fetch account info:', error)
+      logger.error('Failed to fetch account info:', error)
     }
 
     this.saveStorage()

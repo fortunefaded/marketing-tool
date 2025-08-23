@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Loader2, CheckCircle, XCircle, AlertCircle } from 'lucide-react'
+import { useConvex } from 'convex/react'
 import { MetaAPIClientEnhanced } from '../../lib/meta-api/client-enhanced'
-import { MetaTokenManager } from '../../lib/meta-api/token-manager'
-import { getMetaApiConfig, getAccessToken } from '../../lib/meta-api/config-helper'
+import { MetaTokenManagerConvex } from '../../lib/meta-api/token-manager-convex'
+import { getMetaApiConfig, getAccessToken, setConvexClient } from '../../lib/meta-api/config-helper-convex'
 
 interface TestResult {
   name: string
@@ -14,6 +15,12 @@ interface TestResult {
 export function ConnectionTester() {
   const [isRunning, setIsRunning] = useState(false)
   const [testResults, setTestResults] = useState<TestResult[]>([])
+  const convex = useConvex()
+
+  useEffect(() => {
+    // Convexクライアントを設定
+    setConvexClient(convex as any)
+  }, [convex])
 
   const runTests = async () => {
     setIsRunning(true)
@@ -32,13 +39,13 @@ export function ConnectionTester() {
 
     // 環境変数チェック
     await runTest(0, async () => {
-      const config = getMetaApiConfig()
+      const config = await getMetaApiConfig()
 
       if (!config.appId || !config.adAccountId) {
         throw new Error('App IDと広告アカウントIDが設定されていません')
       }
 
-      const accessToken = getAccessToken()
+      const accessToken = await getAccessToken()
       if (!accessToken) {
         throw new Error('アクセストークンが設定されていません')
       }
@@ -55,8 +62,8 @@ export function ConnectionTester() {
     })
 
     // 設定とトークン取得
-    const config = getMetaApiConfig()
-    const accessToken = getAccessToken()
+    const config = await getMetaApiConfig()
+    const accessToken = await getAccessToken()
 
     if (!accessToken) {
       setTestResults((prev) =>
@@ -147,10 +154,10 @@ export function ConnectionTester() {
       }
 
       // App Secretありの詳細検証
-      const tokenManager = new MetaTokenManager({
+      const tokenManager = new MetaTokenManagerConvex({
         appId: config.appId,
         appSecret: config.appSecret,
-      })
+      }, convex as any)
 
       const isValid = await tokenManager.validateToken(accessToken)
       if (!isValid) {

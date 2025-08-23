@@ -13,6 +13,9 @@ export const getAccounts = query({
   },
 })
 
+// すべてのアカウントを取得（別名）
+export const getAllAccounts = getAccounts
+
 // アクティブなアカウントを取得
 export const getActiveAccount = query({
   args: {},

@@ -37,7 +37,7 @@ export const DataExporter: React.FC<DataExporterProps> = ({
           break
       }
     } catch (error) {
-      console.error('エクスポートエラー:', error)
+      logger.error('エクスポートエラー:', error)
       alert('エクスポート中にエラーが発生しました')
     } finally {
       setIsExporting(false)

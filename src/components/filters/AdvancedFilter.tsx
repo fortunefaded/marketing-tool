@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { Search, Filter, X, Save } from 'lucide-react'
 import { ECForceOrder } from '../../types/ecforce'
+import { logger } from '../../utils/logger'
+import { useFilterPresetsConvex } from '../../hooks/useFilterPresetsConvex'
 
 export interface FilterCriteria {
   searchQuery: string
@@ -48,7 +50,12 @@ export const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
   onClose,
 }) => {
   const [criteria, setCriteria] = useState<FilterCriteria>(defaultCriteria)
-  const [presets, setPresets] = useState<FilterPreset[]>([])
+  // Convexフックを使用
+  const {
+    presets,
+    loading: presetsLoading,
+    savePreset: savePresetToConvex,
+  } = useFilterPresetsConvex()
   const [showPresetModal, setShowPresetModal] = useState(false)
   const [presetName, setPresetName] = useState('')
 
@@ -162,21 +169,16 @@ export const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
   }, [criteria, orders, onFilterChange])
 
   // プリセットの保存
-  const savePreset = () => {
+  const savePreset = async () => {
     if (!presetName.trim()) return
 
-    const newPreset: FilterPreset = {
-      id: Date.now().toString(),
-      name: presetName,
-      criteria: { ...criteria },
+    try {
+      await savePresetToConvex(presetName, criteria)
+      setShowPresetModal(false)
+      setPresetName('')
+    } catch (error) {
+      logger.error('プリセットの保存に失敗しました:', error)
     }
-
-    const updatedPresets = [...presets, newPreset]
-    setPresets(updatedPresets)
-    localStorage.setItem('filter_presets', JSON.stringify(updatedPresets))
-
-    setShowPresetModal(false)
-    setPresetName('')
   }
 
   // プリセットの読み込み
@@ -191,13 +193,7 @@ export const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
   //   localStorage.setItem('filter_presets', JSON.stringify(updatedPresets))
   // }
 
-  // 初期化時にプリセットを読み込み
-  useEffect(() => {
-    const savedPresets = localStorage.getItem('filter_presets')
-    if (savedPresets) {
-      setPresets(JSON.parse(savedPresets))
-    }
-  }, [])
+  // Convexフックがプリセットを自動的に読み込むため、この処理は不要
 
   const formatDateForInput = (date: Date | null) => {
     if (!date) return ''
@@ -444,7 +440,7 @@ export const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
         </div>
 
         {/* プリセット選択 */}
-        {presets.length > 0 && (
+        {!presetsLoading && presets.length > 0 && (
           <div className="relative">
             <select
               onChange={(e) => {

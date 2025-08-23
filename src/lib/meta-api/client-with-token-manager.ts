@@ -40,18 +40,18 @@ export class MetaApiClientWithTokenManager {
 
     // Set up event listeners
     this.tokenManager.on('token:refreshed', (tokenInfo) => {
-      console.log('Token refreshed successfully', {
+      logger.debug('Token refreshed successfully', {
         type: tokenInfo.type,
         expiresAt: tokenInfo.expiresAt,
       })
     })
 
     this.tokenManager.on('token:refresh-failed', (error) => {
-      console.error('Token refresh failed:', error)
+      logger.error('Token refresh failed:', error)
     })
 
     this.tokenManager.on('token:auto-refreshed', () => {
-      console.log('Token auto-refreshed successfully')
+      logger.debug('Token auto-refreshed successfully')
     })
   }
 

@@ -35,7 +35,7 @@ export class ECForceMigration {
         }
       }
 
-      console.log(`[ECForceMigration] ${localOrders.length}件のデータを移行開始`)
+      logger.debug(`[ECForceMigration] ${localOrders.length}件のデータを移行開始`)
 
       // バッチサイズを設定（一度に大量のデータを送信しないように）
       const batchSize = 100
@@ -84,12 +84,12 @@ export class ECForceMigration {
         totalSkipped += result.skipped
         totalReplaced += result.replaced
 
-        console.log(
+        logger.debug(
           `[ECForceMigration] バッチ ${Math.floor(i / batchSize) + 1}: ${result.total}件処理完了`
         )
       }
 
-      console.log(
+      logger.debug(
         `[ECForceMigration] 移行完了: インポート${totalImported}件, スキップ${totalSkipped}件, 置換${totalReplaced}件`
       )
 
@@ -100,7 +100,7 @@ export class ECForceMigration {
         replaced: totalReplaced,
       }
     } catch (error) {
-      console.error('[ECForceMigration] 移行エラー:', error)
+      logger.error('[ECForceMigration] 移行エラー:', error)
       return {
         success: false,
         imported: 0,
@@ -129,7 +129,7 @@ export class ECForceMigration {
         matches: localOrders.length === convexOrders.items.length,
       }
     } catch (error) {
-      console.error('[ECForceMigration] 比較エラー:', error)
+      logger.error('[ECForceMigration] 比較エラー:', error)
       return {
         localCount: ECForceStorage.load().length,
         convexCount: 0,
@@ -143,6 +143,6 @@ export class ECForceMigration {
    */
   clearLocalStorage(): void {
     ECForceStorage.clear()
-    console.log('[ECForceMigration] ローカルストレージをクリアしました')
+    logger.debug('[ECForceMigration] ローカルストレージをクリアしました')
   }
 }

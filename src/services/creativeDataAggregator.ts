@@ -121,7 +121,7 @@ export class CreativeDataAggregator {
           const item = localStorage.getItem(key)
           return item ? JSON.parse(item) : null
         } catch (error) {
-          console.error('Cache get error:', error)
+          logger.error('Cache get error:', error)
           return null
         }
       },
@@ -129,7 +129,7 @@ export class CreativeDataAggregator {
         try {
           localStorage.setItem(key, JSON.stringify(value))
         } catch (error) {
-          console.error('Cache set error:', error)
+          logger.error('Cache set error:', error)
         }
       }
     } */
@@ -141,28 +141,28 @@ export class CreativeDataAggregator {
       // const cacheKey = this.getCacheKey(options)
       // const cached = this.cache.get<EnhancedCreativeData[]>(cacheKey)
       // if (cached) {
-      //   console.log('キャッシュからデータを返却')
+      //   logger.debug('キャッシュからデータを返却')
       //   return cached
       // }
 
-      console.log('包括的なクリエイティブデータを取得中...')
-      console.log('dateRange:', options.dateRange)
+      logger.debug('包括的なクリエイティブデータを取得中...')
+      logger.debug('dateRange:', options.dateRange)
 
       // 日付範囲の検証
       if (!options.dateRange || !options.dateRange.since || !options.dateRange.until) {
-        console.error('無効な日付範囲:', options.dateRange)
+        logger.error('無効な日付範囲:', options.dateRange)
         throw new Error('有効な日付範囲を指定してください')
       }
 
       // Step 1: 基本的なインサイトデータを取得
       const insights = await this.metaApi.getComprehensiveInsights(options.dateRange)
-      console.log(`${insights.length}件のインサイトデータを取得`)
+      logger.debug(`${insights.length}件のインサイトデータを取得`)
 
       // 広告IDのリストを作成
       const adIds = [...new Set(insights.map((i) => i.ad_id).filter(Boolean))] as string[]
 
       if (adIds.length === 0) {
-        console.warn('広告IDが見つかりません')
+        logger.warn('広告IDが見つかりません')
         return []
       }
 
@@ -178,7 +178,7 @@ export class CreativeDataAggregator {
           : Promise.resolve([]),
       ])
 
-      console.log(`${creatives.length}件のクリエイティブ詳細を取得`)
+      logger.debug(`${creatives.length}件のクリエイティブ詳細を取得`)
 
       // Step 3: データを統合
       const enhancedData = this.mergeCreativeData(
@@ -194,7 +194,7 @@ export class CreativeDataAggregator {
 
       return enhancedData
     } catch (error) {
-      console.error('クリエイティブデータ集約エラー:', error)
+      logger.error('クリエイティブデータ集約エラー:', error)
       throw error
     }
   }

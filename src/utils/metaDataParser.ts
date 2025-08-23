@@ -151,12 +151,15 @@ export class MetaDataParser {
     const conversionValue = this.extractActionValues(rawData.action_values)
     const roas = this.calculateROAS(rawData)
     const cpa = this.calculateCPA(rawData)
+    // frequencyの解析を追加
+    const frequency = rawData.frequency ? parseFloat(rawData.frequency) : 0
 
     return {
       conversions,
       conversionValue,
       roas,
       cpa,
+      frequency,
       // デバッグ情報
       debug: {
         hasActions: !!rawData.actions,

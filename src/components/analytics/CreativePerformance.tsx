@@ -1,6 +1,7 @@
 /* eslint-env browser */
 import React, { useState, useEffect } from 'react'
 import { MetaInsightsData } from '../../services/metaApiService'
+import { logger } from '../../utils/logger'
 import {
   PhotoIcon,
   VideoCameraIcon,
@@ -70,7 +71,7 @@ export const CreativePerformance: React.FC<CreativePerformanceProps> = ({
 
     // 広告レベルのデータのみを処理
     const adLevelInsights = insights.filter((insight) => insight.ad_id)
-    console.log(`クリエイティブ分析: ${adLevelInsights.length}件の広告レベルデータを処理`)
+    logger.debug(`クリエイティブ分析: ${adLevelInsights.length}件の広告レベルデータを処理`)
 
     // クリエイティブタイプの分布を確認
     const typeDistribution = adLevelInsights.reduce(
@@ -81,10 +82,25 @@ export const CreativePerformance: React.FC<CreativePerformanceProps> = ({
       },
       {} as Record<string, number>
     )
-    console.log('クリエイティブタイプ分布:', typeDistribution)
+    logger.debug('クリエイティブタイプ分布:', typeDistribution)
 
     adLevelInsights.forEach((insight) => {
       const key = insight.creative_id || insight.ad_id || 'unknown'
+      
+      // 動画クリエイティブのデバッグ
+      if (insight.creative_type === 'video' || insight.video_id || insight.video_url) {
+        logger.debug('Video Creative Debug:', {
+          ad_id: insight.ad_id,
+          creative_id: insight.creative_id,
+          creative_type: insight.creative_type,
+          video_id: insight.video_id,
+          video_url: insight.video_url,
+          thumbnail_url: insight.thumbnail_url,
+          has_video_id: !!insight.video_id,
+          has_video_url: !!insight.video_url,
+        })
+      }
+      
       const existing = metricsMap.get(key) || {
         creative_id: key,
         creative_name: insight.creative_name || insight.ad_name || 'Unknown',
@@ -125,6 +141,10 @@ export const CreativePerformance: React.FC<CreativePerformanceProps> = ({
       roas: m.spend > 0 ? m.conversion_value / m.spend : 0,
     }))
 
+    // 動画クリエイティブの最終確認
+    const videoMetrics = metrics.filter(m => m.creative_type === 'video' || m.video_id || m.video_url)
+    logger.debug(`Video Creatives in Final Metrics: ${videoMetrics.length}`, videoMetrics)
+    
     setCreativeMetrics(metrics)
   }, [insights])
 
@@ -636,6 +656,11 @@ export const CreativePerformance: React.FC<CreativePerformanceProps> = ({
               impressions: Number(insight.impressions) || 0,
               clicks: Number(insight.clicks) || 0,
               spend: Number(insight.spend) || 0,
+              // 動画メトリクス（利用可能な場合）
+              videoViews: Number(insight.video_views) || 0,
+              videoCompletionRate: Number(insight.video_p100_watched) || 0,
+              averageWatchTime: Number(insight.video_avg_time_watched) || 0,
+              soundOnRate: Number(insight.video_sound_on) || 0,
             }))
             .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())}
         />

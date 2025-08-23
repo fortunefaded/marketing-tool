@@ -92,7 +92,7 @@ class LocalDataStore extends Dexie {
 
     // 新規データを追加
     await this.creatives.bulkAdd(toSave)
-    console.log(`${toSave.length}件のクリエイティブデータを保存しました`)
+    logger.debug(`${toSave.length}件のクリエイティブデータを保存しました`)
   }
 
   // インサイトデータの保存
@@ -133,7 +133,7 @@ class LocalDataStore extends Dexie {
       }
     }
 
-    console.log(`${toSave.length}件のインサイトデータを処理しました`)
+    logger.debug(`${toSave.length}件のインサイトデータを処理しました`)
   }
 
   // キャンペーンデータの保存
@@ -149,7 +149,7 @@ class LocalDataStore extends Dexie {
       await this.campaigns.put(campaign)
     }
 
-    console.log(`${toSave.length}件のキャンペーンデータを保存しました`)
+    logger.debug(`${toSave.length}件のキャンペーンデータを保存しました`)
   }
 
   // キャッシュの有効性チェック付きデータ取得
@@ -173,7 +173,7 @@ class LocalDataStore extends Dexie {
       .toArray()
 
     if (cached.length > 0) {
-      console.log('ローカルキャッシュから取得:', cached.length, '件')
+      logger.debug('ローカルキャッシュから取得:', cached.length, '件')
       return cached
     }
 
@@ -208,7 +208,7 @@ class LocalDataStore extends Dexie {
     }
 
     if (results.length > 0) {
-      console.log('ローカルキャッシュからインサイトを取得:', results.length, '件')
+      logger.debug('ローカルキャッシュからインサイトを取得:', results.length, '件')
       return results
     }
 
@@ -226,7 +226,7 @@ class LocalDataStore extends Dexie {
 
     const campaignsDeleted = await this.campaigns.where('fetchedAt').below(cutoffDate).delete()
 
-    console.log(
+    logger.debug(
       `クリーンアップ完了: クリエイティブ ${creativesDeleted}件, インサイト ${insightsDeleted}件, キャンペーン ${campaignsDeleted}件を削除`
     )
   }
@@ -275,7 +275,7 @@ class LocalDataStore extends Dexie {
       await this.campaigns.bulkPut(data.campaigns)
     }
 
-    console.log('データのインポートが完了しました')
+    logger.debug('データのインポートが完了しました')
   }
 }
 
@@ -284,5 +284,5 @@ export const localDB = new LocalDataStore()
 
 // データベースのオープンエラーをキャッチ
 localDB.open().catch((err) => {
-  console.error('IndexedDBの初期化に失敗しました:', err)
+  logger.error('IndexedDBの初期化に失敗しました:', err)
 })

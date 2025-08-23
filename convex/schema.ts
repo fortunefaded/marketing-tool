@@ -87,6 +87,7 @@ export default defineSchema({
     creative_type: v.optional(v.string()),
     thumbnail_url: v.optional(v.string()),
     video_url: v.optional(v.string()),
+    video_id: v.optional(v.string()),
     carousel_cards: v.optional(v.any()),
     impressions: v.optional(v.number()),
     clicks: v.optional(v.number()),
@@ -110,10 +111,15 @@ export default defineSchema({
     publisher_platform: v.optional(v.string()),
     placement: v.optional(v.string()),
     profile_visits: v.optional(v.number()),
+    profile_views: v.optional(v.number()),  // profile_visitsのエイリアス
     follows: v.optional(v.number()),
+    follower_count: v.optional(v.number()),  // followsのエイリアス
     website_clicks: v.optional(v.number()),
     story_replies: v.optional(v.number()),
     story_exits: v.optional(v.number()),
+    inline_link_click_ctr: v.optional(v.number()),
+    unique_ctr: v.optional(v.number()),
+    unique_link_clicks_ctr: v.optional(v.number()),
     // 動画関連フィールド
     video_plays: v.optional(v.number()),
     video_avg_time_watched: v.optional(v.number()),
@@ -817,4 +823,197 @@ export default defineSchema({
     .index('by_account', ['accountId'])
     .index('by_ad', ['adId'])
     .index('by_date', ['date']),
+
+  // ECForce設定テーブル
+  ecforceConfig: defineTable({
+    apiUrl: v.string(),
+    apiKey: v.string(),
+    shopId: v.string(),
+    syncEnabled: v.boolean(),
+    lastSync: v.optional(v.string()),
+    syncInterval: v.optional(v.string()), // 'daily', 'hourly', etc.
+    updatedAt: v.string(),
+  }),
+
+  // ECForceインポート履歴
+  ecforceImportHistory: defineTable({
+    id: v.string(),
+    fileName: v.string(),
+    fileSize: v.number(),
+    totalRows: v.number(),
+    importedRows: v.number(),
+    failedRows: v.number(),
+    errors: v.optional(v.array(v.string())),
+    startedAt: v.string(),
+    completedAt: v.optional(v.string()),
+    status: v.union(v.literal('pending'), v.literal('processing'), v.literal('completed'), v.literal('failed')),
+    importedBy: v.optional(v.string()),
+  })
+    .index('by_status', ['status'])
+    .index('by_startedAt', ['startedAt']),
+
+  // フィルタープリセットテーブル
+  filterPresets: defineTable({
+    name: v.string(),
+    filters: v.any(), // フィルター設定のJSON
+    createdAt: v.string(),
+    updatedAt: v.string(),
+    userId: v.optional(v.string()),
+  })
+    .index('by_name', ['name'])
+    .index('by_userId', ['userId']),
+
+  // 同期設定テーブル
+  syncSettings: defineTable({
+    accountId: v.string(),
+    autoSync: v.boolean(),
+    syncInterval: v.string(), // 'manual', 'hourly', 'daily', 'weekly'
+    debugMode: v.boolean(),
+    retentionDays: v.number(),
+    excludeTestCampaigns: v.boolean(),
+    maxMonths: v.optional(v.number()),
+    limitPerRequest: v.optional(v.number()),
+    skipCreatives: v.optional(v.boolean()),
+    updatedAt: v.string(),
+  })
+    .index('by_accountId', ['accountId']),
+
+  // ダッシュボード設定テーブル
+  dashboardSettings: defineTable({
+    userId: v.optional(v.string()),
+    layouts: v.any(), // レイアウト設定のJSON
+    theme: v.optional(v.string()),
+    preferences: v.optional(v.any()),
+    updatedAt: v.string(),
+  })
+    .index('by_userId', ['userId']),
+
+  // お気に入り分析テーブル
+  favoriteAnalyses: defineTable({
+    id: v.string(),
+    name: v.string(),
+    type: v.string(), // 'campaign', 'creative', 'period', etc.
+    config: v.any(), // 分析設定のJSON
+    isFavorite: v.boolean(),
+    lastAccessedAt: v.optional(v.string()),
+    userId: v.optional(v.string()),
+    createdAt: v.string(),
+    updatedAt: v.string(),
+  })
+    .index('by_userId', ['userId'])
+    .index('by_type', ['type'])
+    .index('by_favorite', ['isFavorite']),
+
+  // スケジュールレポート設定テーブル
+  scheduledReports: defineTable({
+    id: v.string(),
+    name: v.string(),
+    type: v.string(), // 'daily', 'weekly', 'monthly'
+    config: v.any(), // レポート設定のJSON
+    recipients: v.array(v.string()), // メールアドレスのリスト
+    enabled: v.boolean(),
+    lastRun: v.optional(v.string()),
+    nextRun: v.string(),
+    createdAt: v.string(),
+    updatedAt: v.string(),
+  })
+    .index('by_enabled', ['enabled'])
+    .index('by_nextRun', ['nextRun']),
+
+  // クリエイティブメトリクスキャッシュテーブル
+  creativeMetricsCache: defineTable({
+    cacheKey: v.string(),
+    accountId: v.string(),
+    startDate: v.string(),
+    endDate: v.string(),
+    data: v.any(), // キャッシュされたデータ
+    createdAt: v.string(),
+    expiresAt: v.string(),
+  })
+    .index('by_cacheKey', ['cacheKey'])
+    .index('by_accountId', ['accountId'])
+    .index('by_expiresAt', ['expiresAt']),
+
+  // API設定テーブル
+  apiConfig: defineTable({
+    provider: v.string(), // 'meta', 'google', etc.
+    config: v.any(), // API設定のJSON
+    updatedAt: v.string(),
+  })
+    .index('by_provider', ['provider']),
+
+  // メモリーテーブル（汎用設定保存用）
+  memories: defineTable({
+    key: v.string(),
+    value: v.any(),
+    type: v.optional(v.string()), // 'setting', 'cache', etc.
+    expiresAt: v.optional(v.string()),
+    createdAt: v.string(),
+    updatedAt: v.string(),
+  })
+    .index('by_key', ['key'])
+    .index('by_type', ['type'])
+    .index('by_expiresAt', ['expiresAt']),
+
+  // トークン管理テーブル
+  tokens: defineTable({
+    tokenType: v.string(), // 'short', 'long', 'system'
+    token: v.string(),
+    expiresAt: v.optional(v.string()),
+    scopes: v.optional(v.array(v.string())),
+    userId: v.optional(v.string()),
+    updatedAt: v.string(),
+  })
+    .index('by_type', ['tokenType']),
+
+  // Instagram特有のメトリクステーブル
+  instagramMetrics: defineTable({
+    adId: v.string(),
+    date: v.string(),
+    
+    // 保存関連
+    saves: v.number(),
+    saveRate: v.number(),
+    
+    // プロフィール関連
+    profileVisits: v.number(),
+    follows: v.number(),
+    profileToFollowRate: v.number(),
+    websiteClicks: v.number(),
+    
+    // シェア関連
+    shares: v.number(),
+    sharesStory: v.optional(v.number()),
+    sharesDM: v.optional(v.number()),
+    
+    // フォーマット別
+    format: v.union(
+      v.literal('image'),
+      v.literal('carousel'),
+      v.literal('video'),
+      v.literal('reels'),
+      v.literal('stories')
+    ),
+    
+    // Reels特有
+    reelsPlays: v.optional(v.number()),
+    averageWatchTime: v.optional(v.number()),
+    completionRate: v.optional(v.number()),
+    
+    // Stories特有
+    storiesReplies: v.optional(v.number()),
+    storiesExits: v.optional(v.number()),
+    storiesTapsForward: v.optional(v.number()),
+    storiesTapsBack: v.optional(v.number()),
+    
+    // リーチの質
+    reachedNonFollowers: v.number(),
+    reachedNonFollowersRate: v.number(),
+    impressionsFromExplore: v.number(),
+    impressionsFromHashtags: v.number(),
+    impressionsFromHome: v.number()
+  })
+    .index('by_ad', ['adId'])
+    .index('by_date', ['date'])
+    .index('by_save_rate', ['saveRate']),
 })

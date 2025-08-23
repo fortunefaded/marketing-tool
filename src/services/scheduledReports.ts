@@ -68,7 +68,7 @@ class ScheduledReportService {
             : undefined,
         }))
       } catch (error) {
-        console.error('Failed to load scheduled reports:', error)
+        logger.error('Failed to load scheduled reports:', error)
       }
     }
   }
@@ -250,8 +250,8 @@ class ScheduledReportService {
 
   // メール送信（シミュレーション）
   private async sendReportEmail(report: ScheduledReport, filePath: string): Promise<void> {
-    console.log(`Sending report "${report.name}" to:`, report.recipients)
-    console.log(`Report file: ${filePath}`)
+    logger.debug(`Sending report "${report.name}" to:`, report.recipients)
+    logger.debug(`Report file: ${filePath}`)
 
     // 実際の実装では、ここでメールAPIを呼び出す
     // 例: SendGrid, AWS SES, nodemailer など

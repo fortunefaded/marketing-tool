@@ -21,7 +21,7 @@ interface FatigueScoreCardProps {
 }
 
 export const FatigueScoreCard: React.FC<FatigueScoreCardProps> = ({
-  adName,
+  // adName,
   fatigueScore,
   metrics,
   onViewDetails,
@@ -106,12 +106,8 @@ export const FatigueScoreCard: React.FC<FatigueScoreCardProps> = ({
 
   return (
     <div className="bg-white rounded-lg shadow-lg p-6">
-      {/* ヘッダー */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900">{adName}</h3>
-          <p className="text-sm text-gray-500 mt-1">広告疲労度分析</p>
-        </div>
+      {/* ステータスバッジ */}
+      <div className="flex justify-end mb-4">
         <div
           className={`inline-flex items-center px-3 py-1 rounded-full ${signalColor.bg} ${signalColor.text}`}
         >

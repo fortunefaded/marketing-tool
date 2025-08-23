@@ -19,7 +19,7 @@ import {
   ArrowUpTrayIcon,
 } from '@heroicons/react/24/outline'
 import { GripVertical } from 'lucide-react'
-import { useDashboardSettings } from '../../hooks/useDashboardSettings'
+import { useDashboardSettingsConvex } from '../../hooks/useDashboardSettingsConvex'
 
 export interface DashboardWidget {
   id: string
@@ -51,7 +51,7 @@ export const InteractiveDashboard: React.FC<InteractiveDashboardProps> = ({
   const [showLoadModal, setShowLoadModal] = useState(false)
   const [selectedLayoutId, setSelectedLayoutId] = useState<string | null>(null)
 
-  const { layouts, saveLayout, loadLayout, importLayout, currentLayout } = useDashboardSettings()
+  const { layouts, saveLayout, loadLayout, importLayout, currentLayout } = useDashboardSettingsConvex()
 
   // レスポンシブ対応
   useEffect(() => {
@@ -112,8 +112,10 @@ export const InteractiveDashboard: React.FC<InteractiveDashboardProps> = ({
     const widgetConfigs = widgets.map((w) => ({
       id: w.id,
       type: w.type,
+      title: w.title,
       position: w.position,
       size: w.size,
+      config: {},
       settings: {},
     }))
     saveLayout(layoutName, widgetConfigs)
@@ -163,11 +165,16 @@ export const InteractiveDashboard: React.FC<InteractiveDashboardProps> = ({
     if (!file) return
 
     try {
-      await importLayout(file)
+      const reader = new FileReader()
+      reader.onload = async (e) => {
+        const content = e.target?.result as string
+        await importLayout(content)
+      }
+      reader.readAsText(file)
       setShowSuccessMessage(true)
       setTimeout(() => setShowSuccessMessage(false), 3000)
     } catch (error) {
-      console.error('Failed to import layout:', error)
+      logger.error('Failed to import layout:', error)
     }
   }
 

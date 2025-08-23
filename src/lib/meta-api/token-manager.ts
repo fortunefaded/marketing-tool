@@ -86,7 +86,7 @@ export class MetaTokenManager extends EventEmitter {
   async exchangeToken(shortLivedToken: string): Promise<TokenInfo> {
     // 開発環境でApp Secretが利用可能な場合（警告付き）
     if (this.config.appSecret && import.meta.env.DEV) {
-      console.warn(
+      logger.warn(
         '⚠️ 開発環境: App Secretを使用してトークンを交換しています。\n' +
           '本番環境では必ずサーバーサイドAPIを使用してください。'
       )

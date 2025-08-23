@@ -39,7 +39,7 @@ export class EventEmitter {
       try {
         listener(...args)
       } catch (error) {
-        console.error(`Error in event listener for ${event}:`, error)
+        logger.error(`Error in event listener for ${event}:`, error)
       }
     })
     return true

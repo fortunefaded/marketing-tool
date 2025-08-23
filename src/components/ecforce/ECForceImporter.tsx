@@ -8,11 +8,14 @@ import { ECForceCSVParserV2 } from '../../utils/ecforce-csv-parser-v2'
 import { DuplicateStrategy } from '../../utils/ecforce-duplicate-handler'
 import { ECForceDataSummary } from './ECForceDataSummary'
 import { ProgressBar } from '../common/ProgressBar'
-import { ImportHistoryManager } from '../../utils/import-history'
+import { getImportHistoryManager } from '../../utils/import-history-convex'
+import { useConvex } from 'convex/react'
 import { ImportHistoryComponent } from './ImportHistory'
 import { useECForceDataPaginated } from '../../hooks/useECForceDataPaginated'
 
 export const ECForceImporter: React.FC = () => {
+  const convex = useConvex()
+  const importHistoryManager = getImportHistoryManager(convex)
   const [importProgress, setImportProgress] = useState<ECForceImportProgress>({
     status: 'idle',
     progress: 0,
@@ -138,7 +141,7 @@ export const ECForceImporter: React.FC = () => {
         })
 
         // インポート履歴を保存
-        ImportHistoryManager.addHistory({
+        await importHistoryManager.addHistory({
           filename,
           recordCount: orders.length,
           duplicatesFound: totalSkipped + totalReplaced,
@@ -161,7 +164,7 @@ export const ECForceImporter: React.FC = () => {
         setErrors([error instanceof Error ? error.message : 'エラーが発生しました'])
 
         // エラー履歴を保存
-        ImportHistoryManager.addHistory({
+        await importHistoryManager.addHistory({
           filename,
           recordCount: 0,
           duplicatesFound: 0,
@@ -359,7 +362,7 @@ export const ECForceImporter: React.FC = () => {
                       message: '',
                     })
                   } catch (error) {
-                    console.error('データクリアエラー:', error)
+                    logger.error('データクリアエラー:', error)
                     setErrors(['データのクリアに失敗しました'])
                   }
                 }

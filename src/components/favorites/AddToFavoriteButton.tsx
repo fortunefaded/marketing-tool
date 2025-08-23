@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { Star } from 'lucide-react'
-import { useFavoriteAnalysis, FavoriteAnalysis } from '../../hooks/useFavoriteAnalysis'
+import { useFavoriteAnalysisConvex } from '../../hooks/useFavoriteAnalysisConvex'
+import { FavoriteAnalysis } from '../../hooks/useFavoriteAnalysisConvex'
 
 interface AddToFavoriteButtonProps {
   analysisName: string
@@ -19,7 +20,7 @@ export const AddToFavoriteButton: React.FC<AddToFavoriteButtonProps> = ({
   filters,
   className = '',
 }) => {
-  const { favorites, addFavorite, removeFavorite } = useFavoriteAnalysis()
+  const { favorites, addFavorite, removeFavorite } = useFavoriteAnalysisConvex()
   const [showModal, setShowModal] = useState(false)
   const [customName, setCustomName] = useState(analysisName)
   const [customDescription, setCustomDescription] = useState(description || '')
@@ -53,6 +54,8 @@ export const AddToFavoriteButton: React.FC<AddToFavoriteButtonProps> = ({
       route,
       filters,
       tags,
+      config: {},
+      isFavorite: true,
     })
     setShowModal(false)
     resetForm()

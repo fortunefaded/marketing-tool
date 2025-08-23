@@ -1,6 +1,7 @@
 /* eslint-env browser */
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { CheckCircleIcon, ExclamationCircleIcon } from '@heroicons/react/24/outline'
+import { useMetaApiConfig } from '../../hooks/useMetaApiConfig'
 
 interface EnvConfig {
   appId: string
@@ -10,39 +11,13 @@ interface EnvConfig {
 }
 
 export function EnvConfigPanel() {
-  const [config, setConfig] = useState<EnvConfig>({
-    appId: '',
-    appSecret: '',
-    adAccountId: '',
-    accessToken: '',
-  })
+  const { config, loading, saveConfig, updateConfig } = useMetaApiConfig()
   const [isSaved, setIsSaved] = useState(false)
   const [error, setError] = useState('')
 
-  // ローカルストレージから設定を読み込み
-  useEffect(() => {
-    const savedConfig = localStorage.getItem('meta_api_config')
-    if (savedConfig) {
-      try {
-        const parsed = JSON.parse(savedConfig)
-        setConfig(parsed)
-      } catch (e) {
-        console.error('Failed to parse saved config:', e)
-      }
-    }
+  // Convexフックが設定を自動的に読み込むため、useEffectは不要
 
-    // 環境変数からも読み込み（初期値として）
-    if (!savedConfig) {
-      setConfig({
-        appId: import.meta.env.VITE_META_APP_ID || '',
-        appSecret: import.meta.env.VITE_META_APP_SECRET || '',
-        adAccountId: import.meta.env.VITE_META_AD_ACCOUNT_ID || '',
-        accessToken: import.meta.env.VITE_META_ACCESS_TOKEN || '',
-      })
-    }
-  }, [])
-
-  const handleSave = () => {
+  const handleSave = async () => {
     // バリデーション
     if (!config.appId || !config.adAccountId) {
       setError('App IDと広告アカウントIDは必須です')
@@ -54,27 +29,31 @@ export function EnvConfigPanel() {
       return
     }
 
-    // ローカルストレージに保存
-    localStorage.setItem('meta_api_config', JSON.stringify(config))
+    try {
+      // Convexに保存
+      await saveConfig(config)
+      
+      setIsSaved(true)
+      setError('')
 
-    // アクセストークンは別途暗号化して保存（実際にはより安全な方法を使用すべき）
-    if (config.accessToken) {
-      localStorage.setItem('meta_access_token', config.accessToken)
+      // 3秒後に保存メッセージを消す
+      setTimeout(() => setIsSaved(false), 3000)
+    } catch (err) {
+      setError('設定の保存に失敗しました')
     }
-
-    setIsSaved(true)
-    setError('')
-
-    // 3秒後に保存メッセージを消す
-    setTimeout(() => setIsSaved(false), 3000)
   }
 
   const handleChange = (field: keyof EnvConfig) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setConfig((prev) => ({
-      ...prev,
-      [field]: e.target.value,
-    }))
+    updateConfig({ [field]: e.target.value })
     setIsSaved(false)
+  }
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="text-gray-500">設定を読み込み中...</div>
+      </div>
+    )
   }
 
   return (
@@ -85,7 +64,7 @@ export function EnvConfigPanel() {
           <div>
             <h4 className="text-sm font-medium text-yellow-800">重要な注意事項</h4>
             <p className="text-sm text-yellow-700 mt-1">
-              この設定はブラウザのローカルストレージに保存されます。
+              この設定はConvexデータベースに安全に保存されます。
               本番環境では、より安全な方法でクレデンシャルを管理してください。
             </p>
           </div>

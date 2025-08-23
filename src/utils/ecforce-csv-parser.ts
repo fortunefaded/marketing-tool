@@ -68,7 +68,7 @@ export class ECForceCSVParser {
     }
 
     if (errors.length > 0) {
-      console.warn('CSVパース中のエラー:', errors)
+      logger.warn('CSVパース中のエラー:', errors)
     }
 
     return orders

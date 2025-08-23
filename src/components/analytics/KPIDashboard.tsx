@@ -49,7 +49,7 @@ export const KPIDashboard: React.FC<KPIDashboardProps> = ({
   const kpiAggregator = useMemo(() => new KPIAggregator(), [])
 
   // デバッグ情報
-  console.log('KPIDashboard received:', {
+  logger.debug('KPIDashboard received:', {
     insights: insights.length,
     ecforceOrders: ecforceOrders.length,
     hasECForceData: ecforceOrders.length > 0 || (ecforceSales && ecforceSales.length > 0),
