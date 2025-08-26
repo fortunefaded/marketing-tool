@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom'
 import { ConvexProvider, ConvexReactClient } from 'convex/react'
 import { useEffect } from 'react'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { UnifiedDashboard } from './pages/UnifiedDashboard'
 import Campaigns from './routes/Campaigns'
 import Tasks from './routes/Tasks'
@@ -8,7 +9,8 @@ import CategoryAnalysis from './routes/CategoryAnalysis'
 import DetailAnalysis from './routes/DetailAnalysis'
 import PeriodAnalysis from './routes/PeriodAnalysis'
 // import { MetaDashboardReal } from './pages/MetaDashboardReal'
-import { MetaApiSetupSteps } from './pages/MetaApiSetupSteps'
+// TODO: Create new setup flow or use Convex components
+// import { MetaApiSetupSteps } from './pages/MetaApiSetupSteps'
 import { ConnectStepConvex } from './pages/meta-setup/ConnectStepConvex'
 import { PermissionsStepConvex } from './pages/meta-setup/PermissionsStepConvex'
 import { TestStepConvex } from './pages/meta-setup/TestStepConvex'
@@ -18,8 +20,13 @@ import { ECForceContainer } from './pages/ECForceContainer'
 import { IntegratedDashboard } from './pages/IntegratedDashboard'
 import { ReportManagement } from './pages/ReportManagement'
 import { SettingsManagement } from './pages/SettingsManagement'
-import { FatigueDashboardWithAccount } from './components/AdFatigue/FatigueDashboardWithAccount'
-import { FatigueEducation } from './pages/FatigueEducation'
+import { SafeFatigueDashboardWrapper } from './features/meta-api/components/SafeFatigueDashboardWrapper'
+import { OldFatigueDashboard } from './components/legacy/OldFatigueDashboard'
+import { OldestFatigueDashboard } from './components/legacy/OldestFatigueDashboard'
+import { SimpleTestDashboard } from './pages/SimpleTestDashboard'
+// TODO: Replace with new implementation - archived components removed
+// import { FatigueDashboardWithAccount } from './_archived/components/AdFatigue/FatigueDashboardWithAccount'
+// import { FatigueEducation } from './_archived/pages/meta-api/FatigueEducation'
 import { NewMetaApiTest } from './components/test/NewMetaApiTest'
 import Sidebar from './components/Sidebar'
 import Header from './components/Header'
@@ -57,13 +64,12 @@ function AppContent() {
           <Routes>
             <Route path="/" element={<UnifiedDashboard />} />
             <Route path="/meta-dashboard" element={<UnifiedDashboard />} />
-            <Route path="/meta-api-setup" element={<MetaApiSetupSteps />}>
-              <Route index element={<ConnectStepConvex />} />
-              <Route path="connect" element={<ConnectStepConvex />} />
-              <Route path="permissions" element={<PermissionsStepConvex />} />
-              <Route path="test" element={<TestStepConvex />} />
-              <Route path="complete" element={<CompleteStepConvex />} />
-            </Route>
+            {/* TODO: Create new setup flow */}
+            <Route path="/meta-api-setup" element={<ConnectStepConvex />} />
+            <Route path="/meta-api-setup/connect" element={<ConnectStepConvex />} />
+            <Route path="/meta-api-setup/permissions" element={<PermissionsStepConvex />} />
+            <Route path="/meta-api-setup/test" element={<TestStepConvex />} />
+            <Route path="/meta-api-setup/complete" element={<CompleteStepConvex />} />
             <Route path="/ecforce-import" element={<ECForceImporter />} />
             <Route path="/ecforce" element={<ECForceContainer />} />
             <Route path="/integrated-dashboard" element={<IntegratedDashboard />} />
@@ -74,9 +80,14 @@ function AppContent() {
             <Route path="/period" element={<PeriodAnalysis />} />
             <Route path="/reports" element={<ReportManagement />} />
             <Route path="/settings" element={<SettingsManagement />} />
-            <Route path="/ad-fatigue" element={<FatigueDashboardWithAccount />} />
-            <Route path="/fatigue-education" element={<FatigueEducation />} />
+            {/* TODO: Replace with new implementation */}
+            <Route path="/ad-fatigue" element={<SafeFatigueDashboardWrapper />} />
+            <Route path="/fatigue-education" element={<SafeFatigueDashboardWrapper />} />
             <Route path="/test-new-meta-api" element={<NewMetaApiTest />} />
+            <Route path="/ad-fatigue-simple" element={<SafeFatigueDashboardWrapper />} />
+            <Route path="/old-fatigue" element={<OldFatigueDashboard />} />
+            <Route path="/oldest-fatigue" element={<OldestFatigueDashboard />} />
+            <Route path="/test-simple" element={<SimpleTestDashboard />} />
             <Route
               path="/media"
               element={
@@ -123,18 +134,22 @@ function App() {
     if (import.meta.env.DEV) {
       setupTestAccount()
         .then((account) => {
-          console.log('Test account setup completed:', account)
+          if (account) {
+            vibe.good('テストアカウントセットアップ完了', { account: account.accountId })
+          }
         })
-        .catch(console.error)
+        .catch((error) => vibe.bad('テストアカウントセットアップ失敗', { error }))
     }
   }, [])
 
   return (
-    <ConvexProvider client={convex}>
-      <Router>
-        <AppContent />
-      </Router>
-    </ConvexProvider>
+    <ErrorBoundary>
+      <ConvexProvider client={convex}>
+        <Router>
+          <AppContent />
+        </Router>
+      </ConvexProvider>
+    </ErrorBoundary>
   )
 }
 

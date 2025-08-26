@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, memo } from 'react'
-import { MetaInsightsData } from '../../services/metaApiService'
+import { MetaInsightsData } from '@/types'
 import {
   PhotoIcon,
   VideoCameraIcon,
@@ -10,9 +10,30 @@ import {
 } from '@heroicons/react/24/outline'
 import { EnhancedCreativeDetailModal } from '../creatives/EnhancedCreativeDetailModal'
 import { CreativeData } from '../creatives/CreativePerformanceGrid'
-import { CreativeFatigueAnalyzer } from '../../services/creativeFatigueAnalyzer'
+// TODO: Replace with features/meta-api implementation
+// import { CreativeFatigueAnalyzer } from '../../services/creativeFatigueAnalyzer'
 import { MobileCreativeInsights } from '../creatives/MobileCreativeInsights'
 import { VideoPlayer } from '../creatives/VideoPlayer'
+
+// Temporary mock implementation for CreativeFatigueAnalyzer
+class CreativeFatigueAnalyzer {
+  analyzeFatigue(_creativeId: string, performanceData: any[]) {
+    // Mock fatigue analysis
+    const latestData = performanceData[performanceData.length - 1] || {}
+    const firstData = performanceData[0] || {}
+    const ctrTrend = latestData.ctr && firstData.ctr ? ((latestData.ctr - firstData.ctr) / firstData.ctr) * 100 : 0
+    
+    return {
+      score: 50,
+      status: 'healthy' as const,
+      factors: {
+        frequency: { value: latestData.frequency || 1, trend: 'stable' as const },
+        ctr: { value: latestData.ctr || 0, trend: ctrTrend > 0 ? 'up' as const : ctrTrend < 0 ? 'down' as const : 'stable' as const },
+        cpm: { value: 0, trend: 'stable' as const }
+      }
+    }
+  }
+}
 
 interface CreativePerformanceProps {
   insights: MetaInsightsData[]
@@ -32,10 +53,11 @@ interface CreativeMetrics {
   campaign_name?: string
   ad_id?: string
   carousel_cards?: Array<{
-    name: string
-    description: string
-    image_url: string
-    link: string
+    name?: string
+    description?: string
+    image_url?: string
+    link?: string
+    video_url?: string
   }>
   impressions: number
   clicks: number

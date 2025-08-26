@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
-import {
-  ECForceApiService,
+import { ECForceApiService } from '../../services/ecforceApiService'
+import { 
   ECForceConfig,
   ECForceOrder,
   ECForceSalesData,
-} from '../../services/ecforceApiService'
-import { MetaInsightsData } from '../../services/metaApiService'
+  MetaInsightsData 
+} from '@/types'
 import {
   ShoppingCartIcon,
   CurrencyYenIcon,
@@ -17,6 +17,7 @@ import {
   CheckCircleIcon,
   ExclamationCircleIcon,
 } from '@heroicons/react/24/outline'
+import { logger } from '../../utils/logger'
 
 interface ECForceIntegrationProps {
   metaInsights: MetaInsightsData[]
@@ -92,8 +93,8 @@ export const ECForceIntegration: React.FC<ECForceIntegrationProps> = ({
       }
 
       await saveConfigMutation({
-        apiKey: newConfig.apiKey,
-        shopId: newConfig.shopId,
+        apiKey: newConfig.apiKey || '',
+        shopId: newConfig.shopId || '',
         apiUrl: newConfig.apiEndpoint || 'https://api.ecforce.jp/v1',
         syncEnabled: true,
       })
@@ -162,7 +163,7 @@ export const ECForceIntegration: React.FC<ECForceIntegrationProps> = ({
 
     // 各注文をキャンペーンに紐付け
     ecforceOrders.forEach((order) => {
-      totalRevenue += order.total_amount
+      totalRevenue += order.total_amount || 0 || 0
 
       // Facebook広告経由の注文を特定
       if (order.utm_source === 'facebook' && order.utm_campaign) {
@@ -188,17 +189,17 @@ export const ECForceIntegration: React.FC<ECForceIntegrationProps> = ({
 
           const campaign = campaignMap.get(campaignId)!
           campaign.orders.push(order)
-          campaign.revenue += order.total_amount
+          campaign.revenue += order.total_amount || 0
 
           matchedCount++
-          attributedRevenue += order.total_amount
+          attributedRevenue += order.total_amount || 0
         } else {
           unmatchedCount++
         }
       } else if (order.fbclid) {
         // Facebook Click IDでの紐付け（実装簡略化のため、現在は未対応）
         matchedCount++
-        attributedRevenue += order.total_amount
+        attributedRevenue += order.total_amount || 0
       } else {
         unmatchedCount++
       }
@@ -380,7 +381,7 @@ export const ECForceIntegration: React.FC<ECForceIntegrationProps> = ({
                 <CurrencyYenIcon className="h-5 w-5 text-gray-400" />
               </div>
               <p className="mt-2 text-2xl font-semibold text-gray-900">
-                {formatCurrency(salesData.reduce((sum, d) => sum + d.total_sales, 0))}
+                {formatCurrency(salesData.reduce((sum, d) => sum + (d.total_sales || 0), 0))}
               </p>
             </div>
 
@@ -390,7 +391,7 @@ export const ECForceIntegration: React.FC<ECForceIntegrationProps> = ({
                 <ShoppingCartIcon className="h-5 w-5 text-gray-400" />
               </div>
               <p className="mt-2 text-2xl font-semibold text-gray-900">
-                {salesData.reduce((sum, d) => sum + d.orders_count, 0).toLocaleString()}
+                {salesData.reduce((sum, d) => sum + (d.orders_count || 0), 0).toLocaleString()}
               </p>
             </div>
 
@@ -401,8 +402,8 @@ export const ECForceIntegration: React.FC<ECForceIntegrationProps> = ({
               </div>
               <p className="mt-2 text-2xl font-semibold text-gray-900">
                 {formatCurrency(
-                  salesData.reduce((sum, d) => sum + d.total_sales, 0) /
-                    salesData.reduce((sum, d) => sum + d.orders_count, 0)
+                  salesData.reduce((sum, d) => sum + (d.total_sales || 0), 0) /
+                    salesData.reduce((sum, d) => sum + (d.orders_count || 0), 0)
                 )}
               </p>
             </div>
@@ -413,7 +414,7 @@ export const ECForceIntegration: React.FC<ECForceIntegrationProps> = ({
                 <LinkIcon className="h-5 w-5 text-gray-400" />
               </div>
               <p className="mt-2 text-2xl font-semibold text-gray-900">
-                {salesData.reduce((sum, d) => sum + d.new_customers, 0).toLocaleString()}
+                {salesData.reduce((sum, d) => sum + (d.new_customers || 0), 0).toLocaleString()}
               </p>
             </div>
           </div>

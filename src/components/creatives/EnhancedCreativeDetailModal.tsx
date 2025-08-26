@@ -1,8 +1,7 @@
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo } from 'react'
 import { Fragment } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { XMarkIcon } from '@heroicons/react/24/outline'
-import { logger } from '../../utils/logger'
 import {
   ChartBarIcon,
   CurrencyYenIcon,
@@ -18,10 +17,11 @@ import {
 import { CreativeData } from './CreativePerformanceGrid'
 import { VideoPlayer } from './VideoPlayer'
 import { CreativeInsights } from './CreativeInsights'
-import { VideoFatigueAnalysis } from '../AdFatigue/VideoFatigueAnalysis'
-import { CreativeFatigueAnalyzer } from '../../services/creativeFatigueAnalyzer'
-import { useAdFatigueRealSafe as useAdFatigueReal } from '../../hooks/useAdFatigueRealSafe'
-import { MetaAccountManager } from '../../services/metaAccountManager'
+// TODO: Replace with new fatigue analysis implementation
+// import { VideoFatigueAnalysis } from '../../_archived/components/AdFatigue/VideoFatigueAnalysis'
+// TODO: Replace with new fatigue hooks
+// import { useAdFatigueRealSafe as useAdFatigueReal } from '../../_archived/hooks/meta-api/useAdFatigueRealSafe'
+// import { MetaAccountManager } from '../../_archived/services/metaAccountManager'
 
 interface CreativeDetailModalProps {
   creative: CreativeData | null
@@ -34,6 +34,7 @@ interface CreativeDetailModalProps {
     impressions: number
     clicks: number
     spend: number
+    cpm?: number
     // 動画メトリクス（オプション）
     videoViews?: number
     videoCompletionRate?: number
@@ -50,36 +51,35 @@ export const EnhancedCreativeDetailModal: React.FC<CreativeDetailModalProps> = (
 }) => {
   const [currentCarouselIndex, setCurrentCarouselIndex] = useState(0)
   const [activeTab, setActiveTab] = useState<'metrics' | 'insights'>('metrics')
-  const analyzer = useMemo(() => new CreativeFatigueAnalyzer(), [])
 
-  // アカウントIDを取得
-  const manager = MetaAccountManager.getInstance()
-  const activeAccount = manager.getActiveAccount()
-  const accountId = activeAccount?.accountId || ''
+  // TODO: Replace with new account management
+  // const manager = MetaAccountManager.getInstance()
+  // const activeAccount = manager.getActiveAccount()
+  // const accountId = activeAccount?.accountId || ''
 
-  // 実際のMeta APIデータから疲労度分析を使用
-  const { fatigueData, isCalculating, error, analyzeFatigue } = useAdFatigueReal(
-    accountId,
-    creative?.adId && activeTab === 'insights' ? creative.adId : undefined
-  )
+  // TODO: Replace with new fatigue analysis hooks
+  // const { fatigueData, isCalculating, error, analyzeFatigue } = useAdFatigueReal(
+  //   accountId,
+  //   creative?.adId && activeTab === 'insights' ? creative.adId : undefined
+  // )
 
-  // 手動で疲労度分析を実行（必要に応じて）
-  useEffect(() => {
-    if (activeTab === 'insights' && creative?.adId && !fatigueData && !isCalculating && !error) {
-      // 疲労度分析を実行
-      analyzeFatigue(creative.adId).catch(logger.error)
-    }
-  }, [activeTab, creative?.adId, fatigueData, isCalculating, error, analyzeFatigue])
+  // TODO: Replace with new fatigue analysis implementation
+  // useEffect(() => {
+  //   if (activeTab === 'insights' && creative?.adId && !fatigueData && !isCalculating && !error) {
+  //     // 疲労度分析を実行
+  //     analyzeFatigue(creative.adId).catch(logger.error)
+  //   }
+  // }, [activeTab, creative?.adId, fatigueData, isCalculating, error, analyzeFatigue])
 
   if (!creative) return null
 
-  // 既存の疲労度分析も実行（比較用）
+  // TODO: Implement new fatigue analysis based on performance history
   const fatigueAnalysis = useMemo(() => {
-    if (performanceHistory.length > 0) {
-      return analyzer.analyzeFatigue(creative.id, performanceHistory)
-    }
+    // if (performanceHistory.length > 0) {
+    //   return analyzer.analyzeFatigue(creative.id, performanceHistory)
+    // }
     return null
-  }, [creative.id, performanceHistory, analyzer])
+  }, [creative.id, performanceHistory])
 
   const formatNumber = (num: number): string => {
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`
@@ -499,20 +499,16 @@ export const EnhancedCreativeDetailModal: React.FC<CreativeDetailModalProps> = (
                         <div className="space-y-4">
                           {creative.type === 'VIDEO' ? (
                             <>
-                              {/* 動画クリエイティブの場合は専用の分析を表示 */}
-                              <VideoFatigueAnalysis
-                                creativeName={creative.name}
-                                videoId={creative.videoId}
-                                performanceHistory={performanceHistory.map(h => ({
-                                  date: h.date,
-                                  videoViews: h.videoViews || h.impressions * 0.3,
-                                  videoCompletionRate: h.videoCompletionRate || 65,
-                                  averageWatchTime: h.averageWatchTime || 12,
-                                  soundOnRate: h.soundOnRate || 0.4,
-                                  ctr: h.ctr,
-                                  frequency: h.frequency,
-                                }))}
-                              />
+                              {/* TODO: Implement new video fatigue analysis */}
+                              <div className="text-center py-8">
+                                <ChartBarIcon className="mx-auto h-12 w-12 text-gray-400" />
+                                <p className="mt-2 text-sm text-gray-500">
+                                  動画疲労度分析は準備中です
+                                </p>
+                                <p className="text-xs text-gray-400 mt-1">
+                                  Video fatigue analysis coming soon
+                                </p>
+                              </div>
                               
                               {/* 既存の疲労度分析（補足情報として） */}
                               {fatigueAnalysis && (

@@ -45,7 +45,7 @@ export function useOptimizedMetaInsights({
     refetch
   } = useInfiniteQuery({
     queryKey: ['insights', accountId, dateRange, level],
-    queryFn: async ({ pageParam = null }) => {
+    queryFn: async ({ pageParam }) => {
       const response = await apiService.getInsights({
         accountId,
         dateRange,
@@ -59,6 +59,7 @@ export function useOptimizedMetaInsights({
         nextCursor: response.paging?.cursors?.after
       }
     },
+    initialPageParam: null,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     // 前のデータと新しいデータをマージ
     select: useCallback((data) => ({

@@ -1,5 +1,19 @@
 import React, { useState, useEffect } from 'react'
-import { MetaDataCache } from '../../services/metaDataCache'
+// TODO: Replace with new data cache implementation
+// import { MetaDataCache } from '../../services/metaDataCache'
+
+// Temporary mock implementation
+const MetaDataCache = {
+  getInsights: (_accountId: string) => [],
+  getSyncStatus: (accountId: string) => ({
+    accountId,
+    lastFullSync: null,
+    lastIncrementalSync: null,
+    totalRecords: 0,
+    dateRange: { earliest: null, latest: null }
+  }),
+  getDataHistory: (_accountId: string) => []
+}
 import {
   ClockIcon,
   ExclamationTriangleIcon,

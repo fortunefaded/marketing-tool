@@ -23,10 +23,11 @@ export interface CreativeData {
   adId?: string // Meta APIの広告ID
   creativeId?: string // Meta APIのクリエイティブID
   carouselCards?: Array<{
-    name: string
-    description: string
-    image_url: string
-    link: string
+    name?: string
+    description?: string
+    image_url?: string
+    link?: string
+    video_url?: string
   }>
   metrics: {
     impressions: number
