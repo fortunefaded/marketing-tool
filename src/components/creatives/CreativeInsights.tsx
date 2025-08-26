@@ -17,7 +17,33 @@ import {
   ArrowPathIcon,
   XCircleIcon,
 } from '@heroicons/react/24/outline'
-import { FatigueAnalysis, CreativePerformanceData } from '../../services/creativeFatigueAnalyzer'
+// TODO: Replace with features/meta-api implementation
+// import { FatigueAnalysis, CreativePerformanceData } from '../../services/creativeFatigueAnalyzer'
+interface FatigueAnalysis {
+  score: number
+  trend: 'improving' | 'stable' | 'declining'
+  factors: Array<{ name: string; impact: 'positive' | 'negative' | 'neutral' }>
+  recommendation: string
+  recommendedAction?: 'continue' | 'refresh' | 'pause' | 'replace'
+  fatigueScore: number
+  predictedEndOfLife?: string
+  daysUntilEndOfLife?: number
+  ctrTrend: number
+  frequencySaturation: number
+  daysSincePeak?: number
+  peakPerformanceDate?: string
+  message?: string
+}
+
+export interface CreativePerformanceData {
+  date: string
+  impressions: number
+  clicks: number
+  ctr: number
+  cpm?: number
+  spend: number
+  frequency: number
+}
 
 interface CreativeInsightsProps {
   analysis: FatigueAnalysis
@@ -66,6 +92,14 @@ export const CreativeInsights: React.FC<CreativeInsightsProps> = ({
           color: 'text-red-600',
           bgColor: 'bg-red-50',
           description: '新しいクリエイティブへの交換を強く推奨します。',
+        }
+      default:
+        return {
+          icon: <CheckCircleIcon className="h-6 w-6" />,
+          text: '継続推奨',
+          color: 'text-green-600',
+          bgColor: 'bg-green-50',
+          description: 'パフォーマンスは良好です。現状のまま継続してください。',
         }
     }
   }

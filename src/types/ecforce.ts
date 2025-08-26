@@ -43,6 +43,14 @@ export interface ECForceOrder {
   広告コード?: string
   広告媒体?: string
   utm_campaign?: string
+  
+  // UTMパラメータとトラッキング
+  utm_source?: string
+  utm_medium?: string
+  fbclid?: string
+  
+  // 金額関連（互換性のため）
+  total_amount?: number
 }
 
 export interface ECForceImportResult {
@@ -51,10 +59,46 @@ export interface ECForceImportResult {
   importedRecords: number
   errors: string[]
   data: ECForceOrder[]
+  totalRows?: number
+  skippedRows?: number
+  errorDetails?: Array<{ row: number; message: string }>
 }
 
 export interface ECForceImportProgress {
-  status: 'idle' | 'uploading' | 'parsing' | 'importing' | 'complete' | 'error'
+  status: 'idle' | 'uploading' | 'parsing' | 'importing' | 'complete' | 'error' | 'processing' | 'completed'
   progress: number
   message: string
+  current?: number
+  total?: number
+}
+
+// ECForceの販売データ
+export interface ECForceSalesData {
+  date: string
+  sales: number
+  orders: number
+  customers: number
+  averageOrderValue?: number
+  products?: Array<{
+    productId: string
+    productName: string
+    quantity: number
+    revenue: number
+  }>
+  
+  // 追加の集計フィールド
+  total_sales?: number
+  orders_count?: number
+  new_customers?: number
+  returning_customers?: number
+}
+
+// ECForce設定
+export interface ECForceConfig {
+  apiKey?: string
+  shopId?: string
+  webhookUrl?: string
+  syncEnabled?: boolean
+  lastSyncDate?: string
+  apiEndpoint?: string
 }

@@ -5,6 +5,7 @@
 import { useInsights } from '../../hooks/core/useInsights'
 import { useMetaApiCore } from '../../hooks/core/useMetaData'
 import { Loader2, AlertCircle, CheckCircle } from 'lucide-react'
+import { vibe } from '@/lib/vibelogger'
 
 export function NewMetaApiTest() {
   const { apiCore, isInitialized, error: initError } = useMetaApiCore()
@@ -22,7 +23,9 @@ export function NewMetaApiTest() {
   })
 
   // API統計情報を取得
-  const stats = apiCore?.getStats ? apiCore.getStats() : null
+  const stats = apiCore && typeof apiCore === 'object' && 'getStats' in apiCore && typeof apiCore.getStats === 'function' 
+    ? apiCore.getStats() 
+    : null
 
   return (
     <div className="p-6 space-y-4">
@@ -104,15 +107,22 @@ export function NewMetaApiTest() {
         <div className="space-y-2 text-sm">
           <button 
             onClick={() => {
-              console.log('API Stats:', (window as any).__metaApiStats?.())
-              alert('コンソールを確認してください')
+              const stats = (window as any).__metaApiStats?.()
+              vibe.debug('API統計情報', { stats })
+              alert('API統計情報をVibeloggerに出力しました')
             }}
             className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
           >
             API統計をコンソールに出力
           </button>
           <button 
-            onClick={() => apiCore?.clearCache?.()}
+            onClick={() => {
+              if (apiCore && typeof apiCore === 'object' && 'clearCache' in apiCore && typeof apiCore.clearCache === 'function') {
+                apiCore.clearCache()
+              } else {
+                vibe.warn('clearCache method is not available')
+              }
+            }}
             className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600"
           >
             キャッシュクリア

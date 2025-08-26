@@ -1,6 +1,6 @@
 /* eslint-env browser */
 import React, { useState, useEffect } from 'react'
-import { MetaInsightsData } from '../../services/metaApiService'
+import { MetaInsightsData } from '@/types'
 import { logger } from '../../utils/logger'
 import {
   PhotoIcon,
@@ -32,10 +32,11 @@ interface CreativeMetrics {
   campaign_name?: string
   ad_id?: string
   carousel_cards?: Array<{
-    name: string
-    description: string
-    image_url: string
-    link: string
+    name?: string
+    description?: string
+    image_url?: string
+    link?: string
+    video_url?: string
   }>
   impressions: number
   clicks: number
