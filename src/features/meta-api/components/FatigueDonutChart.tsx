@@ -9,21 +9,21 @@ interface FatigueDonutChartProps {
   size?: number // チャートのサイズ
 }
 
-export function FatigueDonutChart({ 
-  value, 
-  label, 
-  description, 
+export function FatigueDonutChart({
+  value,
+  label,
+  description,
   formula,
   currentValue,
-  size = 120 
+  size = 120,
 }: FatigueDonutChartProps) {
   const [isHovered, setIsHovered] = useState(false)
   // 値を0-100の範囲に制限
   const normalizedValue = Math.max(0, Math.min(100, value))
-  
-  // SVGの設定
-  const radius = 40
-  const strokeWidth = 8
+
+  // SVGの設定 - サイズに応じて動的調整
+  const radius = size * 0.4 // サイズの40%を半径に
+  const strokeWidth = size * 0.08 // サイズの8%をストローク幅に
   const normalizedRadius = radius - strokeWidth * 0.5
   const circumference = normalizedRadius * 2 * Math.PI
   const strokeDasharray = `${circumference} ${circumference}`
@@ -40,7 +40,7 @@ export function FatigueDonutChart({
   return (
     <div className="flex flex-col items-center relative">
       {/* ドーナツチャート */}
-      <div 
+      <div
         className="relative cursor-pointer"
         style={{ width: size, height: size }}
         onMouseEnter={() => setIsHovered(true)}
@@ -74,15 +74,16 @@ export function FatigueDonutChart({
             className="transition-all duration-1000 ease-out"
           />
         </svg>
-        
+
         {/* 中央の値表示 */}
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center">
-            <div 
+            <div
               className="font-bold leading-none"
-              style={{ 
+              style={{
                 color: getColor,
-                fontSize: size > 100 ? '24px' : '18px'
+                fontSize:
+                  size > 200 ? `${size * 0.12}px` : size > 100 ? `${size * 0.15}px` : '18px',
               }}
             >
               {Math.round(normalizedValue)}
@@ -92,33 +93,45 @@ export function FatigueDonutChart({
 
         {/* ホバーツールチップ */}
         {isHovered && (
-          <div className="absolute z-50 bg-gray-900 text-white text-xs rounded-lg p-3 shadow-lg max-w-xs"
-               style={{
-                 bottom: '100%',
-                 left: '50%',
-                 transform: 'translateX(-50%)',
-                 marginBottom: '8px',
-                 whiteSpace: 'nowrap'
-               }}>
+          <div
+            className="absolute z-50 bg-gray-900 text-white text-xs rounded-lg p-3 shadow-lg"
+            style={{
+              bottom: '100%',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              marginBottom: '8px',
+              minWidth: '200px',
+              maxWidth: '280px',
+              whiteSpace: 'normal',
+            }}
+          >
             {/* 矢印 */}
             <div className="absolute top-full left-1/2 transform -translate-x-1/2">
               <div className="border-4 border-transparent border-t-gray-900"></div>
             </div>
-            
+
             <div className="space-y-1">
-              <div className="font-semibold">{label}: {Math.round(normalizedValue)}</div>
+              <div className="font-semibold">
+                {label}: {Math.round(normalizedValue)}
+              </div>
               <div className="text-gray-300">計算式: {formula}</div>
               <div className="text-gray-300">{currentValue}</div>
-              <div className="text-gray-300 whitespace-normal max-w-48">{description}</div>
+              {description && <div className="text-gray-300">{description}</div>}
             </div>
           </div>
         )}
       </div>
-      
-      {/* ラベルと説明 */}
-      <div className="mt-3 text-center">
-        <h3 className="text-xs font-medium text-gray-900 mb-1">{label}</h3>
-        <p className="text-xs text-gray-500 max-w-24 leading-tight">{description.substring(0, 20)}...</p>
+
+      {/* ラベルと説明 - 余白最小化 */}
+      <div className="mt-2 text-center">
+        <h3 className={`font-bold text-gray-900 mb-0 ${size > 250 ? 'text-base' : 'text-sm'}`}>
+          {label}
+        </h3>
+        {description && (
+          <p className="text-xs text-gray-500 max-w-32 leading-tight">
+            {description.substring(0, 25)}...
+          </p>
+        )}
       </div>
     </div>
   )

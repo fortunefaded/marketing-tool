@@ -44,6 +44,7 @@ lerna-debug.log*
 
 # TypeScript
 *.tsbuildinfo
+.tsbuildinfo.precommit
 next-env.d.ts
 
 # Serena MCP

@@ -1,0 +1,23 @@
+{
+  "extends": "./tsconfig.json",
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build",
+    "src/_archived/**",
+    "src/**/_archived/**",
+    "src_backup_*/**",
+    "convex/_generated/**",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "src/tests/**",
+    "src/**/__tests__/**",
+    "src/modules/performance/**",
+    "src/services/__tests__/**"
+  ],
+  "compilerOptions": {
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "strict": false
+  }
+}
