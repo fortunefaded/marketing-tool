@@ -276,14 +276,6 @@ export function CreativeTableTab({
       
       {/* 包括的な統計データテーブル */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">
-            クリエイティブ統計データ (全メトリクス・ソート可能)
-          </h3>
-          <p className="mt-1 text-sm text-gray-500">
-            列ヘッダーをクリックしてソートできます
-          </p>
-        </div>
         <div className="overflow-x-auto w-full">
           <table className="w-full divide-y divide-gray-200 table-fixed" style={{ minWidth: '1560px' }}>
             <thead className="bg-gray-50">
