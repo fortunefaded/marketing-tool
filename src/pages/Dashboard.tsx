@@ -3,8 +3,8 @@ import { useQuery } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import { CreativePerformance } from '../components/analytics/CreativePerformance'
 import { OptimizedCreativePerformance } from '../components/analytics/OptimizedCreativePerformance'
-import { MetaAccountManager } from '../services/metaAccountManager'
-import { AccountSelectorConvex } from '../components/meta/AccountSelectorConvex'
+import { MetaAccountManager } from '../_archived/services/metaAccountManager'
+import { AccountSelectorConvex } from '../_archived/components/meta/AccountSelectorConvex'
 import { PresentationChartLineIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
 import { useNavigate } from 'react-router-dom'
 
@@ -18,9 +18,11 @@ export const Dashboard: React.FC = () => {
   const accountId = activeAccount?.accountId || ''
 
   // Convexからインサイトデータを取得
+  // Safely check if API is available
+  const queryFunction = api?.metaInsights?.getInsights
   const insights = useQuery(
-    api.metaInsights.getInsights, 
-    accountId ? { accountId } : 'skip'
+    queryFunction && accountId ? queryFunction : undefined, 
+    queryFunction && accountId ? { accountId } : undefined
   )
 
   // 広告レベルのインサイトのみをフィルタリング

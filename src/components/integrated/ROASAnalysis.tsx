@@ -11,7 +11,7 @@ import {
   Legend,
   ComposedChart,
 } from 'recharts'
-import { ECForceOrder } from '../../types/ecforce'
+import { ECForceOrder } from '@/types'
 
 interface ROASAnalysisProps {
   ecforceOrders: ECForceOrder[]

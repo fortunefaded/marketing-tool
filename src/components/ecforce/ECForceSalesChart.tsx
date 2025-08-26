@@ -9,7 +9,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts'
-import { ECForceOrder } from '../../types/ecforce'
+import { ECForceOrder } from '@/types'
 
 interface ECForceSalesChartProps {
   orders: ECForceOrder[]

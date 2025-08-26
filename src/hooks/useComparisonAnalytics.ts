@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useQuery } from 'convex/react'
 import { api } from '../../convex/_generated/api'
+import { vibe } from '@/lib/vibelogger'
 
 export type ComparisonType = 'month-over-month' | 'year-over-year' | 'quarter-over-quarter'
 
@@ -44,7 +45,7 @@ export function useComparisonAnalytics(options: UseComparisonAnalyticsOptions = 
 
     const interval = setInterval(() => {
       // In a real app, this would trigger a re-fetch
-      console.log('Auto-refreshing comparison data...')
+      vibe.info('比較データ自動更新中', { comparisonType: selectedComparison })
     }, refreshInterval)
 
     return () => clearInterval(interval)
@@ -125,7 +126,7 @@ export function useComparisonAnalytics(options: UseComparisonAnalyticsOptions = 
       }
     } catch (err) {
       setError(err as Error)
-      console.error('Export failed:', err)
+      vibe.bad('エクスポート失敗', { error: err, format })
     }
   }
 

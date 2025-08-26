@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react'
 import { AlertTriangle, TrendingDown, Users, Calendar } from 'lucide-react'
-import { ECForceOrder } from '../../types/ecforce'
+import { ECForceOrder } from '@/types'
 
 interface ChurnPredictionProps {
   orders: ECForceOrder[]

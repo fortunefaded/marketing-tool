@@ -1,4 +1,5 @@
-import { ECForceOrder } from '../types/ecforce'
+import { ECForceOrder } from '@/types'
+import { logger } from './logger'
 
 const STORAGE_KEY = 'ecforce_orders'
 

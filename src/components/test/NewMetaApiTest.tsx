@@ -8,7 +8,7 @@ import { Loader2, AlertCircle, CheckCircle } from 'lucide-react'
 import { vibe } from '@/lib/vibelogger'
 
 export function NewMetaApiTest() {
-  const { apiCore, isInitialized, error: initError } = useMetaApiCore()
+  const { isInitialized, error: initError } = useMetaApiCore()
   
   // テスト用のインサイトデータ取得
   const { data, loading, error, refetch } = useInsights({
@@ -23,9 +23,7 @@ export function NewMetaApiTest() {
   })
 
   // API統計情報を取得
-  const stats = apiCore && typeof apiCore === 'object' && 'getStats' in apiCore && typeof apiCore.getStats === 'function' 
-    ? apiCore.getStats() 
-    : null
+  const stats = null // apiCore is currently null during migration
 
   return (
     <div className="p-6 space-y-4">
@@ -117,11 +115,7 @@ export function NewMetaApiTest() {
           </button>
           <button 
             onClick={() => {
-              if (apiCore && typeof apiCore === 'object' && 'clearCache' in apiCore && typeof apiCore.clearCache === 'function') {
-                apiCore.clearCache()
-              } else {
-                vibe.warn('clearCache method is not available')
-              }
+              vibe.warn('clearCache method is not available during migration')
             }}
             className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600"
           >

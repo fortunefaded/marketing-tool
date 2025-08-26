@@ -1,7 +1,9 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../convex/_generated/api'
-import { MetaAccountManager } from '../services/metaAccountManager'
+import { vibe } from '@/lib/vibelogger'
+// TODO: Replace with new account management
+// import { MetaAccountManager } from '../_archived/services/metaAccountManager'
 import {
   CreativeAggregator,
   CreativeMetrics,
@@ -42,7 +44,12 @@ export const useCreativeMetrics = (
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [metrics, setMetrics] = useState<CreativeMetrics[]>([])
-  const manager = MetaAccountManager.getInstance()
+  // TODO: Replace with new account management
+  // const manager = MetaAccountManager.getInstance()
+  const manager = {
+    getActiveAccount: () => null,
+    getActiveApiService: () => null
+  }
 
   const {
     startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -127,7 +134,7 @@ export const useCreativeMetrics = (
 
       setMetrics(aggregatedMetrics)
     } catch (err) {
-      console.error('Failed to refresh creative metrics:', err)
+      vibe.bad('クリエイティブメトリクス更新失敗', { error: err instanceof Error ? err.message : err })
       setError(err instanceof Error ? err.message : 'メトリクスの更新に失敗しました')
     } finally {
       setIsLoading(false)

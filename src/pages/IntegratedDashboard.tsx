@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Link, Filter } from 'lucide-react'
-import { ECForceOrder } from '../types/ecforce'
+import { vibe } from '@/lib/vibelogger'
+import { ECForceOrder } from '@/types'
 import { AddToFavoriteButton } from '../components/favorites/AddToFavoriteButton'
 import { useECForceData } from '../hooks/useECForceData'
 import { AdvancedFilter } from '../components/filters/AdvancedFilter'
@@ -13,7 +14,7 @@ import { CrossChannelKPIs } from '../components/integrated/CrossChannelKPIs'
 import { LoadingSpinner } from '../components/common/LoadingSpinner'
 
 export const IntegratedDashboard: React.FC = () => {
-  console.log('IntegratedDashboard component rendering')
+  vibe.debug('統合ダッシュボードコンポーネントレンダリング')
   const [activeTab, setActiveTab] = useState<
     'overview' | 'roas' | 'cohort' | 'rfm' | 'basket' | 'ltv'
   >('overview')

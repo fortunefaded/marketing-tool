@@ -17,7 +17,8 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 import { TrendingUp, TrendingDown, Calendar, Filter, Download, AlertCircle } from 'lucide-react'
-import { ECForceOrder } from '../../types/ecforce'
+import { ECForceOrder } from '@/types'
+import { logger } from '../../utils/logger'
 
 interface ComparisonData {
   period1: {

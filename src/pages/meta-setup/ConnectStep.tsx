@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { MetaAccountManager } from '../../services/metaAccountManager'
-import { MetaAccount } from '../../types/meta-account'
+import { MetaAccountManager } from '../../_archived/services/metaAccountManager'
+import { MetaAccount } from '@/types'
 import {
   ExclamationTriangleIcon,
   KeyIcon,

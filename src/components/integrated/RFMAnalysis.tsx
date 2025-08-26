@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { ECForceOrder } from '../../types/ecforce'
+import { ECForceOrder } from '@/types'
 import {
   ScatterChart,
   Scatter,

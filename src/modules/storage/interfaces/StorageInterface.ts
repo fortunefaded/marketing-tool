@@ -1,4 +1,4 @@
-import { MetaAccount } from '../../types/meta-account'
+import { MetaAccount } from '@/types'
 
 // ストレージインターフェース
 export interface StorageInterface {

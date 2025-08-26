@@ -561,7 +561,12 @@ export const OptimizedCreativePerformance: React.FC<CreativePerformanceProps> = 
               thumbnailUrl={selectedMetric.thumbnail_url || selectedMetric.creative_url}
               videoUrl={selectedMetric.video_url}
               videoId={selectedMetric.video_id}
-              carouselCards={selectedMetric.carousel_cards}
+              carouselCards={selectedMetric.carousel_cards?.map(card => ({
+                name: card.name || '',
+                description: card.description || '',
+                image_url: card.image_url || '',
+                link: card.link || ''
+              }))}
               analysis={analysis}
               performanceHistory={performanceData}
             />

@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { devtools, subscribeWithSelector } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
 import shallow from 'zustand/shallow'
+import { vibe } from '@/lib/vibelogger'
 
 interface PerformanceState {
   // UI状態
@@ -141,7 +142,7 @@ usePerformanceStore.subscribe(
   (accountId) => {
     // アカウント変更時にキャッシュクリア
     if (accountId) {
-      console.log('Account changed, clearing cache...')
+      vibe.info('アカウント変更、キャッシュをクリア中', { newAccountId: accountId })
       // キャッシュクリアロジック
     }
   }

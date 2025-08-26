@@ -1,5 +1,5 @@
 import React from 'react'
-import { ECForceOrder } from '../../types/ecforce'
+import { ECForceOrder } from '@/types'
 import { ShoppingCart, Users, TrendingUp, DollarSign } from 'lucide-react'
 
 interface ECForceDataSummaryProps {

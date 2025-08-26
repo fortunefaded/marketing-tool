@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react'
-import { ECForceOrder } from '../../types/ecforce'
+import { ECForceOrder } from '@/types'
 import { ShoppingBag, TrendingUp } from 'lucide-react'
 
 interface BasketAnalysisProps {

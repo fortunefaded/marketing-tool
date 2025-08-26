@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Search, Filter, X, Save } from 'lucide-react'
-import { ECForceOrder } from '../../types/ecforce'
+import { ECForceOrder } from '@/types'
 import { logger } from '../../utils/logger'
 import { useFilterPresetsConvex } from '../../hooks/useFilterPresetsConvex'
 

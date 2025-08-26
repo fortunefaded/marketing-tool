@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
-import { ECForceOrder } from '../../types/ecforce'
+import { ECForceOrder } from '@/types'
 
 interface ECForceCustomerAnalysisProps {
   orders: ECForceOrder[]

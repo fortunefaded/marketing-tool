@@ -1,5 +1,6 @@
 import React, { memo, Suspense, lazy } from 'react'
-import { ErrorBoundary } from 'react-error-boundary'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { vibe } from '@/lib/vibelogger'
 import { useOptimizedMetaInsights } from '../hooks/useOptimizedMetaData'
 import { usePerformanceStore, usePerformanceActions } from '../stores/usePerformanceStore'
 import { useMetricsCalculator } from '../hooks/useWebWorker'
@@ -12,9 +13,9 @@ import {
   ChartBarIcon 
 } from '@heroicons/react/24/outline'
 
-// 遅延ロードコンポーネント
-const HeavyChartComponent = lazy(() => import('./HeavyChartComponent'))
-const DetailedAnalytics = lazy(() => import('./DetailedAnalytics'))
+// 遅延ロードコンポーネント (temporarily disabled - components not yet created)
+// const HeavyChartComponent = lazy(() => import('./HeavyChartComponent'))
+// const DetailedAnalytics = lazy(() => import('./DetailedAnalytics'))
 
 /**
  * パフォーマンス最適化されたダッシュボード
@@ -94,27 +95,21 @@ export const OptimizedDashboard = memo(() => {
             <div className="h-[600px]">
               <VirtualizedAdList 
                 ads={insights}
-                onAdSelect={(ad) => console.log('Selected:', ad)}
+                onAdSelect={(ad) => vibe.info('広告選択', { adId: ad.ad_id, adName: ad.ad_name })}
               />
             </div>
           )}
           
           {viewMode === 'chart' && (
-            <Suspense fallback={<ChartSkeleton />}>
-              <HeavyChartComponent 
-                data={calculatedMetrics?.byDate || []}
-                isProcessing={isProcessing}
-              />
-            </Suspense>
+            <div className="p-8 text-center text-gray-500">
+              Chart view is temporarily unavailable
+            </div>
           )}
           
           {viewMode === 'grid' && (
-            <Suspense fallback={<GridSkeleton />}>
-              <DetailedAnalytics
-                insights={insights}
-                metrics={calculatedMetrics}
-              />
-            </Suspense>
+            <div className="p-8 text-center text-gray-500">
+              Grid view is temporarily unavailable
+            </div>
           )}
         </div>
         

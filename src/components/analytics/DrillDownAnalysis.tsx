@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react'
-import { ECForceOrder } from '../../types/ecforce'
+import { ECForceOrder } from '@/types'
 import {
   PieChart,
   Pie,

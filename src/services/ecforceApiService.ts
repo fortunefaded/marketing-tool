@@ -1,51 +1,56 @@
-export interface ECForceConfig {
-  apiKey: string
-  shopId: string
-  apiEndpoint?: string
-}
+import { ECForceConfig, ECForceOrder, ECForceSalesData } from '@/types'
 
-export interface ECForceOrder {
-  id: string
-  order_number: string
-  created_at: string
-  updated_at: string
-  status: string
-  total_amount: number
-  subtotal_amount: number
-  tax_amount: number
-  shipping_amount: number
-  discount_amount: number
-  customer: {
-    id: string
-    email: string
-    name: string
-  }
-  items: Array<{
-    id: string
-    product_id: string
-    product_name: string
-    quantity: number
-    price: number
-    total: number
-  }>
-  // Meta広告との紐付け用
-  utm_source?: string
-  utm_medium?: string
-  utm_campaign?: string
-  utm_content?: string
-  fbclid?: string // Facebook Click ID
-  gclid?: string // Google Click ID
-}
+// ECForceConfig は @/types から import してください
+// export interface ECForceConfig {
+//   apiKey: string
+//   shopId: string
+//   apiEndpoint?: string
+// }
 
-export interface ECForceSalesData {
-  date: string
-  orders_count: number
-  total_sales: number
-  average_order_value: number
-  new_customers: number
-  returning_customers: number
-  products_sold: number
-}
+// ECForceOrder は @/types から import してください
+// export interface ECForceOrder {
+//   id: string
+//   order_number: string
+//   created_at: string
+//   updated_at: string
+//   status: string
+//   total_amount: number
+//   subtotal_amount: number
+//   tax_amount: number
+//   shipping_amount: number
+//   discount_amount: number
+//   customer: {
+//     id: string
+//     email: string
+//     name: string
+//   }
+//   items: Array<{
+//     id: string
+//     product_id: string
+//     product_name: string
+//     quantity: number
+//     price: number
+//     total: number
+//   }>
+//   // Meta広告との紐付け用
+//   utm_source?: string
+//   utm_medium?: string
+//   utm_campaign?: string
+//   utm_content?: string
+//   fbclid?: string // Facebook Click ID
+//   gclid?: string // Google Click ID
+// }
+
+// ECForceSalesData は @/types から import してください
+// export interface ECForceSalesData {
+//   date: string
+//   orders_count: number
+//   total_sales: number
+//   average_order_value: number
+//   new_customers: number
+//   returning_customers: number
+//   products_sold: number
+// }
 
 export interface ECForceProduct {
   id: string

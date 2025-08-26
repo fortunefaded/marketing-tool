@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react'
-import { MetaInsightsData } from '../../services/metaApiService'
-import { ECForceOrder } from '../../types/ecforce'
-import { ECForceSalesData } from '../../services/ecforceApiService'
+import { MetaInsightsData, ECForceOrder } from '@/types'
+import { ECForceSalesData } from '@/types'
 import { KPIAggregator } from '../../services/kpiAggregator'
+import { logger } from '../../utils/logger'
 import {
   CurrencyYenIcon,
   ChartBarIcon,

@@ -1,8 +1,9 @@
 import { StorageInterface } from './StorageInterface'
-import { MetaAccount } from '../../types/meta-account'
+import { MetaAccount } from '@/types'
 import { ConvexReactClient } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import { Id } from '../../../convex/_generated/dataModel'
+import { vibe } from '@/lib/vibelogger'
 
 export class ConvexStorageAdapter implements StorageInterface {
   constructor(private convexClient: ConvexReactClient) {}
@@ -18,7 +19,7 @@ export class ConvexStorageAdapter implements StorageInterface {
         updatedAt: acc.updatedAt ? new Date(acc.updatedAt) : new Date(acc._creationTime)
       }))
     } catch (error) {
-      console.error('Failed to load accounts from Convex:', error)
+      vibe.bad('Convexからのアカウント読み込み失敗', { error })
       return []
     }
   }

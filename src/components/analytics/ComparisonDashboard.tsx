@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react'
-import { MetaInsightsData } from '../../services/metaApiService'
+import { MetaInsightsData } from '@/types'
 import { FunnelIcon } from '@heroicons/react/24/outline'
 
 interface ComparisonDashboardProps {

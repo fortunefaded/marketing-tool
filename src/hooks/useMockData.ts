@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useMutation } from 'convex/react'
 import { api } from '../../convex/_generated/api'
+import { vibe } from '@/lib/vibelogger'
 
 // Mock data for development
 const mockCampaigns = [
@@ -162,9 +163,9 @@ export function useMockDataInitializer() {
 
         // Mark as initialized
         localStorage.setItem(checkDataKey, 'true')
-        console.log('Mock data initialized successfully')
+        vibe.good('モックデータ初期化成功')
       } catch (error) {
-        console.error('Failed to initialize mock data:', error)
+        vibe.bad('モックデータ初期化失敗', { error })
       }
     }
 

@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../convex/_generated/api'
-import { MetaAccountManager } from '../services/metaAccountManager'
+import { vibe } from '@/lib/vibelogger'
+// TODO: Replace with new account management
+// import { MetaAccountManager } from '../_archived/services/metaAccountManager'
 import {
   CreativeDataAggregator,
   EnhancedCreativeData,
@@ -53,7 +55,12 @@ export const useEnhancedCreativeMetrics = (
     message: '',
   })
 
-  const manager = MetaAccountManager.getInstance()
+  // TODO: Replace with new account management
+  // const manager = MetaAccountManager.getInstance()
+  const manager = {
+    getActiveAccount: () => null,
+    getActiveApiService: () => null
+  }
   const aggregatorRef = useRef<CreativeDataAggregator | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
 
@@ -182,11 +189,11 @@ export const useEnhancedCreativeMetrics = (
       })
     } catch (err: any) {
       if (err.name === 'AbortError') {
-        console.log('データ取得がキャンセルされました')
+        vibe.info('データ取得がキャンセルされました')
         return
       }
 
-      console.error('Enhanced creative metrics fetch error:', err)
+      vibe.bad('拡張クリエイティブメトリクス取得エラー', { error: err.message || err })
       setError(err.message || 'データの取得に失敗しました')
       setProgress({
         stage: 'idle',
@@ -202,7 +209,7 @@ export const useEnhancedCreativeMetrics = (
   useEffect(() => {
     if (cachedData && cachedData.length > 0) {
       setData(cachedData as any)
-      console.log('キャッシュからデータをロード')
+      vibe.good('キャッシュからデータをロード', { count: cachedData.length })
     } else if (activeAccount && apiService) {
       fetchData()
     }

@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf'
 import 'jspdf-autotable'
-import { ECForceOrder } from '../../types/ecforce'
+import { ECForceOrder } from '@/types'
 
 // jsPDF用の型定義を拡張
 declare module 'jspdf' {

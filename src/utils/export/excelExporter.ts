@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx'
-import { ECForceOrder } from '../../types/ecforce'
+import { ECForceOrder } from '@/types'
 
 export const exportToExcel = async (
   orders: ECForceOrder[],

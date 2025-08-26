@@ -1,6 +1,6 @@
 import { useQuery } from 'convex/react'
 import { api } from '../../convex/_generated/api'
-import { ECForceOrder } from '../types/ecforce'
+import { ECForceOrder } from '@/types'
 import { useMemo } from 'react'
 
 interface UseECForceDataOptions {
@@ -92,7 +92,15 @@ export function useECForceData(options: UseECForceDataOptions = {}): UseECForceD
 
   // 統計情報を整形
   const stats = useMemo(() => {
-    if (!statsData) return null
+    if (!statsData) {
+      // データがない場合は空の統計を返す
+      return {
+        totalRevenue: 0,
+        totalOrders: 0,
+        uniqueCustomers: 0,
+        avgOrderValue: 0,
+      }
+    }
 
     return {
       totalRevenue: statsData.totalRevenue,
@@ -104,7 +112,7 @@ export function useECForceData(options: UseECForceDataOptions = {}): UseECForceD
 
   return {
     orders,
-    isLoading: ordersResponse === undefined || statsData === undefined,
+    isLoading: ordersResponse === undefined,
     stats,
   }
 }

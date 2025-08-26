@@ -1,7 +1,8 @@
 import { ConvexReactClient } from 'convex/react'
 import { api } from '../../convex/_generated/api'
-import { MetaInsightsData } from './metaApiService'
+import { MetaInsightsData } from '@/types'
 import { logger } from '../utils/logger'
+import { vibe } from '@/lib/vibelogger'
 
 export interface CachedInsightsData extends MetaInsightsData {
   syncedAt: string
@@ -79,6 +80,12 @@ export class ConvexDataCache {
       // その他のフィールドも必要に応じて追加
     }))
 
+    // Safely check if API is available
+    if (!api?.metaInsights?.saveInsights) {
+      vibe.warn('Convex API metaInsights.saveInsights not available')
+      throw new Error('Convex API not initialized')
+    }
+    
     await this.convexClient.mutation(api.metaInsights.saveInsights, {
       accountId,
       insights: transformedData as any,
@@ -87,6 +94,12 @@ export class ConvexDataCache {
 
   async getInsights(accountId: string): Promise<CachedInsightsData[]> {
     try {
+      // Safely check if API is available
+      if (!api?.metaInsights?.getInsights) {
+        vibe.warn('Convex API metaInsights.getInsights not available')
+        return []
+      }
+      
       const result = await this.convexClient.query(api.metaInsights.getInsights, {
         accountId,
         limit: 10000, // 大きめの制限
@@ -107,6 +120,12 @@ export class ConvexDataCache {
   }
 
   async clearInsights(accountId: string): Promise<void> {
+    // Safely check if API is available
+    if (!api?.metaInsights?.clearInsights) {
+      vibe.warn('Convex API metaInsights.clearInsights not available')
+      throw new Error('Convex API not initialized')
+    }
+    
     await this.convexClient.mutation(api.metaInsights.clearInsights, {
       accountId,
     })
@@ -114,6 +133,12 @@ export class ConvexDataCache {
 
   async getSyncStatus(accountId: string): Promise<DataSyncStatus | null> {
     try {
+      // Safely check if API is available
+      if (!api?.metaSyncStatus?.getSyncStatus) {
+        vibe.warn('Convex API metaSyncStatus.getSyncStatus not available')
+        return null
+      }
+      
       const status = await this.convexClient.query(api.metaSyncStatus.getSyncStatus, {
         accountId,
       })

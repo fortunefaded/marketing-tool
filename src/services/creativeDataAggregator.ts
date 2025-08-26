@@ -1,5 +1,8 @@
-import { MetaApiService, MetaInsightsData } from './metaApiService'
+// TODO: Replace with new Meta API service
+// import { MetaApiService, MetaInsightsData } from '../_archived/services/metaApiService'
+import { MetaInsightsData } from '@/types'
 // import { MetaDataCache } from './metaDataCache' // @deprecated unused
+import { logger } from '../utils/logger'
 
 export interface EnhancedCreativeData {
   // 基本情報

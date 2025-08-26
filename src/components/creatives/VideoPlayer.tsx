@@ -1,6 +1,7 @@
 /* eslint-env browser */
 import React, { useState, useEffect } from 'react'
 import { PlayIcon, XMarkIcon } from '@heroicons/react/24/solid'
+import { logger } from '../../utils/logger'
 
 interface VideoPlayerProps {
   videoUrl?: string | null
@@ -43,7 +44,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       script.async = true
       script.defer = true
       script.crossOrigin = 'anonymous'
-      script.src = 'https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v18.0'
+      script.src = 'https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v23.0'
       document.body.appendChild(script)
     }
   }, [])

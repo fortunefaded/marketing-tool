@@ -1,7 +1,7 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import { OptimizedCreativePerformance } from '../OptimizedCreativePerformance'
-import type { MetaInsightsData } from '../../../services/metaApiService'
+import type { MetaInsightsData } from '@/types'
 
 // Mock EnhancedCreativeDetailModal to avoid Convex dependencies
 vi.mock('../../creatives/EnhancedCreativeDetailModal', () => ({

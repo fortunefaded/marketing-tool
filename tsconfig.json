@@ -29,5 +29,13 @@
     "baseUrl": "."
   },
   "include": ["src", "src/**/*.test.ts", "src/**/*.test.tsx"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build",
+    "src/_archived",
+    "src/**/_archived/**",
+    "src_backup_*"
+  ],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

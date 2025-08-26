@@ -11,7 +11,7 @@ import {
   ReferenceLine,
 } from 'recharts'
 import { TrendingUp, AlertCircle, Info } from 'lucide-react'
-import { ECForceOrder } from '../../types/ecforce'
+import { ECForceOrder } from '@/types'
 
 interface SalesPredictionProps {
   orders: ECForceOrder[]

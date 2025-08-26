@@ -1,4 +1,4 @@
-import { MetaInsightsData } from './metaApiService'
+import { MetaInsightsData } from '@/types'
 import { CreativeMetrics } from './creativeAggregator'
 
 export interface KPIMetrics {
