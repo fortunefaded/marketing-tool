@@ -1,6 +1,5 @@
-import { MetaInsightsData } from './metaApiService'
-import { ECForceOrder } from '../types/ecforce'
-import { ECForceSalesData } from './ecforceApiService'
+import { MetaInsightsData, ECForceOrder } from '@/types'
+import { ECForceSalesData } from '@/types'
 
 export interface UnifiedKPIMetrics {
   // 総合指標

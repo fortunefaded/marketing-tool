@@ -1,7 +1,8 @@
 import { ConvexReactClient } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import { CreativeMetrics, CreativeAggregator, AggregationOptions } from './creativeAggregator'
-import { CreativeMetricsCacheConvex } from './creativeMetricsCacheConvex'
+import { CreativeMetricsCacheConvex } from '../_archived/services/meta-api/creativeMetricsCacheConvex'
+import { logger } from '../utils/logger'
 
 interface DiffSyncOptions {
   accountId: string

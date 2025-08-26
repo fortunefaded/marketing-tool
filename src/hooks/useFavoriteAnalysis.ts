@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { vibe } from '@/lib/vibelogger'
 
 export interface FavoriteAnalysis {
   id: string
@@ -43,7 +44,7 @@ export function useFavoriteAnalysis(): UseFavoriteAnalysisReturn {
           }))
         )
       } catch (error) {
-        console.error('Failed to load favorite analysis:', error)
+        vibe.bad('お気に入り分析読み込み失敗', { error })
       }
     }
   }, [])

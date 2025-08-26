@@ -1,5 +1,6 @@
 import { StorageInterface } from './StorageInterface'
-import { MetaAccount } from '../../types/meta-account'
+import { MetaAccount } from '@/types'
+import { vibe } from '@/lib/vibelogger'
 
 const ACCOUNTS_KEY = 'meta_accounts_v1'
 const ACTIVE_ACCOUNT_KEY = 'meta_active_account_id'
@@ -13,7 +14,7 @@ export class LocalStorageAdapter implements StorageInterface {
       const data = JSON.parse(stored)
       return data.accounts || []
     } catch (error) {
-      console.error('Failed to load accounts from localStorage:', error)
+      vibe.bad('LocalStorageからのアカウント読み込み失敗', { error })
       return []
     }
   }

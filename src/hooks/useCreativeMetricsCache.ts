@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { useConvex } from 'convex/react'
-import { CreativeMetricsCacheConvex, getCreativeMetricsCacheInstance } from '../services/creativeMetricsCacheConvex'
+import { CreativeMetricsCacheConvex, getCreativeMetricsCacheInstance } from '../_archived/services/meta-api/creativeMetricsCacheConvex'
 import { CreativeMetrics } from '../services/creativeAggregator'
 
 interface CacheParams {

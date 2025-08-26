@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react'
 import { ShoppingCart, Filter } from 'lucide-react'
-import { ECForceOrder } from '../types/ecforce'
+import { ECForceOrder } from '@/types'
 import { AddToFavoriteButton } from '../components/favorites/AddToFavoriteButton'
 import { useMemoryOptimization } from '../hooks/useMemoryOptimization'
 import { ECForceSalesChart } from '../components/ecforce/ECForceSalesChart'

@@ -1,4 +1,4 @@
-import { ECForceOrder } from '../../types/ecforce'
+import { ECForceOrder } from '@/types'
 
 export const exportToCSV = async (
   orders: ECForceOrder[],

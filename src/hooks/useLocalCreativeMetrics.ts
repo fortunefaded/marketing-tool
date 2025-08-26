@@ -1,12 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { localDB } from '../services/localDataStore'
 import { storageManager } from '../services/localStorageManager'
+import { vibe } from '@/lib/vibelogger'
 import {
   CreativeDataAggregator,
   EnhancedCreativeData,
   AggregationOptions,
 } from '../services/creativeDataAggregator'
-import { MetaAccountManager } from '../services/metaAccountManager'
+// TODO: Replace with new account management
+// import { MetaAccountManager } from '../_archived/services/metaAccountManager'
 
 interface UseLocalCreativeMetricsOptions {
   dateRange: {
@@ -39,7 +41,12 @@ export function useLocalCreativeMetrics(options: UseLocalCreativeMetricsOptions)
   })
 
   const aggregatorRef = useRef<CreativeDataAggregator | null>(null)
-  const manager = MetaAccountManager.getInstance()
+  // TODO: Replace with new account management
+  // const manager = MetaAccountManager.getInstance()
+  const manager = {
+    getActiveAccount: () => null,
+    getActiveApiService: () => null
+  }
   const abortControllerRef = useRef<AbortController | null>(null)
 
   const fetchData = useCallback(async () => {
@@ -144,11 +151,11 @@ export function useLocalCreativeMetrics(options: UseLocalCreativeMetricsOptions)
       })
     } catch (err: any) {
       if (err.name === 'AbortError') {
-        console.log('データ取得がキャンセルされました')
+        vibe.info('データ取得がキャンセルされました')
         return
       }
 
-      console.error('Creative metrics fetch error:', err)
+      vibe.bad('クリエイティブメトリクス取得エラー', { error: err.message || err })
       setError(err.message || 'データの取得に失敗しました')
 
       // エラー時も古いキャッシュがあれば表示
@@ -162,10 +169,10 @@ export function useLocalCreativeMetrics(options: UseLocalCreativeMetricsOptions)
         if (staleCache && staleCache.length > 0) {
           setData(staleCache)
           setError(error + ' (古いキャッシュを表示しています)')
-          console.log('エラー時の古いキャッシュを使用')
+          vibe.warn('エラー時の古いキャッシュを使用', { cacheCount: staleCache.length })
         }
       } catch (cacheError) {
-        console.error('キャッシュの取得にも失敗しました:', cacheError)
+        vibe.bad('キャッシュの取得にも失敗しました', { error: cacheError })
       }
 
       setProgress({
@@ -248,7 +255,7 @@ export function useLocalCreativeMetrics(options: UseLocalCreativeMetricsOptions)
     storageManager.clearAll()
 
     setData([])
-    console.log('キャッシュをクリアしました')
+    vibe.good('キャッシュをクリアしました', { accountId: activeAccount.accountId })
   }, [manager])
 
   // 計算されたプロパティ

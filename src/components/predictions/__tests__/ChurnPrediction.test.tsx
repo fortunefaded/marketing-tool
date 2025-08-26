@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { ChurnPrediction } from '../ChurnPrediction'
-import { ECForceOrder } from '../../../types/ecforce'
+import { ECForceOrder } from '@/types'
 
 // テスト用のモックデータ生成関数
 const createMockOrder = (overrides: Partial<ECForceOrder>): ECForceOrder => ({

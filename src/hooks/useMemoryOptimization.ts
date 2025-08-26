@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react'
-import { ECForceOrder } from '../types/ecforce'
+import { ECForceOrder } from '@/types'
 
 interface MemoryOptimizationOptions {
   maxDataPoints?: number

@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { SalesPrediction } from '../SalesPrediction'
-import { ECForceOrder } from '../../../types/ecforce'
+import { ECForceOrder } from '@/types'
 
 // モックデータ
 const mockOrders: ECForceOrder[] = [

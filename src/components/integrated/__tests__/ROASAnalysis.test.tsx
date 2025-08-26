@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { ROASAnalysis } from '../ROASAnalysis'
-import { ECForceOrder } from '../../../types/ecforce'
+import { ECForceOrder } from '@/types'
 
 const createMockOrder = (overrides: Partial<ECForceOrder>): ECForceOrder => ({
   受注ID: 'TEST-001',

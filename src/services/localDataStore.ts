@@ -1,6 +1,7 @@
 import Dexie, { Table } from 'dexie'
 import { EnhancedCreativeData } from './creativeDataAggregator'
-import { MetaInsightsData } from './metaApiService'
+import { MetaInsightsData } from '@/types'
+import { logger } from '../utils/logger'
 
 interface StoredCreativeData extends EnhancedCreativeData {
   _localId?: string

@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react'
 import { TrendingUp, DollarSign, Users, ShoppingCart, Target, Percent } from 'lucide-react'
-import { ECForceOrder } from '../../types/ecforce'
+import { ECForceOrder } from '@/types'
 
 interface CrossChannelKPIsProps {
   ecforceOrders: ECForceOrder[]

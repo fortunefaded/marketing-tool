@@ -1,7 +1,13 @@
-import { MetaApiService, MetaInsightsData } from './metaApiService'
+// TODO: Replace with new Meta API service
+// import { MetaApiService, MetaInsightsData } from '../_archived/services/metaApiService'
 // import { MetaDataCache } from './metaDataCache' // @deprecated unused
-import { MetaDataParser } from '../utils/metaDataParser'
-import { CreativeMetricsCache } from './creativeMetricsCache'
+// TODO: Replace with new data parser
+// import { MetaDataParser } from '../_archived/utils/meta-api/metaDataParser'
+// TODO: Replace with new cache system
+// import { CreativeMetricsCache } from '../_archived/services/meta-api/creativeMetricsCache'
+import { MetaInsightsData } from '@/types'
+import { MetaApiService } from '../features/meta-api/core/stub-service'
+import { vibe } from '@/lib/vibelogger'
 
 export type CreativeType = 'image' | 'video' | 'carousel' | 'text' | 'unknown'
 export type AggregationPeriod = 'daily' | 'weekly' | 'monthly'
@@ -53,7 +59,8 @@ export interface AggregationOptions {
 }
 
 export class CreativeAggregator {
-  constructor(private apiService: MetaApiService) {}
+  // TODO: Replace with new API service
+  constructor(private apiService?: any) {}
 
   /**
    * クリエイティブデータを集計
@@ -62,13 +69,18 @@ export class CreativeAggregator {
     accountId: string,
     options: AggregationOptions
   ): Promise<CreativeMetrics[]> {
-    // まずキャッシュから取得を試みる
-    const cached = CreativeMetricsCache.get(accountId, options)
-    if (cached) {
-      console.log('キャッシュからクリエイティブメトリクスを返却')
-      return cached
-    }
+    // TODO: Implement new cache system
+    // const cached = CreativeMetricsCache.get(accountId, options)
+    // if (cached) {
+    //   console.log('キャッシュからクリエイティブメトリクスを返却')
+    //   return cached
+    // }
 
+    // TODO: Implement new API service
+    if (!this.apiService) {
+      throw new Error('API service not available during migration')
+    }
+    
     // APIから広告レベルのインサイトデータを取得（アトリビューション設定を含む）
     const insights = await this.apiService.getInsights({
       level: 'ad',
@@ -80,22 +92,25 @@ export class CreativeAggregator {
       time_increment: '1',
     })
 
-    // MetaDataParserを使用してデータを解析・強化
+    // TODO: Implement new data parsing logic
     const enrichedData = insights.map((item) => ({
       ...item,
-      // パーサーで正確なメトリクスを抽出
-      conversions: MetaDataParser.extractConversions(
-        Array.isArray(item.actions) ? item.actions : []
-      ),
-      roas: MetaDataParser.calculateROAS(item),
-      cpa: MetaDataParser.calculateCPA(item),
+      // TODO: Replace with new parser logic
+      conversions: Number(item.conversions) || 0,
+      // conversions: MetaDataParser.extractConversions(
+      //   Array.isArray(item.actions) ? item.actions : []
+      // ),
+      roas: Number(item.roas) || 0,
+      // roas: MetaDataParser.calculateROAS(item),
+      cpa: Number(item.cost_per_conversion) || 0,
+      // cpa: MetaDataParser.calculateCPA(item),
 
       // 元のフィールドも保持（デバッグ用）
       raw_actions: item.actions,
       raw_action_values: item.action_values,
 
-      // パーサーの詳細解析結果
-      parser_analysis: MetaDataParser.parseInsightData(item),
+      // TODO: Replace with new parser analysis
+      // parser_analysis: MetaDataParser.parseInsightData(item),
     }))
 
     // クリエイティブIDのセットを作成
@@ -136,8 +151,8 @@ export class CreativeAggregator {
       )
     }
 
-    // 結果をキャッシュに保存
-    CreativeMetricsCache.set(accountId, options, filteredMetrics)
+    // TODO: Implement new cache system
+    // CreativeMetricsCache.set(accountId, options, filteredMetrics)
 
     return filteredMetrics
   }
@@ -206,7 +221,7 @@ export class CreativeAggregator {
         }
       })
     } catch (error) {
-      console.error('Failed to fetch creative details:', error)
+      vibe.bad('クリエイティブ詳細情報取得失敗', { error: error instanceof Error ? error.message : error, adIdsCount: adIds.length })
     }
 
     return creativeMap

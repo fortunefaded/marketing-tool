@@ -1,8 +1,12 @@
 import { CacheInterface } from './storage/CacheInterface'
-import { MetricsData, CreativeSummary } from '../types/creative-metrics'
+// import { MetricsData, CreativeSummary } from '../types/creative-metrics'
+// TODO: Define MetricsData and CreativeSummary types in @/types
+type MetricsData = any
+type CreativeSummary = any
 import LZString from 'lz-string'
 import { ConvexReactClient } from 'convex/react'
 import { api } from '../../convex/_generated/api'
+import { vibe } from '@/lib/vibelogger'
 
 // キャッシュキーのプレフィックス
 const CACHE_PREFIX = 'creative_metrics_'
@@ -113,7 +117,7 @@ class LocalStorageCache implements CacheInterface {
 
       return data
     } catch (error) {
-      console.error(`Failed to get cache ${key}:`, error)
+      vibe.bad('キャッシュ取得失敗', { key, error })
       return null
     }
   }
@@ -135,7 +139,7 @@ class LocalStorageCache implements CacheInterface {
 
       localStorage.setItem(key, JSON.stringify(item))
     } catch (error) {
-      console.error(`Failed to set cache ${key}:`, error)
+      vibe.bad('キャッシュ設定失敗', { key, error })
     }
   }
 
@@ -186,7 +190,7 @@ class ConvexCache implements CacheInterface {
         ttl
       })
     } catch (error) {
-      console.error(`Failed to set Convex cache ${key}:`, error)
+      vibe.bad('Convexキャッシュ設定失敗', { key, error })
     }
   }
 
@@ -194,7 +198,7 @@ class ConvexCache implements CacheInterface {
     try {
       await this.client.mutation(api.creativeMetricsCache.delete, { key })
     } catch (error) {
-      console.error(`Failed to delete Convex cache ${key}:`, error)
+      vibe.bad('Convexキャッシュ削除失敗', { key, error })
     }
   }
 
@@ -202,7 +206,7 @@ class ConvexCache implements CacheInterface {
     try {
       await this.client.mutation(api.creativeMetricsCache.clear, { prefix })
     } catch (error) {
-      console.error(`Failed to clear Convex cache:`, error)
+      vibe.bad('Convexキャッシュクリア失敗', { error })
     }
   }
 

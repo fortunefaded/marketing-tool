@@ -1,9 +1,10 @@
 import React, { useState } from 'react'
 import { Download, FileSpreadsheet, FileText, FilePlus2 } from 'lucide-react'
-import { ECForceOrder } from '../../types/ecforce'
+import { ECForceOrder } from '@/types'
 import { exportToCSV } from '../../utils/export/csvExporter'
 import { exportToExcel } from '../../utils/export/excelExporter'
 import { generatePDFReport } from '../../utils/export/pdfReportGenerator'
+import { logger } from '../../utils/logger'
 
 interface DataExporterProps {
   orders: ECForceOrder[]

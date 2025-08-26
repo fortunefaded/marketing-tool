@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { ECForceDuplicateHandler } from '../ecforce-duplicate-handler'
-import { ECForceOrder } from '../../types/ecforce'
+import { ECForceOrder } from '@/types'
 
 describe('ECForceDuplicateHandler', () => {
   const createOrder = (id: string, date: string = '2025/08/09 10:00'): ECForceOrder => ({

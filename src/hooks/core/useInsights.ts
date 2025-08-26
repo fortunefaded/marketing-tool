@@ -4,8 +4,16 @@
 
 import { useMemo } from 'react'
 import { useMetaData, useMetaApiCore } from './useMetaData'
-import { InsightParams } from '../../services/core/MetaApiCore'
-import { MetaApiTypes } from '../../services/core/types'
+// TODO: Replace with new insight params interface
+// import { InsightParams } from '../../_archived/services/MetaApiCore'
+interface InsightParams {
+  level: 'account' | 'campaign' | 'adset' | 'ad'
+  dateRange?: { start: string; end: string }
+  fields?: string[]
+  filters?: any
+  limit?: number
+}
+import { MetaApiTypes } from '@/types'
 
 export interface UseInsightsOptions {
   enabled?: boolean

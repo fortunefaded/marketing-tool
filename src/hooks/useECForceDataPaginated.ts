@@ -1,6 +1,6 @@
 import { useQuery } from 'convex/react'
 import { api } from '../../convex/_generated/api'
-import { ECForceOrder } from '../types/ecforce'
+import { ECForceOrder } from '@/types'
 import { useMemo, useState, useCallback } from 'react'
 
 interface UseECForceDataPaginatedOptions {

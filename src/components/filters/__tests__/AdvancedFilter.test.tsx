@@ -1,7 +1,7 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { AdvancedFilter } from '../AdvancedFilter'
-import { ECForceOrder } from '../../../types/ecforce'
+import { ECForceOrder } from '@/types'
 import { vi } from 'vitest'
 
 const createMockOrder = (overrides: Partial<ECForceOrder>): ECForceOrder => ({

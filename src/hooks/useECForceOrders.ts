@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
-import { ECForceOrder } from '../types/ecforce'
+import { ECForceOrder } from '@/types'
 import { ECForceStorage } from '../utils/ecforce-storage'
+import { vibe } from '@/lib/vibelogger'
 
 export const useECForceOrders = () => {
   const [orders, setOrders] = useState<ECForceOrder[]>([])
@@ -15,7 +16,7 @@ export const useECForceOrders = () => {
         setOrders(loadedOrders)
         setError(null)
       } catch (err) {
-        console.error('注文データの読み込みエラー:', err)
+        vibe.bad('注文データ読み込みエラー', { error: err })
         setError('データの読み込みに失敗しました')
         setOrders([])
       } finally {

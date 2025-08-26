@@ -1,23 +1,28 @@
 /**
- * Simple logger utility that respects environment
+ * Simple logger utility that delegates to Vibelogger
  */
-const isDevelopment = process.env.NODE_ENV === 'development'
+import { vibe } from '@/lib/vibelogger'
 
 export const logger = {
   debug: (...args: any[]) => {
-    if (isDevelopment) {
-      console.log(...args)
-    }
+    // Convert args to string message and context
+    const [message, ...contextArgs] = args
+    const context = contextArgs.length > 0 ? { data: contextArgs } : undefined
+    vibe.debug(String(message), context)
   },
   info: (...args: any[]) => {
-    if (isDevelopment) {
-      console.info(...args)
-    }
+    const [message, ...contextArgs] = args
+    const context = contextArgs.length > 0 ? { data: contextArgs } : undefined
+    vibe.info(String(message), context)
   },
   warn: (...args: any[]) => {
-    console.warn(...args)
+    const [message, ...contextArgs] = args
+    const context = contextArgs.length > 0 ? { data: contextArgs } : undefined
+    vibe.warn(String(message), context)
   },
   error: (...args: any[]) => {
-    console.error(...args)
+    const [message, ...contextArgs] = args
+    const context = contextArgs.length > 0 ? { data: contextArgs } : undefined
+    vibe.bad(String(message), context)
   }
 }

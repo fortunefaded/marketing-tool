@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useConvex } from 'convex/react'
-import { MetaAccountManagerConvex } from '../../services/metaAccountManagerConvex'
-import { MetaAccount } from '../../types/meta-account'
+import { vibe } from '@/lib/vibelogger'
+import { MetaAccountManagerConvex } from '../../_archived/services/metaAccountManagerConvex'
+import { MetaAccount } from '@/types'
 import {
   ExclamationTriangleIcon,
   KeyIcon,
@@ -46,7 +47,7 @@ export const ConnectStepConvex: React.FC = () => {
         setShowAddForm(true)
       }
     } catch (error) {
-      console.error('Failed to load accounts:', error)
+      vibe.bad('アカウント読み込み失敗', { error })
       setError('アカウントの読み込みに失敗しました')
     } finally {
       setIsLoading(false)
@@ -89,7 +90,7 @@ export const ConnectStepConvex: React.FC = () => {
         await manager.removeAccount(accountId)
         await loadAccounts()
       } catch (error) {
-        console.error('Failed to remove account:', error)
+        vibe.bad('アカウント削除失敗', { error, accountId })
         setError('アカウントの削除に失敗しました')
       }
     }
@@ -100,7 +101,7 @@ export const ConnectStepConvex: React.FC = () => {
       await manager.setActiveAccount(account.accountId)
       setSelectedAccount(account)
     } catch (error) {
-      console.error('Failed to set active account:', error)
+      vibe.bad('アクティブアカウント設定失敗', { error, accountId })
       setError('アカウントの選択に失敗しました')
     }
   }

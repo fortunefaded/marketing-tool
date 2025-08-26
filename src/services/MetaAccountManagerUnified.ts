@@ -1,5 +1,7 @@
-import { MetaAccount } from '../types/meta-account'
-import { MetaApiService } from './metaApiService'
+import { MetaAccount } from '@/types'
+// TODO: Replace with new Meta API service
+// import { MetaApiService } from '../_archived/services/metaApiService'
+import { MetaApiService } from '../features/meta-api/core/stub-service'
 import { StorageInterface, StorageType } from '../modules/storage/interfaces/StorageInterface'
 import { LocalStorageAdapter } from '../modules/storage/adapters/LocalStorageAdapter'
 import { ConvexStorageAdapter } from '../modules/storage/adapters/ConvexStorageAdapter'
@@ -110,13 +112,17 @@ export class MetaAccountManagerUnified {
   // アカウントのアクセストークンを検証
   async validateAccount(account: MetaAccount): Promise<boolean> {
     try {
+      // TODO: Replace with new Meta API service
       const api = new MetaApiService({
         accessToken: account.accessToken,
         accountId: account.accountId
       })
       
       const user = await api.getUser()
-      return !!user
+      
+      // Temporary: always return false during migration (stub will throw error)
+      return false
+      // return !!user
     } catch {
       return false
     }

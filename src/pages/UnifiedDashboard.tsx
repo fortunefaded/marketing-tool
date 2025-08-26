@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useConvex } from 'convex/react'
-import { MetaAccountManagerConvex } from '../services/metaAccountManagerConvex'
-import { MetaInsightsData } from '../services/metaApiService'
-import { MetaDataCache } from '../services/metaDataCache'
+import { vibe } from '@/lib/vibelogger'
+import { SimpleAccountStore } from '@/features/meta-api/account/account-store'
+import { SimpleTokenStore } from '@/features/meta-api/core/token'
+import { SimpleMetaApi } from '@/features/meta-api/core/api-client'
+import { MetaInsightsData } from '@/types'
 import { useECForceData } from '../hooks/useECForceData'
 import {
   ChartBarIcon,
@@ -33,8 +35,8 @@ import { RFMAnalysis } from '../components/integrated/RFMAnalysis'
 export const UnifiedDashboard: React.FC = () => {
   const navigate = useNavigate()
   const convexClient = useConvex()
-  const [manager] = useState(() => MetaAccountManagerConvex.getInstance(convexClient))
-  // const [apiService, setApiService] = useState<MetaApiService | null>(null)
+  const [accountStore] = useState(() => new SimpleAccountStore(convexClient))
+  const [tokenStore] = useState(() => new SimpleTokenStore(convexClient))
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [activeAccount, setActiveAccount] = useState<any>(null)
@@ -42,6 +44,7 @@ export const UnifiedDashboard: React.FC = () => {
   // Metaデータ
   const [metaInsights, setMetaInsights] = useState<MetaInsightsData[]>([])
   const [metaSyncStatus, setMetaSyncStatus] = useState<any>(null)
+  const [isSyncing, setIsSyncing] = useState(false)
   // const [metaCacheInfo, setMetaCacheInfo] = useState({ sizeKB: 0, records: 0 })
 
   // ECForceデータ
@@ -60,6 +63,15 @@ export const UnifiedDashboard: React.FC = () => {
     endDate: ecforceDateRange.end?.toISOString().split('T')[0],
   })
 
+  // デバッグログ
+  console.log('UnifiedDashboard DEBUG:', {
+    isLoading,
+    ecforceLoading,
+    ecforceOrdersLength: ecforceOrders.length,
+    activeAccount,
+    metaInsightsLength: metaInsights.length,
+  })
+
   // タブ管理
   const [activeTab, setActiveTab] = useState<'overview' | 'meta' | 'ecforce' | 'integrated'>(
     'overview'
@@ -69,7 +81,7 @@ export const UnifiedDashboard: React.FC = () => {
     const initialize = async () => {
       try {
         // Meta広告データの初期化
-        const account = await manager.getActiveAccount()
+        const account = await accountStore.getActiveAccount()
         setActiveAccount(account)
         if (!account) {
           // Metaアカウントが設定されていない場合でも続行
@@ -77,32 +89,30 @@ export const UnifiedDashboard: React.FC = () => {
           return
         }
 
-        // キャッシュされたデータを読み込み
-        const cachedData = MetaDataCache.getInsights(account.accountId)
-        const status = MetaDataCache.getSyncStatus(account.accountId)
-
-        if (cachedData.length > 0) {
-          setMetaInsights(cachedData)
-          setMetaSyncStatus(status)
-          // const cacheUsage = MetaDataCache.getCacheUsage(activeAccount.accountId)
-          // setMetaCacheInfo(cacheUsage)
-        }
-
-        const service = await manager.getActiveApiService()
-        if (service) {
-          // setApiService(service)
+        // データを取得
+        try {
+          const token = await tokenStore.getToken(account.accountId)
+          if (token && token.accessToken) {
+            const api = new SimpleMetaApi(token.accessToken, account.accountId)
+            const insights = await api.getInsights()
+            setMetaInsights(insights as MetaInsightsData[])
+            setMetaSyncStatus({ lastSync: new Date().toISOString() })
+          }
+        } catch (fetchError) {
+          vibe.warn('Meta API データ取得エラー', { error: fetchError })
+          // エラーがあってもダッシュボード自体は表示
         }
 
         setIsLoading(false)
       } catch (err) {
-        console.error('Dashboard initialization error:', err)
+        vibe.bad('ダッシュボード初期化エラー', { error: err instanceof Error ? err.message : err })
         setError('ダッシュボードの初期化中にエラーが発生しました')
         setIsLoading(false)
       }
     }
 
     initialize()
-  }, [])
+  }, [accountStore, tokenStore])
 
   // ECForceデータはすでにフィルタリング済みなので、そのまま使用
   const filteredEcforceOrders = ecforceOrders
@@ -151,6 +161,39 @@ export const UnifiedDashboard: React.FC = () => {
   }
 
   const metrics = calculateMetrics()
+  
+  // 同期処理
+  const handleSync = async () => {
+    if (!activeAccount || isSyncing) return
+    
+    setIsSyncing(true)
+    setError(null)
+    
+    try {
+      const token = await tokenStore.getToken(activeAccount.accountId)
+      if (!token) {
+        throw new Error('トークンが見つかりません')
+      }
+      
+      const api = new SimpleMetaApi(token.accessToken, activeAccount.accountId)
+      const insights = await api.getInsights({ forceRefresh: true })
+      setMetaInsights(insights as MetaInsightsData[])
+      setMetaSyncStatus({ 
+        lastSync: new Date().toISOString(),
+        recordCount: insights.length 
+      })
+      
+      vibe.good('Meta広告データ同期成功', { 
+        accountId: activeAccount.accountId,
+        recordCount: insights.length 
+      })
+    } catch (err) {
+      vibe.bad('Meta広告データ同期エラー', { error: err })
+      setError(err instanceof Error ? err.message : 'データ同期中にエラーが発生しました')
+    } finally {
+      setIsSyncing(false)
+    }
+  }
 
   // チャートデータの準備
   const prepareChartData = () => {
@@ -196,12 +239,25 @@ export const UnifiedDashboard: React.FC = () => {
       }))
   }
 
-  if (isLoading || ecforceLoading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <ArrowPathIcon className="h-12 w-12 text-gray-400 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">データを読み込んでいます...</p>
+          <p className="text-gray-600">アプリケーションを初期化中...</p>
+          <p className="text-sm text-gray-500 mt-2">デバッグ: App Loading</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (ecforceLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <ArrowPathIcon className="h-12 w-12 text-gray-400 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">ECForceデータを読み込み中...</p>
+          <p className="text-sm text-gray-500 mt-2">デバッグ: ECForce Loading</p>
         </div>
       </div>
     )
@@ -248,6 +304,29 @@ export const UnifiedDashboard: React.FC = () => {
           </div>
         )}
 
+        {/* 同期ボタン */}
+        {activeAccount && (
+          <div className="flex justify-end mb-4">
+            <button
+              onClick={handleSync}
+              disabled={isSyncing}
+              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSyncing ? (
+                <>
+                  <ArrowPathIcon className="-ml-1 mr-2 h-4 w-4 animate-spin" />
+                  同期中...
+                </>
+              ) : (
+                <>
+                  <ArrowPathIcon className="-ml-1 mr-2 h-4 w-4" />
+                  データを同期
+                </>
+              )}
+            </button>
+          </div>
+        )}
+        
         {/* タブナビゲーション */}
         <div className="border-b border-gray-200 mb-6">
           <nav className="-mb-px flex space-x-8">
@@ -357,6 +436,23 @@ export const UnifiedDashboard: React.FC = () => {
 
         {activeTab === 'meta' && (
           <div className="space-y-6">
+            {/* 同期ステータス */}
+            {metaSyncStatus && (
+              <div className="bg-gray-50 rounded-lg p-4 mb-6 flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <CalendarIcon className="h-5 w-5 text-gray-400" />
+                  <span className="text-sm text-gray-600">
+                    最終同期: {new Date(metaSyncStatus.lastSync).toLocaleString('ja-JP')}
+                  </span>
+                  {metaSyncStatus.recordCount !== undefined && (
+                    <span className="text-sm text-gray-600">
+                      （{metaSyncStatus.recordCount} 件のデータ）
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+            
             {/* Meta広告サマリー */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <MetricCard

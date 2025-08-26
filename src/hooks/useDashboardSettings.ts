@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { vibe } from '@/lib/vibelogger'
 
 interface DashboardLayout {
   id: string
@@ -47,7 +48,7 @@ export function useDashboardSettings(): UseDashboardSettingsReturn {
           }))
         )
       } catch (error) {
-        console.error('Failed to load dashboard layouts:', error)
+        vibe.bad('ダッシュボードレイアウト読み込み失敗', { error })
       }
     }
   }, [])

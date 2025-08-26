@@ -1,6 +1,14 @@
 // import { MetaApiService } from './metaApiService' // @deprecated unused
 import { CreativeMetrics, CreativeAggregator, AggregationOptions } from './creativeAggregator'
-import { CreativeMetricsCache } from './creativeMetricsCache'
+// import { CreativeMetricsCache } from './creativeMetricsCache' // Module not found - needs to be implemented
+import { logger } from '../utils/logger'
+
+// Temporary stub for CreativeMetricsCache
+const CreativeMetricsCache = {
+  get: (_accountId: string, _options: any) => null as any,
+  set: (_accountId: string, _options: any, _data: any) => {},
+  invalidate: (_accountId: string) => {}
+}
 
 interface DiffSyncOptions {
   accountId: string

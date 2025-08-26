@@ -3,7 +3,7 @@ import React, { useState, useCallback } from 'react'
 import { Upload, AlertCircle, CheckCircle } from 'lucide-react'
 import { useMutation } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
-import { ECForceImportProgress } from '../../types/ecforce'
+import { ECForceImportProgress } from '@/types'
 import { ECForceCSVParserV2 } from '../../utils/ecforce-csv-parser-v2'
 import { DuplicateStrategy } from '../../utils/ecforce-duplicate-handler'
 import { ECForceDataSummary } from './ECForceDataSummary'
@@ -12,6 +12,7 @@ import { getImportHistoryManager } from '../../utils/import-history-convex'
 import { useConvex } from 'convex/react'
 import { ImportHistoryComponent } from './ImportHistory'
 import { useECForceDataPaginated } from '../../hooks/useECForceDataPaginated'
+import { logger } from '../../utils/logger'
 
 export const ECForceImporter: React.FC = () => {
   const convex = useConvex()

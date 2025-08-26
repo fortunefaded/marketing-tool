@@ -1,4 +1,4 @@
-import { ECForceOrder } from '../types/ecforce'
+import { ECForceOrder } from '@/types'
 
 export type DuplicateStrategy = 'skip' | 'replace'
 
