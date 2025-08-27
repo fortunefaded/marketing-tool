@@ -35,6 +35,17 @@ export function aggregateByLevel(
   insights: AdInsight[], 
   level: AggregationLevel
 ): AggregatedData[] {
+  
+  // デバッグログ: 受け取ったinsightsの最初のアイテムを確認
+  console.log('🔍 aggregateByLevel 受信データ確認:', {
+    level,
+    count: insights.length,
+    firstItem: insights[0],
+    firstItemAdsetId: insights[0]?.adset_id,
+    firstItemAdsetName: insights[0]?.adset_name,
+    hasAdsetId: !!insights[0]?.adset_id,
+    hasAdsetName: !!insights[0]?.adset_name
+  })
   if (level === 'creative') {
     // クリエイティブレベルは集計不要
     const calculator = new SimpleFatigueCalculator()
@@ -73,8 +84,19 @@ export function aggregateByLevel(
       key = insight.campaign_id
       name = insight.campaign_name || 'Unnamed Campaign'
     } else {
-      key = insight.adset_id || 'no_adset'
-      name = insight.adset_name || '広告セットなし'
+      key = insight.adset_id && insight.adset_id.trim() ? insight.adset_id : 'no_adset'
+      name = insight.adset_name && insight.adset_name.trim() ? insight.adset_name : '広告セットなし'
+      
+      // デバッグログ追加
+      console.log('🏗️ 広告セット集計処理:', {
+        adId: insight.ad_id,
+        originalAdsetId: insight.adset_id,
+        originalAdsetName: insight.adset_name,
+        processedKey: key,
+        processedName: name,
+        hasValidAdsetId: !!(insight.adset_id && insight.adset_id.trim()),
+        hasValidAdsetName: !!(insight.adset_name && insight.adset_name.trim())
+      })
     }
     
     if (!acc[key]) {

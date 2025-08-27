@@ -10,6 +10,7 @@ import {
   ViewColumnsIcon,
 } from '@heroicons/react/24/outline'
 import { CreativeDetailModal } from './CreativeDetailModal'
+import { normalizeCreativeMediaType } from '../utils/creative-type'
 
 interface CreativeTableTabProps {
   data: FatigueData[]
@@ -28,27 +29,36 @@ export function CreativeTableTab({
   selectedAccountId: _, // unused
   isLoading,
 }: CreativeTableTabProps) {
+
   // クリエイティブタイプを判定する関数
   const getCreativeType = (insight: any): { type: string; icon: any; color: string } => {
     if (!insight) return { type: 'UNKNOWN', icon: DocumentTextIcon, color: 'text-gray-500' }
 
-    // Metaのcreative_media_typeから判定
-    const mediaType = insight.creative_media_type || ''
+    // Meta APIのobject_typeから判定（優先）
+    const objectType = insight.creative?.object_type || insight.creative_type || insight.creative_media_type
+    const normalizedType = normalizeCreativeMediaType(objectType)
 
-    if (mediaType.includes('video') || insight.video_url) {
-      return { type: 'VIDEO', icon: VideoCameraIcon, color: 'text-purple-600' }
+    // 追加の判定ロジック（フォールバック）
+    if (normalizedType === 'text') {
+      if (insight.video_url || insight.video_id) {
+        return { type: 'VIDEO', icon: VideoCameraIcon, color: 'text-purple-600' }
+      }
+      if (insight.image_url || insight.thumbnail_url) {
+        return { type: 'IMAGE', icon: PhotoIcon, color: 'text-blue-600' }
+      }
     }
 
-    if (mediaType.includes('image') || insight.image_url) {
-      return { type: 'IMAGE', icon: PhotoIcon, color: 'text-blue-600' }
+    // 正規化された値に基づいて判定
+    switch (normalizedType) {
+      case 'video':
+        return { type: 'VIDEO', icon: VideoCameraIcon, color: 'text-purple-600' }
+      case 'image':
+        return { type: 'IMAGE', icon: PhotoIcon, color: 'text-blue-600' }
+      case 'carousel':
+        return { type: 'CAROUSEL', icon: ViewColumnsIcon, color: 'text-green-600' }
+      default:
+        return { type: 'TEXT', icon: DocumentTextIcon, color: 'text-gray-600' }
     }
-
-    if (mediaType.includes('carousel')) {
-      return { type: 'CAROUSEL', icon: ViewColumnsIcon, color: 'text-green-600' }
-    }
-
-    // デフォルトはテキスト広告として扱う
-    return { type: 'TEXT', icon: DocumentTextIcon, color: 'text-gray-600' }
   }
 
   // ソート状態管理
