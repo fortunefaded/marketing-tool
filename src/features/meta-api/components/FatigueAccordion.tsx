@@ -265,6 +265,12 @@ export function FatigueAccordion({ data, insights }: FatigueAccordionProps) {
                       chartType="line"
                     />
                     
+                    <MetricRow
+                      label="ファーストCV（F-CV）"
+                      value="N/A"
+                      description="初回コンバージョン"
+                    />
+                    
                     <MetricRow 
                       label="First Time Impression Ratio（推定値）" 
                       value={item.metrics.frequency > 0 ? ((1 / item.metrics.frequency) * 100).toFixed(1) : "0"}

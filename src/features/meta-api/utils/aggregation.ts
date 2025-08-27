@@ -31,6 +31,83 @@ export interface AggregatedData {
   insights: AdInsight[]
 }
 
+/**
+ * Platform breakdown（プラットフォーム分割）されたデータを広告単位に集約
+ * 同じ広告IDで複数のプラットフォーム（Facebook、Instagram、Audience Network）
+ * に分割されたデータを1つに統合します
+ */
+export function aggregatePlatformBreakdowns(insights: AdInsight[]): AdInsight[] {
+  // 広告ID単位でグループ化
+  const aggregated = new Map<string, AdInsight>()
+  
+  for (const insight of insights) {
+    const adId = insight.ad_id
+    
+    if (!aggregated.has(adId)) {
+      // 最初のレコードをベースとして使用
+      aggregated.set(adId, { ...insight })
+    } else {
+      // 既存のレコードに値を加算
+      const existing = aggregated.get(adId)!
+      
+      // 数値メトリクスを加算
+      existing.impressions += insight.impressions
+      existing.reach = Math.max(existing.reach, insight.reach) // Reachは最大値を採用（重複を避けるため）
+      existing.clicks += insight.clicks
+      existing.spend += insight.spend
+      existing.conversions = (existing.conversions || 0) + (insight.conversions || 0)
+      
+      // 計算メトリクスは再計算が必要
+      // CTR = (総クリック数 / 総インプレッション数) * 100
+      existing.ctr = existing.impressions > 0 
+        ? (existing.clicks / existing.impressions) * 100 
+        : 0
+      
+      // CPC = 総費用 / 総クリック数
+      existing.cpc = existing.clicks > 0 
+        ? existing.spend / existing.clicks 
+        : 0
+      
+      // CPM = (総費用 / 総インプレッション数) * 1000
+      existing.cpm = existing.impressions > 0 
+        ? (existing.spend / existing.impressions) * 1000 
+        : 0
+      
+      // Frequency = 総インプレッション数 / 総リーチ
+      existing.frequency = existing.reach > 0 
+        ? existing.impressions / existing.reach 
+        : 0
+      
+      // actionsフィールドも集約（存在する場合）
+      if (insight.actions && existing.actions) {
+        // action_typeごとに集約
+        const actionMap = new Map<string, any>()
+        
+        // 既存のアクションをマップに追加
+        for (const action of existing.actions) {
+          actionMap.set(action.action_type, { ...action })
+        }
+        
+        // 新しいアクションを加算
+        for (const action of insight.actions) {
+          if (actionMap.has(action.action_type)) {
+            actionMap.get(action.action_type)!.value = 
+              (parseFloat(actionMap.get(action.action_type)!.value) || 0) + 
+              (parseFloat(action.value) || 0)
+          } else {
+            actionMap.set(action.action_type, { ...action })
+          }
+        }
+        
+        existing.actions = Array.from(actionMap.values())
+      }
+    }
+  }
+  
+  // Map から配列に変換して返す
+  return Array.from(aggregated.values())
+}
+
 export function aggregateByLevel(
   insights: AdInsight[], 
   level: AggregationLevel

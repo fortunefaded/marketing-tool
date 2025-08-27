@@ -294,7 +294,7 @@ export function CreativeTableTab({
         <div className="overflow-x-auto w-full">
           <table
             className="w-full divide-y divide-gray-200 table-fixed"
-            style={{ minWidth: '1480px' }}
+            style={{ minWidth: '1555px' }}
           >
             <thead className="bg-gray-50">
               <tr>
@@ -479,6 +479,14 @@ export function CreativeTableTab({
                   </div>
                 </th>
                 <th
+                  className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  style={{ width: '75px' }}
+                >
+                  <div className="flex items-center justify-center gap-1">
+                    F-CV
+                  </div>
+                </th>
+                <th
                   className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   style={{ width: '80px' }}
                   onClick={() => handleSort('cpa')}
@@ -631,6 +639,11 @@ export function CreativeTableTab({
                   {/* コンバージョン */}
                   <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-gray-900">
                     {formatNumber(item.conversions)}
+                  </td>
+
+                  {/* ファーストCV */}
+                  <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-gray-500">
+                    N/A
                   </td>
 
                   {/* CPA */}

@@ -46,6 +46,7 @@ export const ComparisonDashboard: React.FC<ComparisonDashboardProps> = ({ insigh
         impressions: 0,
         clicks: 0,
         conversions: 0,
+        first_conversions: 0, // F-CV初期値
         ctr: 0,
         cpc: 0,
         cpa: 0,
@@ -56,6 +57,7 @@ export const ComparisonDashboard: React.FC<ComparisonDashboardProps> = ({ insigh
       existing.impressions += Number(insight.impressions || 0)
       existing.clicks += Number(insight.clicks || 0)
       existing.conversions += Number(insight.conversions || 0)
+      existing.first_conversions += 0 // F-CV: 後で実装
 
       dataMap.set(key, existing)
     })
@@ -86,6 +88,7 @@ export const ComparisonDashboard: React.FC<ComparisonDashboardProps> = ({ insigh
         impressions: 0,
         clicks: 0,
         conversions: 0,
+        first_conversions: 0, // F-CV初期値
         ctr: 0,
         cpc: 0,
         cpa: 0,
@@ -96,6 +99,7 @@ export const ComparisonDashboard: React.FC<ComparisonDashboardProps> = ({ insigh
       existing.impressions += Number(insight.impressions || 0)
       existing.clicks += Number(insight.clicks || 0)
       existing.conversions += Number(insight.conversions || 0)
+      existing.first_conversions += 0 // F-CV: 後で実装
 
       dataMap.set(key, existing)
     })
@@ -130,6 +134,7 @@ export const ComparisonDashboard: React.FC<ComparisonDashboardProps> = ({ insigh
         impressions: 0,
         clicks: 0,
         conversions: 0,
+        first_conversions: 0, // F-CV初期値
         ctr: 0,
         cpc: 0,
         cpa: 0,
@@ -183,6 +188,8 @@ export const ComparisonDashboard: React.FC<ComparisonDashboardProps> = ({ insigh
       case 'ctr':
       case 'roas':
         return `${value.toFixed(2)}%`
+      case 'first_conversions':
+        return 'N/A'
       default:
         return new Intl.NumberFormat('ja-JP').format(Math.round(value))
     }
@@ -243,6 +250,7 @@ export const ComparisonDashboard: React.FC<ComparisonDashboardProps> = ({ insigh
             <option value="impressions">インプレッション</option>
             <option value="clicks">クリック数</option>
             <option value="conversions">コンバージョン</option>
+            <option value="first_conversions">ファーストCV (N/A)</option>
             <option value="ctr">CTR</option>
             <option value="cpc">CPC</option>
             <option value="cpa">CPA</option>
