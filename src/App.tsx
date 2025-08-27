@@ -23,6 +23,7 @@ import { SimpleTestDashboard } from './pages/SimpleTestDashboard'
 // import { FatigueDashboardWithAccount } from './_archived/components/AdFatigue/FatigueDashboardWithAccount'
 // import { FatigueEducation } from './_archived/pages/meta-api/FatigueEducation'
 import { NewMetaApiTest } from './components/test/NewMetaApiTest'
+import { AggregationTestComponent } from './components/test/AggregationTestComponent'
 import Sidebar from './components/Sidebar'
 import Header from './components/Header'
 import { vibe } from './lib/vibelogger'
@@ -77,6 +78,7 @@ function AppContent() {
             <Route path="/test-new-meta-api" element={<NewMetaApiTest />} />
             <Route path="/ad-fatigue-simple" element={<SafeFatigueDashboardWrapper />} />
             <Route path="/test-simple" element={<SimpleTestDashboard />} />
+            <Route path="/test-aggregation" element={<AggregationTestComponent />} />
             <Route
               path="/media"
               element={

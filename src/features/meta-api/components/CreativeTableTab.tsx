@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 // CreativeTable import removed - component not used
 import { FatigueData } from '@/types'
+import { normalizeDataArray, getSafeMetrics, calculateMetric, debugDataStructure } from '../utils/safe-data-access'
 import {
   ChevronUpIcon,
   ChevronDownIcon,
@@ -85,39 +86,59 @@ export function CreativeTableTab({
   // データを拡張してソート
   const sortedData = useMemo(() => {
     console.log('sortedData recalculating:', { sortField, sortDirection, dataLength: data?.length })
-    if (!data) return []
+    
+    // デバッグ情報を出力（開発環境のみ）
+    debugDataStructure(data, 'CreativeTableTab Input Data')
+    
+    // データを正規化（null/undefined対策済み）
+    const normalizedData = normalizeDataArray(data)
+    
+    if (normalizedData.length === 0) {
+      console.warn('CreativeTableTab: No valid data after normalization')
+      return []
+    }
 
-    // 疲労度データの詳細をログ出力
+    // 疲労度データの詳細をログ出力（安全）
     console.log(
       '📊 疲労度データの詳細:',
-      data.slice(0, 5).map((d) => ({
-        adName: d.adName,
-        score: d.score,
+      normalizedData.slice(0, 5).map((d) => ({
+        adName: d.ad_name,
+        score: d.fatigueScore,
         status: d.status,
-        frequency: d.metrics?.frequency,
-        ctr: d.metrics?.ctr,
-        cpm: d.metrics?.cpm,
+        frequency: d.metrics.frequency,
+        ctr: d.metrics.ctr,
+        cpm: d.metrics.cpm,
       }))
     )
 
-    const enrichedData = data.map((item) => {
-      const insight = insightsMap.get(item.adId)
+    const enrichedData = normalizedData.map((item) => {
+      const insight = insightsMap.get(item.ad_id)
+      const metrics = getSafeMetrics(item)
+      
       return {
         ...item,
+        // 元のデータ構造との互換性を保つためのマッピング
+        adId: item.ad_id,
+        adName: item.ad_name,
+        campaignId: item.campaign_id,
+        campaignName: item.campaign_name,
+        adsetId: item.adset_id,
+        adsetName: item.adset_name,
+        score: item.fatigueScore,
+        
+        // インサイトデータ
         insight,
-        // 計算フィールド
-        impressions: item.metrics.impressions || 0,
-        clicks: item.metrics.clicks || 0,
-        spend: item.metrics.spend || 0,
-        conversions: item.metrics.conversions || 0,
-        cpa:
-          (item.metrics.conversions || 0) > 0
-            ? (item.metrics.spend || 0) / (item.metrics.conversions || 1)
-            : 0,
-        roas:
-          insight?.conversion_value && item.metrics.spend > 0
-            ? insight.conversion_value / item.metrics.spend
-            : 0,
+        
+        // 安全に取得したメトリクス
+        impressions: metrics.impressions,
+        clicks: metrics.clicks,
+        spend: metrics.spend,
+        conversions: metrics.conversions,
+        
+        // 計算メトリクス（安全）
+        cpa: calculateMetric(metrics, 'cpa'),
+        roas: calculateMetric(metrics, 'roas'),
+        cvr: calculateMetric(metrics, 'cvr'),
         revenue: insight?.conversion_value || 0,
         // クリエイティブタイプ
         creativeType: getCreativeType(insight).type,

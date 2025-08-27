@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useConvex } from 'convex/react'
 import { useAdFatigue } from '../hooks/useAdFatigue'
+import { useAdFatigueWithAggregation } from '../hooks/useAdFatigueWithAggregation'
 import { SimpleAccountStore } from '../account/account-store'
 import { FatigueDashboardPresentation } from './FatigueDashboardPresentation'
 import { MetaAccount } from '@/types'
@@ -16,6 +17,8 @@ export function FatigueDashboardContainer() {
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
   const [isLoadingAccounts, setIsLoadingAccounts] = useState(true)
   const [dateRange, setDateRange] = useState<DateRangeFilter>('last_30d')
+  const [enableAggregation, setEnableAggregation] = useState(true) // デフォルトで集約を有効化
+  const [filteredData, setFilteredData] = useState<any>(null) // フィルター済みデータ
   
   // アカウント読み込み
   useEffect(() => {
@@ -38,7 +41,7 @@ export function FatigueDashboardContainer() {
     loadAccounts()
   }, [convex])
   
-  // 疲労度データの取得（accountIdがある場合のみ）
+  // 集約機能付き疲労度データの取得
   const {
     data,
     insights,
@@ -50,8 +53,21 @@ export function FatigueDashboardContainer() {
     lastUpdateTime,
     progress,
     totalInsights,
-    filteredCount
-  } = useAdFatigue(selectedAccountId || '', dateRange)
+    filteredCount,
+    // 集約関連の新しいプロパティ
+    aggregatedData,
+    isAggregating,
+    aggregationError,
+    aggregationMetrics
+  } = useAdFatigueWithAggregation({
+    accountId: selectedAccountId || '',
+    dateRange,
+    enableAggregation,
+    aggregationOptions: {
+      includePlatformBreakdown: true,
+      includeDailyBreakdown: true
+    }
+  })
   
   // アカウント選択ハンドラ
   const handleAccountSelect = async (accountId: string) => {
@@ -60,6 +76,9 @@ export function FatigueDashboardContainer() {
     await store.setActiveAccount(accountId)
   }
   
+  // 表示するデータを決定（フィルター > 集約 > 元データ）
+  const displayData = filteredData || (enableAggregation && aggregatedData ? aggregatedData : data) || []
+
   return (
     <FatigueDashboardPresentation
       // アカウント関連
@@ -68,12 +87,12 @@ export function FatigueDashboardContainer() {
       isLoadingAccounts={isLoadingAccounts}
       onAccountSelect={handleAccountSelect}
       
-      // データ関連
-      data={data}
+      // データ関連（フィルター済みまたは集約データを使用）
+      data={displayData}
       insights={insights}
-      isLoading={isLoading}
+      isLoading={isLoading || isAggregating}
       isRefreshing={isRefreshing}
-      error={error}
+      error={error || aggregationError}
       
       // アクション
       onRefresh={refetch}
@@ -90,6 +109,17 @@ export function FatigueDashboardContainer() {
       onDateRangeChange={setDateRange}
       totalInsights={totalInsights}
       filteredCount={filteredCount}
+      
+      // 集約関連の新しいプロパティ
+      enableAggregation={enableAggregation}
+      onToggleAggregation={() => setEnableAggregation(!enableAggregation)}
+      aggregatedData={aggregatedData}
+      aggregationMetrics={aggregationMetrics}
+      isAggregating={isAggregating}
+      
+      // フィルター関連
+      onFilterChange={setFilteredData}
+      sourceData={(enableAggregation && aggregatedData ? aggregatedData : data) || []}
     />
   )
 }
