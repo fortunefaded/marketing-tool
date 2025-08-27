@@ -1,4 +1,4 @@
-import { useMemo, useEffect } from 'react'
+import { useMemo, useEffect, useState } from 'react'
 import { AccountSelector } from '../account/AccountSelector'
 import { StatCard } from './StatCard'
 import { AggregatedFatigueTable } from './AggregatedFatigueTable'
@@ -11,6 +11,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useRateLimitStatus } from '../hooks/useRateLimitStatus'
 import { DataLoadingProgress } from './DataLoadingProgress'
 import { DateRangeFilter } from './DateRangeFilter'
+import { CampaignFilter } from './CampaignFilter'
+import { PerformanceFilter } from './PerformanceFilter'
+import { SafeFilterWrapper } from './SafeFilterWrapper'
 import type { DateRangeFilter as DateRangeFilterType } from '../hooks/useAdFatigueSimplified'
 
 interface FatigueDashboardPresentationProps {
@@ -21,7 +24,7 @@ interface FatigueDashboardPresentationProps {
   onAccountSelect: (accountId: string) => void
 
   // データ関連
-  data: FatigueData[]
+  data: any  // FatigueData[]またはAdPerformanceData[]
   insights: any[]
   isLoading: boolean
   isRefreshing: boolean
@@ -46,6 +49,22 @@ interface FatigueDashboardPresentationProps {
   onDateRangeChange: (dateRange: DateRangeFilterType) => void
   totalInsights?: number
   filteredCount?: number
+  
+  // 集約関連（新規追加）
+  enableAggregation?: boolean
+  onToggleAggregation?: () => void
+  aggregatedData?: any
+  aggregationMetrics?: {
+    inputRows: number
+    outputRows: number
+    processingTimeMs: number
+    dataReduction: string
+  }
+  isAggregating?: boolean
+  
+  // フィルター関連（新規追加）
+  onFilterChange?: (filteredData: any) => void
+  sourceData?: any
 }
 
 /**
@@ -70,7 +89,16 @@ export function FatigueDashboardPresentation({
   onDateRangeChange,
   totalInsights,
   filteredCount,
+  enableAggregation = false,
+  onToggleAggregation,
+  aggregatedData,
+  aggregationMetrics,
+  isAggregating,
+  onFilterChange,
+  sourceData,
 }: FatigueDashboardPresentationProps) {
+  // フィルターの表示状態
+  const [showFilters, setShowFilters] = useState(false)
   // デバッグモード設定（初回のみ）
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -91,8 +119,8 @@ export function FatigueDashboardPresentation({
   const isRateLimited = rateLimitStatus.isRateLimited
   const canRefresh = !isRefreshing && rateLimitStatus.canRetry
   
-  // 集計データをメモ化
-  const aggregatedData = useMemo(() => {
+  // 集計データをメモ化（キャンペーン・広告セット別）
+  const levelAggregatedData = useMemo(() => {
     if (!insights || insights.length === 0) return { campaign: [], adset: [] }
 
     return {
@@ -172,6 +200,26 @@ export function FatigueDashboardPresentation({
                 value={dateRange} 
                 onChange={onDateRangeChange} 
               />
+
+              {/* 集約トグル */}
+              {onToggleAggregation && (
+                <button
+                  onClick={onToggleAggregation}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    enableAggregation 
+                      ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                  title={enableAggregation ? 'データを広告単位で集約中' : 'データ集約がオフです'}
+                >
+                  集約: {enableAggregation ? 'ON' : 'OFF'}
+                  {aggregationMetrics && enableAggregation && (
+                    <span className="ml-2 text-xs opacity-90">
+                      ({aggregationMetrics.dataReduction}削減)
+                    </span>
+                  )}
+                </button>
+              )}
 
               {/* レート制限状態の表示 */}
               {isRateLimited && (
@@ -291,14 +339,73 @@ export function FatigueDashboardPresentation({
               </div>
             ) : (
               <>
+                {/* データ検証アラート - データがある場合のみ */}
                 {data.length > 0 && (
-                  <>
-                    {/* データ検証アラート */}
-                    <DataValidationAlert
-                      data={data}
-                      onRevalidate={() => onRefresh()}
-                      isValidating={isLoading}
-                    />
+                  <DataValidationAlert
+                    data={data}
+                    onRevalidate={() => onRefresh()}
+                    isValidating={isLoading}
+                  />
+                )}
+
+                {/* フィルターコントロール - 常に表示 */}
+                <div className="mb-4 flex justify-between items-center">
+                  <button
+                    onClick={() => setShowFilters(!showFilters)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      showFilters 
+                        ? 'bg-indigo-600 text-white' 
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                  >
+                    🔍 フィルター {showFilters ? '▼' : '▶'}
+                  </button>
+                  
+                  {onFilterChange && sourceData && (
+                    <div className="flex items-center gap-4">
+                      <div className="text-sm text-gray-600">
+                        表示中: {data?.length || 0}件 / 全{sourceData?.length || 0}件
+                      </div>
+                      
+                      {/* データが0件でフィルターが有効な場合の警告 */}
+                      {data?.length === 0 && sourceData?.length > 0 && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-orange-600">
+                            フィルター条件に該当するデータがありません
+                          </span>
+                          <button
+                            onClick={() => {
+                              onFilterChange(sourceData) // 全データを表示
+                              setShowFilters(true) // フィルターパネルを開く
+                            }}
+                            className="text-sm text-blue-600 hover:text-blue-800 underline"
+                          >
+                            フィルターをリセット
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* フィルターパネル - 常に表示可能 */}
+                {showFilters && onFilterChange && sourceData && (
+                  <SafeFilterWrapper>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                      <CampaignFilter 
+                        data={sourceData}
+                        onFilter={onFilterChange}
+                      />
+                      <PerformanceFilter
+                        data={sourceData}
+                        onFilter={onFilterChange}
+                      />
+                    </div>
+                  </SafeFilterWrapper>
+                )}
+
+                {/* データ表示エリア */}
+                {data.length > 0 ? (
 
                     <div className="relative">
                       {/* 更新中のオーバーレイ */}
@@ -321,24 +428,34 @@ export function FatigueDashboardPresentation({
                         </TabsList>
 
                         <TabsContent value="creative-table">
-                          <div className="grid grid-cols-4 gap-4 mb-8">
-                            <StatCard title="Total" value={data.length} />
-                            <StatCard
-                              title="Critical"
-                              value={data.filter((d) => d.status === 'critical').length}
-                              color="red"
-                            />
-                            <StatCard
-                              title="Warning"
-                              value={data.filter((d) => d.status === 'warning').length}
-                              color="yellow"
+                          {data.length > 0 && (
+                            <div className="grid grid-cols-4 gap-4 mb-8">
+                              <StatCard 
+                                title={enableAggregation ? "広告数" : "Total"} 
+                                value={data.length} 
+                                subtitle={
+                                  enableAggregation && aggregationMetrics 
+                                    ? `${aggregationMetrics.inputRows}行 → ${aggregationMetrics.outputRows}行` 
+                                    : undefined
+                                }
+                              />
+                              <StatCard
+                                title="Critical"
+                                value={Array.isArray(data) ? data.filter((d: any) => d.status === 'critical').length : 0}
+                                color="red"
+                              />
+                              <StatCard
+                                title="Warning"
+                                value={Array.isArray(data) ? data.filter((d: any) => d.status === 'warning').length : 0}
+                                color="yellow"
                             />
                             <StatCard
                               title="Healthy"
-                              value={data.filter((d) => d.status === 'healthy').length}
+                              value={Array.isArray(data) ? data.filter((d: any) => d.status === 'healthy').length : 0}
                               color="green"
                             />
-                          </div>
+                            </div>
+                          )}
 
                           <CreativeTableTab
                             data={data}
@@ -349,15 +466,53 @@ export function FatigueDashboardPresentation({
                         </TabsContent>
 
                         <TabsContent value="adset">
-                          <AggregatedFatigueTable data={aggregatedData.adset} level="adset" />
+                          <AggregatedFatigueTable data={levelAggregatedData.adset} level="adset" />
                         </TabsContent>
 
                         <TabsContent value="campaign">
-                          <AggregatedFatigueTable data={aggregatedData.campaign} level="campaign" />
+                          <AggregatedFatigueTable data={levelAggregatedData.campaign} level="campaign" />
                         </TabsContent>
                       </Tabs>
                     </div>
-                  </>
+                ) : (
+                  /* データなしの場合の表示 */
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+                    <div className="flex items-center">
+                      <svg className="w-6 h-6 text-yellow-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                      </svg>
+                      <div>
+                        <h3 className="text-lg font-semibold text-yellow-800 mb-2">
+                          広告データが見つかりません
+                        </h3>
+                        <p className="text-yellow-700">
+                          このアカウントには表示可能な広告データがありません。
+                        </p>
+                        {sourceData && sourceData.length > 0 && (
+                          <p className="text-sm text-yellow-600 mt-2">
+                            フィルター条件を調整するか、上記の「フィルターをリセット」ボタンをクリックしてください。
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="mt-4 flex gap-2">
+                      <button
+                        onClick={() => onRefresh({ clearCache: true })}
+                        className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 text-sm"
+                      >
+                        キャッシュをクリアして再取得
+                      </button>
+                      {sourceData && sourceData.length > 0 && onFilterChange && (
+                        <button
+                          onClick={() => onFilterChange(sourceData)}
+                          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+                        >
+                          すべてのデータを表示
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 )}
               </>
             )}
