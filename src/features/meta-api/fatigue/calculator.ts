@@ -8,23 +8,37 @@ import { vibe } from '@/lib/vibelogger'
  */
 export class SimpleFatigueCalculator {
   private compositeCalculator: CompositeFatigueCalculator
-  
+
   constructor() {
     this.compositeCalculator = new CompositeFatigueCalculator()
   }
-  
+
   calculate(insights: AdInsight[]): FatigueData[] {
     vibe.debug('疲労度計算開始', { count: insights.length })
-    
+
     // TODO: ベースライン計算の実装
     // 現在は仮の値を使用
     const baselines = this.calculateBaselines(insights)
-    
-    return insights.map(insight => {
+
+    return insights.map((insight) => {
       const score = this.compositeCalculator.calculateOverallScore(insight, baselines)
-      const individualScores = this.compositeCalculator.calculateIndividualScores(insight, baselines)
+      const individualScores = this.compositeCalculator.calculateIndividualScores(
+        insight,
+        baselines
+      )
       const status = this.compositeCalculator.getStatus(score)
-      
+
+      // デバッグ用ログ追加
+      console.log(`🎯 疲労度計算結果 [${insight.ad_name}]:`, {
+        adId: insight.ad_id,
+        総合スコア: score,
+        個別スコア: individualScores,
+        ステータス: status,
+        frequency: insight.frequency,
+        ctr: insight.ctr,
+        cpm: insight.cpm,
+      })
+
       return {
         adId: insight.ad_id,
         adName: insight.ad_name || 'Unnamed',
@@ -50,32 +64,30 @@ export class SimpleFatigueCalculator {
           // Instagram メトリクス
           instagram_metrics: insight.instagram_metrics || null,
           // 個別スコア（デバッグ用）
-          individual_scores: individualScores
-        }
+          individual_scores: individualScores,
+        },
       }
     })
   }
-  
+
   /**
    * ベースラインを計算（現在は仮実装）
    * TODO: 過去データから動的に計算する
    */
   private calculateBaselines(insights: AdInsight[]): { ctr: number; cpm: number } {
     // 全広告の平均値を仮のベースラインとする
-    const validInsights = insights.filter(i => 
-      Number(i.ctr) > 0 && Number(i.cpm) > 0
-    )
-    
+    const validInsights = insights.filter((i) => Number(i.ctr) > 0 && Number(i.cpm) > 0)
+
     if (validInsights.length === 0) {
       return { ctr: 0.7, cpm: 30 } // 業界平均のデフォルト値
     }
-    
+
     const avgCTR = validInsights.reduce((sum, i) => sum + Number(i.ctr), 0) / validInsights.length
     const avgCPM = validInsights.reduce((sum, i) => sum + Number(i.cpm), 0) / validInsights.length
-    
+
     return {
       ctr: avgCTR,
-      cpm: avgCPM
+      cpm: avgCPM,
     }
   }
 }

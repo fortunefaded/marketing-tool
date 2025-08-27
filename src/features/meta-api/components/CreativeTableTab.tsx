@@ -29,13 +29,13 @@ export function CreativeTableTab({
   selectedAccountId: _, // unused
   isLoading,
 }: CreativeTableTabProps) {
-
   // クリエイティブタイプを判定する関数
   const getCreativeType = (insight: any): { type: string; icon: any; color: string } => {
     if (!insight) return { type: 'UNKNOWN', icon: DocumentTextIcon, color: 'text-gray-500' }
 
     // Meta APIのobject_typeから判定（優先）
-    const objectType = insight.creative?.object_type || insight.creative_type || insight.creative_media_type
+    const objectType =
+      insight.creative?.object_type || insight.creative_type || insight.creative_media_type
     const normalizedType = normalizeCreativeMediaType(objectType)
 
     // 追加の判定ロジック（フォールバック）
@@ -86,6 +86,19 @@ export function CreativeTableTab({
   const sortedData = useMemo(() => {
     console.log('sortedData recalculating:', { sortField, sortDirection, dataLength: data?.length })
     if (!data) return []
+
+    // 疲労度データの詳細をログ出力
+    console.log(
+      '📊 疲労度データの詳細:',
+      data.slice(0, 5).map((d) => ({
+        adName: d.adName,
+        score: d.score,
+        status: d.status,
+        frequency: d.metrics?.frequency,
+        ctr: d.metrics?.ctr,
+        cpm: d.metrics?.cpm,
+      }))
+    )
 
     const enrichedData = data.map((item) => {
       const insight = insightsMap.get(item.adId)
@@ -563,8 +576,9 @@ export function CreativeTableTab({
                             ? 'bg-yellow-100 text-yellow-800'
                             : 'bg-green-100 text-green-800'
                       }`}
+                      title={`総合疲労度スコア: ${item.score}`}
                     >
-                      {item.score}
+                      {item.score || 0}
                     </span>
                   </td>
 
