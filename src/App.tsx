@@ -5,9 +5,6 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import { UnifiedDashboard } from './pages/UnifiedDashboard'
 import Campaigns from './routes/Campaigns'
 import Tasks from './routes/Tasks'
-import CategoryAnalysis from './routes/CategoryAnalysis'
-import DetailAnalysis from './routes/DetailAnalysis'
-import PeriodAnalysis from './routes/PeriodAnalysis'
 // import { MetaDashboardReal } from './pages/MetaDashboardReal'
 // TODO: Create new setup flow or use Convex components
 // import { MetaApiSetupSteps } from './pages/MetaApiSetupSteps'
@@ -21,8 +18,6 @@ import { IntegratedDashboard } from './pages/IntegratedDashboard'
 import { ReportManagement } from './pages/ReportManagement'
 import { SettingsManagement } from './pages/SettingsManagement'
 import { SafeFatigueDashboardWrapper } from './features/meta-api/components/SafeFatigueDashboardWrapper'
-import { OldFatigueDashboard } from './components/legacy/OldFatigueDashboard'
-import { OldestFatigueDashboard } from './components/legacy/OldestFatigueDashboard'
 import { SimpleTestDashboard } from './pages/SimpleTestDashboard'
 // TODO: Replace with new implementation - archived components removed
 // import { FatigueDashboardWithAccount } from './_archived/components/AdFatigue/FatigueDashboardWithAccount'
@@ -75,18 +70,12 @@ function AppContent() {
             <Route path="/integrated-dashboard" element={<IntegratedDashboard />} />
             <Route path="/campaigns" element={<Campaigns />} />
             <Route path="/tasks" element={<Tasks />} />
-            <Route path="/category-analysis" element={<CategoryAnalysis />} />
-            <Route path="/details" element={<DetailAnalysis />} />
-            <Route path="/period" element={<PeriodAnalysis />} />
             <Route path="/reports" element={<ReportManagement />} />
             <Route path="/settings" element={<SettingsManagement />} />
             {/* TODO: Replace with new implementation */}
             <Route path="/ad-fatigue" element={<SafeFatigueDashboardWrapper />} />
-            <Route path="/fatigue-education" element={<SafeFatigueDashboardWrapper />} />
             <Route path="/test-new-meta-api" element={<NewMetaApiTest />} />
             <Route path="/ad-fatigue-simple" element={<SafeFatigueDashboardWrapper />} />
-            <Route path="/old-fatigue" element={<OldFatigueDashboard />} />
-            <Route path="/oldest-fatigue" element={<OldestFatigueDashboard />} />
             <Route path="/test-simple" element={<SimpleTestDashboard />} />
             <Route
               path="/media"

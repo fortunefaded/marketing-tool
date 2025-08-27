@@ -2,9 +2,6 @@ import { Link, useLocation } from 'react-router-dom'
 import { useVibeLogger } from '../hooks/useVibeLogger'
 import {
   Squares2X2Icon,
-  PuzzlePieceIcon,
-  MagnifyingGlassIcon,
-  CalendarDaysIcon,
   ChartBarIcon,
   ExclamationTriangleIcon,
   AcademicCapIcon,
@@ -25,7 +22,7 @@ interface MenuItem {
 export default function Sidebar() {
   const location = useLocation()
   const logger = useVibeLogger('Sidebar')
-  
+
   // localStorageから初期状態を読み込み
   const [isCollapsed, setIsCollapsed] = useState(() => {
     try {
@@ -62,44 +59,14 @@ export default function Sidebar() {
       icon: ExclamationTriangleIcon,
     },
     {
-      name: '疲労度分析 (旧版)',
-      path: '/old-fatigue',
-      icon: ExclamationTriangleIcon,
-    },
-    {
-      name: '疲労度分析 (最古版)',
-      path: '/oldest-fatigue',
-      icon: ExclamationTriangleIcon,
-    },
-    {
       name: 'テストダッシュボード',
       path: '/test-simple',
-      icon: AcademicCapIcon,
-    },
-    {
-      name: '疲労度教育センター',
-      path: '/fatigue-education',
       icon: AcademicCapIcon,
     },
     {
       name: 'ECForce詳細',
       path: '/ecforce',
       icon: ChartBarIcon,
-    },
-    {
-      name: 'カテゴリ分析',
-      path: '/category-analysis',
-      icon: PuzzlePieceIcon,
-    },
-    {
-      name: '詳細分析',
-      path: '/details',
-      icon: MagnifyingGlassIcon,
-    },
-    {
-      name: '期間分析',
-      path: '/period',
-      icon: CalendarDaysIcon,
     },
   ]
 
@@ -135,7 +102,9 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className={`${isCollapsed ? 'w-16' : 'w-64'} bg-gray-50 border-r border-gray-200 transition-all duration-300 relative`}>
+    <aside
+      className={`${isCollapsed ? 'w-16' : 'w-64'} bg-gray-50 border-r border-gray-200 transition-all duration-300 relative`}
+    >
       {/* 折りたたみボタン */}
       <button
         onClick={() => setIsCollapsed(!isCollapsed)}
