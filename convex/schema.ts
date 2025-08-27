@@ -80,6 +80,8 @@ export default defineSchema({
     createdAt: v.optional(v.string()),
     campaign_id: v.optional(v.string()),
     campaign_name: v.optional(v.string()),
+    adset_id: v.optional(v.string()),
+    adset_name: v.optional(v.string()),
     ad_id: v.optional(v.string()),
     ad_name: v.optional(v.string()),
     creative_id: v.optional(v.string()),

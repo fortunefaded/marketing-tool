@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react'
 import { MetaInsightsData } from '@/types'
 import { logger } from '../../utils/logger'
+import { normalizeCreativeMediaType } from '@/features/meta-api/utils/creative-type'
 import {
   PhotoIcon,
   VideoCameraIcon,
@@ -77,7 +78,7 @@ export const CreativePerformance: React.FC<CreativePerformanceProps> = ({
     // クリエイティブタイプの分布を確認
     const typeDistribution = adLevelInsights.reduce(
       (acc, insight) => {
-        const type = insight.creative_type || 'text'
+        const type = normalizeCreativeMediaType(insight.creative_type || insight.creative_media_type)
         acc[type] = (acc[type] || 0) + 1
         return acc
       },
@@ -105,7 +106,7 @@ export const CreativePerformance: React.FC<CreativePerformanceProps> = ({
       const existing = metricsMap.get(key) || {
         creative_id: key,
         creative_name: insight.creative_name || insight.ad_name || 'Unknown',
-        creative_type: insight.creative_type || 'text',
+        creative_type: normalizeCreativeMediaType(insight.creative_type || insight.creative_media_type),
         creative_url: insight.creative_url,
         thumbnail_url: insight.thumbnail_url,
         video_url: insight.video_url,

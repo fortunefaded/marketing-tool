@@ -121,6 +121,11 @@ export interface MetaInsightsData {
 export interface FatigueData {
   adId: string
   adName: string
+  // 広告セット・キャンペーン情報を追加
+  adset_id?: string
+  adset_name?: string
+  campaign_id?: string
+  campaign_name?: string
   score: number
   status: 'healthy' | 'caution' | 'warning' | 'critical'
   metrics: {
@@ -131,6 +136,7 @@ export interface FatigueData {
     impressions: number
     clicks: number
     spend: number
+    reach: number
     unique_ctr: number
     unique_inline_link_click_ctr: number
     cpc: number

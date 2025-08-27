@@ -54,12 +54,13 @@ export function useSafeConvexQuery<T = any>(
   
   // 状態の判定
   if (!queryFunction) {
+    console.log('❌ API function not available:', { path: functionPath })
     vibe.debug('API function not available', { path: functionPath })
     return {
       data: null,
-      isLoading: true, // Convex初期化待ち
-      error: null,
-      status: 'loading'
+      isLoading: false, // 関数が存在しない場合はローディングを停止
+      error: new Error(`API function not found: ${functionPath}`),
+      status: 'error'
     }
   }
   

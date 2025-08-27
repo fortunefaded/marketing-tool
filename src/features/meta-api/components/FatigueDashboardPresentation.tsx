@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useEffect } from 'react'
 import { AccountSelector } from '../account/AccountSelector'
 import { StatCard } from './StatCard'
 import { AggregatedFatigueTable } from './AggregatedFatigueTable'
@@ -8,6 +8,10 @@ import { DataValidationAlert } from './DataValidationAlert'
 import { MetaAccount, FatigueData } from '@/types'
 import { aggregateByLevel } from '../utils/aggregation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useRateLimitStatus } from '../hooks/useRateLimitStatus'
+import { DataLoadingProgress } from './DataLoadingProgress'
+import { DateRangeFilter } from './DateRangeFilter'
+import type { DateRangeFilter as DateRangeFilterType } from '../hooks/useAdFatigueSimplified'
 
 interface FatigueDashboardPresentationProps {
   // アカウント関連
@@ -29,6 +33,19 @@ interface FatigueDashboardPresentationProps {
   // メタ情報
   dataSource: 'cache' | 'api' | null
   lastUpdateTime: Date | null
+  
+  // 進捗情報
+  progress?: {
+    loaded: number
+    hasMore: boolean
+    isAutoFetching: boolean
+  }
+  
+  // フィルター関連
+  dateRange: DateRangeFilterType
+  onDateRangeChange: (dateRange: DateRangeFilterType) => void
+  totalInsights?: number
+  filteredCount?: number
 }
 
 /**
@@ -48,7 +65,32 @@ export function FatigueDashboardPresentation({
   onRefresh,
   dataSource,
   lastUpdateTime,
+  progress,
+  dateRange,
+  onDateRangeChange,
+  totalInsights,
+  filteredCount,
 }: FatigueDashboardPresentationProps) {
+  // デバッグモード設定（初回のみ）
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (!(window as any).DEBUG_FATIGUE) {
+        console.log('🔧 デバッグモードのヒント: window.DEBUG_FATIGUE = true でデバッグログを有効化できます')
+      }
+      // デバッグツールをグローバルに公開（遅延読み込み対応）
+      import('../utils/debug-helper').then(() => {
+        console.log('🔧 デバッグツール準備完了: FatigueDebug')
+      })
+    }
+  }, [])
+  
+  // レート制限状態を取得
+  const rateLimitStatus = useRateLimitStatus()
+  
+  // レート制限中かどうかチェック
+  const isRateLimited = rateLimitStatus.isRateLimited
+  const canRefresh = !isRefreshing && rateLimitStatus.canRetry
+  
   // 集計データをメモ化
   const aggregatedData = useMemo(() => {
     if (!insights || insights.length === 0) return { campaign: [], adset: [] }
@@ -74,11 +116,50 @@ export function FatigueDashboardPresentation({
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="w-full max-w-none">
+        {/* デバッグログパネル */}
+        {typeof window !== 'undefined' && (window as any).DEBUG_FATIGUE && (
+          <div className="bg-gray-800 text-gray-100 p-4 rounded-lg mb-4 font-mono text-xs">
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-yellow-400 font-bold">🔧 Debug Logs</h3>
+              <button
+                onClick={() => {
+                  console.log('🔍 現在のデバッグログ:', (window as any).DEBUG_FATIGUE_LOGS)
+                  alert('デバッグログをコンソールに出力しました')
+                }}
+                className="px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded text-xs"
+              >
+                View All Logs
+              </button>
+            </div>
+            <div className="space-y-1">
+              <div>👥 Accounts: {accounts.length} | Selected: {selectedAccountId || 'none'}</div>
+              <div>📊 Data: {data.length} items | Insights: {insights.length} items</div>
+              <div>🎮 Loading: {isLoading ? 'Yes' : 'No'} | Refreshing: {isRefreshing ? 'Yes' : 'No'}</div>
+              <div>📡 Data Source: {dataSource || 'none'} | Error: {error?.message || 'none'}</div>
+              <div className="text-yellow-300">
+                💡 To enable debug mode: window.DEBUG_FATIGUE = true
+              </div>
+            </div>
+          </div>
+        )}
+        
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold text-gray-900">Simple Ad Fatigue Dashboard</h1>
 
           {selectedAccountId && (
             <div className="flex items-center gap-4">
+              {/* フィルター件数の表示 */}
+              {totalInsights !== undefined && filteredCount !== undefined && (
+                <div className="text-sm text-gray-600">
+                  <div>表示中: {filteredCount}件 / 全{totalInsights}件</div>
+                  {totalInsights !== filteredCount && (
+                    <div className="text-xs text-blue-600">
+                      {totalInsights - filteredCount}件をフィルターで非表示
+                    </div>
+                  )}
+                </div>
+              )}
+              
               {dataSource && (
                 <div className="text-sm text-gray-600">
                   <div>データソース: {dataSource === 'cache' ? 'キャッシュ' : 'Meta API'}</div>
@@ -86,16 +167,66 @@ export function FatigueDashboardPresentation({
                 </div>
               )}
 
+              {/* 期間フィルター */}
+              <DateRangeFilter 
+                value={dateRange} 
+                onChange={onDateRangeChange} 
+              />
+
+              {/* レート制限状態の表示 */}
+              {isRateLimited && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-orange-50 border border-orange-200 rounded-lg">
+                  <svg className="w-5 h-5 text-orange-600 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="text-sm text-orange-700">
+                    レート制限中: {rateLimitStatus.timeRemaining}秒後に再試行可能
+                  </span>
+                </div>
+              )}
+              
+              {/* データ更新ボタン */}
               <button
-                onClick={() => onRefresh()}
-                disabled={isLoading || isRefreshing}
+                onClick={() => {
+                  console.log('🔥 データ更新ボタンクリック:', { 
+                    isRefreshing, 
+                    isRateLimited,
+                    canRefresh,
+                    onRefreshType: typeof onRefresh,
+                    selectedAccountId,
+                    hasOnRefresh: !!onRefresh,
+                    timestamp: new Date().toISOString()
+                  })
+                  
+                  if (!onRefresh) {
+                    console.error('❌ onRefresh関数が定義されていません')
+                    return
+                  }
+                  
+                  if (!selectedAccountId) {
+                    console.warn('⚠️ アカウントが選択されていません')
+                    return
+                  }
+                  
+                  if (isRateLimited) {
+                    console.warn('⏳ レート制限中のため更新できません')
+                    return
+                  }
+                  
+                  console.log('📡 onRefresh関数を呼び出します...')
+                  // キャッシュをクリアして最新データを取得
+                  onRefresh({ clearCache: true })
+                  console.log('✅ onRefresh関数の呼び出しが完了しました')
+                }}
+                disabled={!canRefresh}
                 className={`px-4 py-2 rounded-lg text-white transition-colors ${
-                  isRefreshing
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-indigo-600 hover:bg-indigo-700'
-                } disabled:opacity-50`}
+                  !canRefresh 
+                    ? 'bg-gray-400 cursor-not-allowed' 
+                    : 'bg-indigo-600 hover:bg-indigo-700 cursor-pointer'
+                }`}
+                title={isRateLimited ? `あと${rateLimitStatus.timeRemaining}秒お待ちください` : ''}
               >
-                {isRefreshing ? '更新中...' : isLoading ? '読み込み中...' : 'データ更新'}
+                {isRefreshing ? '更新中...' : isRateLimited ? `再試行まで ${rateLimitStatus.timeRemaining}秒` : 'データ更新'}
               </button>
             </div>
           )}
@@ -136,8 +267,19 @@ export function FatigueDashboardPresentation({
             type="warning"
             title="広告データが見つかりません"
             message="このアカウントには表示可能な広告データがありません。"
-            action={{ label: '再度取得を試す', onClick: () => onRefresh() }}
+            action={{ 
+              label: 'キャッシュをクリアして再取得', 
+              onClick: () => {
+                console.log('🗑️ キャッシュクリアして再取得')
+                onRefresh({ clearCache: true })
+              }
+            }}
           />
+        )}
+        
+        {/* 進捗バー表示 */}
+        {selectedAccountId && progress && (
+          <DataLoadingProgress progress={progress} />
         )}
 
         {selectedAccountId && !error && (

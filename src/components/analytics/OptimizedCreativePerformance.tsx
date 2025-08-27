@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback, memo } from 'react'
 import { MetaInsightsData } from '@/types'
+import { normalizeCreativeMediaType } from '@/features/meta-api/utils/creative-type'
 import {
   PhotoIcon,
   VideoCameraIcon,
@@ -387,7 +388,7 @@ export const OptimizedCreativePerformance: React.FC<CreativePerformanceProps> = 
       const existing = metricsMap.get(key) || {
         creative_id: key,
         creative_name: insight.creative_name || insight.ad_name || 'Unknown',
-        creative_type: insight.creative_type || 'text',
+        creative_type: normalizeCreativeMediaType(insight.creative_type || insight.creative_media_type),
         creative_url: insight.creative_url,
         thumbnail_url: insight.thumbnail_url,
         video_url: insight.video_url,

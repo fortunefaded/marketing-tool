@@ -1,6 +1,14 @@
-import { AdInsight } from '@/types'
-import { vibe } from '@/lib/vibelogger'
+import { AdInsight } from '../../../types'
+import { vibe } from '../../../lib/vibelogger'
 import { AccountId, AccessToken } from './branded-types'
+
+// ページネーション対応の返り値の型
+export interface PaginatedResult {
+  data: AdInsight[]
+  nextPageUrl: string | null
+  hasMore: boolean
+  totalCount: number
+}
 
 export class SimpleMetaApi {
   private baseUrl = 'https://graph.facebook.com/v23.0'
@@ -38,7 +46,9 @@ export class SimpleMetaApi {
     datePreset?: string
     timeRange?: { since: string; until: string }
     forceRefresh?: boolean
-  } = {}): Promise<AdInsight[]> {
+    maxPages?: number
+    onProgress?: (count: number) => void
+  } = {}): Promise<PaginatedResult> {
     const url = new URL(`${this.baseUrl}/${AccountId.toFullId(this.accountId)}/insights`)
     // トークンが文字列であることを確実にする
     url.searchParams.append('access_token', this.token as string)
@@ -70,7 +80,10 @@ export class SimpleMetaApi {
       url.searchParams.append('_nocache', Date.now().toString())
     }
     
-    return this.fetchPaginatedData(url)
+    return this.fetchPaginatedData(url, {
+      maxPages: options.maxPages,
+      onProgress: options.onProgress
+    })
   }
   
   private getFieldsString(): string {
@@ -101,10 +114,28 @@ export class SimpleMetaApi {
     ].join(',')
   }
   
-  private async fetchPaginatedData(url: URL): Promise<AdInsight[]> {
+  private async fetchPaginatedData(
+    url: URL,
+    options?: {
+      maxPages?: number,
+      onProgress?: (count: number) => void
+    }
+  ): Promise<PaginatedResult> {
     let allData: AdInsight[] = []
     let nextUrl: string | null = url.toString()
-    while (nextUrl) {
+    let pagesProcessed = 0
+    const maxPages = options?.maxPages || 1  // デフォルトは1ページのみ
+    
+    while (nextUrl && pagesProcessed < maxPages) {
+      console.log('🚀 Meta API リクエスト開始:', {
+        endpoint: new URL(nextUrl).pathname,
+        params: new URL(nextUrl).search.replace(String(this.token), 'TOKEN_HIDDEN'),
+        currentCount: allData.length,
+        tokenType: typeof this.token,
+        tokenLength: this.token ? String(this.token).length : 0,
+        fullUrl: nextUrl.replace(String(this.token), 'TOKEN_HIDDEN')
+      })
+      
       vibe.debug('Meta API リクエスト', {
         endpoint: new URL(nextUrl).pathname,
         params: new URL(nextUrl).search.replace(String(this.token), 'TOKEN_HIDDEN'),
@@ -114,7 +145,22 @@ export class SimpleMetaApi {
       })
       
       try {
-        const response = await fetch(nextUrl)
+        console.log('⏳ リクエスト送信中...')
+        
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 30000) // 30秒タイムアウト
+        
+        const response = await fetch(nextUrl, { 
+          signal: controller.signal 
+        })
+        clearTimeout(timeoutId)
+        
+        console.log('📨 レスポンス受信:', {
+          status: response.status,
+          statusText: response.statusText,
+          ok: response.ok
+        })
+        
         const responseData: any = await response.json()
         
         if (!response.ok) {
@@ -164,6 +210,28 @@ export class SimpleMetaApi {
         }
         
         const insights = responseData.data || []
+        
+        // 広告セット情報のデバッグログを追加
+        console.log('🔍 Meta API 生レスポンス確認:', {
+          sampleInsight: insights[0],
+          adsetFields: insights.length > 0 ? {
+            adset_id: insights[0]?.adset_id,
+            adset_name: insights[0]?.adset_name,
+            hasAdsetId: !!insights[0]?.adset_id,
+            hasAdsetName: !!insights[0]?.adset_name
+          } : null
+        })
+        
+        vibe.debug('Meta API 生レスポンス確認', {
+          sampleInsight: insights[0],
+          adsetFields: insights.length > 0 ? {
+            adset_id: insights[0]?.adset_id,
+            adset_name: insights[0]?.adset_name,
+            hasAdsetId: !!insights[0]?.adset_id,
+            hasAdsetName: !!insights[0]?.adset_name
+          } : null
+        })
+        
         const processedInsights = insights.map((insight: any) => this.processInsightData(insight))
         allData.push(...processedInsights)
         
@@ -176,7 +244,38 @@ export class SimpleMetaApi {
           hasNext: !!nextUrl
         })
         
+        // 進捗コールバック
+        if (options?.onProgress) {
+          options.onProgress(allData.length)
+        }
+        
+        pagesProcessed++
+        
+        // レート制限対策：ページ間に待機時間を設定
+        if (nextUrl && pagesProcessed < maxPages) {
+          await new Promise(resolve => setTimeout(resolve, 2000)) // 2秒待機
+        }
+        
       } catch (error: any) {
+        console.error('❌ Meta API リクエスト失敗:', {
+          error: error.message,
+          stack: error.stack,
+          url: nextUrl?.replace(String(this.token), 'TOKEN_HIDDEN') || 'unknown',
+          currentDataCount: allData.length
+        })
+        
+        // レート制限エラーでも、既に取得したデータがある場合は返す
+        if ((error.code === 'RATE_LIMIT' || error.code === 4) && allData.length > 0) {
+          vibe.warn(`レート制限に達しました。${allData.length}件のデータを返します。`)
+          console.log(`⚠️ 部分的なデータ取得: ${allData.length}件`)
+          return {
+            data: allData,
+            nextPageUrl: null,
+            hasMore: false,
+            totalCount: allData.length
+          }
+        }
+        
         vibe.bad('Meta API リクエスト失敗', error)
         throw error
       }
@@ -187,7 +286,18 @@ export class SimpleMetaApi {
       type: 'ads'
     })
     
-    return allData
+    console.log('🎯 最終的な返却データ:', {
+      totalCount: allData.length,
+      firstItem: allData[0],
+      lastItem: allData[allData.length - 1]
+    })
+    
+    return {
+      data: allData,
+      nextPageUrl: nextUrl,
+      hasMore: !!nextUrl,
+      totalCount: allData.length
+    }
   }
   
   private processInsightData(insight: any): AdInsight {
@@ -209,6 +319,23 @@ export class SimpleMetaApi {
     const reach = this.validateNumeric(insight.reach)
     const engagementRate = reach > 0 ? (totalEngagement / reach) * 100 : 0
     
+    // 広告セット情報の処理前後をデバッグ
+    console.log('🔄 広告セット情報処理:', {
+      originalAdsetId: insight.adset_id,
+      originalAdsetName: insight.adset_name,
+      processedAdsetId: insight.adset_id || '',
+      processedAdsetName: insight.adset_name || 'Unknown Adset',
+      adId: insight.ad_id
+    })
+    
+    vibe.debug('広告セット情報処理', {
+      originalAdsetId: insight.adset_id,
+      originalAdsetName: insight.adset_name,
+      processedAdsetId: insight.adset_id || '',
+      processedAdsetName: insight.adset_name || 'Unknown Adset',
+      adId: insight.ad_id
+    })
+
     return {
       ...insight,
       // 基本メトリクスの数値変換（精度を保持）
@@ -216,6 +343,8 @@ export class SimpleMetaApi {
       ad_name: insight.ad_name || 'Unnamed Ad',
       campaign_id: insight.campaign_id || '',
       campaign_name: insight.campaign_name || 'Unknown Campaign',
+      adset_id: insight.adset_id || '',
+      adset_name: insight.adset_name || 'Unknown Adset',
       impressions: this.validateNumeric(insight.impressions),
       reach: reach,
       frequency: this.validateNumeric(insight.frequency, 2), // 小数点2位まで保持
@@ -321,6 +450,22 @@ export class SimpleMetaApi {
     return 60
   }
   
+  // 続きからインサイト取得
+  async fetchInsightsContinuation(
+    nextPageUrl: string,
+    options?: { onProgress?: (count: number) => void }
+  ): Promise<PaginatedResult> {
+    console.log('📄 続きのページを取得:', { 
+      url: nextPageUrl.replace(this.token as string, 'TOKEN_HIDDEN') 
+    })
+    
+    const url = new URL(nextPageUrl)
+    return this.fetchPaginatedData(url, { 
+      maxPages: 1,
+      onProgress: options?.onProgress 
+    })
+  }
+
   // 広告クリエイティブの詳細取得（バッチ処理対応）
   async getAdCreatives(adIds: string[], options?: { batchSize?: number }): Promise<any[]> {
     if (!adIds.length) return []

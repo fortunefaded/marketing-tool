@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react'
 import { MetaInsightsData } from '@/types'
 import { FunnelIcon } from '@heroicons/react/24/outline'
+import { normalizeCreativeMediaType } from '@/features/meta-api/utils/creative-type'
 
 interface ComparisonDashboardProps {
   insights: MetaInsightsData[]
@@ -137,7 +138,7 @@ export const ComparisonDashboard: React.FC<ComparisonDashboardProps> = ({ insigh
     })
 
     insights.forEach((insight) => {
-      const type = insight.creative_type || 'text'
+      const type = normalizeCreativeMediaType(insight.creative_type || insight.creative_media_type)
       const data = dataMap.get(type)
       if (data) {
         data.spend += Number(insight.spend || 0)

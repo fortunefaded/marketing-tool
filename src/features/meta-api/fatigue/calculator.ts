@@ -28,6 +28,11 @@ export class SimpleFatigueCalculator {
       return {
         adId: insight.ad_id,
         adName: insight.ad_name || 'Unnamed',
+        // 広告セット情報を追加
+        adset_id: insight.adset_id,
+        adset_name: insight.adset_name,
+        campaign_id: insight.campaign_id,
+        campaign_name: insight.campaign_name,
         score,
         status,
         metrics: {

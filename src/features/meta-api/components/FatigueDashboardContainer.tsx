@@ -4,6 +4,7 @@ import { useAdFatigue } from '../hooks/useAdFatigue'
 import { SimpleAccountStore } from '../account/account-store'
 import { FatigueDashboardPresentation } from './FatigueDashboardPresentation'
 import { MetaAccount } from '@/types'
+import type { DateRangeFilter } from '../hooks/useAdFatigueSimplified'
 
 /**
  * FatigueDashboard のコンテナコンポーネント
@@ -14,6 +15,7 @@ export function FatigueDashboardContainer() {
   const [accounts, setAccounts] = useState<MetaAccount[]>([])
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
   const [isLoadingAccounts, setIsLoadingAccounts] = useState(true)
+  const [dateRange, setDateRange] = useState<DateRangeFilter>('last_30d')
   
   // アカウント読み込み
   useEffect(() => {
@@ -36,7 +38,7 @@ export function FatigueDashboardContainer() {
     loadAccounts()
   }, [convex])
   
-  // 疲労度データの取得
+  // 疲労度データの取得（accountIdがある場合のみ）
   const {
     data,
     insights,
@@ -45,8 +47,11 @@ export function FatigueDashboardContainer() {
     error,
     refetch,
     dataSource,
-    lastUpdateTime
-  } = useAdFatigue(selectedAccountId || '')
+    lastUpdateTime,
+    progress,
+    totalInsights,
+    filteredCount
+  } = useAdFatigue(selectedAccountId || '', dateRange)
   
   // アカウント選択ハンドラ
   const handleAccountSelect = async (accountId: string) => {
@@ -76,6 +81,15 @@ export function FatigueDashboardContainer() {
       // メタ情報
       dataSource={dataSource}
       lastUpdateTime={lastUpdateTime}
+      
+      // 進捗情報
+      progress={progress}
+      
+      // フィルター関連
+      dateRange={dateRange}
+      onDateRangeChange={setDateRange}
+      totalInsights={totalInsights}
+      filteredCount={filteredCount}
     />
   )
 }
