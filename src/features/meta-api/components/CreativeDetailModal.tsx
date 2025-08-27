@@ -317,6 +317,12 @@ export function CreativeDetailModal({ isOpen, onClose, item, insight }: Creative
                     />
 
                     <MetricRow
+                      label="ファーストCV（F-CV）"
+                      value="N/A"
+                      description="初回コンバージョン"
+                    />
+
+                    <MetricRow
                       label="CTR（クリック率）"
                       value={item.metrics.ctr}
                       unit="%"

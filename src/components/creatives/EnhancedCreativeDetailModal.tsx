@@ -131,6 +131,16 @@ export const EnhancedCreativeDetailModal: React.FC<CreativeDetailModalProps> = (
       description: '購入や登録などの成果',
     },
     {
+      icon: SparklesIcon,
+      label: 'ファーストCV',
+      value: 'N/A',
+      subValue: 'F-CV',
+      gradientFrom: 'from-teal-400',
+      gradientTo: 'to-cyan-400',
+      iconBg: 'bg-gradient-to-br from-teal-500 to-cyan-500',
+      description: '初回コンバージョン',
+    },
+    {
       icon: CurrencyYenIcon,
       label: '広告費用',
       value: formatCurrency(creative.metrics.spend),

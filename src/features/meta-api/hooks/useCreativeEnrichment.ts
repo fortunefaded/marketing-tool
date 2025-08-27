@@ -82,9 +82,13 @@ export function useCreativeEnrichment(accountId: string): UseCreativeEnrichmentR
           return insight
         }
 
-        // Meta APIのobject_typeを正規化
+        // Meta APIのobject_typeを正規化（URLパターンからも推測）
         const objectType = creative.creative.object_type
-        const normalizedMediaType = normalizeCreativeMediaType(objectType)
+        const normalizedMediaType = normalizeCreativeMediaType(objectType, {
+          video_url: creative.creative.video_url || insight.video_url,
+          thumbnail_url: creative.creative.thumbnail_url || insight.thumbnail_url,
+          carousel_cards: insight.carousel_cards
+        })
         
         return {
           ...insight,

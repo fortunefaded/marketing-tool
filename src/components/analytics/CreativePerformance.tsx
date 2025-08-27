@@ -43,6 +43,7 @@ interface CreativeMetrics {
   clicks: number
   spend: number
   conversions: number
+  first_conversions: number // F-CV用
   conversion_value: number
   ctr: number
   cpc: number
@@ -118,6 +119,7 @@ export const CreativePerformance: React.FC<CreativePerformanceProps> = ({
         clicks: 0,
         spend: 0,
         conversions: 0,
+        first_conversions: 0, // F-CV初期値
         conversion_value: 0,
         ctr: 0,
         cpc: 0,
@@ -516,6 +518,9 @@ export const CreativePerformance: React.FC<CreativePerformanceProps> = ({
                     CV
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    F-CV
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     CPA
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -614,6 +619,9 @@ export const CreativePerformance: React.FC<CreativePerformanceProps> = ({
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
                       {formatNumber(metric.conversions)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
+                      N/A
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
                       {metric.conversions > 0 ? formatCurrency(metric.cpa) : '-'}

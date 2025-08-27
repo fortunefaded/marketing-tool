@@ -1018,4 +1018,36 @@ export default defineSchema({
     .index('by_ad', ['adId'])
     .index('by_date', ['date'])
     .index('by_save_rate', ['saveRate']),
+
+
+  // First Time Conversionsテーブル
+  firstTimeConversions: defineTable({
+    adId: v.string(),
+    adName: v.string(),
+    campaignId: v.string(),
+    campaignName: v.string(),
+    adsetId: v.string(),
+    adsetName: v.string(),
+    firstTimeConversions: v.number(),
+    date: v.string(),
+    timestamp: v.number(),
+    reportId: v.optional(v.string()),
+  })
+    .index('by_ad_and_date', ['adId', 'date'])
+    .index('by_campaign', ['campaignId'])
+    .index('by_date', ['date']),
+
+  // レポート処理ジョブテーブル
+  reportProcessingJobs: defineTable({
+    reportId: v.string(),
+    downloadUrl: v.string(),
+    status: v.string(), // 'pending', 'processing', 'completed', 'failed'
+    processedCount: v.optional(v.number()),
+    error: v.optional(v.string()),
+    metadata: v.any(),
+    createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
+  })
+    .index('by_status', ['status'])
+    .index('by_created', ['createdAt']),
 })

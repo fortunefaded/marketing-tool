@@ -48,6 +48,7 @@ export class SimpleMetaApi {
     forceRefresh?: boolean
     maxPages?: number
     onProgress?: (count: number) => void
+    useBreakdowns?: boolean  // 新しいオプション
   } = {}): Promise<PaginatedResult> {
     const url = new URL(`${this.baseUrl}/${AccountId.toFullId(this.accountId)}/insights`)
     // トークンが文字列であることを確実にする
@@ -67,8 +68,10 @@ export class SimpleMetaApi {
     url.searchParams.append('fields', this.getFieldsString())
     url.searchParams.append('limit', '100')
     
-    // Add breakdowns for platform-specific insights
-    url.searchParams.append('breakdowns', 'publisher_platform')
+    // Breakdownsはオプショナルに（デフォルトでは無効）
+    if (options.useBreakdowns) {
+      url.searchParams.append('breakdowns', 'publisher_platform')
+    }
     
     // Add time increment for daily data
     url.searchParams.append('time_increment', '1')

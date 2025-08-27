@@ -274,6 +274,11 @@ export function AggregatedFatigueTable({ data, level }: AggregatedFatigueTablePr
                 )}
               </div>
             </th>
+            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <div className="flex items-center justify-end gap-1">
+                F-CV
+              </div>
+            </th>
             <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                 onClick={() => handleSort('cpa')}>
               <div className="flex items-center justify-end gap-1">
@@ -383,6 +388,9 @@ export function AggregatedFatigueTable({ data, level }: AggregatedFatigueTablePr
                 <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900">
                   {formatNumber(item.metrics.conversions)}
                 </td>
+                <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-500">
+                  N/A
+                </td>
                 <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900">
                   {item.metrics.conversions > 0 ? formatCurrency(item.metrics.cpa) : '-'}
                 </td>
@@ -406,7 +414,7 @@ export function AggregatedFatigueTable({ data, level }: AggregatedFatigueTablePr
               {/* Expanded content showing individual ads */}
               {expandedRows.has(item.id) && item.insights.length > 0 && (
                 <tr>
-                  <td colSpan={13} className="px-4 py-2 bg-gray-50 border-l-4 border-indigo-200">
+                  <td colSpan={14} className="px-4 py-2 bg-gray-50 border-l-4 border-indigo-200">
                     <div className="space-y-2">
                       <div className="text-sm font-medium text-gray-700 mb-3">
                         この{level === 'campaign' ? 'キャンペーン' : '広告セット'}の広告 ({item.insights.length}件)

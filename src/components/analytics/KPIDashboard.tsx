@@ -29,6 +29,7 @@ interface KPIMetrics {
   totalClicks: number
   totalReach: number
   totalConversions: number
+  totalFirstConversions: number // F-CV用
   totalRevenue: number
   ctr: number
   cpc: number
@@ -77,6 +78,7 @@ export const KPIDashboard: React.FC<KPIDashboardProps> = ({
         acc.totalClicks += Number(insight.clicks || 0)
         acc.totalReach += Number(insight.reach || 0)
         acc.totalConversions += Number(insight.conversions || 0)
+        acc.totalFirstConversions += 0 // F-CV: 後で実装
         return acc
       },
       {
@@ -85,6 +87,7 @@ export const KPIDashboard: React.FC<KPIDashboardProps> = ({
         totalClicks: 0,
         totalReach: 0,
         totalConversions: 0,
+        totalFirstConversions: 0, // F-CV初期値
         totalRevenue: 0,
         ctr: 0,
         cpc: 0,
@@ -207,6 +210,14 @@ export const KPIDashboard: React.FC<KPIDashboardProps> = ({
           icon: ShoppingCartIcon,
           color: 'text-blue-600',
           bgColor: 'bg-blue-100',
+        },
+        {
+          title: 'ファーストCV',
+          value: 'N/A',
+          icon: ShoppingCartIcon,
+          color: 'text-teal-600',
+          bgColor: 'bg-teal-100',
+          subtitle: 'F-CV',
         },
         {
           title: 'CPA',

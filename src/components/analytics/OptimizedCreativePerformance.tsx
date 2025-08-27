@@ -64,6 +64,7 @@ interface CreativeMetrics {
   clicks: number
   spend: number
   conversions: number
+  first_conversions: number // F-CV用
   conversion_value: number
   ctr: number
   cpc: number
@@ -182,7 +183,7 @@ const CreativeCard = memo<{
         {/* メトリクス */}
         <div className="mt-3 space-y-2">
           {/* 主要指標 */}
-          <div className="grid grid-cols-3 gap-2 text-xs">
+          <div className="grid grid-cols-4 gap-2 text-xs">
             <div className="text-center">
               <p className="text-gray-500">表示</p>
               <p className="text-gray-900 font-medium">{formatNumber(metric.impressions)}</p>
@@ -194,6 +195,10 @@ const CreativeCard = memo<{
             <div className="text-center">
               <p className="text-gray-500">CV</p>
               <p className="text-gray-900 font-medium">{formatNumber(metric.conversions)}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-gray-500">F-CV</p>
+              <p className="text-gray-900 font-medium">N/A</p>
             </div>
           </div>
 
@@ -385,10 +390,38 @@ export const OptimizedCreativePerformance: React.FC<CreativePerformanceProps> = 
 
     adLevelInsights.forEach((insight) => {
       const key = insight.creative_id || insight.ad_id || 'unknown'
+      
+      // creative_typeを判定（object_typeとURLパターンから推測）
+      const rawCreativeType = insight.creative_type || insight.creative_media_type || (insight as any).original_object_type
+      const normalizedType = normalizeCreativeMediaType(rawCreativeType, {
+        video_url: insight.video_url,
+        thumbnail_url: insight.thumbnail_url || insight.creative_url,
+        carousel_cards: insight.carousel_cards
+      })
+      
+      // デバッグログを追加（最初の数件のみ）
+      if (metricsMap.size < 3) {
+        console.log('🎨 Creative Type Detection:', {
+          insight_id: key,
+          detected_type: normalizedType,
+          raw_types: {
+            creative_type: insight.creative_type,
+            creative_media_type: insight.creative_media_type,
+            original_object_type: (insight as any).original_object_type,
+          },
+          urls: {
+            video_url: insight.video_url,
+            thumbnail_url: insight.thumbnail_url,
+            creative_url: insight.creative_url
+          },
+          has_carousel: !!insight.carousel_cards?.length
+        })
+      }
+      
       const existing = metricsMap.get(key) || {
         creative_id: key,
         creative_name: insight.creative_name || insight.ad_name || 'Unknown',
-        creative_type: normalizeCreativeMediaType(insight.creative_type || insight.creative_media_type),
+        creative_type: normalizedType,
         creative_url: insight.creative_url,
         thumbnail_url: insight.thumbnail_url,
         video_url: insight.video_url,
@@ -400,6 +433,7 @@ export const OptimizedCreativePerformance: React.FC<CreativePerformanceProps> = 
         clicks: 0,
         spend: 0,
         conversions: 0,
+        first_conversions: 0, // F-CV初期値
         conversion_value: 0,
         ctr: 0,
         cpc: 0,
