@@ -3,7 +3,7 @@
  * フィルター部分のコンポーネント
  */
 
-import React, { useState } from 'react'
+import React from 'react'
 import { CampaignFilter } from '../CampaignFilter'
 import { PerformanceFilter } from '../PerformanceFilter'
 import { SafeFilterWrapper } from '../SafeFilterWrapper'
@@ -20,25 +20,24 @@ export const DashboardFilters: React.FC<DashboardFiltersProps> = ({
   filteredData,
   onFilterChange
 }) => {
-  const [showFilters, setShowFilters] = useState(false)
-  
   const hasActiveFilters = sourceData.length > filteredData.length
   const isDataEmpty = filteredData.length === 0
   
   return (
     <div className="mb-6">
-      {/* フィルターコントロール */}
+      {/* フィルターヘッダー */}
       <div className="mb-4 flex justify-between items-center">
-        <button
-          onClick={() => setShowFilters(!showFilters)}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            showFilters 
-              ? 'bg-indigo-600 text-white' 
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-          }`}
-        >
-          🔍 フィルター {showFilters ? '▼' : '▶'}
-        </button>
+        <div className="flex items-center gap-2">
+          <span className="text-lg font-medium text-gray-700">🔍 フィルター</span>
+          {hasActiveFilters && (
+            <button
+              onClick={() => onFilterChange(sourceData)}
+              className="px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded-lg hover:bg-blue-200"
+            >
+              クリア
+            </button>
+          )}
+        </div>
         
         <div className="flex items-center gap-4">
           <div className="text-sm text-gray-600">
@@ -52,10 +51,7 @@ export const DashboardFilters: React.FC<DashboardFiltersProps> = ({
                 フィルター条件に該当するデータがありません
               </span>
               <button
-                onClick={() => {
-                  onFilterChange(sourceData) // 全データを表示
-                  setShowFilters(true) // フィルターパネルを開く
-                }}
+                onClick={() => onFilterChange(sourceData)}
                 className="text-sm text-blue-600 hover:text-blue-800 underline"
               >
                 フィルターをリセット
@@ -65,24 +61,22 @@ export const DashboardFilters: React.FC<DashboardFiltersProps> = ({
         </div>
       </div>
 
-      {/* フィルターパネル */}
-      {showFilters && (
-        <SafeFilterWrapper>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
-            <CampaignFilter 
-              data={sourceData}
-              onFilter={onFilterChange}
-            />
-            <PerformanceFilter
-              data={sourceData}
-              onFilter={onFilterChange}
-            />
-          </div>
-        </SafeFilterWrapper>
-      )}
+      {/* フィルターパネル（常時表示） */}
+      <SafeFilterWrapper>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
+          <CampaignFilter 
+            data={sourceData}
+            onFilter={onFilterChange}
+          />
+          <PerformanceFilter
+            data={sourceData}
+            onFilter={onFilterChange}
+          />
+        </div>
+      </SafeFilterWrapper>
       
       {/* アクティブフィルターの表示 */}
-      {hasActiveFilters && !showFilters && (
+      {hasActiveFilters && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -96,7 +90,7 @@ export const DashboardFilters: React.FC<DashboardFiltersProps> = ({
             onClick={() => onFilterChange(sourceData)}
             className="text-sm text-blue-600 hover:text-blue-800 underline"
           >
-            クリア
+            すべて表示
           </button>
         </div>
       )}
