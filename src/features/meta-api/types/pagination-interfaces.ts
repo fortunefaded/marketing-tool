@@ -60,11 +60,34 @@ export interface PaginationConfig {
   retryDelayMs?: number // リトライ間隔 (デフォルト: 1000ms)
 }
 
-export interface PaginationResult<T> {
-  data: T[]
+// Progress tracking callback type
+export interface PaginationProgress {
+  currentPage: number
   totalPages: number
-  totalItems: number
-  isComplete: boolean // 全ページ取得完了フラグ
+  itemsRetrieved: number
+  estimatedCompletion: number
+  rateLimitRemaining: number
+}
+
+// Options for pagination function
+export interface PaginationOptions {
+  maxPages?: number
+  retryAttempts?: number
+  retryDelayMs?: number
+  onProgress?: (status: PaginationProgress) => void
+  onError?: (error: ApiClientError) => void
+  signal?: AbortSignal
+}
+
+export interface PaginationResult<T> {
+  success: boolean
+  data: T[]
+  metadata: ApiCallMetadata & {
+    totalItems: number
+    isComplete: boolean
+    duplicatesRemoved?: number
+    validationErrors?: string[]
+  }
   deliveryAnalysis: DeliveryAnalysis
 }
 
@@ -89,6 +112,7 @@ export type DeliveryPattern =
 // ============================================================================
 
 export interface FetchAdInsightsParams {
+  accountId: string // Meta account ID
   fields: string[]
   time_range: {
     since: string
@@ -109,7 +133,7 @@ export interface ApiClientResult<T> {
 export interface ApiClientError {
   code: string
   message: string
-  type: 'network' | 'auth' | 'rate_limit' | 'api' | 'unknown'
+  type: 'network' | 'auth' | 'rate_limit' | 'api' | 'unknown' | 'cancelled' | 'timeout'
   retryable: boolean
   originalError?: any
 }
@@ -244,7 +268,7 @@ export const hasNextPage = (response: MetaApiResponse<any>): boolean => {
 }
 
 export const isRetryableError = (error: ApiClientError): boolean => {
-  return error.retryable && ['network', 'rate_limit', 'api'].includes(error.type)
+  return error.retryable && ['network', 'rate_limit', 'api', 'timeout'].includes(error.type)
 }
 
 // ============================================================================
@@ -271,6 +295,8 @@ export const ERROR_TYPE_LABELS: Record<ApiClientError['type'], string> = {
   rate_limit: 'レート制限',
   api: 'APIエラー',
   unknown: '不明なエラー',
+  cancelled: 'キャンセルエラー',
+  timeout: 'タイムアウトエラー',
 }
 
 // ============================================================================
