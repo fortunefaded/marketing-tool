@@ -6,6 +6,7 @@ import { SimpleAccountStore } from '../account/account-store'
 import { FatigueDashboardPresentation } from './FatigueDashboardPresentation'
 import { MetaAccount } from '@/types'
 import type { DateRangeFilter } from '../hooks/useAdFatigueSimplified'
+import { DEFAULT_SIMPLIFIED_CONFIG } from '../types/aggregation-config'
 
 /**
  * FatigueDashboard のコンテナコンポーネント
@@ -17,7 +18,8 @@ export function FatigueDashboardContainer() {
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
   const [isLoadingAccounts, setIsLoadingAccounts] = useState(true)
   const [dateRange, setDateRange] = useState<DateRangeFilter>('last_30d')
-  const [enableAggregation, setEnableAggregation] = useState(true) // デフォルトで集約を有効化
+  // TASK-102: SimplifiedAggregationConfig使用による常時集約有効化
+  const enableAggregation = DEFAULT_SIMPLIFIED_CONFIG.alwaysEnabled
   const [filteredData, setFilteredData] = useState<any>(null) // フィルター済みデータ
   
   // アカウント読み込み
@@ -64,8 +66,8 @@ export function FatigueDashboardContainer() {
     dateRange,
     enableAggregation,
     aggregationOptions: {
-      includePlatformBreakdown: true,
-      includeDailyBreakdown: true
+      includePlatformBreakdown: DEFAULT_SIMPLIFIED_CONFIG.includePlatformBreakdown,
+      includeDailyBreakdown: DEFAULT_SIMPLIFIED_CONFIG.includeDailyBreakdown
     }
   })
   
@@ -115,7 +117,7 @@ export function FatigueDashboardContainer() {
       
       // 集約関連の新しいプロパティ
       enableAggregation={enableAggregation}
-      onToggleAggregation={() => setEnableAggregation(!enableAggregation)}
+      // onToggleAggregationは削除（常に集約有効のため不要）
       aggregatedData={aggregatedData}
       aggregationMetrics={aggregationMetrics}
       isAggregating={isAggregating}
