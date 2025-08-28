@@ -4,6 +4,9 @@
 // Meta API Response Types
 // ============================================================================
 
+// Import from api-types.ts to avoid duplication
+import type { MetaApiResponse } from './api-types'
+
 export interface MetaApiPaginationInfo {
   cursors: {
     before: string
@@ -11,11 +14,6 @@ export interface MetaApiPaginationInfo {
   }
   next?: string
   previous?: string
-}
-
-export interface MetaApiResponse<T> {
-  data: T[]
-  paging?: MetaApiPaginationInfo
 }
 
 export interface MetaAdInsight {
@@ -54,7 +52,7 @@ export interface MetaActionValue {
 // ページネーション処理関連の型定義
 // ============================================================================
 
-export interface PaginationConfig {
+export interface ApiPaginationConfig {
   maxPages?: number // 取得する最大ページ数 (未指定時は全ページ)
   retryAttempts?: number // リトライ回数 (デフォルト: 3)
   retryDelayMs?: number // リトライ間隔 (デフォルト: 1000ms)
@@ -202,7 +200,7 @@ export interface DataRetrievalStatus {
 // ============================================================================
 
 export interface UseMetaInsightsOptions {
-  paginationConfig?: PaginationConfig
+  paginationConfig?: ApiPaginationConfig
   autoFetch?: boolean
   onProgress?: (status: DataRetrievalStatus) => void
   onComplete?: (summary: DataRetrievalSummary) => void
@@ -253,7 +251,7 @@ export interface ApiClientConfig {
 
 // 既存のコードとの互換性を保つための型エイリアス
 export type AdInsight = MetaAdInsight
-export type PaginatedResponse<T> = MetaApiResponse<T>
+// PaginatedResponse<T> は api-types.ts の MetaApiResponse<T> を使用
 
 // ============================================================================
 // 型ガード関数
@@ -275,7 +273,7 @@ export const isRetryableError = (error: ApiClientError): boolean => {
 // 定数定義
 // ============================================================================
 
-export const DEFAULT_PAGINATION_CONFIG: Required<PaginationConfig> = {
+export const DEFAULT_PAGINATION_CONFIG: Required<ApiPaginationConfig> = {
   maxPages: Infinity,
   retryAttempts: 3,
   retryDelayMs: 1000,

@@ -278,15 +278,15 @@ export function CreativeDetailModal({ isOpen, onClose, item, insight }: Creative
                       パフォーマンス指標
                     </button>
                     <button
-                      onClick={() => setActiveTab('platform')}
+                      onClick={() => setActiveTab('timeseries')}
                       className={`${
-                        activeTab === 'platform'
+                        activeTab === 'timeseries'
                           ? 'border-indigo-500 text-indigo-600'
                           : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                       } whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2`}
                     >
                       <ChartBarIcon className="h-4 w-4" />
-                      プラットフォーム別分析
+                      時系列分析
                     </button>
                   </nav>
                 </div>
@@ -479,99 +479,80 @@ export function CreativeDetailModal({ isOpen, onClose, item, insight }: Creative
                     </div>
                   </div>
                 ) : (
-                  /* Platform Analysis Tab */
+                  /* Time Series Analysis Tab */
                   <div className="space-y-6">
                     <div className="bg-white rounded-lg border border-gray-200 p-6">
                       <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                        プラットフォーム別パフォーマンス
-                        <span className="ml-2 text-xs text-red-500 font-normal">
-                          (v2: {new Date().toLocaleTimeString()})
+                        パフォーマンス推移分析（過去30日間）
+                        <span className="ml-2 text-xs text-blue-500 font-normal">
+                          (time_increment データ使用)
                         </span>
                       </h3>
 
-                      {/* デバッグ情報表示 */}
-                      <div className="mb-4 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs">
-                        <p className="font-semibold text-yellow-800">デバッグ情報:</p>
-                        <p>insight exists: {insight ? 'YES' : 'NO'}</p>
-                        <p>insight.breakdowns: {insight?.breakdowns ? 'YES' : 'NO'}</p>
-                        <p className="text-red-600 font-semibold">
-                          {!insight?.breakdowns && '⚠️ ブレークダウンデータがありません。データを再取得してください。'}
-                        </p>
-                        <p>Data points: {platformData.chartData.length}</p>
-                        <details className="mt-2">
-                          <summary className="cursor-pointer text-yellow-700 hover:text-yellow-900">
-                            insight オブジェクトを展開
-                          </summary>
-                          <pre className="mt-1 text-xs overflow-x-auto bg-white p-2 rounded">
-                            {JSON.stringify(insight, null, 2)}
-                          </pre>
-                        </details>
-                        <pre className="mt-1 text-xs overflow-x-auto">
-                          {JSON.stringify(platformData.stats, null, 2)}
-                        </pre>
-                        
-                        {/* APIコール情報 */}
-                        <div className="mt-3 p-2 bg-blue-50 rounded">
-                          <p className="text-blue-800 font-semibold mb-1">プラットフォーム別データを取得するには：</p>
-                          <ol className="text-blue-700 space-y-1">
-                            <li>1. ダッシュボードに戻る</li>
-                            <li>2. データ更新/リフレッシュボタンをクリック</li>
-                            <li>3. 新しいデータが取得され、breakdownsが含まれます</li>
-                          </ol>
-                          <p className="text-blue-600 mt-2">
-                            ※ APIに useBreakdowns: true が設定済みです
-                          </p>
+                      {/* 疲労度推移グラフ */}
+                      <div className="mb-6">
+                        <div className="text-sm font-medium text-gray-700 mb-2">疲労度指標の推移</div>
+                        <div className="bg-gray-50 rounded-lg p-4 h-64 flex items-center justify-center">
+                          <div className="text-center">
+                            <div className="text-4xl text-gray-400 mb-2">📈</div>
+                            <div className="text-sm text-gray-600">CTR・CPM・Frequencyの推移表示</div>
+                            <div className="text-xs text-gray-500 mt-1">time_incrementデータから生成予定</div>
+                          </div>
                         </div>
                       </div>
 
-                      {/* プラットフォーム別グラフ表示 */}
-                      <div className="h-96">
-                        <MultiLineChart
-                          data={platformData.chartData}
-                          colors={{
-                            facebook: '#1877F2',
-                            instagram: '#E4405F',
-                            audience_network: '#42B883',
-                          }}
-                          metric="CTR"
-                          unit="%"
-                          decimals={2}
-                          height={384}
-                          yAxisLabel="CTR (%)"
-                          accessibilityMode={true}
-                        />
+                      {/* パフォーマンス推移グラフ */}
+                      <div className="mb-6">
+                        <div className="text-sm font-medium text-gray-700 mb-2">広告費・コンバージョンの推移</div>
+                        <div className="bg-gray-50 rounded-lg p-4 h-64 flex items-center justify-center">
+                          <div className="text-center">
+                            <div className="text-4xl text-gray-400 mb-2">💰</div>
+                            <div className="text-sm text-gray-600">広告費・CV数・CPA推移</div>
+                            <div className="text-xs text-gray-500 mt-1">日別パフォーマンスデータ</div>
+                          </div>
+                        </div>
                       </div>
 
-                      <div className="mt-6 grid grid-cols-3 gap-4">
-                        <div className="bg-blue-50 rounded-lg p-4">
-                          <div className="flex items-center gap-2 mb-2">
-                            <div className="w-3 h-3 bg-blue-600 rounded"></div>
-                            <span className="font-medium">Facebook</span>
+                      {/* データ取得状況 */}
+                      <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-xs">
+                        <p className="font-semibold text-blue-800">データ取得状況:</p>
+                        <p>✅ time_increment=1 でAPI取得中</p>
+                        <p>✅ ブレークダウンデータは利用せず数値整合性を優先</p>
+                        <p>Available insights: {insight ? '利用可能' : '取得中'}</p>
+                      </div>
+
+                      {/* 時系列分析の概要 */}
+                      <div className="mb-6">
+                        <div className="grid grid-cols-3 gap-4 text-center">
+                          <div className="bg-gray-50 rounded-lg p-4">
+                            <div className="text-lg font-semibold text-gray-900">疲労度推移</div>
+                            <div className="text-sm text-gray-600">CTR・CPM・Frequency</div>
+                            <div className="mt-2 text-xs text-blue-600">日別データで分析</div>
                           </div>
-                          <p className="text-2xl font-bold text-blue-600">
-                            {platformData.stats.facebook.toFixed(2)}%
-                          </p>
-                          <p className="text-sm text-gray-600">平均CTR</p>
+                          <div className="bg-gray-50 rounded-lg p-4">
+                            <div className="text-lg font-semibold text-gray-900">パフォーマンス</div>
+                            <div className="text-sm text-gray-600">CV・CPA・ROAS</div>
+                            <div className="mt-2 text-xs text-blue-600">収益性の変化</div>
+                          </div>
+                          <div className="bg-gray-50 rounded-lg p-4">
+                            <div className="text-lg font-semibold text-gray-900">投資効率</div>
+                            <div className="text-sm text-gray-600">広告費・リーチ</div>
+                            <div className="mt-2 text-xs text-blue-600">配信最適化</div>
+                          </div>
                         </div>
-                        <div className="bg-pink-50 rounded-lg p-4">
-                          <div className="flex items-center gap-2 mb-2">
-                            <div className="w-3 h-3 bg-pink-600 rounded"></div>
-                            <span className="font-medium">Instagram</span>
-                          </div>
-                          <p className="text-2xl font-bold text-pink-600">
-                            {platformData.stats.instagram.toFixed(2)}%
-                          </p>
-                          <p className="text-sm text-gray-600">平均CTR</p>
-                        </div>
-                        <div className="bg-green-50 rounded-lg p-4">
-                          <div className="flex items-center gap-2 mb-2">
-                            <div className="w-3 h-3 bg-green-600 rounded"></div>
-                            <span className="font-medium">Audience Network</span>
-                          </div>
-                          <p className="text-2xl font-bold text-green-600">
-                            {platformData.stats.audience_network.toFixed(2)}%
-                          </p>
-                          <p className="text-sm text-gray-600">平均CTR</p>
+                      </div>
+
+                      {/* 実装予告 */}
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <h4 className="font-medium text-green-800 mb-2">時系列分析機能（開発中）</h4>
+                        <ul className="text-sm text-green-700 space-y-1">
+                          <li>• 日別パフォーマンス推移グラフ</li>
+                          <li>• 疲労度スコアの時系列変化</li>
+                          <li>• トレンド分析とアラート機能</li>
+                          <li>• 予測モデルによる将来性評価</li>
+                        </ul>
+                        <div className="mt-3 text-xs text-green-600">
+                          ※ time_increment=1 データを使用し、数値の整合性を保証
                         </div>
                       </div>
                     </div>

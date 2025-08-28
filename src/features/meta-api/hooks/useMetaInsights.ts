@@ -321,11 +321,10 @@ export function useMetaInsights({
         }
       })
       
-      // 2. プラットフォーム別データを別途取得
-      console.log('🎯 プラットフォーム別データの取得を開始')
-      const platformData = await api.getPlatformBreakdown({
-        datePreset
-      })
+      // プラットフォーム別データの取得を一時的に無効化
+      // 理由: time_incrementとbreakdownsの非互換性により数値整合性を優先
+      console.log('⚠️ プラットフォーム別データ取得をスキップ (数値整合性優先)')
+      const platformData = {}
       
       console.log('🎯 API結果:', {
         dataLength: result.data?.length || 0,
@@ -336,30 +335,16 @@ export function useMetaInsights({
       })
       
       if (result.data && result.data.length > 0) {
-        // 3. プラットフォーム別データをマージ
-        const mergedData = result.data.map(insight => {
-          const adPlatformData = platformData[insight.ad_id]
-          if (adPlatformData) {
-            console.log(`📊 広告 ${insight.ad_id} にプラットフォームデータをマージ`)
-            return {
-              ...insight,
-              breakdowns: {
-                publisher_platform: adPlatformData
-              }
-            }
-          }
-          return insight
+        // time_incrementデータをそのまま使用（数値整合性優先）
+        console.log('✅ 時系列データ取得完了:', {
+          totalAds: result.data.length,
+          dataIntegrity: 'time_increment使用により保証'
         })
         
-        console.log('✅ マージ完了:', {
-          totalAds: mergedData.length,
-          adsWithPlatformData: mergedData.filter(ad => ad.breakdowns?.publisher_platform).length
-        })
-        
-        setInsights(mergedData)
+        setInsights(result.data)
         setLastFetchTime(new Date())
-        localCache.setCachedData(accountId, mergedData, result.nextPageUrl, !result.hasMore)
-        vibe.good(`インサイトデータ取得成功: ${mergedData.length}件`)
+        localCache.setCachedData(accountId, result.data, result.nextPageUrl, !result.hasMore)
+        vibe.good(`インサイトデータ取得成功: ${result.data.length}件 (時系列データ)`)
         
         setProgress({
           loaded: result.totalCount,

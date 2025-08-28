@@ -219,7 +219,7 @@ async function makeApiCallWithRetry(
         const error = new Error(
           errorData.error?.message || `API error: ${response.status} ${response.statusText}`
         )
-        ;(error as any).status = response.status
+        ;(error as Error & { status?: number }).status = response.status
         throw error
       }
 
@@ -250,7 +250,7 @@ async function makeApiCallWithRetry(
   throw lastError
 }
 
-function validateDataItem(item: any, validationErrors: string[]): boolean {
+function validateDataItem(item: unknown, validationErrors: string[]): boolean {
   if (!item || typeof item !== 'object') {
     validationErrors.push('Invalid data item: not an object')
     return false
@@ -273,7 +273,7 @@ function validateDataItem(item: any, validationErrors: string[]): boolean {
   return true
 }
 
-function isValidMetaApiResponse(data: any): data is MetaApiResponse<MetaAdInsight> {
+function isValidMetaApiResponse(data: unknown): data is MetaApiResponse<MetaAdInsight> {
   return data && Array.isArray(data.data) && 
     (data.paging === undefined || typeof data.paging === 'object')
 }
@@ -284,8 +284,8 @@ function determineErrorType(error: unknown): ApiClientError['type'] {
     if (error.message.includes('abort')) return 'cancelled'
     if (error.message.includes('timeout')) return 'timeout'
     if (error.message.includes('OAuth') || error.message.includes('token')) return 'auth'
-    if (error.message.includes('rate limit') || (error as any).status === 429) return 'rate_limit'
-    if ((error as any).status >= 400) return 'api'
+    if (error.message.includes('rate limit') || (error as Error & { status?: number }).status === 429) return 'rate_limit'
+    if ((error as Error & { status?: number }).status && (error as Error & { status?: number }).status! >= 400) return 'api'
   }
   return 'unknown'
 }
@@ -296,10 +296,10 @@ function isRetryableError(error: unknown): boolean {
     if (error.message.includes('fetch') || error.message.includes('network')) return true
     
     // Rate limit errors are retryable
-    if ((error as any).status === 429) return true
+    if ((error as Error & { status?: number }).status === 429) return true
     
     // Temporary server errors are retryable
-    if ((error as any).status >= 500) return true
+    if ((error as Error & { status?: number }).status && (error as Error & { status?: number }).status! >= 500) return true
     
     // Timeout errors are retryable
     if (error.message.includes('timeout')) return true
