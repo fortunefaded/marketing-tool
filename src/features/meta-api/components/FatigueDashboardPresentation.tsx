@@ -76,8 +76,8 @@ export function FatigueDashboardPresentation({
   selectedAccountId,
   isLoadingAccounts,
   onAccountSelect,
-  data,
-  insights,
+  data: rawData,
+  insights: rawInsights,
   isLoading,
   isRefreshing,
   error,
@@ -95,8 +95,12 @@ export function FatigueDashboardPresentation({
   aggregationMetrics,
   isAggregating,
   onFilterChange,
-  sourceData,
+  sourceData: rawSourceData,
 }: FatigueDashboardPresentationProps) {
+  // データが配列であることを保証
+  const data = Array.isArray(rawData) ? rawData : []
+  const insights = Array.isArray(rawInsights) ? rawInsights : []
+  const sourceData = Array.isArray(rawSourceData) ? rawSourceData : []
   // フィルターの表示状態
   const [showFilters, setShowFilters] = useState(false)
   // デバッグモード設定（初回のみ）
@@ -330,7 +334,7 @@ export function FatigueDashboardPresentation({
           <DataLoadingProgress progress={progress} />
         )}
 
-        {selectedAccountId && !error && (
+        {selectedAccountId && !error ? (
           <>
             {isLoading && !data.length ? (
               <div className="text-center py-8">
@@ -517,7 +521,7 @@ export function FatigueDashboardPresentation({
               </>
             )}
           </>
-        )}
+        ) : null}
 
         {!selectedAccountId && !isLoadingAccounts && (
           <div className="bg-gray-50 rounded-lg p-8 text-center text-gray-500">

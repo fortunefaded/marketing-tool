@@ -202,7 +202,7 @@ export function CreativeDetailModal({ isOpen, onClose, item, insight }: Creative
                       広告疲労度分析
                     </h5>
 
-                    {/* 総合疲労度スコア - グリッド幅ギリギリ */}
+                    {/* 総合疲労度スコア */}
                     <div className="flex justify-center mb-4">
                       <FatigueDonutChart
                         value={fatigueScores.overallScore}
@@ -210,19 +210,19 @@ export function CreativeDetailModal({ isOpen, onClose, item, insight }: Creative
                         description=""
                         formula="(クリエイティブ疲労 + 視聴者疲労 + アルゴリズム疲労) / 3"
                         currentValue={`現在の総合スコア: ${fatigueScores.overallScore}`}
-                        size={340}
+                        size={200}
                       />
                     </div>
 
-                    {/* 個別疲労度スコア - グリッド幅ギリギリ */}
-                    <div className="grid grid-cols-3 gap-1">
+                    {/* 個別疲労度スコア */}
+                    <div className="grid grid-cols-3 gap-2">
                       <FatigueDonutChart
                         value={fatigueScores.creativeFatigue}
                         label="クリエイティブの疲労"
                         description=""
                         formula={FATIGUE_FORMULAS.creative}
                         currentValue={`CTR: ${item.metrics.ctr?.toFixed(2) || 0}%`}
-                        size={200}
+                        size={120}
                       />
 
                       <FatigueDonutChart
@@ -231,7 +231,7 @@ export function CreativeDetailModal({ isOpen, onClose, item, insight }: Creative
                         description=""
                         formula={FATIGUE_FORMULAS.audience}
                         currentValue={`Frequency: ${item.metrics.frequency?.toFixed(2) || 0}`}
-                        size={200}
+                        size={120}
                       />
 
                       <FatigueDonutChart
@@ -240,12 +240,12 @@ export function CreativeDetailModal({ isOpen, onClose, item, insight }: Creative
                         description=""
                         formula={FATIGUE_FORMULAS.algorithm}
                         currentValue={`CPM: ¥${Math.round(item.metrics.cpm || 0)}`}
-                        size={200}
+                        size={120}
                       />
                     </div>
                   </div>
 
-                  {/* Middle Column - Smartphone Mockup */}
+                  {/* Middle Column - Smartphone Mockup & Instagram Metrics */}
                   <div className="bg-gray-50 rounded-lg p-4">
                     <h6 className="text-lg font-semibold text-gray-900 mb-4 border-b pb-2">
                       広告プレビュー（モックアップ）
@@ -264,9 +264,57 @@ export function CreativeDetailModal({ isOpen, onClose, item, insight }: Creative
                       ※
                       実際のクリエイティブデータが利用できない場合は、プレースホルダーが表示されます
                     </p>
+                    
+                    {/* Instagram Metrics - モックアップの下に移動 */}
+                    <div className="mt-6 pt-4 border-t border-gray-300">
+                      <h6 className="text-md font-semibold text-gray-900 mb-3">
+                        Instagram特有のメトリクス
+                      </h6>
+
+                      {item.metrics.instagram_metrics ? (
+                        <>
+                          <MetricRow
+                            label="Profile Visit Rate"
+                            value={item.metrics.instagram_metrics.profile_views}
+                            description="プロフィール訪問数"
+                          />
+
+                          <MetricRow
+                            label="Engagement Rate"
+                            value={item.metrics.instagram_metrics.engagement_rate}
+                            unit="%"
+                            thresholdStatus={getEngagementStatus(
+                              item.metrics.instagram_metrics.engagement_rate
+                            )}
+                            description="業界平均0.7%、Reelsでは1.23%"
+                          />
+                        </>
+                      ) : (
+                        <>
+                          <MetricRow
+                            label="Profile Visit Rate"
+                            value="データなし"
+                            description="Instagram広告でない、またはデータが不足"
+                          />
+
+                          <MetricRow
+                            label="Engagement Rate"
+                            value="データなし"
+                            description="Instagram広告でない、またはデータが不足"
+                          />
+                        </>
+                      )}
+
+                      <div className="mt-4 p-3 bg-green-50 rounded-lg">
+                        <p className="text-sm text-green-800">
+                          <strong>✓ 改善完了:</strong> Instagram特有のメトリクスは Meta API の
+                          actions フィールドから取得しています。
+                        </p>
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Right Column - Basic Metrics & Instagram Metrics */}
+                  {/* Right Column - Basic Metrics */}
                   <div className="bg-gray-50 rounded-lg p-4">
                     <h5 className="text-lg font-semibold text-gray-900 mb-4 border-b pb-2">
                       基本指標
@@ -369,54 +417,6 @@ export function CreativeDetailModal({ isOpen, onClose, item, insight }: Creative
                       unit="¥"
                       description="1件あたりの獲得コスト"
                     />
-
-                    {/* Instagram Metrics - 統合 */}
-                    <div className="mt-6 pt-4 border-t border-gray-300">
-                      <h6 className="text-md font-semibold text-gray-900 mb-3">
-                        Instagram特有のメトリクス
-                      </h6>
-
-                      {item.metrics.instagram_metrics ? (
-                        <>
-                          <MetricRow
-                            label="Profile Visit Rate"
-                            value={item.metrics.instagram_metrics.profile_views}
-                            description="プロフィール訪問数"
-                          />
-
-                          <MetricRow
-                            label="Engagement Rate"
-                            value={item.metrics.instagram_metrics.engagement_rate}
-                            unit="%"
-                            thresholdStatus={getEngagementStatus(
-                              item.metrics.instagram_metrics.engagement_rate
-                            )}
-                            description="業界平均0.7%、Reelsでは1.23%"
-                          />
-                        </>
-                      ) : (
-                        <>
-                          <MetricRow
-                            label="Profile Visit Rate"
-                            value="データなし"
-                            description="Instagram広告でない、またはデータが不足"
-                          />
-
-                          <MetricRow
-                            label="Engagement Rate"
-                            value="データなし"
-                            description="Instagram広告でない、またはデータが不足"
-                          />
-                        </>
-                      )}
-
-                      <div className="mt-4 p-3 bg-green-50 rounded-lg">
-                        <p className="text-sm text-green-800">
-                          <strong>✓ 改善完了:</strong> Instagram特有のメトリクスは Meta API の
-                          actions フィールドから取得しています。
-                        </p>
-                      </div>
-                    </div>
                   </div>
                 </div>
               </Dialog.Panel>

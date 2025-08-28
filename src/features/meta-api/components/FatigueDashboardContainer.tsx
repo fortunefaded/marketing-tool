@@ -77,7 +77,10 @@ export function FatigueDashboardContainer() {
   }
   
   // 表示するデータを決定（フィルター > 集約 > 元データ）
-  const displayData = filteredData || (enableAggregation && aggregatedData ? aggregatedData : data) || []
+  // filteredDataが配列でない場合はnullとして扱う
+  const displayData = Array.isArray(filteredData) 
+    ? filteredData 
+    : (enableAggregation && aggregatedData ? aggregatedData : data) || []
 
   return (
     <FatigueDashboardPresentation
