@@ -191,6 +191,8 @@
 - パフォーマンス最適化: useMemo/useCallback, 大量データ対応
 - エラーハンドリング: 空データ・無効形式の適切な表示
 - カスタムツールチップ: 単位・小数点・フォーマッタ対応
+- **`EnhancedCreativeDetailModalWithCharts`統合完了**: プラットフォーム別グラフ表示機能実装
+- **既存コンポーネント更新**: CreativePerformance/OptimizedCreativePerformanceで新モーダル使用開始
 
 ### TASK-205: インタラクティブ凡例コンポーネント実装
 - [ ] **要件**: REQ-004, REQ-102, REQ-103 (凡例とトグル機能)
