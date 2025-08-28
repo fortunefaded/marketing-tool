@@ -102,7 +102,6 @@ export function FatigueDashboardPresentation({
   const insights = Array.isArray(rawInsights) ? rawInsights : []
   const sourceData = Array.isArray(rawSourceData) ? rawSourceData : []
   // フィルターの表示状態
-  const [showFilters, setShowFilters] = useState(false)
   // デバッグモード設定（初回のみ）
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -334,60 +333,58 @@ export function FatigueDashboardPresentation({
                   />
                 )}
 
-                {/* フィルターコントロール - 常に表示 */}
-                <div className="mb-4 flex justify-between items-center">
-                  <button
-                    onClick={() => setShowFilters(!showFilters)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      showFilters 
-                        ? 'bg-indigo-600 text-white' 
-                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    }`}
-                  >
-                    🔍 フィルター {showFilters ? '▼' : '▶'}
-                  </button>
-                  
-                  {onFilterChange && sourceData && (
-                    <div className="flex items-center gap-4">
-                      <div className="text-sm text-gray-600">
-                        表示中: {data?.length || 0}件 / 全{sourceData?.length || 0}件
+                {/* フィルターセクション - 常時表示 */}
+                {onFilterChange && sourceData && (
+                  <>
+                    <div className="mb-4 flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg font-medium text-gray-700">フィルター</span>
+                        {data?.length < sourceData?.length && (
+                          <button
+                            onClick={() => onFilterChange(sourceData)}
+                            className="px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded-lg hover:bg-blue-200"
+                          >
+                            クリア
+                          </button>
+                        )}
                       </div>
                       
-                      {/* データが0件でフィルターが有効な場合の警告 */}
-                      {data?.length === 0 && sourceData?.length > 0 && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-orange-600">
-                            フィルター条件に該当するデータがありません
-                          </span>
-                          <button
-                            onClick={() => {
-                              onFilterChange(sourceData) // 全データを表示
-                              setShowFilters(true) // フィルターパネルを開く
-                            }}
-                            className="text-sm text-blue-600 hover:text-blue-800 underline"
-                          >
-                            フィルターをリセット
-                          </button>
+                      <div className="flex items-center gap-4">
+                        <div className="text-sm text-gray-600">
+                          表示中: {data?.length || 0}件 / 全{sourceData?.length || 0}件
                         </div>
-                      )}
+                        
+                        {/* データが0件でフィルターが有効な場合の警告 */}
+                        {data?.length === 0 && sourceData?.length > 0 && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-orange-600">
+                              フィルター条件に該当するデータがありません
+                            </span>
+                            <button
+                              onClick={() => onFilterChange(sourceData)}
+                              className="text-sm text-blue-600 hover:text-blue-800 underline"
+                            >
+                              フィルターをリセット
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  )}
-                </div>
 
-                {/* フィルターパネル - 常に表示可能 */}
-                {showFilters && onFilterChange && sourceData && (
-                  <SafeFilterWrapper>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                      <CampaignFilter 
-                        data={sourceData}
-                        onFilter={onFilterChange}
-                      />
-                      <PerformanceFilter
-                        data={sourceData}
-                        onFilter={onFilterChange}
-                      />
-                    </div>
-                  </SafeFilterWrapper>
+                    {/* フィルターパネル - 常時表示 */}
+                    <SafeFilterWrapper>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <CampaignFilter 
+                          data={sourceData}
+                          onFilter={onFilterChange}
+                        />
+                        <PerformanceFilter
+                          data={sourceData}
+                          onFilter={onFilterChange}
+                        />
+                      </div>
+                    </SafeFilterWrapper>
+                  </>
                 )}
 
                 {/* データ表示エリア */}

@@ -1,6 +1,18 @@
 import { defineSchema, defineTable } from 'convex/server'
 import { v } from 'convex/values'
 
+// Import pagination table definitions
+import { 
+  dataRetrievalHistory,
+  apiCallDetails,
+  deliveryPatternAnalysis,
+  timelineData,
+  anomalyDetections,
+  gapAnalysis,
+  timelineCache,
+  performanceStats,
+} from './metaApiPagination'
+
 export default defineSchema({
   // ユーザーテーブル
   users: defineTable({
@@ -1050,4 +1062,32 @@ export default defineSchema({
   })
     .index('by_status', ['status'])
     .index('by_created', ['createdAt']),
+
+  // ============================================================================
+  // Meta API Pagination System Tables
+  // ============================================================================
+  
+  // データ取得履歴
+  dataRetrievalHistory,
+  
+  // API呼び出し詳細
+  apiCallDetails,
+  
+  // 配信パターン分析
+  deliveryPatternAnalysis,
+  
+  // タイムラインデータ
+  timelineData,
+  
+  // 異常検知
+  anomalyDetections,
+  
+  // ギャップ分析
+  gapAnalysis,
+  
+  // タイムラインキャッシュ
+  timelineCache,
+  
+  // パフォーマンス統計
+  performanceStats,
 })
