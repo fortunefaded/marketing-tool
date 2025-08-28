@@ -146,6 +146,169 @@ CREATE TABLE error_logs (
 );
 
 -- ============================================================================
+-- タイムラインデータテーブル (timeline_data)
+-- ============================================================================
+-- 日別の配信状況を記録
+CREATE TABLE timeline_data (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    
+    -- 基本情報
+    account_id VARCHAR(255) NOT NULL,
+    ad_id VARCHAR(255) NOT NULL,
+    campaign_id VARCHAR(255) NOT NULL,
+    
+    -- 日付情報
+    delivery_date DATE NOT NULL,
+    
+    -- 配信状態
+    has_delivery BOOLEAN NOT NULL,
+    delivery_intensity SMALLINT DEFAULT 0, -- 0-5のレベル
+    
+    -- メトリクス
+    impressions BIGINT DEFAULT 0,
+    clicks BIGINT DEFAULT 0,
+    spend DECIMAL(15,2) DEFAULT 0,
+    reach BIGINT DEFAULT 0,
+    frequency DECIMAL(8,4) DEFAULT 0,
+    ctr DECIMAL(8,6) DEFAULT 0,
+    cpc DECIMAL(12,2) DEFAULT 0,
+    cpm DECIMAL(12,2) DEFAULT 0,
+    conversions INTEGER DEFAULT 0,
+    conversion_rate DECIMAL(8,6) DEFAULT 0,
+    
+    -- 比較フラグ
+    vs_yesterday VARCHAR(20), -- up, down, stable, no_data
+    vs_last_week VARCHAR(20),
+    vs_baseline VARCHAR(20), -- normal, warning, critical
+    change_rate_daily DECIMAL(8,4),
+    change_rate_weekly DECIMAL(8,4),
+    
+    -- タイムスタンプ
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    -- 複合ユニーク制約
+    UNIQUE(account_id, ad_id, delivery_date)
+);
+
+-- ============================================================================
+-- 異常検知テーブル (anomaly_detections)
+-- ============================================================================
+-- 検出された異常パターンを記録
+CREATE TABLE anomaly_detections (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    
+    -- 基本情報
+    account_id VARCHAR(255) NOT NULL,
+    anomaly_type VARCHAR(50) NOT NULL, -- sudden_stop, performance_drop, etc.
+    severity VARCHAR(20) NOT NULL, -- low, medium, high, critical
+    
+    -- 検出情報
+    detected_at TIMESTAMP NOT NULL,
+    date_range_start DATE NOT NULL,
+    date_range_end DATE NOT NULL,
+    
+    -- 影響範囲
+    affected_ad_ids TEXT[], -- 配列型で複数のad_idを格納
+    affected_campaign_ids TEXT[],
+    
+    -- 詳細情報
+    message TEXT NOT NULL,
+    recommendation TEXT,
+    confidence DECIMAL(5,4) NOT NULL, -- 0-1の信頼度スコア
+    
+    -- メトリクス
+    impact_score INTEGER DEFAULT 0, -- 0-100
+    affected_spend DECIMAL(15,2) DEFAULT 0,
+    lost_opportunities INTEGER DEFAULT 0,
+    deviation_from_baseline DECIMAL(8,4),
+    
+    -- ステータス管理
+    status VARCHAR(20) DEFAULT 'active', -- active, resolved, acknowledged
+    acknowledged_at TIMESTAMP,
+    acknowledged_by VARCHAR(255),
+    resolved_at TIMESTAMP,
+    resolution_notes TEXT,
+    
+    -- タイムスタンプ
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ============================================================================
+-- 配信ギャップ分析テーブル (gap_analysis)
+-- ============================================================================
+-- 配信停止期間の分析結果を記録
+CREATE TABLE gap_analysis (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    
+    -- 基本情報
+    account_id VARCHAR(255) NOT NULL,
+    ad_id VARCHAR(255) NOT NULL,
+    campaign_id VARCHAR(255) NOT NULL,
+    
+    -- ギャップ期間
+    gap_start_date DATE NOT NULL,
+    gap_end_date DATE NOT NULL,
+    duration_days INTEGER NOT NULL,
+    
+    -- 分析結果
+    severity VARCHAR(20) NOT NULL, -- minor, major, critical
+    possible_cause VARCHAR(50), -- budget_exhausted, manual_pause, etc.
+    cause_confidence DECIMAL(5,4),
+    
+    -- 影響メトリクス
+    missed_impressions BIGINT DEFAULT 0,
+    missed_spend DECIMAL(15,2) DEFAULT 0,
+    missed_conversions INTEGER DEFAULT 0,
+    
+    -- 推定情報
+    inferred_from_pattern TEXT, -- パターンベースの原因推定詳細
+    
+    -- ステータス
+    is_active BOOLEAN DEFAULT TRUE,
+    resolution_action TEXT,
+    
+    -- タイムスタンプ
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    resolved_at TIMESTAMP
+);
+
+-- ============================================================================
+-- タイムラインキャッシュ統合テーブル (timeline_cache)
+-- ============================================================================
+-- タイムライン機能のキャッシュ管理
+CREATE TABLE timeline_cache (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    
+    -- キャッシュキー
+    cache_key VARCHAR(255) NOT NULL UNIQUE,
+    account_id VARCHAR(255) NOT NULL,
+    
+    -- キャッシュデータ
+    timeline_data JSONB NOT NULL, -- タイムラインデータ全体
+    gaps JSONB, -- ギャップ分析結果
+    anomalies JSONB, -- 異常検知結果
+    baseline_metrics JSONB, -- ベースライン計算結果
+    
+    -- キャッシュ管理
+    cache_layer VARCHAR(20) NOT NULL, -- memory, localStorage, convex
+    ttl_seconds INTEGER NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    hit_count INTEGER DEFAULT 0,
+    last_accessed_at TIMESTAMP,
+    
+    -- データ品質
+    data_completeness DECIMAL(5,4), -- 0-1
+    quality_score INTEGER, -- 0-100
+    quality_issues JSONB,
+    
+    -- タイムスタンプ
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ============================================================================
 -- パフォーマンス統計テーブル (performance_stats)
 -- ============================================================================
 -- システムパフォーマンスの統計情報
@@ -211,6 +374,30 @@ CREATE INDEX idx_error_logs_retrieval_id ON error_logs(retrieval_history_id);
 CREATE INDEX idx_error_logs_type ON error_logs(error_type);
 CREATE INDEX idx_error_logs_severity ON error_logs(severity);
 CREATE INDEX idx_error_logs_created_at ON error_logs(created_at DESC);
+
+-- timeline_data のインデックス
+CREATE INDEX idx_timeline_data_account_ad ON timeline_data(account_id, ad_id);
+CREATE INDEX idx_timeline_data_date ON timeline_data(delivery_date DESC);
+CREATE INDEX idx_timeline_data_has_delivery ON timeline_data(has_delivery);
+CREATE INDEX idx_timeline_data_campaign ON timeline_data(campaign_id);
+
+-- anomaly_detections のインデックス
+CREATE INDEX idx_anomaly_detections_account ON anomaly_detections(account_id);
+CREATE INDEX idx_anomaly_detections_type ON anomaly_detections(anomaly_type);
+CREATE INDEX idx_anomaly_detections_severity ON anomaly_detections(severity);
+CREATE INDEX idx_anomaly_detections_status ON anomaly_detections(status);
+CREATE INDEX idx_anomaly_detections_detected_at ON anomaly_detections(detected_at DESC);
+
+-- gap_analysis のインデックス
+CREATE INDEX idx_gap_analysis_account_ad ON gap_analysis(account_id, ad_id);
+CREATE INDEX idx_gap_analysis_dates ON gap_analysis(gap_start_date, gap_end_date);
+CREATE INDEX idx_gap_analysis_severity ON gap_analysis(severity);
+CREATE INDEX idx_gap_analysis_active ON gap_analysis(is_active);
+
+-- timeline_cache のインデックス
+CREATE INDEX idx_timeline_cache_account ON timeline_cache(account_id);
+CREATE INDEX idx_timeline_cache_expires ON timeline_cache(expires_at);
+CREATE INDEX idx_timeline_cache_layer ON timeline_cache(cache_layer);
 
 -- performance_stats のインデックス
 CREATE UNIQUE INDEX idx_performance_stats_date_hour ON performance_stats(stats_date, stats_hour);
