@@ -1,6 +1,6 @@
 /**
  * Enhanced Creative Detail Modal with Platform-Specific Charts
- * 
+ *
  * プラットフォーム別グラフ表示機能を統合したクリエイティブ詳細モーダル
  */
 
@@ -23,9 +23,9 @@ import {
 import { MultiLineChart } from '../../features/meta-api/components/MultiLineChart'
 import { ChartDataTransformer } from '../../features/meta-api/utils/chart-data-transformer'
 import { EnhancedAdDataAggregator } from '../../features/meta-api/core/enhanced-ad-data-aggregator'
-import type { 
-  EnhancedAdPerformanceData, 
-  GraphDataPoint 
+import type {
+  EnhancedAdPerformanceData,
+  GraphDataPoint,
 } from '../../features/meta-api/types/enhanced-data-structure'
 import type { MetaApiInsight } from '../../features/meta-api/core/ad-data-aggregator'
 
@@ -63,7 +63,7 @@ export const EnhancedCreativeDetailModalWithCharts: React.FC<CreativeDetailModal
   isOpen,
   onClose,
   // performanceHistory = [], // 未使用のため一時的にコメントアウト
-  rawInsights = []
+  rawInsights = [],
 }) => {
   // const [currentCarouselIndex, setCurrentCarouselIndex] = useState(0) // 未使用のため一時的にコメントアウト
   const [activeTab, setActiveTab] = useState<'metrics' | 'insights' | 'platform'>('metrics')
@@ -72,10 +72,24 @@ export const EnhancedCreativeDetailModalWithCharts: React.FC<CreativeDetailModal
 
   // プラットフォーム別データを生成
   const enhancedAdData = useMemo<EnhancedAdPerformanceData | null>(() => {
-    if (!creative || rawInsights.length === 0) return null
+    console.log('[EnhancedCreativeDetailModal] データ生成開始:', {
+      creative: creative,
+      rawInsightsLength: rawInsights?.length || 0,
+      creativeId: creative?.id,
+      firstRawInsight: rawInsights?.[0],
+    })
+
+    if (!creative || !rawInsights || rawInsights.length === 0) {
+      console.warn('[EnhancedCreativeDetailModal] データ不足:', {
+        hasCreative: !!creative,
+        hasRawInsights: !!rawInsights,
+        rawInsightsLength: rawInsights?.length || 0,
+      })
+      return null
+    }
 
     setIsProcessingData(true)
-    
+
     try {
       // EnhancedAdDataAggregatorを使用してプラットフォーム別データを生成
       const result = EnhancedAdDataAggregator.aggregateEnhanced(rawInsights, {
@@ -85,11 +99,25 @@ export const EnhancedCreativeDetailModalWithCharts: React.FC<CreativeDetailModal
         calculateFatigue: false,
         includeGraphData: true,
         performConsistencyCheck: false,
-        graphMetrics: ['ctr', 'cpm', 'cpc', 'conversions', 'impressions', 'spend']
+        graphMetrics: ['ctr', 'cpm', 'cpc', 'conversions', 'impressions', 'spend'],
       })
 
-      // 該当広告のデータを取得
-      const adData = result.data.find(d => (d as any).ad_id === creative.adId)
+      console.log('[EnhancedCreativeDetailModal] 集約結果:', {
+        resultDataCount: result.data.length,
+        resultData: result.data,
+        lookingForId: creative.id,
+      })
+
+      // 該当広告のデータを取得 - creative.id を使用
+      const adData = result.data.find(
+        (d) =>
+          (d as any).ad_id === creative.id ||
+          (d as any).ad_id === creative.adId ||
+          (d as any).creative_id === creative.id
+      )
+
+      console.log('[EnhancedCreativeDetailModal] マッチしたデータ:', adData)
+
       setIsProcessingData(false)
       return adData || null
     } catch (error) {
@@ -101,7 +129,15 @@ export const EnhancedCreativeDetailModalWithCharts: React.FC<CreativeDetailModal
 
   // Rechartsフォーマットのチャートデータを生成
   const chartData = useMemo(() => {
+    console.log('[EnhancedCreativeDetailModal] チャートデータ生成:', {
+      hasEnhancedAdData: !!enhancedAdData,
+      selectedMetric,
+      platformGraphs: enhancedAdData?.platformGraphs,
+      graphData: enhancedAdData?.platformGraphs?.[selectedMetric],
+    })
+
     if (!enhancedAdData?.platformGraphs?.[selectedMetric]) {
+      console.warn('[EnhancedCreativeDetailModal] グラフデータなし')
       return { data: [], colors: {} }
     }
 
@@ -119,7 +155,7 @@ export const EnhancedCreativeDetailModalWithCharts: React.FC<CreativeDetailModal
       facebook: metrics.facebook,
       instagram: metrics.instagram,
       audience_network: metrics.audience_network,
-      messenger: metrics.messenger
+      messenger: metrics.messenger,
     }
   }, [enhancedAdData])
 
@@ -254,7 +290,7 @@ export const EnhancedCreativeDetailModalWithCharts: React.FC<CreativeDetailModal
                           <h3 className="text-lg font-semibold text-gray-900 mb-2">
                             プラットフォーム別パフォーマンス
                           </h3>
-                          
+
                           {/* 指標選択 */}
                           <div className="flex space-x-2 mb-4">
                             {(['ctr', 'cpm', 'cpc', 'conversions'] as const).map((metric) => {
@@ -300,7 +336,9 @@ export const EnhancedCreativeDetailModalWithCharts: React.FC<CreativeDetailModal
                             <div className="text-center text-gray-500">
                               <ChartBarIcon className="h-12 w-12 mx-auto mb-4 text-gray-300" />
                               <p>プラットフォーム別データがありません</p>
-                              <p className="text-sm mt-2">Meta APIから詳細データを取得してください</p>
+                              <p className="text-sm mt-2">
+                                Meta APIから詳細データを取得してください
+                              </p>
                             </div>
                           </div>
                         )}
@@ -319,19 +357,27 @@ export const EnhancedCreativeDetailModalWithCharts: React.FC<CreativeDetailModal
                               <div className="space-y-2 text-sm">
                                 <div className="flex justify-between">
                                   <span className="text-gray-600">インプレッション</span>
-                                  <span className="font-medium">{formatNumber(platformStats.facebook.impressions)}</span>
+                                  <span className="font-medium">
+                                    {formatNumber(platformStats.facebook.impressions)}
+                                  </span>
                                 </div>
                                 <div className="flex justify-between">
                                   <span className="text-gray-600">CTR</span>
-                                  <span className="font-medium">{formatPercentage(platformStats.facebook.ctr)}</span>
+                                  <span className="font-medium">
+                                    {formatPercentage(platformStats.facebook.ctr)}
+                                  </span>
                                 </div>
                                 <div className="flex justify-between">
                                   <span className="text-gray-600">CPM</span>
-                                  <span className="font-medium">{formatCurrency(platformStats.facebook.cpm)}</span>
+                                  <span className="font-medium">
+                                    {formatCurrency(platformStats.facebook.cpm)}
+                                  </span>
                                 </div>
                                 <div className="flex justify-between">
                                   <span className="text-gray-600">コンバージョン</span>
-                                  <span className="font-medium">{platformStats.facebook.conversions || 0}</span>
+                                  <span className="font-medium">
+                                    {platformStats.facebook.conversions || 0}
+                                  </span>
                                 </div>
                               </div>
                             </div>
@@ -347,19 +393,27 @@ export const EnhancedCreativeDetailModalWithCharts: React.FC<CreativeDetailModal
                               <div className="space-y-2 text-sm">
                                 <div className="flex justify-between">
                                   <span className="text-gray-600">インプレッション</span>
-                                  <span className="font-medium">{formatNumber(platformStats.instagram.impressions)}</span>
+                                  <span className="font-medium">
+                                    {formatNumber(platformStats.instagram.impressions)}
+                                  </span>
                                 </div>
                                 <div className="flex justify-between">
                                   <span className="text-gray-600">CTR</span>
-                                  <span className="font-medium">{formatPercentage(platformStats.instagram.ctr)}</span>
+                                  <span className="font-medium">
+                                    {formatPercentage(platformStats.instagram.ctr)}
+                                  </span>
                                 </div>
                                 <div className="flex justify-between">
                                   <span className="text-gray-600">CPM</span>
-                                  <span className="font-medium">{formatCurrency(platformStats.instagram.cpm)}</span>
+                                  <span className="font-medium">
+                                    {formatCurrency(platformStats.instagram.cpm)}
+                                  </span>
                                 </div>
                                 <div className="flex justify-between">
                                   <span className="text-gray-600">コンバージョン</span>
-                                  <span className="font-medium">{platformStats.instagram.conversions || 0}</span>
+                                  <span className="font-medium">
+                                    {platformStats.instagram.conversions || 0}
+                                  </span>
                                 </div>
                               </div>
                             </div>
@@ -375,19 +429,27 @@ export const EnhancedCreativeDetailModalWithCharts: React.FC<CreativeDetailModal
                               <div className="space-y-2 text-sm">
                                 <div className="flex justify-between">
                                   <span className="text-gray-600">インプレッション</span>
-                                  <span className="font-medium">{formatNumber(platformStats.audience_network.impressions)}</span>
+                                  <span className="font-medium">
+                                    {formatNumber(platformStats.audience_network.impressions)}
+                                  </span>
                                 </div>
                                 <div className="flex justify-between">
                                   <span className="text-gray-600">CTR</span>
-                                  <span className="font-medium">{formatPercentage(platformStats.audience_network.ctr)}</span>
+                                  <span className="font-medium">
+                                    {formatPercentage(platformStats.audience_network.ctr)}
+                                  </span>
                                 </div>
                                 <div className="flex justify-between">
                                   <span className="text-gray-600">CPM</span>
-                                  <span className="font-medium">{formatCurrency(platformStats.audience_network.cpm)}</span>
+                                  <span className="font-medium">
+                                    {formatCurrency(platformStats.audience_network.cpm)}
+                                  </span>
                                 </div>
                                 <div className="flex justify-between">
                                   <span className="text-gray-600">コンバージョン</span>
-                                  <span className="font-medium">{platformStats.audience_network.conversions || 0}</span>
+                                  <span className="font-medium">
+                                    {platformStats.audience_network.conversions || 0}
+                                  </span>
                                 </div>
                               </div>
                             </div>
@@ -404,28 +466,36 @@ export const EnhancedCreativeDetailModalWithCharts: React.FC<CreativeDetailModal
                         <div className="bg-gray-50 rounded-lg p-4">
                           <div className="flex items-center justify-between">
                             <EyeIcon className="h-5 w-5 text-gray-400" />
-                            <span className="text-2xl font-bold">{formatNumber((creative as any).impressions || 0)}</span>
+                            <span className="text-2xl font-bold">
+                              {formatNumber((creative as any).impressions || 0)}
+                            </span>
                           </div>
                           <p className="text-sm text-gray-600 mt-2">インプレッション</p>
                         </div>
                         <div className="bg-gray-50 rounded-lg p-4">
                           <div className="flex items-center justify-between">
                             <CursorArrowRaysIcon className="h-5 w-5 text-gray-400" />
-                            <span className="text-2xl font-bold">{formatPercentage((creative as any).ctr || 0)}</span>
+                            <span className="text-2xl font-bold">
+                              {formatPercentage((creative as any).ctr || 0)}
+                            </span>
                           </div>
                           <p className="text-sm text-gray-600 mt-2">CTR</p>
                         </div>
                         <div className="bg-gray-50 rounded-lg p-4">
                           <div className="flex items-center justify-between">
                             <CurrencyYenIcon className="h-5 w-5 text-gray-400" />
-                            <span className="text-2xl font-bold">{formatCurrency((creative as any).spend || 0)}</span>
+                            <span className="text-2xl font-bold">
+                              {formatCurrency((creative as any).spend || 0)}
+                            </span>
                           </div>
                           <p className="text-sm text-gray-600 mt-2">広告費</p>
                         </div>
                         <div className="bg-gray-50 rounded-lg p-4">
                           <div className="flex items-center justify-between">
                             <ShoppingBagIcon className="h-5 w-5 text-gray-400" />
-                            <span className="text-2xl font-bold">{(creative as any).conversions || 0}</span>
+                            <span className="text-2xl font-bold">
+                              {(creative as any).conversions || 0}
+                            </span>
                           </div>
                           <p className="text-sm text-gray-600 mt-2">コンバージョン</p>
                         </div>
@@ -436,9 +506,9 @@ export const EnhancedCreativeDetailModalWithCharts: React.FC<CreativeDetailModal
                   {activeTab === 'insights' && (
                     <div className="space-y-6">
                       {/* TODO: CreativeInsightsの統合 - analysis と performanceHistory が必要 */}
-                  <div className="text-gray-500 text-center py-8">
-                    インサイト分析機能は準備中です
-                  </div>
+                      <div className="text-gray-500 text-center py-8">
+                        インサイト分析機能は準備中です
+                      </div>
                     </div>
                   )}
                 </div>

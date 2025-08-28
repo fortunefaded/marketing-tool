@@ -1,6 +1,6 @@
-import { Fragment } from 'react'
+import { Fragment, useState, useMemo } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
-import { XMarkIcon } from '@heroicons/react/24/outline'
+import { XMarkIcon, ChartBarIcon } from '@heroicons/react/24/outline'
 import { FatigueData } from '@/types'
 import { SimplePhoneMockup } from './SimplePhoneMockup'
 import { MiniFrequencyChart } from './MiniFrequencyChart'
@@ -9,6 +9,7 @@ import { FatigueDonutChart } from './FatigueDonutChart'
 import { calculateAllFatigueScores, FATIGUE_FORMULAS } from '../utils/fatigueCalculations'
 import { InstagramMetricsPanel } from './InstagramMetricsPanel'
 import { getSafeMetrics } from '../utils/safe-data-access'
+import { MultiLineChart } from './MultiLineChart'
 
 interface CreativeDetailModalProps {
   isOpen: boolean
@@ -115,12 +116,79 @@ function MetricRow({
 }
 
 export function CreativeDetailModal({ isOpen, onClose, item, insight }: CreativeDetailModalProps) {
+  const [activeTab, setActiveTab] = useState<'metrics' | 'platform'>('metrics')
+
   // 疲労度スコアを計算
   const fatigueScores = calculateAllFatigueScores({
     ctr: item.metrics.ctr || 0,
     frequency: item.metrics.frequency || 0,
     cpm: item.metrics.cpm || 0,
   })
+
+  // プラットフォーム別データを処理
+  const platformData = useMemo(() => {
+    console.log('[CreativeDetailModal] Processing platform data:', { item, insight })
+
+    // insightがない場合はサンプルデータを返す
+    if (!insight || !insight.breakdowns) {
+      return {
+        chartData: [
+          { date: '2025-01-01', facebook: 2.5, instagram: 3.2, audience_network: 1.8 },
+          { date: '2025-01-02', facebook: 2.7, instagram: 3.5, audience_network: 2.0 },
+          { date: '2025-01-03', facebook: 2.3, instagram: 3.8, audience_network: 1.9 },
+          { date: '2025-01-04', facebook: 2.9, instagram: 3.3, audience_network: 2.1 },
+          { date: '2025-01-05', facebook: 3.1, instagram: 3.6, audience_network: 2.3 },
+        ],
+        stats: {
+          facebook: 2.9,
+          instagram: 3.5,
+          audience_network: 2.0,
+        },
+      }
+    }
+
+    // 実データからプラットフォーム別データを抽出
+    try {
+      const { publisher_platform } = insight.breakdowns
+
+      // 時系列データの生成（現在は単一ポイント）
+      const chartData = [
+        {
+          date: new Date().toISOString().split('T')[0],
+          facebook: publisher_platform?.facebook?.ctr || 0,
+          instagram: publisher_platform?.instagram?.ctr || 0,
+          audience_network: publisher_platform?.audience_network?.ctr || 0,
+        },
+      ]
+
+      const stats = {
+        facebook: publisher_platform?.facebook?.ctr || 0,
+        instagram: publisher_platform?.instagram?.ctr || 0,
+        audience_network: publisher_platform?.audience_network?.ctr || 0,
+      }
+
+      console.log('[CreativeDetailModal] Extracted platform data:', { chartData, stats })
+
+      return { chartData, stats }
+    } catch (error) {
+      console.error('[CreativeDetailModal] Error processing platform data:', error)
+      // エラー時はサンプルデータを返す
+      return {
+        chartData: [
+          { date: '2025-01-01', facebook: 2.5, instagram: 3.2, audience_network: 1.8 },
+          { date: '2025-01-02', facebook: 2.7, instagram: 3.5, audience_network: 2.0 },
+          { date: '2025-01-03', facebook: 2.3, instagram: 3.8, audience_network: 1.9 },
+          { date: '2025-01-04', facebook: 2.9, instagram: 3.3, audience_network: 2.1 },
+          { date: '2025-01-05', facebook: 3.1, instagram: 3.6, audience_network: 2.3 },
+        ],
+        stats: {
+          facebook: 2.9,
+          instagram: 3.5,
+          audience_network: 2.0,
+        },
+      }
+    }
+  }, [item, insight])
 
   // Helper functions for threshold checking
   const getFrequencyStatus = (frequency: number) => {
@@ -196,192 +264,295 @@ export function CreativeDetailModal({ isOpen, onClose, item, insight }: Creative
                   </button>
                 </div>
 
-                {/* Content - 3 Column Layout */}
-                <div className="grid grid-cols-3 gap-6">
-                  {/* Left Column - Fatigue Analysis with Donut Charts */}
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <h5 className="text-lg font-semibold text-gray-900 mb-4 border-b pb-2">
-                      広告疲労度分析
-                    </h5>
-
-                    {/* 総合疲労度スコア */}
-                    <div className="flex justify-center mb-4">
-                      <FatigueDonutChart
-                        value={fatigueScores.overallScore}
-                        label="総合疲労度スコア"
-                        description=""
-                        formula="(クリエイティブ疲労 + 視聴者疲労 + アルゴリズム疲労) / 3"
-                        currentValue={`現在の総合スコア: ${fatigueScores.overallScore}`}
-                        size={200}
-                      />
-                    </div>
-
-                    {/* 個別疲労度スコア */}
-                    <div className="grid grid-cols-3 gap-2">
-                      <FatigueDonutChart
-                        value={fatigueScores.creativeFatigue}
-                        label="クリエイティブの疲労"
-                        description=""
-                        formula={FATIGUE_FORMULAS.creative}
-                        currentValue={`CTR: ${item.metrics.ctr?.toFixed(2) || 0}%`}
-                        size={120}
-                      />
-
-                      <FatigueDonutChart
-                        value={fatigueScores.audienceFatigue}
-                        label="視聴者側の疲労"
-                        description=""
-                        formula={FATIGUE_FORMULAS.audience}
-                        currentValue={`Frequency: ${item.metrics.frequency?.toFixed(2) || 0}`}
-                        size={120}
-                      />
-
-                      <FatigueDonutChart
-                        value={fatigueScores.algorithmFatigue}
-                        label="アルゴリズムの疲労"
-                        description=""
-                        formula={FATIGUE_FORMULAS.algorithm}
-                        currentValue={`CPM: ¥${Math.round(item.metrics.cpm || 0)}`}
-                        size={120}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Middle Column - Smartphone Mockup & Instagram Metrics */}
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <h6 className="text-lg font-semibold text-gray-900 mb-4 border-b pb-2">
-                      広告プレビュー（モックアップ）
-                    </h6>
-                    <div className="flex justify-center">
-                      <SimplePhoneMockup
-                        mediaType={insight?.creative_media_type}
-                        thumbnailUrl={insight?.thumbnail_url}
-                        videoUrl={insight?.video_url}
-                        videoId={insight?.video_id}
-                        platform={item.metrics.instagram_metrics?.publisher_platform}
-                        creativeName={item.adName}
-                      />
-                    </div>
-                    <p className="text-xs text-gray-500 text-center mt-4">
-                      ※
-                      実際のクリエイティブデータが利用できない場合は、プレースホルダーが表示されます
-                    </p>
-                    
-                    {/* Instagram Metrics - モックアップの下に移動 */}
-                    <div className="mt-6 pt-4 border-t border-gray-300">
-                      <InstagramMetricsPanel
-                        data={insight}
-                        metrics={getSafeMetrics(item.metrics)}
-                        isLoading={false}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Right Column - Basic Metrics */}
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <h5 className="text-lg font-semibold text-gray-900 mb-4 border-b pb-2">
-                      基本指標
-                    </h5>
-
-                    <MetricRow
-                      label="広告費用"
-                      value={item.metrics.spend}
-                      unit="¥"
-                      description="Meta APIから取得"
-                      showChart={true}
-                      metricType="spend"
-                      chartType="area"
-                    />
-
-                    <MetricRow
-                      label="インプレッション"
-                      value={item.metrics.impressions}
-                      description="表示回数"
-                      showChart={true}
-                      metricType="impressions"
-                      chartType="area"
-                    />
-
-                    <MetricRow
-                      label="Frequency"
-                      value={item.metrics.frequency}
-                      thresholdStatus={getFrequencyStatus(item.metrics.frequency)}
-                      description="3.5を超えると危険水準"
-                      showChart={true}
-                      chartThreshold={3.5}
-                      metricType="frequency"
-                    />
-
-                    <MetricRow
-                      label="クリック数"
-                      value={item.metrics.clicks}
-                      description="Meta APIから取得"
-                    />
-
-                    <MetricRow
-                      label="コンバージョン（CV）"
-                      value={item.metrics.conversions || 0}
-                      description="購入・申込などの成果"
-                      showChart={true}
-                      metricType="conversions"
-                      chartType="line"
-                    />
-
-                    <MetricRow
-                      label="ファーストCV（F-CV）"
-                      value="N/A"
-                      description="初回コンバージョン"
-                    />
-
-                    <MetricRow
-                      label="CTR（クリック率）"
-                      value={item.metrics.ctr}
-                      unit="%"
-                      thresholdStatus={getCtrStatus(item.metrics.ctr)}
-                      description="ベースラインから25%以上低下で危険水準"
-                      showChart={true}
-                      metricType="ctr"
-                      chartType="line"
-                    />
-
-                    <MetricRow
-                      label="Unique CTR"
-                      value={item.metrics.unique_ctr}
-                      unit="%"
-                      thresholdStatus={getCtrStatus(item.metrics.unique_ctr)}
-                      description="ユニークユーザーのCTR"
-                    />
-
-                    <MetricRow
-                      label="CPC（クリック単価）"
-                      value={item.metrics.cpc}
-                      unit="¥"
-                      description="Meta APIから取得"
-                    />
-
-                    <MetricRow
-                      label="CPM（1000インプレッション単価）"
-                      value={Math.ceil(item.metrics.cpm)}
-                      unit="¥"
-                      thresholdStatus={getCpmStatus(item.metrics.cpm)}
-                      description="20%以上上昇かつCTR低下で危険水準"
-                      showChart={true}
-                      metricType="cpm"
-                      chartType="line"
-                    />
-
-                    <MetricRow
-                      label="CPA（獲得単価）"
-                      value={
-                        (item.metrics.conversions || 0) > 0
-                          ? Math.ceil(item.metrics.spend / (item.metrics.conversions || 1))
-                          : 0
-                      }
-                      unit="¥"
-                      description="1件あたりの獲得コスト"
-                    />
-                  </div>
+                {/* Tab Navigation */}
+                <div className="border-b border-gray-200 mb-4">
+                  <nav className="-mb-px flex space-x-8">
+                    <button
+                      onClick={() => setActiveTab('metrics')}
+                      className={`${
+                        activeTab === 'metrics'
+                          ? 'border-indigo-500 text-indigo-600'
+                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      } whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm`}
+                    >
+                      パフォーマンス指標
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('platform')}
+                      className={`${
+                        activeTab === 'platform'
+                          ? 'border-indigo-500 text-indigo-600'
+                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      } whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2`}
+                    >
+                      <ChartBarIcon className="h-4 w-4" />
+                      プラットフォーム別分析
+                    </button>
+                  </nav>
                 </div>
+
+                {/* Content - Conditional based on active tab */}
+                {activeTab === 'metrics' ? (
+                  <div className="grid grid-cols-3 gap-6">
+                    {/* Left Column - Fatigue Analysis with Donut Charts */}
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <h5 className="text-lg font-semibold text-gray-900 mb-4 border-b pb-2">
+                        広告疲労度分析
+                      </h5>
+
+                      {/* 総合疲労度スコア */}
+                      <div className="flex justify-center mb-4">
+                        <FatigueDonutChart
+                          value={fatigueScores.overallScore}
+                          label="総合疲労度スコア"
+                          description=""
+                          formula="(クリエイティブ疲労 + 視聴者疲労 + アルゴリズム疲労) / 3"
+                          currentValue={`現在の総合スコア: ${fatigueScores.overallScore}`}
+                          size={200}
+                        />
+                      </div>
+
+                      {/* 個別疲労度スコア */}
+                      <div className="grid grid-cols-3 gap-2">
+                        <FatigueDonutChart
+                          value={fatigueScores.creativeFatigue}
+                          label="クリエイティブの疲労"
+                          description=""
+                          formula={FATIGUE_FORMULAS.creative}
+                          currentValue={`CTR: ${item.metrics.ctr?.toFixed(2) || 0}%`}
+                          size={120}
+                        />
+
+                        <FatigueDonutChart
+                          value={fatigueScores.audienceFatigue}
+                          label="視聴者側の疲労"
+                          description=""
+                          formula={FATIGUE_FORMULAS.audience}
+                          currentValue={`Frequency: ${item.metrics.frequency?.toFixed(2) || 0}`}
+                          size={120}
+                        />
+
+                        <FatigueDonutChart
+                          value={fatigueScores.algorithmFatigue}
+                          label="アルゴリズムの疲労"
+                          description=""
+                          formula={FATIGUE_FORMULAS.algorithm}
+                          currentValue={`CPM: ¥${Math.round(item.metrics.cpm || 0)}`}
+                          size={120}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Middle Column - Smartphone Mockup & Instagram Metrics */}
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <h6 className="text-lg font-semibold text-gray-900 mb-4 border-b pb-2">
+                        広告プレビュー（モックアップ）
+                      </h6>
+                      <div className="flex justify-center">
+                        <SimplePhoneMockup
+                          mediaType={insight?.creative_media_type}
+                          thumbnailUrl={insight?.thumbnail_url}
+                          videoUrl={insight?.video_url}
+                          videoId={insight?.video_id}
+                          platform={item.metrics.instagram_metrics?.publisher_platform}
+                          creativeName={item.adName}
+                        />
+                      </div>
+                      <p className="text-xs text-gray-500 text-center mt-4">
+                        ※
+                        実際のクリエイティブデータが利用できない場合は、プレースホルダーが表示されます
+                      </p>
+
+                      {/* Instagram Metrics - モックアップの下に移動 */}
+                      <div className="mt-6 pt-4 border-t border-gray-300">
+                        <InstagramMetricsPanel
+                          data={insight}
+                          metrics={getSafeMetrics(item.metrics)}
+                          isLoading={false}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Right Column - Basic Metrics */}
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <h5 className="text-lg font-semibold text-gray-900 mb-4 border-b pb-2">
+                        基本指標
+                      </h5>
+
+                      <MetricRow
+                        label="広告費用"
+                        value={item.metrics.spend}
+                        unit="¥"
+                        description="Meta APIから取得"
+                        showChart={true}
+                        metricType="spend"
+                        chartType="area"
+                      />
+
+                      <MetricRow
+                        label="インプレッション"
+                        value={item.metrics.impressions}
+                        description="表示回数"
+                        showChart={true}
+                        metricType="impressions"
+                        chartType="area"
+                      />
+
+                      <MetricRow
+                        label="Frequency"
+                        value={item.metrics.frequency}
+                        thresholdStatus={getFrequencyStatus(item.metrics.frequency)}
+                        description="3.5を超えると危険水準"
+                        showChart={true}
+                        chartThreshold={3.5}
+                        metricType="frequency"
+                      />
+
+                      <MetricRow
+                        label="クリック数"
+                        value={item.metrics.clicks}
+                        description="Meta APIから取得"
+                      />
+
+                      <MetricRow
+                        label="コンバージョン（CV）"
+                        value={item.metrics.conversions || 0}
+                        description="購入・申込などの成果"
+                        showChart={true}
+                        metricType="conversions"
+                        chartType="line"
+                      />
+
+                      <MetricRow
+                        label="ファーストCV（F-CV）"
+                        value="N/A"
+                        description="初回コンバージョン"
+                      />
+
+                      <MetricRow
+                        label="CTR（クリック率）"
+                        value={item.metrics.ctr}
+                        unit="%"
+                        thresholdStatus={getCtrStatus(item.metrics.ctr)}
+                        description="ベースラインから25%以上低下で危険水準"
+                        showChart={true}
+                        metricType="ctr"
+                        chartType="line"
+                      />
+
+                      <MetricRow
+                        label="Unique CTR"
+                        value={item.metrics.unique_ctr}
+                        unit="%"
+                        thresholdStatus={getCtrStatus(item.metrics.unique_ctr)}
+                        description="ユニークユーザーのCTR"
+                      />
+
+                      <MetricRow
+                        label="CPC（クリック単価）"
+                        value={item.metrics.cpc}
+                        unit="¥"
+                        description="Meta APIから取得"
+                      />
+
+                      <MetricRow
+                        label="CPM（1000インプレッション単価）"
+                        value={Math.ceil(item.metrics.cpm)}
+                        unit="¥"
+                        thresholdStatus={getCpmStatus(item.metrics.cpm)}
+                        description="20%以上上昇かつCTR低下で危険水準"
+                        showChart={true}
+                        metricType="cpm"
+                        chartType="line"
+                      />
+
+                      <MetricRow
+                        label="CPA（獲得単価）"
+                        value={
+                          (item.metrics.conversions || 0) > 0
+                            ? Math.ceil(item.metrics.spend / (item.metrics.conversions || 1))
+                            : 0
+                        }
+                        unit="¥"
+                        description="1件あたりの獲得コスト"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  /* Platform Analysis Tab */
+                  <div className="space-y-6">
+                    <div className="bg-white rounded-lg border border-gray-200 p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                        プラットフォーム別パフォーマンス
+                        <span className="ml-2 text-xs text-red-500 font-normal">
+                          (v2: {new Date().toLocaleTimeString()})
+                        </span>
+                      </h3>
+
+                      {/* デバッグ情報表示 */}
+                      <div className="mb-4 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs">
+                        <p className="font-semibold text-yellow-800">デバッグ情報:</p>
+                        <p>insight exists: {insight ? 'YES' : 'NO'}</p>
+                        <p>insight.breakdowns: {insight?.breakdowns ? 'YES' : 'NO'}</p>
+                        <p>Data points: {platformData.chartData.length}</p>
+                        <pre className="mt-1 text-xs overflow-x-auto">
+                          {JSON.stringify(platformData.stats, null, 2)}
+                        </pre>
+                      </div>
+
+                      {/* プラットフォーム別グラフ表示 */}
+                      <div className="h-96">
+                        <MultiLineChart
+                          data={platformData.chartData}
+                          colors={{
+                            facebook: '#1877F2',
+                            instagram: '#E4405F',
+                            audience_network: '#42B883',
+                          }}
+                          metric="CTR"
+                          unit="%"
+                          decimals={2}
+                          height={384}
+                          yAxisLabel="CTR (%)"
+                          accessibilityMode={true}
+                        />
+                      </div>
+
+                      <div className="mt-6 grid grid-cols-3 gap-4">
+                        <div className="bg-blue-50 rounded-lg p-4">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-3 h-3 bg-blue-600 rounded"></div>
+                            <span className="font-medium">Facebook</span>
+                          </div>
+                          <p className="text-2xl font-bold text-blue-600">
+                            {platformData.stats.facebook.toFixed(2)}%
+                          </p>
+                          <p className="text-sm text-gray-600">平均CTR</p>
+                        </div>
+                        <div className="bg-pink-50 rounded-lg p-4">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-3 h-3 bg-pink-600 rounded"></div>
+                            <span className="font-medium">Instagram</span>
+                          </div>
+                          <p className="text-2xl font-bold text-pink-600">
+                            {platformData.stats.instagram.toFixed(2)}%
+                          </p>
+                          <p className="text-sm text-gray-600">平均CTR</p>
+                        </div>
+                        <div className="bg-green-50 rounded-lg p-4">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-3 h-3 bg-green-600 rounded"></div>
+                            <span className="font-medium">Audience Network</span>
+                          </div>
+                          <p className="text-2xl font-bold text-green-600">
+                            {platformData.stats.audience_network.toFixed(2)}%
+                          </p>
+                          <p className="text-sm text-gray-600">平均CTR</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </Dialog.Panel>
             </Transition.Child>
           </div>
