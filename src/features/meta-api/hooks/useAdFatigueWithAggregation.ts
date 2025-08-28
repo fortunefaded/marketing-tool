@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect, useMemo } from 'react'
-import { useAdFatigueSimplified, DateRangeFilter } from './useAdFatigueSimplified'
+import { useAdFatigueSimplified, type DateRangeFilter } from './useAdFatigueSimplified'
 import { AdDataAggregator } from '../core/ad-data-aggregator'
 import type { 
   AdPerformanceData, 
@@ -205,7 +205,7 @@ export function useAdFatigueWithAggregation({
     ...existingResult,
     
     // 追加プロパティ
-    progress: 0, // TODO: implement progress tracking
+    progress: existingResult.progress, // Pass through the progress from the underlying hook
     totalInsights: existingResult.insights?.length || 0,
     filteredCount: existingResult.data?.length || 0,
     

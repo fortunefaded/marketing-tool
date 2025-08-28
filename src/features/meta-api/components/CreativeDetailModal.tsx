@@ -7,6 +7,8 @@ import { MiniFrequencyChart } from './MiniFrequencyChart'
 import { MiniMetricChart, MetricType } from './MiniMetricChart'
 import { FatigueDonutChart } from './FatigueDonutChart'
 import { calculateAllFatigueScores, FATIGUE_FORMULAS } from '../utils/fatigueCalculations'
+import { InstagramMetricsPanel } from './InstagramMetricsPanel'
+import { getSafeMetrics } from '../utils/safe-data-access'
 
 interface CreativeDetailModalProps {
   isOpen: boolean
@@ -267,50 +269,11 @@ export function CreativeDetailModal({ isOpen, onClose, item, insight }: Creative
                     
                     {/* Instagram Metrics - モックアップの下に移動 */}
                     <div className="mt-6 pt-4 border-t border-gray-300">
-                      <h6 className="text-md font-semibold text-gray-900 mb-3">
-                        Instagram特有のメトリクス
-                      </h6>
-
-                      {item.metrics.instagram_metrics ? (
-                        <>
-                          <MetricRow
-                            label="Profile Visit Rate"
-                            value={item.metrics.instagram_metrics.profile_views}
-                            description="プロフィール訪問数"
-                          />
-
-                          <MetricRow
-                            label="Engagement Rate"
-                            value={item.metrics.instagram_metrics.engagement_rate}
-                            unit="%"
-                            thresholdStatus={getEngagementStatus(
-                              item.metrics.instagram_metrics.engagement_rate
-                            )}
-                            description="業界平均0.7%、Reelsでは1.23%"
-                          />
-                        </>
-                      ) : (
-                        <>
-                          <MetricRow
-                            label="Profile Visit Rate"
-                            value="データなし"
-                            description="Instagram広告でない、またはデータが不足"
-                          />
-
-                          <MetricRow
-                            label="Engagement Rate"
-                            value="データなし"
-                            description="Instagram広告でない、またはデータが不足"
-                          />
-                        </>
-                      )}
-
-                      <div className="mt-4 p-3 bg-green-50 rounded-lg">
-                        <p className="text-sm text-green-800">
-                          <strong>✓ 改善完了:</strong> Instagram特有のメトリクスは Meta API の
-                          actions フィールドから取得しています。
-                        </p>
-                      </div>
+                      <InstagramMetricsPanel
+                        data={insight}
+                        metrics={getSafeMetrics(item.metrics)}
+                        isLoading={false}
+                      />
                     </div>
                   </div>
 

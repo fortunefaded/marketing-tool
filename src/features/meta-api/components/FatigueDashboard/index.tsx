@@ -183,7 +183,7 @@ export const FatigueDashboard: React.FC<FatigueDashboardProps> = ({
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                   <TabsList className="grid w-full grid-cols-3 mb-6">
                     <TabsTrigger value="creative-table">
-                      クリエイティブ（テーブル）
+                      クリエイティブ
                     </TabsTrigger>
                     <TabsTrigger value="adset">広告セット</TabsTrigger>
                     <TabsTrigger value="campaign">キャンペーン</TabsTrigger>

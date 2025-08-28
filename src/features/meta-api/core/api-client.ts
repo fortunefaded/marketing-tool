@@ -49,6 +49,7 @@ export class SimpleMetaApi {
     maxPages?: number
     onProgress?: (count: number) => void
     useBreakdowns?: boolean  // 新しいオプション
+    useDailyData?: boolean  // 日別データ取得のオプション（デフォルトはfalse）
   } = {}): Promise<PaginatedResult> {
     const url = new URL(`${this.baseUrl}/${AccountId.toFullId(this.accountId)}/insights`)
     // トークンが文字列であることを確実にする
@@ -73,7 +74,7 @@ export class SimpleMetaApi {
       url.searchParams.append('breakdowns', 'publisher_platform')
     }
     
-    // Add time increment for daily data
+    // 日別データ設定
     url.searchParams.append('time_increment', '1')
     
     // Note: action_attribution_windows is deprecated in v23.0, using default attribution windows

@@ -403,7 +403,7 @@ export function useAdFatigueSimplified({
       console.log('🏁 refetch処理終了: isRefreshingをfalseに設定')
       setIsRefreshing(false)
     }
-  }, [isRefreshing, cache, api, enrichWithCreatives, enrichInsights])
+  }, [isRefreshing, cache, api, enrichWithCreatives, enrichInsights, accountId])
   
   // シンプルなローディング状態の判定
   const isActuallyLoading = useMemo(() => {

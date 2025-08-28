@@ -181,7 +181,7 @@ export function FatigueDashboardPresentation({
           {selectedAccountId && (
             <div className="flex items-center gap-4">
               {/* フィルター件数の表示 */}
-              {totalInsights !== undefined && filteredCount !== undefined && (
+              {totalInsights !== undefined && filteredCount !== undefined && filteredCount !== null && (
                 <div className="text-sm text-gray-600">
                   <div>表示中: {filteredCount}件 / 全{totalInsights}件</div>
                   {totalInsights !== filteredCount && (
@@ -425,7 +425,7 @@ export function FatigueDashboardPresentation({
                       <Tabs defaultValue="creative-table" className="w-full">
                         <TabsList className="grid w-full grid-cols-3 mb-6">
                           <TabsTrigger value="creative-table">
-                            クリエイティブ（テーブル）
+                            クリエイティブ
                           </TabsTrigger>
                           <TabsTrigger value="adset">広告セット</TabsTrigger>
                           <TabsTrigger value="campaign">キャンペーン</TabsTrigger>
