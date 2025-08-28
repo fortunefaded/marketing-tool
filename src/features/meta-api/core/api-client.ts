@@ -48,7 +48,6 @@ export class SimpleMetaApi {
     forceRefresh?: boolean
     maxPages?: number
     onProgress?: (count: number) => void
-    useBreakdowns?: boolean  // 新しいオプション
     useDailyData?: boolean  // 日別データ取得のオプション（デフォルトはfalse）
   } = {}): Promise<PaginatedResult> {
     const url = new URL(`${this.baseUrl}/${AccountId.toFullId(this.accountId)}/insights`)
@@ -69,10 +68,8 @@ export class SimpleMetaApi {
     url.searchParams.append('fields', this.getFieldsString())
     url.searchParams.append('limit', '100')
     
-    // Breakdownsはオプショナルに（デフォルトでは無効）
-    if (options.useBreakdowns) {
-      url.searchParams.append('breakdowns', 'publisher_platform')
-    }
+    // Note: breakdownsパラメータは別メソッド（getPlatformBreakdown）で取得
+    // time_incrementとbreakdownsは同時使用不可のため分離
     
     // 日別データ設定
     url.searchParams.append('time_increment', '1')
@@ -371,7 +368,10 @@ export class SimpleMetaApi {
         saves: saves,
         engagement_rate: engagementRate,
         publisher_platform: insight.publisher_platform || 'unknown'
-      }
+      },
+      
+      // プラットフォーム別ブレークダウンデータ
+      breakdowns: insight.breakdowns || null
     }
   }
   
@@ -400,6 +400,103 @@ export class SimpleMetaApi {
   }
   
   
+  /**
+   * プラットフォーム別ブレークダウンデータを取得
+   * time_incrementなしで、breakdownsパラメータを使用
+   */
+  async getPlatformBreakdown(options?: {
+    datePreset?: string
+    dateStart?: string
+    dateStop?: string
+  }): Promise<{ [adId: string]: any }> {
+    const story = vibe.story('プラットフォーム別ブレークダウンデータ取得')
+    story.chapter('API呼び出し準備')
+    
+    const url = new URL(`${this.baseUrl}/insights`)
+    url.searchParams.append('access_token', String(this.token))
+    url.searchParams.append('level', 'ad')
+    
+    // 日付範囲の設定
+    if (options?.datePreset) {
+      url.searchParams.append('date_preset', options.datePreset)
+    } else if (options?.dateStart && options?.dateStop) {
+      url.searchParams.append('time_range', JSON.stringify({
+        since: options.dateStart,
+        until: options.dateStop
+      }))
+    } else {
+      url.searchParams.append('date_preset', 'last_30d')
+    }
+    
+    // ブレークダウンパラメータ（time_incrementなし）
+    url.searchParams.append('breakdowns', 'publisher_platform')
+    
+    // 必要なフィールド
+    const fields = [
+      'ad_id',
+      'ad_name',
+      'impressions',
+      'reach',
+      'clicks',
+      'spend',
+      'cpm',
+      'cpc',
+      'ctr'
+    ]
+    url.searchParams.append('fields', fields.join(','))
+    url.searchParams.append('limit', '500')
+    
+    try {
+      console.log('🎯 プラットフォーム別データ取得開始')
+      const response = await fetch(url.toString())
+      const responseData = await response.json()
+      
+      if (!response.ok) {
+        story.error('API エラー', responseData.error)
+        throw new Error(`Platform breakdown API error: ${responseData.error?.message}`)
+      }
+      
+      // ad_idごとにプラットフォーム別データを集約
+      const platformData: { [adId: string]: any } = {}
+      
+      for (const item of responseData.data || []) {
+        const adId = item.ad_id
+        const platform = item.publisher_platform
+        
+        if (!platformData[adId]) {
+          platformData[adId] = {
+            facebook: null,
+            instagram: null,
+            audience_network: null,
+            messenger: null
+          }
+        }
+        
+        // プラットフォーム別データを格納
+        if (platform) {
+          platformData[adId][platform] = {
+            impressions: this.validateNumeric(item.impressions),
+            reach: this.validateNumeric(item.reach),
+            clicks: this.validateNumeric(item.clicks),
+            spend: this.validateNumeric(item.spend, 2),
+            cpm: this.validateNumeric(item.cpm, 2),
+            cpc: this.validateNumeric(item.cpc, 2),
+            ctr: this.validateNumeric(item.ctr, 4)
+          }
+        }
+      }
+      
+      story.success(`${Object.keys(platformData).length}件の広告のプラットフォーム別データ取得完了`)
+      console.log('✅ プラットフォーム別データ:', platformData)
+      
+      return platformData
+    } catch (error) {
+      story.error('プラットフォーム別データ取得失敗', error)
+      console.error('❌ プラットフォーム別データ取得エラー:', error)
+      return {}
+    }
+  }
+
   // Instagram特有のインサイト取得（プロフィールレベル）
   async getInstagramProfileInsights(): Promise<any> {
     try {

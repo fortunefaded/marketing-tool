@@ -69,6 +69,18 @@ export interface AdInsight {
     engagement_rate: number
     publisher_platform: string
   }
+  
+  // プラットフォーム別ブレークダウンデータ
+  breakdowns?: {
+    publisher_platform?: {
+      facebook?: any
+      instagram?: any
+      audience_network?: any
+      messenger?: any
+      [key: string]: any
+    }
+    [key: string]: any
+  }
 }
 
 // MetaInsightsData (統合版)

@@ -494,10 +494,34 @@ export function CreativeDetailModal({ isOpen, onClose, item, insight }: Creative
                         <p className="font-semibold text-yellow-800">デバッグ情報:</p>
                         <p>insight exists: {insight ? 'YES' : 'NO'}</p>
                         <p>insight.breakdowns: {insight?.breakdowns ? 'YES' : 'NO'}</p>
+                        <p className="text-red-600 font-semibold">
+                          {!insight?.breakdowns && '⚠️ ブレークダウンデータがありません。データを再取得してください。'}
+                        </p>
                         <p>Data points: {platformData.chartData.length}</p>
+                        <details className="mt-2">
+                          <summary className="cursor-pointer text-yellow-700 hover:text-yellow-900">
+                            insight オブジェクトを展開
+                          </summary>
+                          <pre className="mt-1 text-xs overflow-x-auto bg-white p-2 rounded">
+                            {JSON.stringify(insight, null, 2)}
+                          </pre>
+                        </details>
                         <pre className="mt-1 text-xs overflow-x-auto">
                           {JSON.stringify(platformData.stats, null, 2)}
                         </pre>
+                        
+                        {/* APIコール情報 */}
+                        <div className="mt-3 p-2 bg-blue-50 rounded">
+                          <p className="text-blue-800 font-semibold mb-1">プラットフォーム別データを取得するには：</p>
+                          <ol className="text-blue-700 space-y-1">
+                            <li>1. ダッシュボードに戻る</li>
+                            <li>2. データ更新/リフレッシュボタンをクリック</li>
+                            <li>3. 新しいデータが取得され、breakdownsが含まれます</li>
+                          </ol>
+                          <p className="text-blue-600 mt-2">
+                            ※ APIに useBreakdowns: true が設定済みです
+                          </p>
+                        </div>
                       </div>
 
                       {/* プラットフォーム別グラフ表示 */}
