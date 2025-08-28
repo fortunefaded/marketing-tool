@@ -128,10 +128,11 @@ export interface AggregationResult {
 }
 
 export class AdDataAggregator {
+  // TASK-102: 常時集約有効のデフォルト設定
   private static readonly DEFAULT_OPTIONS: AggregationOptions = {
     groupBy: 'ad',
-    includePlatformBreakdown: true,
-    includeDailyBreakdown: true,
+    includePlatformBreakdown: true, // 常にプラットフォーム別データを含む
+    includeDailyBreakdown: true,    // 常に日別データを含む  
     calculateFatigue: false,
   }
 
