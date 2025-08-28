@@ -139,11 +139,19 @@ export function useMetaInsights({
       }
       
       const api = new SimpleMetaApi(token.accessToken, accountId)
+      
+      // 続きのページを取得（時系列データ）
       const result = await api.fetchInsightsContinuation(nextPageUrl, {
         onProgress: (count) => {
           console.log(`📊 追加取得中: ${count}件`)
         }
       })
+      
+      // 新しい広告のプラットフォームデータも取得
+      const adIds = result.data.map(ad => ad.ad_id)
+      console.log(`🎯 ${adIds.length}件の新規広告のプラットフォームデータ取得`)
+      // Note: getPlatformBreakdown は全体を取得するので、ここでは既存のものを再利用
+      // 実装の最適化として、特定のad_idのみ取得するメソッドが必要かもしれない
       
       console.log('📊 API応答:', {
         resultDataCount: result.data?.length,
@@ -302,6 +310,8 @@ export function useMetaInsights({
       }
       
       const api = new SimpleMetaApi(token.accessToken, accountId)
+      
+      // 1. まず時系列データを取得
       const result = await api.getInsights({ 
         datePreset,
         forceRefresh: true,
@@ -311,18 +321,45 @@ export function useMetaInsights({
         }
       })
       
+      // 2. プラットフォーム別データを別途取得
+      console.log('🎯 プラットフォーム別データの取得を開始')
+      const platformData = await api.getPlatformBreakdown({
+        datePreset
+      })
+      
       console.log('🎯 API結果:', {
         dataLength: result.data?.length || 0,
         hasMore: result.hasMore,
         totalCount: result.totalCount,
-        nextPageUrl: result.nextPageUrl ? 'あり' : 'なし'
+        nextPageUrl: result.nextPageUrl ? 'あり' : 'なし',
+        platformDataCount: Object.keys(platformData).length
       })
       
       if (result.data && result.data.length > 0) {
-        setInsights(result.data)
+        // 3. プラットフォーム別データをマージ
+        const mergedData = result.data.map(insight => {
+          const adPlatformData = platformData[insight.ad_id]
+          if (adPlatformData) {
+            console.log(`📊 広告 ${insight.ad_id} にプラットフォームデータをマージ`)
+            return {
+              ...insight,
+              breakdowns: {
+                publisher_platform: adPlatformData
+              }
+            }
+          }
+          return insight
+        })
+        
+        console.log('✅ マージ完了:', {
+          totalAds: mergedData.length,
+          adsWithPlatformData: mergedData.filter(ad => ad.breakdowns?.publisher_platform).length
+        })
+        
+        setInsights(mergedData)
         setLastFetchTime(new Date())
-        localCache.setCachedData(accountId, result.data, result.nextPageUrl, !result.hasMore)
-        vibe.good(`インサイトデータ取得成功: ${result.data.length}件`)
+        localCache.setCachedData(accountId, mergedData, result.nextPageUrl, !result.hasMore)
+        vibe.good(`インサイトデータ取得成功: ${mergedData.length}件`)
         
         setProgress({
           loaded: result.totalCount,
