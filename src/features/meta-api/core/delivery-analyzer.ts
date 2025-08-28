@@ -21,10 +21,10 @@ export function analyzeDeliveryPattern(
   let deliveryPattern: DeliveryPattern
   if (actualDeliveryDays === 0) {
     deliveryPattern = 'none'
-  } else if (actualDeliveryDays === 1) {
-    deliveryPattern = 'single'
   } else if (deliveryRatio === 1.0) {
     deliveryPattern = 'continuous'
+  } else if (actualDeliveryDays === 1 && totalRequestedDays > 1) {
+    deliveryPattern = 'single'
   } else if (deliveryRatio > 0.7) {
     deliveryPattern = 'partial'
   } else {

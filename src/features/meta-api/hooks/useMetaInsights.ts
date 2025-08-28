@@ -338,7 +338,15 @@ export function useMetaInsights({
         // time_incrementデータをそのまま使用（数値整合性優先）
         console.log('✅ 時系列データ取得完了:', {
           totalAds: result.data.length,
-          dataIntegrity: 'time_increment使用により保証'
+          dataIntegrity: 'time_increment使用により保証',
+          sampleInsight: result.data[0] ? {
+            ad_id: result.data[0].ad_id,
+            ad_name: result.data[0].ad_name,
+            date_start: result.data[0].date_start,
+            date_stop: result.data[0].date_stop,
+            impressions: result.data[0].impressions,
+            hasDateFields: !!(result.data[0].date_start && result.data[0].date_stop)
+          } : null
         })
         
         setInsights(result.data)
