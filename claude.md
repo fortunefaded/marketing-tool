@@ -15,6 +15,38 @@ https://developers.facebook.com/blog/post/2025/05/29/introducing-graph-api-v23-a
 - APIまたはCSVでの自動データ取得
 - 広告主・媒体・キャンペーン単位の成果比較が可能
 
+## 開発・作業指針
+
+### 🚨 重要: 変更前のコミット必須
+- **破壊的変更を加える際は、その前に必ずgit commitする**
+- ファイル削除、大幅なリファクタリング、実験的変更を行う前は必ずcommit
+- 復元不可能な変更は絶対に避ける
+
+### 📝 タスク完了時のコミット規則
+- **各タスク（TASK-XXX）完了時に必ずコミットを作成する**
+- コミットメッセージフォーマット:
+  - `feat: TASK-XXX: [機能概要]` (新機能)
+  - `fix: TASK-XXX: [バグ修正内容]` (バグ修正)
+  - `refactor: TASK-XXX: [リファクタリング内容]` (改善)
+  - `test: TASK-XXX: [テスト内容]` (テスト追加)
+  - `docs: TASK-XXX: [ドキュメント更新]` (文書更新)
+- コミットメッセージには以下を含める:
+  - タスク番号（例: TASK-204）
+  - 実装内容の簡潔な説明
+  - TDD結果（例: 12/12テスト成功）
+- 例:
+  ```
+  feat: TASK-204: マルチラインチャートコンポーネント実装
+  
+  - Rechartsベースのプラットフォーム別グラフ表示
+  - Facebook/Instagram/Audience Network色分け対応
+  - アクセシビリティ: 線種自動切り替え
+  - TDD: 12/12テスト成功
+  
+  🤖 Generated with Claude Code
+  Co-Authored-By: Claude <noreply@anthropic.com>
+  ```
+
 ## 基本的な指針
 
 - ３つの「広告疲労度」を用いて総合的にスコアリングすることで、マーケターでなくとも広告効果を測定できるようにする
