@@ -1,8 +1,20 @@
 ## 開発内容
 
 ## API VERSION
-https://developers.facebook.com/docs/graph-api/changelog/version23.0/
-https://developers.facebook.com/blog/post/2025/05/29/introducing-graph-api-v23-and-marketing-api-v23/
+**必須：Meta Graph API v23.0を使用すること**
+
+- APIバージョン: **v23.0** (固定)
+- 下位互換性は保証されないため、必ずv23.0を指定
+- APIエンドポイント例: `https://graph.facebook.com/v23.0/`
+
+参考ドキュメント：
+- https://developers.facebook.com/docs/graph-api/changelog/version23.0/
+- https://developers.facebook.com/blog/post/2025/05/29/introducing-graph-api-v23-and-marketing-api-v23/
+
+## 重要な制限事項
+- **time_increment**パラメータと**breakdowns**パラメータは同時使用不可
+- 疲労度分析においては、time_increment（日別データ）を優先する
+- プラットフォーム別分析は必要に応じて別途実装を検討
 
 ### 開発対象
 - 広告パフォーマンス管理ダッシュボード（BIツール）
