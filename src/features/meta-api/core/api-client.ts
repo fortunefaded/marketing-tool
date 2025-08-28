@@ -409,8 +409,7 @@ export class SimpleMetaApi {
     dateStart?: string
     dateStop?: string
   }): Promise<{ [adId: string]: any }> {
-    const story = vibe.story('プラットフォーム別ブレークダウンデータ取得')
-    story.chapter('API呼び出し準備')
+    console.log('🔄 プラットフォーム別ブレークダウンデータ取得開始')
     
     const url = new URL(`${this.baseUrl}/insights`)
     url.searchParams.append('access_token', String(this.token))
@@ -452,7 +451,7 @@ export class SimpleMetaApi {
       const responseData = await response.json()
       
       if (!response.ok) {
-        story.error('API エラー', responseData.error)
+        vibe.bad('Platform breakdown API エラー', responseData.error)
         throw new Error(`Platform breakdown API error: ${responseData.error?.message}`)
       }
       
@@ -486,12 +485,12 @@ export class SimpleMetaApi {
         }
       }
       
-      story.success(`${Object.keys(platformData).length}件の広告のプラットフォーム別データ取得完了`)
+      vibe.good(`${Object.keys(platformData).length}件の広告のプラットフォーム別データ取得完了`)
       console.log('✅ プラットフォーム別データ:', platformData)
       
       return platformData
     } catch (error) {
-      story.error('プラットフォーム別データ取得失敗', error)
+      vibe.bad('プラットフォーム別データ取得失敗', error)
       console.error('❌ プラットフォーム別データ取得エラー:', error)
       return {}
     }
