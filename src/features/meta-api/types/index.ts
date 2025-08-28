@@ -12,6 +12,12 @@ export * from './domain-types'
 // UIコンポーネントの型
 export * from './ui-types'
 
+// 拡張データ構造の型 (TASK-201)
+export * from './enhanced-data-structure'
+
+// 集約設定の型 (TASK-102)
+export * from './aggregation-config'
+
 // 便利な型ユーティリティ
 export type Nullable<T> = T | null
 export type Optional<T> = T | undefined
