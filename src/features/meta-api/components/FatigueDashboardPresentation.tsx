@@ -50,9 +50,9 @@ interface FatigueDashboardPresentationProps {
   totalInsights?: number
   filteredCount?: number
   
-  // 集約関連（新規追加）
+  // 集約関連（常時有効）
   enableAggregation?: boolean
-  onToggleAggregation?: () => void
+  // onToggleAggregation削除: トグル機能は廃止
   aggregatedData?: any
   aggregationMetrics?: {
     inputRows: number
@@ -89,8 +89,8 @@ export function FatigueDashboardPresentation({
   onDateRangeChange,
   totalInsights,
   filteredCount,
-  enableAggregation = false,
-  onToggleAggregation,
+  enableAggregation = true, // デフォルトをtrueに変更
+  // onToggleAggregation削除済み
   aggregatedData,
   aggregationMetrics,
   isAggregating,
@@ -205,25 +205,7 @@ export function FatigueDashboardPresentation({
                 onChange={onDateRangeChange} 
               />
 
-              {/* 集約トグル */}
-              {onToggleAggregation && (
-                <button
-                  onClick={onToggleAggregation}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    enableAggregation 
-                      ? 'bg-blue-600 text-white hover:bg-blue-700' 
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  }`}
-                  title={enableAggregation ? 'データを広告単位で集約中' : 'データ集約がオフです'}
-                >
-                  集約: {enableAggregation ? 'ON' : 'OFF'}
-                  {aggregationMetrics && enableAggregation && (
-                    <span className="ml-2 text-xs opacity-90">
-                      ({aggregationMetrics.dataReduction}削減)
-                    </span>
-                  )}
-                </button>
-              )}
+              {/* 集約トグル削除: 常時集約有効のため不要 */}
 
               {/* レート制限状態の表示 */}
               {isRateLimited && (
@@ -435,10 +417,10 @@ export function FatigueDashboardPresentation({
                           {data.length > 0 && (
                             <div className="grid grid-cols-4 gap-4 mb-8">
                               <StatCard 
-                                title={enableAggregation ? "広告数" : "Total"} 
+                                title="広告数" 
                                 value={data.length} 
                                 subtitle={
-                                  enableAggregation && aggregationMetrics 
+                                  aggregationMetrics 
                                     ? `${aggregationMetrics.inputRows}行 → ${aggregationMetrics.outputRows}行` 
                                     : undefined
                                 }
