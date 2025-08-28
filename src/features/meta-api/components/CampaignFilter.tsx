@@ -16,7 +16,6 @@ export function CampaignFilter({ data, onFilter, className = '' }: CampaignFilte
   const [selectedCampaigns, setSelectedCampaigns] = useState<Set<string>>(new Set())
   const [selectedAdSets, setSelectedAdSets] = useState<Set<string>>(new Set())
   const [searchTerm, setSearchTerm] = useState('')
-  const [showAdvanced, setShowAdvanced] = useState(false)
 
   // データから一意のキャンペーンと広告セットを抽出
   const { campaigns, adSets } = useMemo(() => {
@@ -140,17 +139,8 @@ export function CampaignFilter({ data, onFilter, className = '' }: CampaignFilte
         />
       </div>
 
-      {/* 詳細フィルター */}
-      <button
-        onClick={() => setShowAdvanced(!showAdvanced)}
-        className="text-sm text-blue-600 hover:text-blue-800 mb-2"
-      >
-        {showAdvanced ? '詳細を隠す' : '詳細フィルター'} 
-        <span className="ml-1">{showAdvanced ? '▼' : '▶'}</span>
-      </button>
-
-      {showAdvanced && (
-        <div className="space-y-4 mt-4">
+      {/* 詳細フィルター - 常時表示 */}
+      <div className="space-y-4 mt-4">
           {/* キャンペーン選択 */}
           {campaigns.length > 0 && (
             <div>
@@ -198,8 +188,7 @@ export function CampaignFilter({ data, onFilter, className = '' }: CampaignFilte
               </div>
             </div>
           )}
-        </div>
-      )}
+      </div>
     </div>
   )
 }
