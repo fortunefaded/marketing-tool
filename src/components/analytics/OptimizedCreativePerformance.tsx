@@ -9,7 +9,7 @@ import {
   PlayIcon,
   ChartBarIcon,
 } from '@heroicons/react/24/outline'
-import { EnhancedCreativeDetailModal } from '../creatives/EnhancedCreativeDetailModal'
+import { EnhancedCreativeDetailModalWithCharts as EnhancedCreativeDetailModal } from '../creatives/EnhancedCreativeDetailModalWithCharts'
 import { CreativeData } from '../creatives/CreativePerformanceGrid'
 // TODO: Replace with features/meta-api implementation
 // import { CreativeFatigueAnalyzer } from '../../services/creativeFatigueAnalyzer'
@@ -559,6 +559,22 @@ export const OptimizedCreativePerformance: React.FC<CreativePerformanceProps> = 
           setIsModalOpen(false)
           setSelectedCreative(null)
         }}
+        performanceHistory={selectedCreative ? insights
+          .filter((insight) => insight.creative_id === selectedCreative.id)
+          .map((insight) => ({
+            date: (insight.date_start || (insight as any).dateStart || '') as string,
+            ctr: Number(insight.ctr) || 0,
+            frequency: Number(insight.frequency) || 1,
+            impressions: Number(insight.impressions) || 0,
+            clicks: Number(insight.clicks) || 0,
+            spend: Number(insight.spend) || 0,
+            videoViews: Number(insight.video_views) || 0,
+            videoCompletionRate: Number(insight.video_p100_watched) || 0,
+            averageWatchTime: Number(insight.video_avg_time_watched) || 0,
+            soundOnRate: Number(insight.video_sound_on) || 0,
+          }))
+          .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()) : []}
+        rawInsights={selectedCreative ? insights.filter((insight) => insight.creative_id === selectedCreative.id) as any : []}
       />
 
       {/* 疲労度分析モーダル */}

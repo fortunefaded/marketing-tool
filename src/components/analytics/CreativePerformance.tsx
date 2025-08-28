@@ -11,7 +11,7 @@ import {
   PlayIcon,
   ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline'
-import { EnhancedCreativeDetailModal } from '../creatives/EnhancedCreativeDetailModal'
+import { EnhancedCreativeDetailModalWithCharts as EnhancedCreativeDetailModal } from '../creatives/EnhancedCreativeDetailModalWithCharts'
 import { CreativeData } from '../creatives/CreativePerformanceGrid'
 import { VideoPlayer } from '../creatives/VideoPlayer'
 
@@ -673,6 +673,7 @@ export const CreativePerformance: React.FC<CreativePerformanceProps> = ({
               soundOnRate: Number(insight.video_sound_on) || 0,
             }))
             .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())}
+          rawInsights={insights.filter((insight) => insight.creative_id === selectedCreativeForInsights) as any}
         />
       )}
     </>
