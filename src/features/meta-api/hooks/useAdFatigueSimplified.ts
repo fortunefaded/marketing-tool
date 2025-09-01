@@ -8,7 +8,7 @@ import { FatigueData } from '@/types'
 import { vibe } from '@/lib/vibelogger'
 
 // 期間フィルターの型定義
-export type DateRangeFilter = 'today' | 'last_7d' | 'last_14d' | 'last_30d' | 'last_90d' | 'all'
+export type DateRangeFilter = 'today' | 'yesterday' | 'last_7d' | 'last_14d' | 'last_30d' | 'last_month' | 'last_90d' | 'all'
 
 interface UseAdFatigueOptions {
   accountId: string
@@ -64,7 +64,8 @@ export function useAdFatigueSimplified({
   }
   const api = useMetaInsights({ 
     accountId, 
-    autoFetch: true // 自動取得を有効化（キャッシュがない場合のみ発動）
+    autoFetch: true, // 自動取得を有効化（キャッシュがない場合のみ発動）
+    datePreset: dateRange // 日付範囲を渡す
   })
   
   // APIデータの変化を監視

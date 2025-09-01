@@ -65,7 +65,8 @@ export class SimpleMetaApi {
       url.searchParams.append('date_preset', options.datePreset || 'last_30d')
     }
     
-    url.searchParams.append('fields', this.getFieldsString())
+    // 時系列データ取得のため日付フィールドを含める
+    url.searchParams.append('fields', this.getFieldsString(true))
     url.searchParams.append('limit', '100')
     
     // Note: breakdownsパラメータは別メソッド（getPlatformBreakdown）で取得
@@ -87,8 +88,8 @@ export class SimpleMetaApi {
     })
   }
   
-  private getFieldsString(): string {
-    return [
+  private getFieldsString(includeTimeFields: boolean = false): string {
+    const baseFields = [
       // Basic ad info
       'ad_id', 'ad_name', 'campaign_id', 'campaign_name', 'adset_id', 'adset_name',
       
@@ -112,7 +113,14 @@ export class SimpleMetaApi {
       
       // Instagram specific (through actions)
       'unique_actions'
-    ].join(',')
+    ]
+    
+    // 時系列データ用に日付フィールドを追加
+    if (includeTimeFields) {
+      baseFields.push('date_start', 'date_stop')
+    }
+    
+    return baseFields.join(',')
   }
   
   private async fetchPaginatedData(
@@ -401,7 +409,56 @@ export class SimpleMetaApi {
   
   
   /**
-   * プラットフォーム別ブレークダウンデータを取得
+   * 時系列データ取得用メソッド（データ更新で使用）
+   * time_increment=1で日別データを取得し、date_start/stopを含める
+   */
+  async getTimeSeriesInsights(options?: {
+    datePreset?: string
+    dateStart?: string
+    dateStop?: string
+    maxPages?: number
+    onProgress?: (count: number) => void
+    forceRefresh?: boolean
+  }): Promise<PaginatedResult> {
+    console.log('📅 時系列データ取得開始（time_increment=1）')
+    
+    // 正しいエンドポイント: /{account_id}/insights
+    const url = new URL(`${this.baseUrl}/${AccountId.toFullId(this.accountId)}/insights`)
+    url.searchParams.append('access_token', this.token as string)
+    url.searchParams.append('level', 'ad')
+    
+    // 日付範囲の設定
+    if (options?.datePreset) {
+      url.searchParams.append('date_preset', options.datePreset)
+    } else if (options?.dateStart && options?.dateStop) {
+      url.searchParams.append('time_range', JSON.stringify({
+        since: options.dateStart,
+        until: options.dateStop
+      }))
+    } else {
+      url.searchParams.append('date_preset', 'last_30d')
+    }
+    
+    // 時系列データ取得のため、日付フィールドを含める
+    url.searchParams.append('fields', this.getFieldsString(true)) // includeTimeFields=true
+    url.searchParams.append('limit', '500')
+    
+    // 日別データ設定（重要）
+    url.searchParams.append('time_increment', '1')
+    
+    // キャッシュ回避
+    if (options?.forceRefresh) {
+      url.searchParams.append('_nocache', Date.now().toString())
+    }
+    
+    return this.fetchPaginatedData(url, {
+      maxPages: options?.maxPages,
+      onProgress: options?.onProgress
+    })
+  }
+
+  /**
+   * プラットフォーム別ブレークダウンデータを取得（クリエイティブ詳細分析で使用）
    * time_incrementなしで、breakdownsパラメータを使用
    */
   async getPlatformBreakdown(options?: {
