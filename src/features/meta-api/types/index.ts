@@ -24,6 +24,9 @@ export * from './pagination-interfaces'
 // タイムライン機能の型 (Meta API Timeline)
 export * from './timeline-interfaces'
 
+// ギャップ検出エンジンの型 (TASK-202)
+export * from './gap-detection-types'
+
 // 便利な型ユーティリティ
 export type Nullable<T> = T | null
 export type Optional<T> = T | undefined

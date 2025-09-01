@@ -270,8 +270,17 @@ export function useMetaInsights({
   }, [])
   
   // 初回取得
-  const fetch = useCallback(async (options?: { forceRefresh?: boolean }) => {
-    console.log('🔄 Meta API fetch開始:', { accountId, isLoading, forceRefresh: options?.forceRefresh })
+  const fetch = useCallback(async (options?: { 
+    forceRefresh?: boolean,
+    datePresetOverride?: string  // 日付範囲を引数として受け取る
+  }) => {
+    const effectiveDatePreset = options?.datePresetOverride || datePreset
+    console.log('🔄 Meta API fetch開始:', { 
+      accountId, 
+      isLoading, 
+      forceRefresh: options?.forceRefresh,
+      datePreset: effectiveDatePreset
+    })
     
     if (!accountId) {
       console.log('❌ accountIdが未設定です')
@@ -311,15 +320,45 @@ export function useMetaInsights({
       
       const api = new SimpleMetaApi(token.accessToken, accountId)
       
-      // 1. まず時系列データを取得
-      const result = await api.getInsights({ 
-        datePreset,
+      // datePresetがカスタム日付範囲（last_month）の場合の処理
+      let apiParams: any = {
         forceRefresh: true,
         maxPages: 1,  // 最初は1ページのみ
-        onProgress: (count) => {
+        onProgress: (count: number) => {
           console.log(`📊 取得中: ${count}件`)
         }
-      })
+      }
+      
+      // カスタム日付範囲の処理
+      const formatDate = (date: Date): string => {
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        return `${year}-${month}-${day}`
+      }
+      
+      if (effectiveDatePreset === 'last_month') {
+        const now = new Date()
+        const lastDayOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0)
+        const firstDayOfLastMonth = new Date(lastDayOfLastMonth.getFullYear(), lastDayOfLastMonth.getMonth(), 1)
+        
+        apiParams.dateStart = formatDate(firstDayOfLastMonth)
+        apiParams.dateStop = formatDate(lastDayOfLastMonth)
+        console.log('📅 先月のデータを取得:', { start: apiParams.dateStart, end: apiParams.dateStop })
+      } else if (effectiveDatePreset === 'yesterday') {
+        const yesterday = new Date()
+        yesterday.setDate(yesterday.getDate() - 1)
+        
+        apiParams.dateStart = formatDate(yesterday)
+        apiParams.dateStop = formatDate(yesterday)
+        console.log('📅 昨日のデータを取得:', { date: apiParams.dateStart })
+      } else {
+        // その他の標準的なdatePreset
+        apiParams.datePreset = effectiveDatePreset
+      }
+      
+      // 1. まず時系列データを取得（新しいメソッドを使用）
+      const result = await api.getTimeSeriesInsights(apiParams)
       
       // プラットフォーム別データの取得を一時的に無効化
       // 理由: time_incrementとbreakdownsの非互換性により数値整合性を優先
@@ -335,8 +374,13 @@ export function useMetaInsights({
       })
       
       if (result.data && result.data.length > 0) {
-        // time_incrementデータをそのまま使用（数値整合性優先）
-        console.log('✅ 時系列データ取得完了:', {
+        // 時系列データを合算処理（同一クリエイティブ名で集約）
+        const { aggregateTimeSeriesData } = await import('../utils/aggregate-time-series')
+        const aggregatedData = aggregateTimeSeriesData(result.data)
+        
+        console.log('✅ 時系列データ取得・合算完了:', {
+          originalCount: result.data.length,
+          aggregatedCount: aggregatedData.length,
           totalAds: result.data.length,
           dataIntegrity: 'time_increment使用により保証',
           sampleInsight: result.data[0] ? {
@@ -349,9 +393,11 @@ export function useMetaInsights({
           } : null
         })
         
-        setInsights(result.data)
+        // 合算済みデータを設定
+        setInsights(aggregatedData)
         setLastFetchTime(new Date())
-        localCache.setCachedData(accountId, result.data, result.nextPageUrl, !result.hasMore)
+        // キャッシュには元の時系列データを保存（詳細分析用）
+        localCache.setCachedData(accountId, aggregatedData, result.nextPageUrl, !result.hasMore)
         vibe.good(`インサイトデータ取得成功: ${result.data.length}件 (時系列データ)`)
         
         setProgress({
@@ -381,7 +427,7 @@ export function useMetaInsights({
         setIsLoading(false)
       }
     }
-  }, [accountId, datePreset, convex, localCache, isLoading, loadCachedData, startAutoFetch])
+  }, [accountId, convex, localCache, isLoading, loadCachedData, startAutoFetch])
   
   // クリーンアップ
   useEffect(() => {
@@ -390,6 +436,27 @@ export function useMetaInsights({
       stopAutoFetch()
     }
   }, [stopAutoFetch])
+  
+  // datePreset変更時の再取得
+  const prevDatePresetRef = useRef(datePreset)
+  useEffect(() => {
+    // 初回レンダリング時はスキップ、datePresetが実際に変更された時のみ実行
+    if (prevDatePresetRef.current !== datePreset && accountId && datePreset) {
+      console.log('📅 日付範囲変更を検出:', { 
+        oldDatePreset: prevDatePresetRef.current,
+        newDatePreset: datePreset, 
+        accountId 
+      })
+      prevDatePresetRef.current = datePreset
+      
+      // キャッシュをクリアして新しいデータを取得
+      localCache.clearCache(accountId)
+      // 停止中の自動取得があればクリア
+      stopAutoFetch()
+      // 新しい日付範囲でデータを取得（datePresetを引数として渡す）
+      fetch({ forceRefresh: true, datePresetOverride: datePreset })
+    }
+  }, [datePreset, accountId, localCache, stopAutoFetch, fetch])
   
   // 自動フェッチ（初回のみ）
   useEffect(() => {
