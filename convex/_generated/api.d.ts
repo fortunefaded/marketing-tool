@@ -30,6 +30,7 @@ import type * as creativeAnalytics from "../creativeAnalytics.js";
 import type * as creativeMetrics from "../creativeMetrics.js";
 import type * as creativeMetricsCache from "../creativeMetricsCache.js";
 import type * as creatives from "../creatives.js";
+import type * as crons from "../crons.js";
 import type * as dashboardSettings from "../dashboardSettings.js";
 import type * as dynamicThresholds from "../dynamicThresholds.js";
 import type * as ecforce from "../ecforce.js";
@@ -86,6 +87,7 @@ declare const fullApi: ApiFromModules<{
   creativeMetrics: typeof creativeMetrics;
   creativeMetricsCache: typeof creativeMetricsCache;
   creatives: typeof creatives;
+  crons: typeof crons;
   dashboardSettings: typeof dashboardSettings;
   dynamicThresholds: typeof dynamicThresholds;
   ecforce: typeof ecforce;
