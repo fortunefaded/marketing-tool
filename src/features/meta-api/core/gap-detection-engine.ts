@@ -1,3 +1,4 @@
+// TASK-005: Date Range Aware Gap Detection Engine Implementation  
 // TASK-202: Gap Detection Engine Implementation
 // 配信ギャップの自動検出と重要度判定エンジン
 
@@ -8,8 +9,14 @@ import type {
   DeliveryGap,
   GapSeverity,
   GapType,
-  GapImpact
+  GapImpact,
+  AdInsight
 } from '../types'
+import type { 
+  DateRangeGapDetectionConfig, 
+  DateRangeGapAnalysisResult, 
+  AdFatigueGap 
+} from '../types/gap-detection-types'
 
 export interface GapDetectionConfig {
   // 基本設定
@@ -426,5 +433,351 @@ export function createDefaultGapDetectionConfig(): GapDetectionConfig {
       holidayGapTolerance: true,
       scheduledMaintenanceWindows: []
     }
+  }
+}
+
+// TASK-005: Date Range Aware Gap Detection Engine Extension
+export class DateRangeGapDetectionEngine {
+  private config: DateRangeGapDetectionConfig
+
+  constructor(config: DateRangeGapDetectionConfig) {
+    this.config = config
+    this.validateConfig()
+  }
+
+  private validateConfig(): void {
+    if (!this.config.dateRangeAware) {
+      throw new Error('DateRangeGapDetectionEngine requires dateRangeAware to be true')
+    }
+
+    if (this.config.timeSeriesAnalysis.minDataPoints < 1) {
+      throw new Error('minDataPoints must be at least 1')
+    }
+
+    if (this.config.thresholds.ctrDeclineThreshold <= 0 || this.config.thresholds.ctrDeclineThreshold >= 1) {
+      throw new Error('ctrDeclineThreshold must be between 0 and 1')
+    }
+
+    if (this.config.thresholds.frequencyWarningThreshold <= 0) {
+      throw new Error('frequencyWarningThreshold must be positive')
+    }
+  }
+
+  analyzeGaps(data: AdInsight[], dateRange: string): DateRangeGapAnalysisResult {
+    const analysisTimestamp = new Date()
+    const dataPoints = data.length
+
+    // 日付範囲に応じた分析設定
+    const analysisConfig = this.getDateRangeSpecificConfig(dateRange, dataPoints)
+    
+    // 時系列分析の実行判定
+    const timeSeriesEnabled = analysisConfig.timeSeriesEnabled && 
+                             dataPoints >= this.config.timeSeriesAnalysis.minDataPoints
+
+    // 広告別のギャップ分析
+    const gaps = this.analyzeAdFatigue(data, dateRange, analysisConfig)
+
+    // 時系列分析の実行
+    const timeSeriesAnalysis = timeSeriesEnabled 
+      ? this.performTimeSeriesAnalysis(data, dateRange)
+      : { enabled: false, dateRange, dataPointsCount: dataPoints }
+
+    // サマリー統計の計算
+    const summary = this.calculateSummary(gaps)
+
+    return {
+      dateRange,
+      analysisTimestamp,
+      dataPoints,
+      gaps: gaps.sort((a, b) => this.getSeverityWeight(b.severity) - this.getSeverityWeight(a.severity)),
+      summary,
+      timeSeriesAnalysis
+    }
+  }
+
+  private getDateRangeSpecificConfig(dateRange: string, dataPoints: number) {
+    const isShortTerm = this.isShortTermRange(dateRange, dataPoints)
+    
+    return {
+      timeSeriesEnabled: !isShortTerm,
+      strictThresholds: isShortTerm,
+      ctrThreshold: isShortTerm ? 
+        this.config.thresholds.ctrDeclineThreshold * 0.8 : // より厳しく
+        this.config.thresholds.ctrDeclineThreshold,
+      frequencyThreshold: this.config.thresholds.frequencyWarningThreshold,
+      cpmThreshold: isShortTerm ?
+        this.config.thresholds.cpmIncreaseThreshold * 0.8 : // より厳しく
+        this.config.thresholds.cpmIncreaseThreshold
+    }
+  }
+
+  private isShortTermRange(dateRange: string, dataPoints: number): boolean {
+    const shortTermPatterns = ['last_3d', 'last_7d', 'yesterday', 'today']
+    const isShortRangePattern = shortTermPatterns.some(pattern => dateRange.includes(pattern))
+    const hasLimitedData = dataPoints < 10
+    
+    return isShortRangePattern || hasLimitedData
+  }
+
+  private analyzeAdFatigue(
+    data: AdInsight[], 
+    dateRange: string, 
+    analysisConfig: any
+  ): AdFatigueGap[] {
+    const adGroups = this.groupByAd(data)
+    const gaps: AdFatigueGap[] = []
+
+    for (const [adId, adData] of Object.entries(adGroups)) {
+      const gap = this.analyzeAdFatigueForAd(adId, adData, dateRange, analysisConfig)
+      gaps.push(gap)
+    }
+
+    return gaps
+  }
+
+  private groupByAd(data: AdInsight[]): Record<string, AdInsight[]> {
+    return data.reduce((groups, insight) => {
+      const adId = insight.ad_id
+      if (!groups[adId]) {
+        groups[adId] = []
+      }
+      groups[adId].push(insight)
+      return groups
+    }, {} as Record<string, AdInsight[]>)
+  }
+
+  private analyzeAdFatigueForAd(
+    adId: string, 
+    adData: AdInsight[], 
+    dateRange: string,
+    analysisConfig: any
+  ): AdFatigueGap {
+    const latestData = adData[adData.length - 1]
+    
+    // 基本メトリクスの計算
+    const metrics = this.calculateAdMetrics(adData)
+    
+    // 疲労度指標の分析
+    const fatigueIndicators = this.analyzeFatigueIndicators(adData, analysisConfig)
+    
+    // 総合的な重要度判定
+    const severity = this.calculateOverallSeverity(fatigueIndicators, analysisConfig)
+    
+    // 推奨アクションの生成
+    const recommendations = this.generateRecommendations(fatigueIndicators, severity, dateRange)
+
+    return {
+      adId,
+      adName: latestData.ad_name,
+      campaignId: latestData.campaign_id,
+      campaignName: latestData.campaign_name,
+      severity,
+      fatigueIndicators,
+      recommendations,
+      metrics
+    }
+  }
+
+  private calculateAdMetrics(adData: AdInsight[]) {
+    const latest = adData[adData.length - 1]
+    
+    return {
+      currentCtr: parseFloat(latest.ctr || '0'),
+      currentFrequency: parseFloat(latest.frequency || '0'),
+      currentCpm: parseFloat(latest.cpm || '0'),
+      impressions: parseInt(latest.impressions || '0'),
+      clicks: parseInt(latest.clicks || '0'),
+      spend: parseFloat(latest.spend || '0')
+    }
+  }
+
+  private analyzeFatigueIndicators(adData: AdInsight[], analysisConfig: any) {
+    return {
+      creative: this.analyzeCreativeFatigue(adData, analysisConfig),
+      audience: this.analyzeAudienceFatigue(adData, analysisConfig),
+      platform: this.analyzePlatformFatigue(adData, analysisConfig)
+    }
+  }
+
+  private analyzeCreativeFatigue(adData: AdInsight[], analysisConfig: any) {
+    if (adData.length < 2) {
+      return {
+        trend: 'stable' as const,
+        severity: 'low' as const,
+        ctrChange: 0
+      }
+    }
+
+    const firstCtr = parseFloat(adData[0].ctr || '0')
+    const lastCtr = parseFloat(adData[adData.length - 1].ctr || '0')
+    const ctrChange = firstCtr > 0 ? (lastCtr - firstCtr) / firstCtr : 0
+
+    const trend = ctrChange < -analysisConfig.ctrThreshold ? 'declining' :
+                  ctrChange > analysisConfig.ctrThreshold ? 'improving' : 'stable'
+
+    const severity = Math.abs(ctrChange) > analysisConfig.ctrThreshold * 1.5 ? 'high' :
+                    Math.abs(ctrChange) > analysisConfig.ctrThreshold ? 'medium' : 'low'
+
+    return { trend, severity, ctrChange: ctrChange * 100 }
+  }
+
+  private analyzeAudienceFatigue(adData: AdInsight[], analysisConfig: any) {
+    const latest = adData[adData.length - 1]
+    const currentFrequency = parseFloat(latest.frequency || '0')
+
+    let frequencyTrend: 'increasing' | 'stable' | 'decreasing' = 'stable'
+    
+    if (adData.length >= 2) {
+      const firstFreq = parseFloat(adData[0].frequency || '0')
+      const change = currentFrequency - firstFreq
+      
+      frequencyTrend = change > 0.2 ? 'increasing' :
+                      change < -0.2 ? 'decreasing' : 'stable'
+    }
+
+    const severity = currentFrequency > analysisConfig.frequencyThreshold * 1.3 ? 'high' :
+                    currentFrequency > analysisConfig.frequencyThreshold ? 'medium' : 'low'
+
+    return { 
+      frequencyTrend, 
+      severity, 
+      currentFrequency 
+    }
+  }
+
+  private analyzePlatformFatigue(adData: AdInsight[], analysisConfig: any) {
+    if (adData.length < 2) {
+      return {
+        cpmTrend: 'stable' as const,
+        severity: 'low' as const,
+        cpmChange: 0
+      }
+    }
+
+    const firstCpm = parseFloat(adData[0].cpm || '0')
+    const lastCpm = parseFloat(adData[adData.length - 1].cpm || '0')
+    const cpmChange = firstCpm > 0 ? (lastCpm - firstCpm) / firstCpm : 0
+
+    const cpmTrend = cpmChange > analysisConfig.cpmThreshold ? 'increasing' :
+                    cpmChange < -analysisConfig.cpmThreshold ? 'decreasing' : 'stable'
+
+    const severity = Math.abs(cpmChange) > analysisConfig.cpmThreshold * 1.5 ? 'high' :
+                    Math.abs(cpmChange) > analysisConfig.cpmThreshold ? 'medium' : 'low'
+
+    return { cpmTrend, severity, cpmChange: cpmChange * 100 }
+  }
+
+  private calculateOverallSeverity(fatigueIndicators: any, analysisConfig: any): 'low' | 'medium' | 'high' {
+    const severityScores = {
+      low: 1,
+      medium: 2, 
+      high: 3
+    }
+
+    const totalScore = severityScores[fatigueIndicators.creative.severity] +
+                      severityScores[fatigueIndicators.audience.severity] +
+                      severityScores[fatigueIndicators.platform.severity]
+
+    // 短期データでは厳しく判定
+    const threshold = analysisConfig.strictThresholds ? 
+      { low: 3, medium: 5, high: 7 } : 
+      { low: 4, medium: 6, high: 8 }
+
+    if (totalScore >= threshold.high) return 'high'
+    if (totalScore >= threshold.medium) return 'medium'
+    return 'low'
+  }
+
+  private generateRecommendations(
+    fatigueIndicators: any, 
+    severity: 'low' | 'medium' | 'high',
+    dateRange: string
+  ): string[] {
+    const recommendations: string[] = []
+    const isShortTerm = this.isShortTermRange(dateRange, 0)
+
+    if (severity === 'high') {
+      if (isShortTerm) {
+        recommendations.push('immediate')
+        recommendations.push('広告を一時停止して新しいクリエイティブに差し替え')
+      } else {
+        recommendations.push('gradual')
+        recommendations.push('段階的な予算調整と新クリエイティブテスト')
+      }
+    }
+
+    if (fatigueIndicators.creative.severity === 'high') {
+      recommendations.push('クリエイティブの刷新が必要')
+    }
+
+    if (fatigueIndicators.audience.severity === 'high') {
+      recommendations.push('ターゲティング設定の見直し')
+    }
+
+    if (fatigueIndicators.platform.severity === 'high') {
+      recommendations.push('入札戦略の最適化')
+    }
+
+    if (recommendations.length === 0) {
+      recommendations.push('継続監視')
+    }
+
+    return recommendations
+  }
+
+  private performTimeSeriesAnalysis(data: AdInsight[], dateRange: string) {
+    // 簡素化された時系列分析
+    const dataPointsCount = data.length
+    const hasSeasonality = this.detectSeasonality(data)
+    const trendStrength = this.calculateTrendStrength(data)
+
+    return {
+      enabled: true,
+      dateRange,
+      dataPointsCount,
+      trendStrength,
+      seasonalityDetected: hasSeasonality,
+      seasonalPattern: hasSeasonality ? this.extractSeasonalPattern(data) : null
+    }
+  }
+
+  private detectSeasonality(data: AdInsight[]): boolean {
+    // 30日以上のデータでパターン検出を試行
+    return data.length >= 30
+  }
+
+  private calculateTrendStrength(data: AdInsight[]): number {
+    if (data.length < 2) return 0
+    
+    // CTRの変化率を基にトレンド強度を計算
+    const ctrs = data.map(d => parseFloat(d.ctr || '0'))
+    const firstHalf = ctrs.slice(0, Math.floor(ctrs.length / 2))
+    const secondHalf = ctrs.slice(Math.floor(ctrs.length / 2))
+    
+    const firstAvg = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length
+    const secondAvg = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length
+    
+    return Math.abs((secondAvg - firstAvg) / firstAvg)
+  }
+
+  private extractSeasonalPattern(data: AdInsight[]): any {
+    // プレースホルダー実装
+    return {
+      pattern: 'weekly',
+      strength: 0.3
+    }
+  }
+
+  private calculateSummary(gaps: AdFatigueGap[]) {
+    return {
+      criticalAdsCount: gaps.filter(g => g.severity === 'high').length,
+      warningAdsCount: gaps.filter(g => g.severity === 'medium').length,
+      healthyAdsCount: gaps.filter(g => g.severity === 'low').length
+    }
+  }
+
+  private getSeverityWeight(severity: 'low' | 'medium' | 'high'): number {
+    const weights = { low: 1, medium: 2, high: 3 }
+    return weights[severity]
   }
 }

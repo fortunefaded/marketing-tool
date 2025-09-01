@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useMetaInsights } from './useMetaInsights'
 import { useFatigueCalculation } from './useFatigueCalculation'
 // import { useInsightsCache } from './useInsightsCache' // Convex無効化
@@ -6,22 +6,34 @@ import { useCreativeEnrichment } from './useCreativeEnrichment'
 import { useMockData } from './useMockData'
 import { FatigueData } from '@/types'
 import { vibe } from '@/lib/vibelogger'
+// TASK-005: リファクタリング - 日付範囲ヘルパーを追加
+import { getDateRangeInfo, isShortTermRange, DateRangePreset } from '../utils/date-range-helpers'
 
-// 期間フィルターの型定義
-export type DateRangeFilter = 'today' | 'yesterday' | 'last_7d' | 'last_14d' | 'last_30d' | 'last_month' | 'last_90d' | 'all'
+// TASK-005: リファクタリング - DateRangeFilterをDateRangePresetに統一
+export type DateRangeFilter = DateRangePreset | 'all'
 
 interface UseAdFatigueOptions {
   accountId: string
   preferCache?: boolean
   enrichWithCreatives?: boolean
   dateRange?: DateRangeFilter
+  debugMode?: boolean // TASK-005: リファクタリング
 }
 
 interface UseAdFatigueResult {
-  data: FatigueData[]
-  insights: any[]
+  fatigueData: FatigueData[] | null // TASK-005: 統一
+  stats: {
+    totalAds: number
+    totalSpend: number
+    avgFatigueScore: number
+  } | null // TASK-005: 統計情報追加
+  processTime: {
+    dateRange: string
+    dataCount: number
+    processingDuration: number
+    error?: boolean
+  } | null // TASK-005: 処理時間情報
   isLoading: boolean
-  isRefreshing: boolean
   error: Error | null
   refetch: (options?: { clearCache?: boolean }) => Promise<void>
   dataSource: 'cache' | 'api' | null
@@ -35,22 +47,38 @@ interface UseAdFatigueResult {
   totalInsights: number
   filteredCount: number
   dateRange: DateRangeFilter
+  // 後方互換性のため保持
+  data: FatigueData[]
+  insights: any[]
+  isRefreshing: boolean
 }
 
 /**
  * 簡潔化された統合フック
+ * TASK-005: 日付範囲パラメータ伝播対応版
  * 各専門フックを組み合わせて疲労度データを提供
  */
 export function useAdFatigueSimplified({
   accountId,
   preferCache = false, // Convexキャッシュを無効化
   enrichWithCreatives = true,
-  dateRange = 'last_30d'
+  dateRange = 'last_30d',
+  debugMode = false // TASK-005: リファクタリング
 }: UseAdFatigueOptions): UseAdFatigueResult {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [dataSource, setDataSource] = useState<'cache' | 'api' | null>(null)
   const [lastRefreshTime, setLastRefreshTime] = useState(0)
   const [loadingTimeout, setLoadingTimeout] = useState<NodeJS.Timeout | null>(null)
+  
+  // TASK-005: リファクタリング - デバッグログヘルパーと日付範囲情報
+  const debugLog = useCallback((message: string, data?: any) => {
+    if (debugMode) {
+      console.log(`🔍 [useAdFatigueSimplified] ${message}`, data)
+    }
+  }, [debugMode])
+  
+  const dateRangeInfo = useMemo(() => getDateRangeInfo(dateRange === 'all' ? 'last_30d' : dateRange as DateRangePreset), [dateRange])
+  const isShortTerm = useMemo(() => isShortTermRange(dateRange), [dateRange])
   
   // 専門フックの利用
   // Convexキャッシュは無効化
@@ -62,11 +90,35 @@ export function useAdFatigueSimplified({
     clearCache: async () => {},
     saveToCache: async () => {}
   }
+  // TASK-005: useMetaInsightsの日付範囲対応（リファクタリング版）
   const api = useMetaInsights({ 
     accountId, 
     autoFetch: true, // 自動取得を有効化（キャッシュがない場合のみ発動）
-    datePreset: dateRange // 日付範囲を渡す
+    datePreset: dateRange === 'all' ? 'last_30d' : dateRange, // 日付範囲を渡す
+    debugMode,
+    onDatePresetChange: (newPreset) => {
+      debugLog('datePreset変更通知', { oldPreset: dateRange, newPreset })
+    }
   })
+  
+  // TASK-005: 日付範囲変更の検知と処理（リファクタリング版）
+  const prevDateRangeRef = useRef<string>()
+  useEffect(() => {
+    debugLog('日付範囲変更検知', { 
+      oldRange: prevDateRangeRef.current,
+      newRange: dateRange,
+      dateRangeInfo,
+      isShortTerm
+    })
+    
+    if (prevDateRangeRef.current && prevDateRangeRef.current !== dateRange) {
+      // 強制リフレッシュ with datePresetOverride
+      const effectivePreset = dateRange === 'all' ? 'last_30d' : dateRange
+      api.fetch({ forceRefresh: true, datePresetOverride: effectivePreset })
+    }
+    
+    prevDateRangeRef.current = dateRange
+  }, [dateRange, api.fetch, debugLog, dateRangeInfo, isShortTerm])
   
   // APIデータの変化を監視
   useEffect(() => {
@@ -268,13 +320,50 @@ export function useAdFatigueSimplified({
     })
   }
   
-  // 疲労度計算（フィルター済みのデータを使用）
+  // TASK-005: 疲労度計算（処理時間計測付き）リファクタリング版
+  const startProcessTime = performance.now()
   const fatigueData = useFatigueCalculation(filteredInsights)
+  const endProcessTime = performance.now()
+  
+  debugLog('疲労度計算完了', {
+    inputCount: filteredInsights.length,
+    outputCount: fatigueData.length,
+    processingTime: Math.round(endProcessTime - startProcessTime),
+    dateRangeInfo
+  })
+  
+  // TASK-005: 統計情報の計算
+  const stats = useMemo(() => {
+    if (!fatigueData || fatigueData.length === 0) return null
+    
+    const totalSpend = fatigueData.reduce((sum, item) => sum + (item.spend || 0), 0)
+    const avgFatigueScore = fatigueData.reduce((sum, item) => sum + (item.totalScore || 0), 0) / fatigueData.length
+    
+    return {
+      totalAds: fatigueData.length,
+      totalSpend,
+      avgFatigueScore
+    }
+  }, [fatigueData])
+  
+  // TASK-005: 処理時間情報
+  const processTime = useMemo(() => {
+    if (!fatigueData) return null
+    
+    return {
+      dateRange,
+      dataCount: filteredInsights.length,
+      processingDuration: endProcessTime - startProcessTime,
+      error: !!api.error
+    }
+  }, [fatigueData, dateRange, filteredInsights.length, startProcessTime, endProcessTime, api.error])
   
   console.log('🎯 疲労度計算結果:', {
     count: fatigueData.length,
     hasData: fatigueData.length > 0,
-    sampleData: fatigueData[0]
+    sampleData: fatigueData[0],
+    stats,
+    processTime
   })
   
   // ウェブページのコンソールにも表示
@@ -339,14 +428,18 @@ export function useAdFatigueSimplified({
         console.log('✅ キャッシュクリア完了')
       }
       
-      // APIからデータ取得
-      console.log('📡 API fetch開始', { clearCache: options?.clearCache })
-      await api.fetch({ forceRefresh: options?.clearCache || true })
+      // TASK-005: APIからデータ取得（日付範囲を考慮）
+      console.log('📡 API fetch開始', { clearCache: options?.clearCache, dateRange })
+      await api.fetch({ 
+        forceRefresh: options?.clearCache || true,
+        datePresetOverride: dateRange // 現在のdateRangeで取得
+      })
       console.log('✅ API fetch完了:', { 
         insightsCount: api.insights?.length || 0,
         hasData: !!(api.insights && api.insights.length > 0),
         firstItem: api.insights?.[0],
-        apiError: api.error
+        apiError: api.error,
+        currentDatePreset: api.currentDatePreset
       })
       
       // 取得したデータをConvexに保存
@@ -424,10 +517,11 @@ export function useAdFatigueSimplified({
   }, [api.isLoading, fatigueData.length, finalInsights.length, cache.cachedInsights])
 
   const result = {
-    data: fatigueData,
-    insights: filteredInsights,  // フィルター済みのデータを返す
+    // TASK-005: 新しいインターフェース
+    fatigueData: fatigueData.length > 0 ? fatigueData : null,
+    stats,
+    processTime,
     isLoading: isActuallyLoading,
-    isRefreshing,
     error: api.error || cache.cacheError,
     refetch,
     dataSource,
@@ -436,21 +530,28 @@ export function useAdFatigueSimplified({
     // フィルター情報も返す
     totalInsights: finalInsights.length,  // フィルター前の総数
     filteredCount: filteredInsights.length,  // フィルター後の数
-    dateRange
+    dateRange,
+    // 後方互換性のため保持
+    data: fatigueData,
+    insights: filteredInsights,  // フィルター済みのデータを返す
+    isRefreshing
   }
   
-  // 戻り値をログ出力
+  // TASK-005: 戻り値をログ出力（新しいフィールドを含む）
   useEffect(() => {
     console.log('🚀 useAdFatigueSimplified 戻り値:', {
-      dataCount: result.data.length,
-      insightsCount: result.insights.length,
+      fatigueDataCount: result.fatigueData?.length || 0,
+      hasStats: !!result.stats,
+      hasProcessTime: !!result.processTime,
       isLoading: result.isLoading,
       isRefreshing: result.isRefreshing,
       dataSource: result.dataSource,
       error: result.error?.message,
-      progress: result.progress
+      progress: result.progress,
+      dateRange: result.dateRange,
+      currentDatePreset: api.currentDatePreset
     })
-  }, [result.data.length, result.insights.length, result.isLoading, result.isRefreshing, result.dataSource, result.error])
+  }, [result.fatigueData?.length, result.stats, result.processTime, result.isLoading, result.isRefreshing, result.dataSource, result.error, api.currentDatePreset])
   
   return result
 }
