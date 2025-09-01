@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState } from 'react'
 import { AggregatedData } from '../utils/aggregation'
 import { ChevronUpIcon, ChevronDownIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
 import { FatigueData } from '@/types'
@@ -13,22 +13,22 @@ export function AggregatedFatigueTable({ data, level }: AggregatedFatigueTablePr
   // ソート状態管理
   const [sortField, setSortField] = useState<string>('fatigueScore')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
-  
+
   // アコーディオンの展開状態管理
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
-  
+
   // モーダル状態管理
   const [selectedItem, setSelectedItem] = useState<FatigueData | null>(null)
   const [selectedInsight, setSelectedInsight] = useState<any | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
 
   // ソートされたデータ
-  const sortedData = useMemo(() => {
+  const sortedData = React.useMemo(() => {
     if (!data) return []
-    
+
     const sortedItems = [...data].sort((a, b) => {
       let aValue: any, bValue: any
-      
+
       // フィールド値を取得
       switch (sortField) {
         case 'name':
@@ -104,13 +104,13 @@ export function AggregatedFatigueTable({ data, level }: AggregatedFatigueTablePr
         return bValue - aValue
       }
     })
-    
+
     return sortedItems
   }, [data, sortField, sortDirection])
 
   const handleSort = (field: string) => {
     if (sortField === field) {
-      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')
+      setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'))
     } else {
       setSortField(field)
       setSortDirection('desc')
@@ -119,11 +119,16 @@ export function AggregatedFatigueTable({ data, level }: AggregatedFatigueTablePr
 
   const getStatusColor = (status?: string) => {
     switch (status) {
-      case 'critical': return 'bg-red-100 text-red-800'
-      case 'warning': return 'bg-yellow-100 text-yellow-800'
-      case 'caution': return 'bg-orange-100 text-orange-800'
-      case 'healthy': return 'bg-green-100 text-green-800'
-      default: return 'bg-gray-100 text-gray-800'
+      case 'critical':
+        return 'bg-red-100 text-red-800'
+      case 'warning':
+        return 'bg-yellow-100 text-yellow-800'
+      case 'caution':
+        return 'bg-orange-100 text-orange-800'
+      case 'healthy':
+        return 'bg-green-100 text-green-800'
+      default:
+        return 'bg-gray-100 text-gray-800'
     }
   }
 
@@ -132,9 +137,9 @@ export function AggregatedFatigueTable({ data, level }: AggregatedFatigueTablePr
   }
 
   const formatNumber = (value: number, decimals: number = 0) => {
-    return value.toLocaleString('ja-JP', { 
-      minimumFractionDigits: decimals, 
-      maximumFractionDigits: decimals 
+    return value.toLocaleString('ja-JP', {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
     })
   }
 
@@ -155,13 +160,13 @@ export function AggregatedFatigueTable({ data, level }: AggregatedFatigueTablePr
     const frequency = insight.frequency || 0
     const ctr = insight.ctr || 0
     const cpm = insight.cpm || 0
-    
+
     const frequencyScore = Math.min(100, frequency * 20)
     const ctrPenalty = ctr < 1 ? 30 : 0
     const cpmPenalty = cpm > 50 ? 20 : 0
-    
+
     const score = Math.round((frequencyScore + ctrPenalty + cpmPenalty) / 3)
-    
+
     let status: FatigueData['status']
     if (score >= 70) status = 'critical'
     else if (score >= 50) status = 'warning'
@@ -185,8 +190,8 @@ export function AggregatedFatigueTable({ data, level }: AggregatedFatigueTablePr
         cpm: insight.cpm || 0,
         unique_ctr: insight.unique_ctr || 0,
         unique_inline_link_click_ctr: insight.unique_inline_link_click_ctr || 0,
-        instagram_metrics: insight.instagram_metrics
-      }
+        instagram_metrics: insight.instagram_metrics,
+      },
     }
   }
 
@@ -211,126 +216,189 @@ export function AggregatedFatigueTable({ data, level }: AggregatedFatigueTablePr
       <table className="min-w-full divide-y divide-gray-200">
         <thead className="bg-gray-50">
           <tr>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                onClick={() => handleSort('name')}>
+            <th
+              className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              onClick={() => handleSort('name')}
+            >
               <div className="flex items-center gap-1">
                 {level === 'campaign' ? 'キャンペーン' : '広告セット'}
-                {sortField === 'name' && (
-                  sortDirection === 'asc' ? <ChevronUpIcon className="h-3 w-3" /> : <ChevronDownIcon className="h-3 w-3" />
-                )}
+                {sortField === 'name' &&
+                  (sortDirection === 'asc' ? (
+                    <ChevronUpIcon className="h-3 w-3" />
+                  ) : (
+                    <ChevronDownIcon className="h-3 w-3" />
+                  ))}
               </div>
             </th>
-            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                onClick={() => handleSort('adCount')}>
+            <th
+              className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              onClick={() => handleSort('adCount')}
+            >
               <div className="flex items-center justify-center gap-1">
                 広告数
-                {sortField === 'adCount' && (
-                  sortDirection === 'asc' ? <ChevronUpIcon className="h-3 w-3" /> : <ChevronDownIcon className="h-3 w-3" />
-                )}
+                {sortField === 'adCount' &&
+                  (sortDirection === 'asc' ? (
+                    <ChevronUpIcon className="h-3 w-3" />
+                  ) : (
+                    <ChevronDownIcon className="h-3 w-3" />
+                  ))}
               </div>
             </th>
-            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                onClick={() => handleSort('fatigueScore')}>
+            <th
+              className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              onClick={() => handleSort('fatigueScore')}
+            >
               <div className="flex items-center justify-center gap-1">
                 疲労度
-                {sortField === 'fatigueScore' && (
-                  sortDirection === 'asc' ? <ChevronUpIcon className="h-3 w-3" /> : <ChevronDownIcon className="h-3 w-3" />
-                )}
+                {sortField === 'fatigueScore' &&
+                  (sortDirection === 'asc' ? (
+                    <ChevronUpIcon className="h-3 w-3" />
+                  ) : (
+                    <ChevronDownIcon className="h-3 w-3" />
+                  ))}
               </div>
             </th>
-            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                onClick={() => handleSort('spend')}>
+            <th
+              className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              onClick={() => handleSort('spend')}
+            >
               <div className="flex items-center justify-end gap-1">
                 広告費用 (¥)
-                {sortField === 'spend' && (
-                  sortDirection === 'asc' ? <ChevronUpIcon className="h-3 w-3" /> : <ChevronDownIcon className="h-3 w-3" />
-                )}
+                {sortField === 'spend' &&
+                  (sortDirection === 'asc' ? (
+                    <ChevronUpIcon className="h-3 w-3" />
+                  ) : (
+                    <ChevronDownIcon className="h-3 w-3" />
+                  ))}
               </div>
             </th>
-            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                onClick={() => handleSort('impressions')}>
+            <th
+              className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              onClick={() => handleSort('impressions')}
+            >
               <div className="flex items-center justify-end gap-1">
                 インプレッション
-                {sortField === 'impressions' && (
-                  sortDirection === 'asc' ? <ChevronUpIcon className="h-3 w-3" /> : <ChevronDownIcon className="h-3 w-3" />
-                )}
+                {sortField === 'impressions' &&
+                  (sortDirection === 'asc' ? (
+                    <ChevronUpIcon className="h-3 w-3" />
+                  ) : (
+                    <ChevronDownIcon className="h-3 w-3" />
+                  ))}
               </div>
             </th>
-            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                onClick={() => handleSort('clicks')}>
+            <th
+              className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              onClick={() => handleSort('clicks')}
+            >
               <div className="flex items-center justify-end gap-1">
                 クリック
-                {sortField === 'clicks' && (
-                  sortDirection === 'asc' ? <ChevronUpIcon className="h-3 w-3" /> : <ChevronDownIcon className="h-3 w-3" />
-                )}
+                {sortField === 'clicks' &&
+                  (sortDirection === 'asc' ? (
+                    <ChevronUpIcon className="h-3 w-3" />
+                  ) : (
+                    <ChevronDownIcon className="h-3 w-3" />
+                  ))}
               </div>
             </th>
-            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                onClick={() => handleSort('conversions')}>
+            <th
+              className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              onClick={() => handleSort('conversions')}
+            >
               <div className="flex items-center justify-end gap-1">
                 CV
-                {sortField === 'conversions' && (
-                  sortDirection === 'asc' ? <ChevronUpIcon className="h-3 w-3" /> : <ChevronDownIcon className="h-3 w-3" />
-                )}
+                {sortField === 'conversions' &&
+                  (sortDirection === 'asc' ? (
+                    <ChevronUpIcon className="h-3 w-3" />
+                  ) : (
+                    <ChevronDownIcon className="h-3 w-3" />
+                  ))}
               </div>
             </th>
             <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-              <div className="flex items-center justify-end gap-1">
-                F-CV
-              </div>
+              <div className="flex items-center justify-end gap-1">F-CV</div>
             </th>
-            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                onClick={() => handleSort('cpa')}>
+            <th
+              className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              onClick={() => handleSort('cpa')}
+            >
               <div className="flex items-center justify-end gap-1">
                 CPA (¥)
-                {sortField === 'cpa' && (
-                  sortDirection === 'asc' ? <ChevronUpIcon className="h-3 w-3" /> : <ChevronDownIcon className="h-3 w-3" />
-                )}
+                {sortField === 'cpa' &&
+                  (sortDirection === 'asc' ? (
+                    <ChevronUpIcon className="h-3 w-3" />
+                  ) : (
+                    <ChevronDownIcon className="h-3 w-3" />
+                  ))}
               </div>
             </th>
-            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                onClick={() => handleSort('ctr')}>
+            <th
+              className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              onClick={() => handleSort('ctr')}
+            >
               <div className="flex items-center justify-end gap-1">
                 CTR (%)
-                {sortField === 'ctr' && (
-                  sortDirection === 'asc' ? <ChevronUpIcon className="h-3 w-3" /> : <ChevronDownIcon className="h-3 w-3" />
-                )}
+                {sortField === 'ctr' &&
+                  (sortDirection === 'asc' ? (
+                    <ChevronUpIcon className="h-3 w-3" />
+                  ) : (
+                    <ChevronDownIcon className="h-3 w-3" />
+                  ))}
               </div>
             </th>
-            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                onClick={() => handleSort('cpc')}>
+            <th
+              className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              onClick={() => handleSort('cpc')}
+            >
               <div className="flex items-center justify-end gap-1">
                 CPC (¥)
-                {sortField === 'cpc' && (
-                  sortDirection === 'asc' ? <ChevronUpIcon className="h-3 w-3" /> : <ChevronDownIcon className="h-3 w-3" />
-                )}
+                {sortField === 'cpc' &&
+                  (sortDirection === 'asc' ? (
+                    <ChevronUpIcon className="h-3 w-3" />
+                  ) : (
+                    <ChevronDownIcon className="h-3 w-3" />
+                  ))}
               </div>
             </th>
-            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                onClick={() => handleSort('cvr')}>
+            <th
+              className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              onClick={() => handleSort('cvr')}
+            >
               <div className="flex items-center justify-end gap-1">
                 CVR (%)
-                {sortField === 'cvr' && (
-                  sortDirection === 'asc' ? <ChevronUpIcon className="h-3 w-3" /> : <ChevronDownIcon className="h-3 w-3" />
-                )}
+                {sortField === 'cvr' &&
+                  (sortDirection === 'asc' ? (
+                    <ChevronUpIcon className="h-3 w-3" />
+                  ) : (
+                    <ChevronDownIcon className="h-3 w-3" />
+                  ))}
               </div>
             </th>
-            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                onClick={() => handleSort('cpm')}>
+            <th
+              className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              onClick={() => handleSort('cpm')}
+            >
               <div className="flex items-center justify-end gap-1">
                 CPM (¥)
-                {sortField === 'cpm' && (
-                  sortDirection === 'asc' ? <ChevronUpIcon className="h-3 w-3" /> : <ChevronDownIcon className="h-3 w-3" />
-                )}
+                {sortField === 'cpm' &&
+                  (sortDirection === 'asc' ? (
+                    <ChevronUpIcon className="h-3 w-3" />
+                  ) : (
+                    <ChevronDownIcon className="h-3 w-3" />
+                  ))}
               </div>
             </th>
-            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                onClick={() => handleSort('frequency')}>
+            <th
+              className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              onClick={() => handleSort('frequency')}
+            >
               <div className="flex items-center justify-end gap-1">
                 Frequency
-                {sortField === 'frequency' && (
-                  sortDirection === 'asc' ? <ChevronUpIcon className="h-3 w-3" /> : <ChevronDownIcon className="h-3 w-3" />
-                )}
+                {sortField === 'frequency' &&
+                  (sortDirection === 'asc' ? (
+                    <ChevronUpIcon className="h-3 w-3" />
+                  ) : (
+                    <ChevronDownIcon className="h-3 w-3" />
+                  ))}
               </div>
             </th>
           </tr>
@@ -339,10 +407,10 @@ export function AggregatedFatigueTable({ data, level }: AggregatedFatigueTablePr
           {sortedData.map((item) => (
             <React.Fragment key={item.id}>
               {/* Main row for campaign/adset */}
-              <tr 
+              <tr
                 className={`hover:bg-gray-50 ${item.insights.length > 0 ? 'cursor-pointer' : ''} transition-colors duration-150`}
                 onClick={item.insights.length > 0 ? () => toggleRow(item.id) : undefined}
-                title={item.insights.length > 0 ? "クリックして含まれる広告を表示" : undefined}
+                title={item.insights.length > 0 ? 'クリックして含まれる広告を表示' : undefined}
               >
                 <td className="px-4 py-4 whitespace-nowrap">
                   <div className="flex items-center space-x-2">
@@ -370,7 +438,9 @@ export function AggregatedFatigueTable({ data, level }: AggregatedFatigueTablePr
                       {item.fatigueScore !== undefined ? item.fatigueScore : '-'}
                     </span>
                     {item.fatigueStatus && (
-                      <span className={`mt-1 px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(item.fatigueStatus)}`}>
+                      <span
+                        className={`mt-1 px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(item.fatigueStatus)}`}
+                      >
                         {item.fatigueStatus}
                       </span>
                     )}
@@ -417,13 +487,14 @@ export function AggregatedFatigueTable({ data, level }: AggregatedFatigueTablePr
                   <td colSpan={14} className="px-4 py-2 bg-gray-50 border-l-4 border-indigo-200">
                     <div className="space-y-2">
                       <div className="text-sm font-medium text-gray-700 mb-3">
-                        この{level === 'campaign' ? 'キャンペーン' : '広告セット'}の広告 ({item.insights.length}件)
+                        この{level === 'campaign' ? 'キャンペーン' : '広告セット'}の広告 (
+                        {item.insights.length}件)
                       </div>
                       <div className="grid gap-2">
                         {item.insights.map((insight) => {
                           const fatigueData = generateFatigueDataForAd(insight)
                           return (
-                            <div 
+                            <div
                               key={insight.ad_id}
                               className="bg-white rounded-lg border border-gray-200 p-3 hover:shadow-sm hover:border-indigo-300 transition-all cursor-pointer"
                               onClick={(e) => handleAdClick(insight, e)}
@@ -439,7 +510,9 @@ export function AggregatedFatigueTable({ data, level }: AggregatedFatigueTablePr
                                   </div>
                                 </div>
                                 <div className="text-center">
-                                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(fatigueData.status)}`}>
+                                  <span
+                                    className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(fatigueData.status)}`}
+                                  >
                                     {fatigueData.score}
                                   </span>
                                 </div>
@@ -448,7 +521,9 @@ export function AggregatedFatigueTable({ data, level }: AggregatedFatigueTablePr
                                   <div className="text-xs text-gray-500">広告費</div>
                                 </div>
                                 <div className="text-right">
-                                  <div className="font-medium">{formatNumber(insight.impressions)}</div>
+                                  <div className="font-medium">
+                                    {formatNumber(insight.impressions)}
+                                  </div>
                                   <div className="text-xs text-gray-500">IMP</div>
                                 </div>
                                 <div className="text-right">

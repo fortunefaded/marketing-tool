@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import React, { useState } from 'react'
 
 interface FatigueDonutChartProps {
   value: number // 0-100の値
@@ -30,7 +30,7 @@ export function FatigueDonutChart({
   const strokeDashoffset = circumference - (normalizedValue / 100) * circumference
 
   // 色の決定（値に基づいて）
-  const getColor = useMemo(() => {
+  const getColor = React.useMemo(() => {
     if (normalizedValue >= 80) return '#DC2626' // red-600
     if (normalizedValue >= 60) return '#D97706' // amber-600
     if (normalizedValue >= 40) return '#EAB308' // yellow-500

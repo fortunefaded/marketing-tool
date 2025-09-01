@@ -3,7 +3,7 @@
  * A/Bテスト結果を表示するビューアコンポーネント
  */
 
-import React, { useMemo, useState } from 'react'
+import React, { useState } from 'react'
 import { ABTestAnalyzer, ABTestResult, TestVariant } from '../core/ab-test-analysis'
 import { SafeMetrics } from '../utils/safe-data-access'
 import {
@@ -15,7 +15,7 @@ import {
   TrophyIcon,
   ArrowUpIcon,
   ArrowDownIcon,
-  ScaleIcon
+  ScaleIcon,
 } from '@heroicons/react/24/outline'
 import {
   BarChart,
@@ -26,7 +26,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   Cell,
-  Legend
+  Legend,
 } from 'recharts'
 
 interface ABTestResultsViewerProps {
@@ -52,7 +52,7 @@ const getConfidenceColor = (confidence: number) => {
 const interpretPValue = (pValue: number) => {
   if (pValue < 0.01) return '非常に有意 (p < 0.01)'
   if (pValue < 0.05) return '有意 (p < 0.05)'
-  if (pValue < 0.10) return 'やや有意 (p < 0.10)'
+  if (pValue < 0.1) return 'やや有意 (p < 0.10)'
   return '有意差なし'
 }
 
@@ -70,7 +70,7 @@ const getMetricLabel = (metric: string): string => {
     clicks: 'クリック数',
     spend: '広告費',
     reach: 'リーチ',
-    frequency: 'フリークエンシー'
+    frequency: 'フリークエンシー',
   }
   return labels[metric] || metric
 }
@@ -83,40 +83,40 @@ export const ABTestResultsViewer: React.FC<ABTestResultsViewerProps> = ({
   variant,
   primaryMetric = 'ctr',
   confidenceLevel = 95,
-  isLoading = false
+  isLoading = false,
 }) => {
   const [selectedMetric, setSelectedMetric] = useState<keyof SafeMetrics>(primaryMetric)
-  
+
   // テスト結果の分析
-  const result = useMemo(() => {
+  const result = React.useMemo(() => {
     if (!control || !variant) return null
     return ABTestAnalyzer.analyzeTest(control, variant, selectedMetric, confidenceLevel)
   }, [control, variant, selectedMetric, confidenceLevel])
-  
+
   // チャート用データ
-  const chartData = useMemo(() => {
+  const chartData = React.useMemo(() => {
     if (!result) return []
-    
+
     return [
       {
         name: control.name || 'Control',
         value: result.control.mean,
-        fill: '#3B82F6'
+        fill: '#3B82F6',
       },
       {
         name: variant.name || 'Variant',
         value: result.variant.mean,
-        fill: result.winner?.variant === 'variant' ? '#10B981' : '#F59E0B'
-      }
+        fill: result.winner?.variant === 'variant' ? '#10B981' : '#F59E0B',
+      },
     ]
   }, [result, control.name, variant.name])
-  
+
   // 複数メトリクスの比較データ
-  const multiMetricData = useMemo(() => {
+  const multiMetricData = React.useMemo(() => {
     if (!control || !variant) return []
-    
+
     const metrics: (keyof SafeMetrics)[] = ['ctr', 'cpm', 'conversions', 'roas']
-    return metrics.map(metric => {
+    return metrics.map((metric) => {
       const testResult = ABTestAnalyzer.analyzeTest(control, variant, metric, confidenceLevel)
       return {
         metric: getMetricLabel(metric),
@@ -124,17 +124,17 @@ export const ABTestResultsViewer: React.FC<ABTestResultsViewerProps> = ({
         variant: testResult.variant.mean,
         improvement: testResult.absoluteDifference,
         improvementRate: testResult.relativeDifference * 100,
-        significant: testResult.isSignificant
+        significant: testResult.isSignificant,
       }
     })
   }, [control, variant, confidenceLevel])
-  
+
   if (isLoading) {
     return (
       <div className="animate-pulse">
         <div className="h-8 bg-gray-200 rounded w-1/3 mb-4"></div>
         <div className="grid grid-cols-2 gap-4 mb-6">
-          {[1, 2].map(i => (
+          {[1, 2].map((i) => (
             <div key={i} className="h-40 bg-gray-200 rounded-lg"></div>
           ))}
         </div>
@@ -142,7 +142,7 @@ export const ABTestResultsViewer: React.FC<ABTestResultsViewerProps> = ({
       </div>
     )
   }
-  
+
   if (!result) {
     return (
       <div className="text-center py-12 bg-gray-50 rounded-lg">
@@ -154,7 +154,7 @@ export const ABTestResultsViewer: React.FC<ABTestResultsViewerProps> = ({
       </div>
     )
   }
-  
+
   return (
     <div className="space-y-6">
       {/* ヘッダー */}
@@ -172,22 +172,24 @@ export const ABTestResultsViewer: React.FC<ABTestResultsViewerProps> = ({
             <option value="conversions">コンバージョン</option>
             <option value="roas">ROAS</option>
           </select>
-          <span className="text-sm text-gray-500">
-            信頼水準: {confidenceLevel}%
-          </span>
+          <span className="text-sm text-gray-500">信頼水準: {confidenceLevel}%</span>
         </div>
       </div>
-      
+
       {/* 勝者判定 */}
       {result.winner && (
-        <div className={`rounded-lg p-6 ${
-          result.isSignificant ? 'bg-green-50 border-2 border-green-300' : 'bg-yellow-50 border-2 border-yellow-300'
-        }`}>
+        <div
+          className={`rounded-lg p-6 ${
+            result.isSignificant
+              ? 'bg-green-50 border-2 border-green-300'
+              : 'bg-yellow-50 border-2 border-yellow-300'
+          }`}
+        >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <TrophyIcon className={`h-8 w-8 ${
-                result.isSignificant ? 'text-green-600' : 'text-yellow-600'
-              }`} />
+              <TrophyIcon
+                className={`h-8 w-8 ${result.isSignificant ? 'text-green-600' : 'text-yellow-600'}`}
+              />
               <div>
                 <h3 className="text-xl font-bold text-gray-900">
                   {result.winner.variant === 'control' ? control.name : variant.name} が優勢
@@ -200,20 +202,20 @@ export const ABTestResultsViewer: React.FC<ABTestResultsViewerProps> = ({
               </div>
             </div>
             <div className="text-right">
-              <p className={`text-2xl font-bold ${
-                result.relativeDifference > 0 ? 'text-green-600' : 'text-red-600'
-              }`}>
+              <p
+                className={`text-2xl font-bold ${
+                  result.relativeDifference > 0 ? 'text-green-600' : 'text-red-600'
+                }`}
+              >
                 {result.relativeDifference > 0 ? '+' : ''}
                 {(result.relativeDifference * 100).toFixed(1)}%
               </p>
-              <p className="text-sm text-gray-500">
-                {interpretPValue(result.pValue)}
-              </p>
+              <p className="text-sm text-gray-500">{interpretPValue(result.pValue)}</p>
             </div>
           </div>
         </div>
       )}
-      
+
       {/* 統計的有意性 */}
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-white rounded-lg border p-4">
@@ -224,9 +226,11 @@ export const ABTestResultsViewer: React.FC<ABTestResultsViewerProps> = ({
           <div className="space-y-2">
             <div className="flex justify-between">
               <span className="text-sm text-gray-600">p値</span>
-              <span className={`text-sm font-bold ${
-                result.pValue < 0.05 ? 'text-green-600' : 'text-gray-900'
-              }`}>
+              <span
+                className={`text-sm font-bold ${
+                  result.pValue < 0.05 ? 'text-green-600' : 'text-gray-900'
+                }`}
+              >
                 {result.pValue.toFixed(4)}
               </span>
             </div>
@@ -246,7 +250,7 @@ export const ABTestResultsViewer: React.FC<ABTestResultsViewerProps> = ({
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white rounded-lg border p-4">
           <div className="flex items-center gap-2 mb-2">
             <InformationCircleIcon className="h-5 w-5 text-gray-600" />
@@ -256,19 +260,21 @@ export const ABTestResultsViewer: React.FC<ABTestResultsViewerProps> = ({
             <div>
               <span className="text-sm text-gray-600">Control:</span>
               <p className="text-sm font-mono">
-                [{result.confidenceInterval.control.lower.toFixed(4)}, {result.confidenceInterval.control.upper.toFixed(4)}]
+                [{result.confidenceInterval.control.lower.toFixed(4)},{' '}
+                {result.confidenceInterval.control.upper.toFixed(4)}]
               </p>
             </div>
             <div>
               <span className="text-sm text-gray-600">Variant:</span>
               <p className="text-sm font-mono">
-                [{result.confidenceInterval.variant.lower.toFixed(4)}, {result.confidenceInterval.variant.upper.toFixed(4)}]
+                [{result.confidenceInterval.variant.lower.toFixed(4)},{' '}
+                {result.confidenceInterval.variant.upper.toFixed(4)}]
               </p>
             </div>
           </div>
         </div>
       </div>
-      
+
       {/* 主要メトリクスの比較チャート */}
       <div className="bg-white rounded-lg border p-4">
         <h3 className="text-lg font-bold text-gray-900 mb-4">
@@ -288,7 +294,7 @@ export const ABTestResultsViewer: React.FC<ABTestResultsViewerProps> = ({
           </BarChart>
         </ResponsiveContainer>
       </div>
-      
+
       {/* 複数メトリクスの概要 */}
       <div className="bg-white rounded-lg border overflow-hidden">
         <div className="px-4 py-3 bg-gray-50 border-b">
@@ -318,18 +324,18 @@ export const ABTestResultsViewer: React.FC<ABTestResultsViewerProps> = ({
             <tbody className="divide-y divide-gray-200">
               {multiMetricData.map((item, index) => (
                 <tr key={index} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                    {item.metric}
-                  </td>
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.metric}</td>
                   <td className="px-4 py-3 text-sm text-right text-gray-600">
                     {item.control.toFixed(4)}
                   </td>
                   <td className="px-4 py-3 text-sm text-right text-gray-600">
                     {item.variant.toFixed(4)}
                   </td>
-                  <td className={`px-4 py-3 text-sm text-right font-bold ${
-                    item.improvementRate > 0 ? 'text-green-600' : 'text-red-600'
-                  }`}>
+                  <td
+                    className={`px-4 py-3 text-sm text-right font-bold ${
+                      item.improvementRate > 0 ? 'text-green-600' : 'text-red-600'
+                    }`}
+                  >
                     {item.improvementRate > 0 ? '+' : ''}
                     {item.improvementRate.toFixed(1)}%
                   </td>
@@ -346,7 +352,7 @@ export const ABTestResultsViewer: React.FC<ABTestResultsViewerProps> = ({
           </table>
         </div>
       </div>
-      
+
       {/* サンプルサイズ推奨 */}
       <div className="bg-blue-50 rounded-lg p-4">
         <div className="flex items-start gap-3">
@@ -355,17 +361,19 @@ export const ABTestResultsViewer: React.FC<ABTestResultsViewerProps> = ({
             <h3 className="font-bold text-blue-900">サンプルサイズ分析</h3>
             <div className="mt-2 space-y-1 text-sm text-blue-800">
               <p>
-                現在のサンプルサイズ - Control: {control.sampleSize.toLocaleString()}, 
-                Variant: {variant.sampleSize.toLocaleString()}
+                現在のサンプルサイズ - Control: {control.sampleSize.toLocaleString()}, Variant:{' '}
+                {variant.sampleSize.toLocaleString()}
               </p>
               <p>
-                推奨最小サンプルサイズ: {result.requiredSampleSize.toLocaleString()} 
+                推奨最小サンプルサイズ: {result.requiredSampleSize.toLocaleString()}
                 (各グループ)
               </p>
               {result.requiredSampleSize > Math.max(control.sampleSize, variant.sampleSize) && (
                 <p className="text-orange-600 font-bold">
                   ⚠️ より確実な結果のため、さらに{' '}
-                  {(result.requiredSampleSize - Math.max(control.sampleSize, variant.sampleSize)).toLocaleString()}
+                  {(
+                    result.requiredSampleSize - Math.max(control.sampleSize, variant.sampleSize)
+                  ).toLocaleString()}
                   件のデータ収集を推奨します
                 </p>
               )}
@@ -373,7 +381,7 @@ export const ABTestResultsViewer: React.FC<ABTestResultsViewerProps> = ({
           </div>
         </div>
       </div>
-      
+
       {/* 推奨事項 */}
       {result.recommendations.length > 0 && (
         <div className="bg-gray-50 rounded-lg p-4">

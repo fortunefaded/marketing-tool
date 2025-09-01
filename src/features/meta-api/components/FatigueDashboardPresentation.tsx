@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { AccountSelector } from '../account/AccountSelector'
 import { StatCard } from './StatCard'
 import { AggregatedFatigueTable } from './AggregatedFatigueTable'
@@ -24,7 +24,7 @@ interface FatigueDashboardPresentationProps {
   onAccountSelect: (accountId: string) => void
 
   // データ関連
-  data: any  // FatigueData[]またはAdPerformanceData[]
+  data: any // FatigueData[]またはAdPerformanceData[]
   insights: any[]
   isLoading: boolean
   isRefreshing: boolean
@@ -36,20 +36,20 @@ interface FatigueDashboardPresentationProps {
   // メタ情報
   dataSource: 'cache' | 'api' | null
   lastUpdateTime: Date | null
-  
+
   // 進捗情報
   progress?: {
     loaded: number
     hasMore: boolean
     isAutoFetching: boolean
   }
-  
+
   // フィルター関連
   dateRange: DateRangeFilterType
   onDateRangeChange: (dateRange: DateRangeFilterType) => void
   totalInsights?: number
   filteredCount?: number
-  
+
   // 集約関連（常時有効）
   enableAggregation?: boolean
   // onToggleAggregation削除: トグル機能は廃止
@@ -61,7 +61,7 @@ interface FatigueDashboardPresentationProps {
     dataReduction: string
   }
   isAggregating?: boolean
-  
+
   // フィルター関連（新規追加）
   onFilterChange?: (filteredData: any) => void
   sourceData?: any
@@ -106,7 +106,9 @@ export function FatigueDashboardPresentation({
   useEffect(() => {
     if (typeof window !== 'undefined') {
       if (!(window as any).DEBUG_FATIGUE) {
-        console.log('🔧 デバッグモードのヒント: window.DEBUG_FATIGUE = true でデバッグログを有効化できます')
+        console.log(
+          '🔧 デバッグモードのヒント: window.DEBUG_FATIGUE = true でデバッグログを有効化できます'
+        )
       }
       // デバッグツールをグローバルに公開（遅延読み込み対応）
       import('../utils/debug-helper').then(() => {
@@ -114,16 +116,16 @@ export function FatigueDashboardPresentation({
       })
     }
   }, [])
-  
+
   // レート制限状態を取得
   const rateLimitStatus = useRateLimitStatus()
-  
+
   // レート制限中かどうかチェック
   const isRateLimited = rateLimitStatus.isRateLimited
   const canRefresh = !isRefreshing && rateLimitStatus.canRetry
-  
+
   // 集計データをメモ化（キャンペーン・広告セット別）
-  const levelAggregatedData = useMemo(() => {
+  const levelAggregatedData = React.useMemo(() => {
     if (!insights || insights.length === 0) return { campaign: [], adset: [] }
 
     return {
@@ -163,34 +165,46 @@ export function FatigueDashboardPresentation({
               </button>
             </div>
             <div className="space-y-1">
-              <div>👥 Accounts: {accounts.length} | Selected: {selectedAccountId || 'none'}</div>
-              <div>📊 Data: {data.length} items | Insights: {insights.length} items</div>
-              <div>🎮 Loading: {isLoading ? 'Yes' : 'No'} | Refreshing: {isRefreshing ? 'Yes' : 'No'}</div>
-              <div>📡 Data Source: {dataSource || 'none'} | Error: {error?.message || 'none'}</div>
+              <div>
+                👥 Accounts: {accounts.length} | Selected: {selectedAccountId || 'none'}
+              </div>
+              <div>
+                📊 Data: {data.length} items | Insights: {insights.length} items
+              </div>
+              <div>
+                🎮 Loading: {isLoading ? 'Yes' : 'No'} | Refreshing: {isRefreshing ? 'Yes' : 'No'}
+              </div>
+              <div>
+                📡 Data Source: {dataSource || 'none'} | Error: {error?.message || 'none'}
+              </div>
               <div className="text-yellow-300">
                 💡 To enable debug mode: window.DEBUG_FATIGUE = true
               </div>
             </div>
           </div>
         )}
-        
+
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold text-gray-900">Simple Ad Fatigue Dashboard</h1>
 
           {selectedAccountId && (
             <div className="flex items-center gap-4">
               {/* フィルター件数の表示 */}
-              {totalInsights !== undefined && filteredCount !== undefined && filteredCount !== null && (
-                <div className="text-sm text-gray-600">
-                  <div>表示中: {filteredCount}件 / 全{totalInsights}件</div>
-                  {totalInsights !== filteredCount && (
-                    <div className="text-xs text-blue-600">
-                      {totalInsights - filteredCount}件をフィルターで非表示
+              {totalInsights !== undefined &&
+                filteredCount !== undefined &&
+                filteredCount !== null && (
+                  <div className="text-sm text-gray-600">
+                    <div>
+                      表示中: {filteredCount}件 / 全{totalInsights}件
                     </div>
-                  )}
-                </div>
-              )}
-              
+                    {totalInsights !== filteredCount && (
+                      <div className="text-xs text-blue-600">
+                        {totalInsights - filteredCount}件をフィルターで非表示
+                      </div>
+                    )}
+                  </div>
+                )}
+
               {dataSource && (
                 <div className="text-sm text-gray-600">
                   <div>データソース: {dataSource === 'cache' ? 'キャッシュ' : 'Meta API'}</div>
@@ -199,53 +213,60 @@ export function FatigueDashboardPresentation({
               )}
 
               {/* 期間フィルター */}
-              <DateRangeFilter 
-                value={dateRange} 
-                onChange={onDateRangeChange} 
-              />
+              <DateRangeFilter value={dateRange} onChange={onDateRangeChange} />
 
               {/* 集約トグル削除: 常時集約有効のため不要 */}
 
               {/* レート制限状態の表示 */}
               {isRateLimited && (
                 <div className="flex items-center gap-2 px-3 py-2 bg-orange-50 border border-orange-200 rounded-lg">
-                  <svg className="w-5 h-5 text-orange-600 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <svg
+                    className="w-5 h-5 text-orange-600 animate-pulse"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
                   </svg>
                   <span className="text-sm text-orange-700">
                     レート制限中: {rateLimitStatus.timeRemaining}秒後に再試行可能
                   </span>
                 </div>
               )}
-              
+
               {/* データ更新ボタン */}
               <button
                 onClick={() => {
-                  console.log('🔥 データ更新ボタンクリック:', { 
-                    isRefreshing, 
+                  console.log('🔥 データ更新ボタンクリック:', {
+                    isRefreshing,
                     isRateLimited,
                     canRefresh,
                     onRefreshType: typeof onRefresh,
                     selectedAccountId,
                     hasOnRefresh: !!onRefresh,
-                    timestamp: new Date().toISOString()
+                    timestamp: new Date().toISOString(),
                   })
-                  
+
                   if (!onRefresh) {
                     console.error('❌ onRefresh関数が定義されていません')
                     return
                   }
-                  
+
                   if (!selectedAccountId) {
                     console.warn('⚠️ アカウントが選択されていません')
                     return
                   }
-                  
+
                   if (isRateLimited) {
                     console.warn('⏳ レート制限中のため更新できません')
                     return
                   }
-                  
+
                   console.log('📡 onRefresh関数を呼び出します...')
                   // キャッシュをクリアして最新データを取得
                   onRefresh({ clearCache: true })
@@ -253,13 +274,17 @@ export function FatigueDashboardPresentation({
                 }}
                 disabled={!canRefresh}
                 className={`px-4 py-2 rounded-lg text-white transition-colors ${
-                  !canRefresh 
-                    ? 'bg-gray-400 cursor-not-allowed' 
+                  !canRefresh
+                    ? 'bg-gray-400 cursor-not-allowed'
                     : 'bg-indigo-600 hover:bg-indigo-700 cursor-pointer'
                 }`}
                 title={isRateLimited ? `あと${rateLimitStatus.timeRemaining}秒お待ちください` : ''}
               >
-                {isRefreshing ? '更新中...' : isRateLimited ? `再試行まで ${rateLimitStatus.timeRemaining}秒` : 'データ更新'}
+                {isRefreshing
+                  ? '更新中...'
+                  : isRateLimited
+                    ? `再試行まで ${rateLimitStatus.timeRemaining}秒`
+                    : 'データ更新'}
               </button>
             </div>
           )}
@@ -300,20 +325,18 @@ export function FatigueDashboardPresentation({
             type="warning"
             title="広告データが見つかりません"
             message="このアカウントには表示可能な広告データがありません。"
-            action={{ 
-              label: 'キャッシュをクリアして再取得', 
+            action={{
+              label: 'キャッシュをクリアして再取得',
               onClick: () => {
                 console.log('🗑️ キャッシュクリアして再取得')
                 onRefresh({ clearCache: true })
-              }
+              },
             }}
           />
         )}
-        
+
         {/* 進捗バー表示 */}
-        {selectedAccountId && progress && (
-          <DataLoadingProgress progress={progress} />
-        )}
+        {selectedAccountId && progress && <DataLoadingProgress progress={progress} />}
 
         {selectedAccountId && !error ? (
           <>
@@ -348,12 +371,12 @@ export function FatigueDashboardPresentation({
                           </button>
                         )}
                       </div>
-                      
+
                       <div className="flex items-center gap-4">
                         <div className="text-sm text-gray-600">
                           表示中: {data?.length || 0}件 / 全{sourceData?.length || 0}件
                         </div>
-                        
+
                         {/* データが0件でフィルターが有効な場合の警告 */}
                         {data?.length === 0 && sourceData?.length > 0 && (
                           <div className="flex items-center gap-2">
@@ -374,14 +397,8 @@ export function FatigueDashboardPresentation({
                     {/* フィルターパネル - 常時表示 */}
                     <SafeFilterWrapper>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                        <CampaignFilter 
-                          data={sourceData}
-                          onFilter={onFilterChange}
-                        />
-                        <PerformanceFilter
-                          data={sourceData}
-                          onFilter={onFilterChange}
-                        />
+                        <CampaignFilter data={sourceData} onFilter={onFilterChange} />
+                        <PerformanceFilter data={sourceData} onFilter={onFilterChange} />
                       </div>
                     </SafeFilterWrapper>
                   </>
@@ -389,80 +406,102 @@ export function FatigueDashboardPresentation({
 
                 {/* データ表示エリア */}
                 {data.length > 0 ? (
-
-                    <div className="relative">
-                      {/* 更新中のオーバーレイ */}
-                      {isRefreshing && (
-                        <div className="absolute inset-0 bg-white bg-opacity-75 z-10 flex items-center justify-center">
-                          <div className="bg-white rounded-lg shadow-lg p-6 flex items-center space-x-4">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-                            <span className="text-gray-700">データを更新中...</span>
-                          </div>
+                  <div className="relative">
+                    {/* 更新中のオーバーレイ */}
+                    {isRefreshing && (
+                      <div className="absolute inset-0 bg-white bg-opacity-75 z-10 flex items-center justify-center">
+                        <div className="bg-white rounded-lg shadow-lg p-6 flex items-center space-x-4">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                          <span className="text-gray-700">データを更新中...</span>
                         </div>
-                      )}
+                      </div>
+                    )}
 
-                      <Tabs defaultValue="creative-table" className="w-full">
-                        <TabsList className="grid w-full grid-cols-3 mb-6">
-                          <TabsTrigger value="creative-table">
-                            クリエイティブ
-                          </TabsTrigger>
-                          <TabsTrigger value="adset">広告セット</TabsTrigger>
-                          <TabsTrigger value="campaign">キャンペーン</TabsTrigger>
-                        </TabsList>
+                    <Tabs defaultValue="creative-table" className="w-full">
+                      <TabsList className="grid w-full grid-cols-3 mb-6">
+                        <TabsTrigger value="creative-table">クリエイティブ</TabsTrigger>
+                        <TabsTrigger value="adset">広告セット</TabsTrigger>
+                        <TabsTrigger value="campaign">キャンペーン</TabsTrigger>
+                      </TabsList>
 
-                        <TabsContent value="creative-table">
-                          {data.length > 0 && (
-                            <div className="grid grid-cols-4 gap-4 mb-8">
-                              <StatCard 
-                                title="広告数" 
-                                value={data.length} 
-                                subtitle={
-                                  aggregationMetrics 
-                                    ? `${aggregationMetrics.inputRows}行 → ${aggregationMetrics.outputRows}行` 
-                                    : undefined
-                                }
-                              />
-                              <StatCard
-                                title="Critical"
-                                value={Array.isArray(data) ? data.filter((d: any) => d.status === 'critical').length : 0}
-                                color="red"
-                              />
-                              <StatCard
-                                title="Warning"
-                                value={Array.isArray(data) ? data.filter((d: any) => d.status === 'warning').length : 0}
-                                color="yellow"
+                      <TabsContent value="creative-table">
+                        {data.length > 0 && (
+                          <div className="grid grid-cols-4 gap-4 mb-8">
+                            <StatCard
+                              title="広告数"
+                              value={data.length}
+                              subtitle={
+                                aggregationMetrics
+                                  ? `${aggregationMetrics.inputRows}行 → ${aggregationMetrics.outputRows}行`
+                                  : undefined
+                              }
+                            />
+                            <StatCard
+                              title="Critical"
+                              value={
+                                Array.isArray(data)
+                                  ? data.filter((d: any) => d.status === 'critical').length
+                                  : 0
+                              }
+                              color="red"
+                            />
+                            <StatCard
+                              title="Warning"
+                              value={
+                                Array.isArray(data)
+                                  ? data.filter((d: any) => d.status === 'warning').length
+                                  : 0
+                              }
+                              color="yellow"
                             />
                             <StatCard
                               title="Healthy"
-                              value={Array.isArray(data) ? data.filter((d: any) => d.status === 'healthy').length : 0}
+                              value={
+                                Array.isArray(data)
+                                  ? data.filter((d: any) => d.status === 'healthy').length
+                                  : 0
+                              }
                               color="green"
                             />
-                            </div>
-                          )}
+                          </div>
+                        )}
 
-                          <CreativeTableTab
-                            data={data}
-                            insights={insights}
-                            selectedAccountId={selectedAccountId}
-                            isLoading={isLoading}
-                          />
-                        </TabsContent>
+                        <CreativeTableTab
+                          data={data}
+                          insights={insights}
+                          selectedAccountId={selectedAccountId}
+                          isLoading={isLoading}
+                        />
+                      </TabsContent>
 
-                        <TabsContent value="adset">
-                          <AggregatedFatigueTable data={levelAggregatedData.adset} level="adset" />
-                        </TabsContent>
+                      <TabsContent value="adset">
+                        <AggregatedFatigueTable data={levelAggregatedData.adset} level="adset" />
+                      </TabsContent>
 
-                        <TabsContent value="campaign">
-                          <AggregatedFatigueTable data={levelAggregatedData.campaign} level="campaign" />
-                        </TabsContent>
-                      </Tabs>
-                    </div>
+                      <TabsContent value="campaign">
+                        <AggregatedFatigueTable
+                          data={levelAggregatedData.campaign}
+                          level="campaign"
+                        />
+                      </TabsContent>
+                    </Tabs>
+                  </div>
                 ) : (
                   /* データなしの場合の表示 */
                   <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
                     <div className="flex items-center">
-                      <svg className="w-6 h-6 text-yellow-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                      <svg
+                        className="w-6 h-6 text-yellow-600 mr-3"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+                        />
                       </svg>
                       <div>
                         <h3 className="text-lg font-semibold text-yellow-800 mb-2">
@@ -478,7 +517,7 @@ export function FatigueDashboardPresentation({
                         )}
                       </div>
                     </div>
-                    
+
                     <div className="mt-4 flex gap-2">
                       <button
                         onClick={() => onRefresh({ clearCache: true })}
