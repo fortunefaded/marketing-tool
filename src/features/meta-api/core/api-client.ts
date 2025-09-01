@@ -1,6 +1,11 @@
 import { AdInsight } from '../../../types'
 import { vibe } from '../../../lib/vibelogger'
 import { AccountId, AccessToken } from './branded-types'
+import type { 
+  EnhancedInsightsOptions, 
+  EnhancedPaginatedResult 
+} from './types/enhanced-api'
+import type { DebugSession } from '../debug'
 
 // ページネーション対応の返り値の型
 export interface PaginatedResult {
@@ -42,6 +47,136 @@ export class SimpleMetaApi {
     }
   }
   
+  async getTimeSeriesInsights(options?: EnhancedInsightsOptions): Promise<EnhancedPaginatedResult> {
+    console.log('📅 時系列データ取得開始（time_increment=1）')
+    const startTime = performance.now()
+    const requestTimestamp = new Date()
+    
+    // Debug session tracing
+    const debugSession = options?.debugSession
+    
+    // Build URL
+    const url = new URL(`${this.baseUrl}/${AccountId.toFullId(this.accountId)}/insights`)
+    url.searchParams.append('access_token', this.token as string)
+    url.searchParams.append('level', 'ad')
+    
+    // Date range settings
+    if (options?.timeRange) {
+      url.searchParams.append('time_range', JSON.stringify({
+        since: options.timeRange.since,
+        until: options.timeRange.until
+      }))
+    } else {
+      url.searchParams.append('date_preset', options?.datePreset || 'last_30d')
+    }
+    
+    // Timezone (default: Asia/Tokyo)
+    const timezone = options?.timezone || 'Asia/Tokyo'
+    url.searchParams.append('time_zone', timezone)
+    
+    // Include time fields and currency
+    url.searchParams.append('fields', this.getFieldsString(true, true))
+    url.searchParams.append('limit', '100')
+    
+    // Time increment for time series data
+    url.searchParams.append('time_increment', '1')
+    
+    // Attribution settings
+    const useUnifiedAttribution = options?.useUnifiedAttribution ?? true
+    if (useUnifiedAttribution) {
+      url.searchParams.append('use_unified_attribution_setting', 'true')
+    }
+    
+    // Attribution windows (for compatibility)
+    const attributionWindows = options?.attributionWindows || ['1d_click', '1d_view']
+    url.searchParams.append('action_attribution_windows', JSON.stringify(attributionWindows))
+    
+    // Force refresh
+    if (options?.forceRefresh) {
+      url.searchParams.append('_nocache', Date.now().toString())
+    }
+    
+    // Build request params for debugging
+    const requestParams = {
+      datePreset: options?.datePreset || 'last_30d',
+      timezone,
+      useUnifiedAttribution,
+      attributionWindows,
+      fields: this.getFieldsString(true, true)
+    }
+    
+    // Trace API request
+    if (debugSession) {
+      debugSession.traceApiRequest(url.pathname, requestParams)
+    }
+    
+    try {
+      // Fetch data
+      const result = await this.fetchPaginatedData(url, {
+        maxPages: options?.maxPages,
+        onProgress: options?.onProgress
+      })
+      
+      // Extract currency from data
+      const currency = options?.currency || 
+        result.data[0]?.account_currency || 
+        'JPY'
+      
+      // Calculate processing time
+      const processingTime = performance.now() - startTime
+      
+      // Trace API response
+      if (debugSession) {
+        debugSession.traceApiResponse(result, processingTime)
+      }
+      
+      // Return enhanced result
+      const enhancedResult: EnhancedPaginatedResult = {
+        ...result,
+        metadata: {
+          currency,
+          timezone,
+          attributionSettings: {
+            unified: useUnifiedAttribution,
+            windows: attributionWindows
+          },
+          requestTimestamp,
+          processingTime
+        }
+      }
+      
+      return enhancedResult
+      
+    } catch (error) {
+      // Trace error
+      if (debugSession) {
+        debugSession.traceError(error as Error, {
+          url: url.pathname,
+          params: requestParams
+        })
+      }
+      
+      // Enhanced error handling
+      if (error instanceof Error) {
+        // Rate limit error
+        if (error.message.includes('rate limit') || 
+            error.message.includes('Too many') ||
+            (error as any).code === 4) {
+          throw new Error(`Rate limit exceeded. ${error.message}`)
+        }
+        
+        // Authentication error
+        if (error.message.includes('OAuth') || 
+            error.message.includes('authentication') ||
+            error.message.includes('token')) {
+          throw new Error(`Authentication failed. ${error.message}`)
+        }
+      }
+      
+      throw error
+    }
+  }
+
   async getInsights(options: {
     datePreset?: string
     timeRange?: { since: string; until: string }
@@ -65,8 +200,8 @@ export class SimpleMetaApi {
       url.searchParams.append('date_preset', options.datePreset || 'last_30d')
     }
     
-    // 時系列データ取得のため日付フィールドを含める
-    url.searchParams.append('fields', this.getFieldsString(true))
+    // 時系列データ取得のため日付フィールドを含める（通貨フィールドも含める）
+    url.searchParams.append('fields', this.getFieldsString(true, true))
     url.searchParams.append('limit', '100')
     
     // Note: breakdownsパラメータは別メソッド（getPlatformBreakdown）で取得
@@ -88,7 +223,7 @@ export class SimpleMetaApi {
     })
   }
   
-  private getFieldsString(includeTimeFields: boolean = false): string {
+  private getFieldsString(includeTimeFields: boolean = false, includeCurrency: boolean = false): string {
     const baseFields = [
       // Basic ad info
       'ad_id', 'ad_name', 'campaign_id', 'campaign_name', 'adset_id', 'adset_name',
@@ -118,6 +253,11 @@ export class SimpleMetaApi {
     // 時系列データ用に日付フィールドを追加
     if (includeTimeFields) {
       baseFields.push('date_start', 'date_stop')
+    }
+    
+    // 通貨フィールドを追加
+    if (includeCurrency) {
+      baseFields.push('account_currency')
     }
     
     return baseFields.join(',')
@@ -412,50 +552,6 @@ export class SimpleMetaApi {
    * 時系列データ取得用メソッド（データ更新で使用）
    * time_increment=1で日別データを取得し、date_start/stopを含める
    */
-  async getTimeSeriesInsights(options?: {
-    datePreset?: string
-    dateStart?: string
-    dateStop?: string
-    maxPages?: number
-    onProgress?: (count: number) => void
-    forceRefresh?: boolean
-  }): Promise<PaginatedResult> {
-    console.log('📅 時系列データ取得開始（time_increment=1）')
-    
-    // 正しいエンドポイント: /{account_id}/insights
-    const url = new URL(`${this.baseUrl}/${AccountId.toFullId(this.accountId)}/insights`)
-    url.searchParams.append('access_token', this.token as string)
-    url.searchParams.append('level', 'ad')
-    
-    // 日付範囲の設定
-    if (options?.datePreset) {
-      url.searchParams.append('date_preset', options.datePreset)
-    } else if (options?.dateStart && options?.dateStop) {
-      url.searchParams.append('time_range', JSON.stringify({
-        since: options.dateStart,
-        until: options.dateStop
-      }))
-    } else {
-      url.searchParams.append('date_preset', 'last_30d')
-    }
-    
-    // 時系列データ取得のため、日付フィールドを含める
-    url.searchParams.append('fields', this.getFieldsString(true)) // includeTimeFields=true
-    url.searchParams.append('limit', '500')
-    
-    // 日別データ設定（重要）
-    url.searchParams.append('time_increment', '1')
-    
-    // キャッシュ回避
-    if (options?.forceRefresh) {
-      url.searchParams.append('_nocache', Date.now().toString())
-    }
-    
-    return this.fetchPaginatedData(url, {
-      maxPages: options?.maxPages,
-      onProgress: options?.onProgress
-    })
-  }
 
   /**
    * プラットフォーム別ブレークダウンデータを取得（クリエイティブ詳細分析で使用）
