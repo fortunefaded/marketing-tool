@@ -110,19 +110,20 @@ export function useAdFatigueWithAggregation({
           
           publisher_platform: insight.publisher_platform || insight.platform,
           
-          impressions: String(insight.impressions || 0),
-          clicks: String(insight.clicks || 0),
-          spend: String(insight.spend || 0),
-          reach: String(insight.reach || 0),
-          frequency: String(insight.frequency || 0),
-          unique_clicks: String(insight.unique_clicks || 0),
-          ctr: String(insight.ctr || 0),
-          cpm: String(insight.cpm || 0),
-          cpc: String(insight.cpc || 0),
+          // 数値フィールド: 既に文字列の場合はそのまま、数値の場合は文字列化
+          impressions: typeof insight.impressions === 'string' ? insight.impressions : String(insight.impressions || 0),
+          clicks: typeof insight.clicks === 'string' ? insight.clicks : String(insight.clicks || 0),
+          spend: typeof insight.spend === 'string' ? insight.spend : String(insight.spend || 0),
+          reach: typeof insight.reach === 'string' ? insight.reach : String(insight.reach || 0),
+          frequency: typeof insight.frequency === 'string' ? insight.frequency : String(insight.frequency || 0),
+          unique_clicks: typeof insight.unique_clicks === 'string' ? insight.unique_clicks : String(insight.unique_clicks || 0),
+          ctr: typeof insight.ctr === 'string' ? insight.ctr : String(insight.ctr || 0),
+          cpm: typeof insight.cpm === 'string' ? insight.cpm : String(insight.cpm || 0),
+          cpc: typeof insight.cpc === 'string' ? insight.cpc : String(insight.cpc || 0),
           
-          conversions: String(insight.conversions || 0),
-          conversion_values: String(insight.conversion_values || 0),
-          first_conversions: String(insight.first_conversions || 0),
+          conversions: typeof insight.conversions === 'string' ? insight.conversions : String(insight.conversions || 0),
+          conversion_values: typeof insight.conversion_values === 'string' ? insight.conversion_values : String(insight.conversion_values || 0),
+          first_conversions: typeof insight.first_conversions === 'string' ? insight.first_conversions : String(insight.first_conversions || 0),
           
           // クリエイティブ情報
           creative_id: insight.creative_id,

@@ -5,11 +5,17 @@ import { SimpleMetaApi, PaginatedResult } from '../core/api-client'
 import { AdInsight } from '@/types'
 import { vibe } from '@/lib/vibelogger'
 import { useLocalCache } from './useLocalCache'
+// TASK-005: リファクタリング - 日付範囲ヘルパーとキャッシュを追加
+import { useDateRangeCache } from './useDateRangeCache'
+import { isValidDateRangePreset, getDateRangeThresholds } from '../utils/date-range-helpers'
+import type { DateRangePreset } from '../utils/date-range-helpers'
 
 interface UseMetaInsightsOptions {
   accountId: string
-  datePreset?: string
+  datePreset?: DateRangePreset | string
   autoFetch?: boolean
+  onDatePresetChange?: (newPreset: string) => void // TASK-005: 追加
+  debugMode?: boolean // TASK-005: リファクタリング - デバッグモード追加
 }
 
 interface UseMetaInsightsProgress {
@@ -23,7 +29,11 @@ interface UseMetaInsightsResult {
   isLoading: boolean
   isLoadingMore: boolean
   error: Error | null
-  fetch: (options?: { forceRefresh?: boolean }) => Promise<void>
+  fetch: (options?: { 
+    forceRefresh?: boolean,
+    datePresetOverride?: string // TASK-005: 追加
+  }) => Promise<void>
+  currentDatePreset: string // TASK-005: 追加
   lastFetchTime: Date | null
   progress: UseMetaInsightsProgress
   stopAutoFetch: () => void
@@ -31,15 +41,27 @@ interface UseMetaInsightsResult {
 
 /**
  * Meta API からインサイトデータを取得する専用フック
- * 責務: API 通信とデータ取得のみ
+ * TASK-005: 日付範囲パラメータ伝播対応版
+ * 責務: API 通信、データ取得、日付範囲管理
  */
 export function useMetaInsights({
   accountId,
   datePreset = 'last_30d',
-  autoFetch = false
+  autoFetch = false,
+  onDatePresetChange, // TASK-005: 追加
+  debugMode = false // TASK-005: リファクタリング
 }: UseMetaInsightsOptions): UseMetaInsightsResult {
   const convex = useConvex()
   const localCache = useLocalCache()
+  // TASK-005: リファクタリング - 日付範囲対応キャッシュを使用
+  const dateRangeCache = useDateRangeCache()
+  
+  // TASK-005: デバッグログのヘルパー関数
+  const debugLog = useCallback((message: string, data?: any) => {
+    if (debugMode) {
+      console.log(`🔍 [useMetaInsights] ${message}`, data)
+    }
+  }, [debugMode])
   
   // 初期値としてキャッシュをチェック
   const [insights, setInsights] = useState<AdInsight[] | null>(() => {
@@ -269,12 +291,24 @@ export function useMetaInsights({
     setIsLoadingMore(false)
   }, [])
   
+  // TASK-005: 現在の有効なdatePresetを追跡
+  const [currentDatePreset, setCurrentDatePreset] = useState(datePreset)
+  
+  // TASK-005: リファクタリング - 日付範囲の妥当性チェック
+  const validatedDatePreset = useMemo(() => {
+    const preset = typeof datePreset === 'string' ? datePreset : 'last_30d'
+    return isValidDateRangePreset(preset) ? preset as DateRangePreset : 'last_30d'
+  }, [datePreset])
+  
   // 初回取得
   const fetch = useCallback(async (options?: { 
     forceRefresh?: boolean,
-    datePresetOverride?: string  // 日付範囲を引数として受け取る
+    datePresetOverride?: string  // TASK-005: 日付範囲を引数として受け取る
   }) => {
     const effectiveDatePreset = options?.datePresetOverride || datePreset
+    
+    // TASK-005: 現在のdatePresetを更新
+    setCurrentDatePreset(effectiveDatePreset)
     console.log('🔄 Meta API fetch開始:', { 
       accountId, 
       isLoading, 
@@ -396,6 +430,10 @@ export function useMetaInsights({
         // 合算済みデータを設定
         setInsights(aggregatedData)
         setLastFetchTime(new Date())
+        // TASK-005: datePreset変更コールバックの実行
+        if (onDatePresetChange && effectiveDatePreset !== datePreset) {
+          onDatePresetChange(effectiveDatePreset)
+        }
         // キャッシュには元の時系列データを保存（詳細分析用）
         localCache.setCachedData(accountId, aggregatedData, result.nextPageUrl, !result.hasMore)
         vibe.good(`インサイトデータ取得成功: ${result.data.length}件 (時系列データ)`)
@@ -427,7 +465,7 @@ export function useMetaInsights({
         setIsLoading(false)
       }
     }
-  }, [accountId, convex, localCache, isLoading, loadCachedData, startAutoFetch])
+  }, [accountId, convex, localCache, isLoading, loadCachedData, startAutoFetch, datePreset, onDatePresetChange, debugLog])
   
   // クリーンアップ
   useEffect(() => {
@@ -437,26 +475,28 @@ export function useMetaInsights({
     }
   }, [stopAutoFetch])
   
-  // datePreset変更時の再取得
-  const prevDatePresetRef = useRef(datePreset)
+  // TASK-005: datePreset変更時の再取得（循環依存回避）
+  const prevDatePresetRef = useRef<string>()
   useEffect(() => {
     // 初回レンダリング時はスキップ、datePresetが実際に変更された時のみ実行
-    if (prevDatePresetRef.current !== datePreset && accountId && datePreset) {
-      console.log('📅 日付範囲変更を検出:', { 
-        oldDatePreset: prevDatePresetRef.current,
-        newDatePreset: datePreset, 
-        accountId 
+    if (prevDatePresetRef.current !== undefined && prevDatePresetRef.current !== datePreset && accountId && datePreset) {
+      console.log('📅 日付範囲変更検知:', { 
+        oldRange: prevDatePresetRef.current,
+        newRange: datePreset,
+        accountId
       })
-      prevDatePresetRef.current = datePreset
       
       // キャッシュをクリアして新しいデータを取得
       localCache.clearCache(accountId)
       // 停止中の自動取得があればクリア
       stopAutoFetch()
-      // 新しい日付範囲でデータを取得（datePresetを引数として渡す）
+      
+      // 強制リフレッシュ with datePresetOverride
       fetch({ forceRefresh: true, datePresetOverride: datePreset })
     }
-  }, [datePreset, accountId, localCache, stopAutoFetch, fetch])
+    
+    prevDatePresetRef.current = datePreset
+  }, [datePreset, accountId, localCache, stopAutoFetch, fetch, debugLog])
   
   // 自動フェッチ（初回のみ）
   useEffect(() => {
@@ -475,13 +515,14 @@ export function useMetaInsights({
     }
   }, [autoFetch, accountId])
   
-  // 戻り値をログ出力
+  // TASK-005: 戻り値にcurrentDatePresetを追加
   const returnValue = {
     insights,
     isLoading,
     isLoadingMore,
     error,
     fetch,
+    currentDatePreset,
     lastFetchTime,
     progress,
     stopAutoFetch

@@ -1,5 +1,6 @@
 /**
  * gap-detection-types.ts
+ * TASK-005: 日付範囲対応ギャップ検出エンジン型定義
  * TASK-202: ギャップ検出エンジン関連の型定義
  */
 
@@ -163,4 +164,74 @@ export interface AggregatedTimelineMetrics {
   averageCPC: number
   averageCPM: number
   averageFrequency: number
+}
+
+// TASK-005: 日付範囲対応の新しい型定義
+export interface DateRangeGapDetectionConfig {
+  dateRangeAware: boolean
+  timeSeriesAnalysis: {
+    enabled: boolean
+    minDataPoints: number
+    trendAnalysisWindow: number
+  }
+  thresholds: {
+    ctrDeclineThreshold: number
+    frequencyWarningThreshold: number
+    cpmIncreaseThreshold: number
+    minImpressions: number
+  }
+}
+
+export interface DateRangeGapAnalysisResult {
+  dateRange: string
+  analysisTimestamp: Date
+  dataPoints: number
+  gaps: AdFatigueGap[]
+  summary: {
+    criticalAdsCount: number
+    warningAdsCount: number
+    healthyAdsCount: number
+  }
+  timeSeriesAnalysis?: {
+    enabled: boolean
+    dateRange: string
+    dataPointsCount: number
+    trendStrength?: number
+    seasonalityDetected?: boolean
+    seasonalPattern?: any
+  }
+}
+
+export interface AdFatigueGap {
+  adId: string
+  adName?: string
+  campaignId?: string
+  campaignName?: string
+  severity: 'low' | 'medium' | 'high'
+  fatigueIndicators: {
+    creative: {
+      trend: 'declining' | 'stable' | 'improving'
+      severity: 'low' | 'medium' | 'high'
+      ctrChange?: number
+    }
+    audience: {
+      frequencyTrend: 'increasing' | 'stable' | 'decreasing'
+      severity: 'low' | 'medium' | 'high'
+      currentFrequency?: number
+    }
+    platform: {
+      cpmTrend: 'increasing' | 'stable' | 'decreasing'
+      severity: 'low' | 'medium' | 'high'
+      cpmChange?: number
+    }
+  }
+  recommendations: string[]
+  metrics: {
+    currentCtr: number
+    currentFrequency: number
+    currentCpm: number
+    impressions: number
+    clicks: number
+    spend: number
+  }
 }

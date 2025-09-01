@@ -108,7 +108,8 @@ function sumField(insights: AdInsight[], field: keyof AdInsight): string {
     const value = parseFloat(String(insight[field] || 0))
     return total + (isNaN(value) ? 0 : value)
   }, 0)
-  return String(sum)
+  // 数値として計算後、最後に文字列化（文字列連結を防ぐ）
+  return sum.toString()
 }
 
 /**
@@ -122,7 +123,8 @@ function avgField(insights: AdInsight[], field: keyof AdInsight): string {
   if (validValues.length === 0) return '0'
   
   const avg = validValues.reduce((sum, val) => sum + val, 0) / validValues.length
-  return String(avg)
+  // 数値として計算後、最後に文字列化
+  return avg.toString()
 }
 
 /**
@@ -133,7 +135,8 @@ function calculateWeightedCTR(insights: AdInsight[]): string {
   const totalClicks = insights.reduce((sum, i) => sum + parseFloat(i.clicks || '0'), 0)
   
   if (totalImpressions === 0) return '0'
-  return String((totalClicks / totalImpressions) * 100)
+  const ctr = (totalClicks / totalImpressions) * 100
+  return ctr.toString()
 }
 
 /**
@@ -144,7 +147,8 @@ function calculateWeightedCPM(insights: AdInsight[]): string {
   const totalSpend = insights.reduce((sum, i) => sum + parseFloat(i.spend || '0'), 0)
   
   if (totalImpressions === 0) return '0'
-  return String((totalSpend / totalImpressions) * 1000)
+  const cpm = (totalSpend / totalImpressions) * 1000
+  return cpm.toString()
 }
 
 /**
@@ -155,7 +159,8 @@ function calculateWeightedCPC(insights: AdInsight[]): string {
   const totalSpend = insights.reduce((sum, i) => sum + parseFloat(i.spend || '0'), 0)
   
   if (totalClicks === 0) return '0'
-  return String(totalSpend / totalClicks)
+  const cpc = totalSpend / totalClicks
+  return cpc.toString()
 }
 
 /**
@@ -176,7 +181,7 @@ function mergeActions(insights: AdInsight[]): any[] {
   
   return Array.from(actionMap.entries()).map(([action_type, value]) => ({
     action_type,
-    value: String(value)
+    value: value.toString()  // 数値を文字列化
   }))
 }
 
@@ -205,7 +210,7 @@ function calculateAverageCostPerAction(insights: AdInsight[]): any[] {
   
   return Array.from(actionCostMap.entries()).map(([action_type, data]) => ({
     action_type,
-    value: String(data.count > 0 ? data.total / data.count : 0)
+    value: (data.count > 0 ? data.total / data.count : 0).toString()
   }))
 }
 

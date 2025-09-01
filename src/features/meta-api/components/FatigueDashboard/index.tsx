@@ -89,7 +89,7 @@ export const FatigueDashboard: React.FC<FatigueDashboardProps> = ({
   } = useDataFiltering(scoredData)
 
   // レベル別集約（タブ用）
-  const levelAggregatedData = useMemo(() => ({
+  const levelAggregatedData = React.useMemo(() => ({
     adset: aggregateByLevel(filteredData, 'adset'),
     campaign: aggregateByLevel(filteredData, 'campaign')
   }), [filteredData])
