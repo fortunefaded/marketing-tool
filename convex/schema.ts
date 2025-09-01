@@ -2,7 +2,7 @@ import { defineSchema, defineTable } from 'convex/server'
 import { v } from 'convex/values'
 
 // Import pagination table definitions
-import { 
+import {
   dataRetrievalHistory,
   apiCallDetails,
   deliveryPatternAnalysis,
@@ -12,6 +12,17 @@ import {
   timelineCache,
   performanceStats,
 } from './metaApiPagination'
+
+// Import cache system table definitions
+import {
+  dataFreshness,
+  cacheEntries,
+  differentialUpdates,
+  cacheMetrics,
+  updateSchedules,
+  cacheAlerts,
+  backpressureState,
+} from './cacheSchema'
 
 export default defineSchema({
   // ユーザーテーブル
@@ -125,9 +136,9 @@ export default defineSchema({
     publisher_platform: v.optional(v.string()),
     placement: v.optional(v.string()),
     profile_visits: v.optional(v.number()),
-    profile_views: v.optional(v.number()),  // profile_visitsのエイリアス
+    profile_views: v.optional(v.number()), // profile_visitsのエイリアス
     follows: v.optional(v.number()),
-    follower_count: v.optional(v.number()),  // followsのエイリアス
+    follower_count: v.optional(v.number()), // followsのエイリアス
     website_clicks: v.optional(v.number()),
     story_replies: v.optional(v.number()),
     story_exits: v.optional(v.number()),
@@ -860,7 +871,12 @@ export default defineSchema({
     errors: v.optional(v.array(v.string())),
     startedAt: v.string(),
     completedAt: v.optional(v.string()),
-    status: v.union(v.literal('pending'), v.literal('processing'), v.literal('completed'), v.literal('failed')),
+    status: v.union(
+      v.literal('pending'),
+      v.literal('processing'),
+      v.literal('completed'),
+      v.literal('failed')
+    ),
     importedBy: v.optional(v.string()),
   })
     .index('by_status', ['status'])
@@ -889,8 +905,7 @@ export default defineSchema({
     limitPerRequest: v.optional(v.number()),
     skipCreatives: v.optional(v.boolean()),
     updatedAt: v.string(),
-  })
-    .index('by_accountId', ['accountId']),
+  }).index('by_accountId', ['accountId']),
 
   // ダッシュボード設定テーブル
   dashboardSettings: defineTable({
@@ -899,8 +914,7 @@ export default defineSchema({
     theme: v.optional(v.string()),
     preferences: v.optional(v.any()),
     updatedAt: v.string(),
-  })
-    .index('by_userId', ['userId']),
+  }).index('by_userId', ['userId']),
 
   // お気に入り分析テーブル
   favoriteAnalyses: defineTable({
@@ -953,8 +967,7 @@ export default defineSchema({
     provider: v.string(), // 'meta', 'google', etc.
     config: v.any(), // API設定のJSON
     updatedAt: v.string(),
-  })
-    .index('by_provider', ['provider']),
+  }).index('by_provider', ['provider']),
 
   // メモリーテーブル（汎用設定保存用）
   memories: defineTable({
@@ -977,29 +990,28 @@ export default defineSchema({
     scopes: v.optional(v.array(v.string())),
     userId: v.optional(v.string()),
     updatedAt: v.string(),
-  })
-    .index('by_type', ['tokenType']),
+  }).index('by_type', ['tokenType']),
 
   // Instagram特有のメトリクステーブル
   instagramMetrics: defineTable({
     adId: v.string(),
     date: v.string(),
-    
+
     // 保存関連
     saves: v.number(),
     saveRate: v.number(),
-    
+
     // プロフィール関連
     profileVisits: v.number(),
     follows: v.number(),
     profileToFollowRate: v.number(),
     websiteClicks: v.number(),
-    
+
     // シェア関連
     shares: v.number(),
     sharesStory: v.optional(v.number()),
     sharesDM: v.optional(v.number()),
-    
+
     // フォーマット別
     format: v.union(
       v.literal('image'),
@@ -1008,29 +1020,28 @@ export default defineSchema({
       v.literal('reels'),
       v.literal('stories')
     ),
-    
+
     // Reels特有
     reelsPlays: v.optional(v.number()),
     averageWatchTime: v.optional(v.number()),
     completionRate: v.optional(v.number()),
-    
+
     // Stories特有
     storiesReplies: v.optional(v.number()),
     storiesExits: v.optional(v.number()),
     storiesTapsForward: v.optional(v.number()),
     storiesTapsBack: v.optional(v.number()),
-    
+
     // リーチの質
     reachedNonFollowers: v.number(),
     reachedNonFollowersRate: v.number(),
     impressionsFromExplore: v.number(),
     impressionsFromHashtags: v.number(),
-    impressionsFromHome: v.number()
+    impressionsFromHome: v.number(),
   })
     .index('by_ad', ['adId'])
     .index('by_date', ['date'])
     .index('by_save_rate', ['saveRate']),
-
 
   // First Time Conversionsテーブル
   firstTimeConversions: defineTable({
@@ -1066,28 +1077,53 @@ export default defineSchema({
   // ============================================================================
   // Meta API Pagination System Tables
   // ============================================================================
-  
+
   // データ取得履歴
   dataRetrievalHistory,
-  
+
   // API呼び出し詳細
   apiCallDetails,
-  
+
   // 配信パターン分析
   deliveryPatternAnalysis,
-  
+
   // タイムラインデータ
   timelineData,
-  
+
   // 異常検知
   anomalyDetections,
-  
+
   // ギャップ分析
   gapAnalysis,
-  
+
   // タイムラインキャッシュ
   timelineCache,
-  
+
   // パフォーマンス統計
   performanceStats,
+
+  // ============================================================================
+  // Cache System Tables (3-Layer Cache Architecture)
+  // ============================================================================
+
+  // データ鮮度管理
+  dataFreshness,
+
+  // キャッシュエントリ
+  cacheEntries,
+
+  // 差分更新履歴
+  differentialUpdates,
+
+  // キャッシュメトリクス
+  cacheMetrics,
+
+  // 更新スケジュール
+  updateSchedules,
+
+  // キャッシュアラート
+  cacheAlerts,
+
+  // バックプレッシャー管理
+  backpressureState,
 })
