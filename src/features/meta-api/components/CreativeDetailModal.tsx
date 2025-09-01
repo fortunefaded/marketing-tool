@@ -1,4 +1,4 @@
-import { Fragment, useState, useMemo } from 'react'
+import React, { Fragment, useState } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { XMarkIcon, ChartBarIcon } from '@heroicons/react/24/outline'
 import { FatigueData } from '@/types'
@@ -126,7 +126,7 @@ export function CreativeDetailModal({ isOpen, onClose, item, insight }: Creative
   })
 
   // 時系列データの抽出と処理
-  const timeSeriesData = useMemo(() => {
+  const timeSeriesData = React.useMemo(() => {
     if (!insight) {
       console.log('[TimeSeriesData] No insight data available')
       return { hasData: false, chartData: [], summary: null }
@@ -141,27 +141,29 @@ export function CreativeDetailModal({ isOpen, onClose, item, insight }: Creative
         impressions: insight.impressions,
         ctr: insight.ctr,
         cpm: insight.cpm,
-        frequency: insight.frequency
+        frequency: insight.frequency,
       })
 
       // 単一の時系列ポイントとして処理
-      const chartData = [{
-        date: insight.date_start || new Date().toISOString().split('T')[0],
-        ctr: insight.ctr || 0,
-        cpm: insight.cpm || 0,
-        frequency: insight.frequency || 0,
-        spend: insight.spend || 0,
-        impressions: insight.impressions || 0,
-        clicks: insight.clicks || 0,
-        conversions: insight.conversions || 0
-      }]
+      const chartData = [
+        {
+          date: insight.date_start || new Date().toISOString().split('T')[0],
+          ctr: insight.ctr || 0,
+          cpm: insight.cpm || 0,
+          frequency: insight.frequency || 0,
+          spend: insight.spend || 0,
+          impressions: insight.impressions || 0,
+          clicks: insight.clicks || 0,
+          conversions: insight.conversions || 0,
+        },
+      ]
 
       const summary = {
         totalDays: 1,
         avgCTR: insight.ctr || 0,
         avgCPM: insight.cpm || 0,
         avgFrequency: insight.frequency || 0,
-        totalSpend: insight.spend || 0
+        totalSpend: insight.spend || 0,
       }
 
       return { hasData: true, chartData, summary }
@@ -172,7 +174,7 @@ export function CreativeDetailModal({ isOpen, onClose, item, insight }: Creative
   }, [insight])
 
   // プラットフォーム別データを処理（レガシー）
-  const platformData = useMemo(() => {
+  const platformData = React.useMemo(() => {
     console.log('[CreativeDetailModal] Processing platform data:', { item, insight })
 
     // insightがない場合はサンプルデータを返す
@@ -548,18 +550,25 @@ export function CreativeDetailModal({ isOpen, onClose, item, insight }: Creative
                             <div className="bg-white border rounded-lg p-4">
                               <div className="grid grid-cols-3 gap-4 mb-4 text-sm">
                                 <div className="text-center">
-                                  <div className="font-medium text-blue-600">CTR: {(timeSeriesData.summary.avgCTR * 100).toFixed(2)}%</div>
+                                  <div className="font-medium text-blue-600">
+                                    CTR: {(timeSeriesData.summary.avgCTR * 100).toFixed(2)}%
+                                  </div>
                                 </div>
                                 <div className="text-center">
-                                  <div className="font-medium text-green-600">CPM: ¥{timeSeriesData.summary.avgCPM.toFixed(0)}</div>
+                                  <div className="font-medium text-green-600">
+                                    CPM: ¥{timeSeriesData.summary.avgCPM.toFixed(0)}
+                                  </div>
                                 </div>
                                 <div className="text-center">
-                                  <div className="font-medium text-orange-600">Frequency: {timeSeriesData.summary.avgFrequency.toFixed(2)}</div>
+                                  <div className="font-medium text-orange-600">
+                                    Frequency: {timeSeriesData.summary.avgFrequency.toFixed(2)}
+                                  </div>
                                 </div>
                               </div>
                               <div className="text-xs text-gray-600 text-center">
                                 期間: {timeSeriesData.chartData[0]?.date || 'N/A'}
-                                {timeSeriesData.chartData.length > 1 && ` ～ ${timeSeriesData.chartData[timeSeriesData.chartData.length - 1]?.date}`}
+                                {timeSeriesData.chartData.length > 1 &&
+                                  ` ～ ${timeSeriesData.chartData[timeSeriesData.chartData.length - 1]?.date}`}
                               </div>
                             </div>
                           </div>
@@ -568,7 +577,9 @@ export function CreativeDetailModal({ isOpen, onClose, item, insight }: Creative
                             <div className="text-center">
                               <div className="text-4xl text-gray-400 mb-2">📈</div>
                               <div className="text-sm text-gray-600">時系列データを準備中</div>
-                              <div className="text-xs text-gray-500 mt-1">insight データを取得してください</div>
+                              <div className="text-xs text-gray-500 mt-1">
+                                insight データを取得してください
+                              </div>
                             </div>
                           </div>
                         )}
@@ -578,27 +589,41 @@ export function CreativeDetailModal({ isOpen, onClose, item, insight }: Creative
                       <div className="mb-6">
                         {timeSeriesData.hasData ? (
                           <div>
-                            <div className="text-sm font-medium text-gray-700 mb-2">広告費・コンバージョンの推移</div>
+                            <div className="text-sm font-medium text-gray-700 mb-2">
+                              広告費・コンバージョンの推移
+                            </div>
                             <div className="bg-white border rounded-lg p-4">
                               <div className="grid grid-cols-4 gap-4 mb-4 text-sm">
                                 <div className="text-center">
-                                  <div className="font-medium text-purple-600">広告費: ¥{timeSeriesData.summary.totalSpend.toLocaleString()}</div>
+                                  <div className="font-medium text-purple-600">
+                                    広告費: ¥{timeSeriesData.summary.totalSpend.toLocaleString()}
+                                  </div>
                                 </div>
                                 <div className="text-center">
-                                  <div className="font-medium text-blue-600">インプレッション: {timeSeriesData.chartData[0]?.impressions.toLocaleString()}</div>
+                                  <div className="font-medium text-blue-600">
+                                    インプレッション:{' '}
+                                    {timeSeriesData.chartData[0]?.impressions.toLocaleString()}
+                                  </div>
                                 </div>
                                 <div className="text-center">
-                                  <div className="font-medium text-green-600">クリック: {timeSeriesData.chartData[0]?.clicks.toLocaleString()}</div>
+                                  <div className="font-medium text-green-600">
+                                    クリック: {timeSeriesData.chartData[0]?.clicks.toLocaleString()}
+                                  </div>
                                 </div>
                                 <div className="text-center">
-                                  <div className="font-medium text-red-600">CV: {timeSeriesData.chartData[0]?.conversions || 0}</div>
+                                  <div className="font-medium text-red-600">
+                                    CV: {timeSeriesData.chartData[0]?.conversions || 0}
+                                  </div>
                                 </div>
                               </div>
                               <div className="text-xs text-gray-600 text-center">
-                                CPA: ¥{timeSeriesData.chartData[0]?.conversions > 0 ? 
-                                  (timeSeriesData.summary.totalSpend / timeSeriesData.chartData[0].conversions).toLocaleString() : 
-                                  'N/A'
-                                }
+                                CPA: ¥
+                                {timeSeriesData.chartData[0]?.conversions > 0
+                                  ? (
+                                      timeSeriesData.summary.totalSpend /
+                                      timeSeriesData.chartData[0].conversions
+                                    ).toLocaleString()
+                                  : 'N/A'}
                               </div>
                             </div>
                           </div>
@@ -606,8 +631,12 @@ export function CreativeDetailModal({ isOpen, onClose, item, insight }: Creative
                           <div className="bg-gray-50 rounded-lg p-4 h-64 flex items-center justify-center">
                             <div className="text-center">
                               <div className="text-4xl text-gray-400 mb-2">💰</div>
-                              <div className="text-sm text-gray-600">パフォーマンスデータを準備中</div>
-                              <div className="text-xs text-gray-500 mt-1">insight データから算出</div>
+                              <div className="text-sm text-gray-600">
+                                パフォーマンスデータを準備中
+                              </div>
+                              <div className="text-xs text-gray-500 mt-1">
+                                insight データから算出
+                              </div>
                             </div>
                           </div>
                         )}
@@ -619,7 +648,9 @@ export function CreativeDetailModal({ isOpen, onClose, item, insight }: Creative
                         <p>✅ time_increment=1 でAPI取得</p>
                         <p>✅ ブレークダウンデータは利用せず数値整合性を優先</p>
                         <p>Data source: {insight ? '✅ Meta API (time-series)' : '⏳ 取得中'}</p>
-                        <p>Time-series data: {timeSeriesData.hasData ? '✅ 処理済み' : '❌ 未処理'}</p>
+                        <p>
+                          Time-series data: {timeSeriesData.hasData ? '✅ 処理済み' : '❌ 未処理'}
+                        </p>
                         {timeSeriesData.hasData && (
                           <p>Period: {timeSeriesData.chartData[0]?.date}</p>
                         )}
@@ -634,7 +665,9 @@ export function CreativeDetailModal({ isOpen, onClose, item, insight }: Creative
                             <div className="mt-2 text-xs text-blue-600">日別データで分析</div>
                           </div>
                           <div className="bg-gray-50 rounded-lg p-4">
-                            <div className="text-lg font-semibold text-gray-900">パフォーマンス</div>
+                            <div className="text-lg font-semibold text-gray-900">
+                              パフォーマンス
+                            </div>
                             <div className="text-sm text-gray-600">CV・CPA・ROAS</div>
                             <div className="mt-2 text-xs text-blue-600">収益性の変化</div>
                           </div>
@@ -648,7 +681,9 @@ export function CreativeDetailModal({ isOpen, onClose, item, insight }: Creative
 
                       {/* 実装予告 */}
                       <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                        <h4 className="font-medium text-green-800 mb-2">時系列分析機能（開発中）</h4>
+                        <h4 className="font-medium text-green-800 mb-2">
+                          時系列分析機能（開発中）
+                        </h4>
                         <ul className="text-sm text-green-700 space-y-1">
                           <li>• 日別パフォーマンス推移グラフ</li>
                           <li>• 疲労度スコアの時系列変化</li>

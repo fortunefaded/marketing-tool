@@ -1,7 +1,12 @@
-import { useMemo, useState } from 'react'
+import React, { useState } from 'react'
 // CreativeTable import removed - component not used
 import { FatigueData } from '@/types'
-import { normalizeDataArray, getSafeMetrics, calculateMetric, debugDataStructure } from '../utils/safe-data-access'
+import {
+  normalizeDataArray,
+  getSafeMetrics,
+  calculateMetric,
+  debugDataStructure,
+} from '../utils/safe-data-access'
 import {
   ChevronUpIcon,
   ChevronDownIcon,
@@ -71,7 +76,7 @@ export function CreativeTableTab({
   const [isModalOpen, setIsModalOpen] = useState(false)
 
   // insightsをマップ化
-  const insightsMap = useMemo(() => {
+  const insightsMap = React.useMemo(() => {
     const map = new Map()
     if (insights && Array.isArray(insights)) {
       insights.forEach((insight) => {
@@ -84,15 +89,15 @@ export function CreativeTableTab({
   }, [insights])
 
   // データを拡張してソート
-  const sortedData = useMemo(() => {
+  const sortedData = React.useMemo(() => {
     console.log('sortedData recalculating:', { sortField, sortDirection, dataLength: data?.length })
-    
+
     // デバッグ情報を出力（開発環境のみ）
     debugDataStructure(data, 'CreativeTableTab Input Data')
-    
+
     // データを正規化（null/undefined対策済み）
     const normalizedData = normalizeDataArray(data)
-    
+
     if (normalizedData.length === 0) {
       console.warn('CreativeTableTab: No valid data after normalization')
       return []
@@ -114,7 +119,7 @@ export function CreativeTableTab({
     const enrichedData = normalizedData.map((item) => {
       const insight = insightsMap.get(item.ad_id)
       const metrics = getSafeMetrics(item)
-      
+
       return {
         ...item,
         // 元のデータ構造との互換性を保つためのマッピング
@@ -125,16 +130,16 @@ export function CreativeTableTab({
         adsetId: item.adset_id,
         adsetName: item.adset_name,
         score: item.fatigueScore,
-        
+
         // インサイトデータ
         insight,
-        
+
         // 安全に取得したメトリクス
         impressions: metrics.impressions,
         clicks: metrics.clicks,
         spend: metrics.spend,
         conversions: metrics.conversions,
-        
+
         // 計算メトリクス（安全）
         cpa: calculateMetric(metrics, 'cpa'),
         roas: calculateMetric(metrics, 'roas'),
@@ -503,9 +508,7 @@ export function CreativeTableTab({
                   className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
                   style={{ width: '75px' }}
                 >
-                  <div className="flex items-center justify-center gap-1">
-                    F-CV
-                  </div>
+                  <div className="flex items-center justify-center gap-1">F-CV</div>
                 </th>
                 <th
                   className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"

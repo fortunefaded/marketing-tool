@@ -3,7 +3,7 @@
  * リファクタリング後のメインコンテナコンポーネント
  */
 
-import React, { useState, useMemo } from 'react'
+import React, { useState } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useMetaAdsData } from '../../hooks/core/useMetaAdsData'
 import { useAdAggregation } from '../../hooks/composed/useAdAggregation'
@@ -34,7 +34,7 @@ export const FatigueDashboard: React.FC<FatigueDashboardProps> = ({
   accounts,
   selectedAccountId,
   isLoadingAccounts,
-  onAccountSelect
+  onAccountSelect,
 }) => {
   // 状態管理
   const [dateRange, setDateRange] = useState<DateRangeFilter>('last_30d')
@@ -50,20 +50,16 @@ export const FatigueDashboard: React.FC<FatigueDashboardProps> = ({
     error,
     dataSource,
     lastUpdateTime,
-    refetch
+    refetch,
   } = useMetaAdsData({
     accountId: selectedAccountId || '',
     dateRange,
-    preferCache: true
+    preferCache: true,
   })
 
   // データ集約
-  const {
-    aggregatedData,
-    aggregationMetrics,
-    isAggregating
-  } = useAdAggregation(rawData, {
-    enabled: enableAggregation
+  const { aggregatedData, aggregationMetrics, isAggregating } = useAdAggregation(rawData, {
+    enabled: enableAggregation,
   })
 
   // 疲労度計算
@@ -71,11 +67,9 @@ export const FatigueDashboard: React.FC<FatigueDashboardProps> = ({
     scoredData,
     fatigueScores,
     statistics: fatigueStatistics,
-    baseline
+    baseline,
   } = useFatigueScoring(
-    enableAggregation && aggregatedData.length > 0 
-      ? aggregatedData as UnifiedAdData[] 
-      : rawData,
+    enableAggregation && aggregatedData.length > 0 ? (aggregatedData as UnifiedAdData[]) : rawData,
     { enabled: true }
   )
 
@@ -85,14 +79,17 @@ export const FatigueDashboard: React.FC<FatigueDashboardProps> = ({
     criteria,
     updateCriteria,
     resetCriteria,
-    filterStats
+    filterStats,
   } = useDataFiltering(scoredData)
 
   // レベル別集約（タブ用）
-  const levelAggregatedData = React.useMemo(() => ({
-    adset: aggregateByLevel(filteredData, 'adset'),
-    campaign: aggregateByLevel(filteredData, 'campaign')
-  }), [filteredData])
+  const levelAggregatedData = React.useMemo(
+    () => ({
+      adset: aggregateByLevel(filteredData, 'adset'),
+      campaign: aggregateByLevel(filteredData, 'campaign'),
+    }),
+    [filteredData]
+  )
 
   // ハンドラー
   const handleRefresh = async (options?: { clearCache?: boolean }) => {
@@ -182,9 +179,7 @@ export const FatigueDashboard: React.FC<FatigueDashboardProps> = ({
               <div className="bg-white rounded-lg shadow-sm p-6">
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                   <TabsList className="grid w-full grid-cols-3 mb-6">
-                    <TabsTrigger value="creative-table">
-                      クリエイティブ
-                    </TabsTrigger>
+                    <TabsTrigger value="creative-table">クリエイティブ</TabsTrigger>
                     <TabsTrigger value="adset">広告セット</TabsTrigger>
                     <TabsTrigger value="campaign">キャンペーン</TabsTrigger>
                   </TabsList>
@@ -207,17 +202,11 @@ export const FatigueDashboard: React.FC<FatigueDashboardProps> = ({
                   </TabsContent>
 
                   <TabsContent value="adset">
-                    <AggregatedFatigueTable 
-                      data={levelAggregatedData.adset} 
-                      level="adset" 
-                    />
+                    <AggregatedFatigueTable data={levelAggregatedData.adset} level="adset" />
                   </TabsContent>
 
                   <TabsContent value="campaign">
-                    <AggregatedFatigueTable 
-                      data={levelAggregatedData.campaign} 
-                      level="campaign" 
-                    />
+                    <AggregatedFatigueTable data={levelAggregatedData.campaign} level="campaign" />
                   </TabsContent>
                 </Tabs>
               </div>

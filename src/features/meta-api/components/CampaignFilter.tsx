@@ -3,7 +3,7 @@
  * キャンペーン、広告セット、広告を選択的にフィルターするコンポーネント
  */
 
-import React, { useState, useMemo } from 'react'
+import React, { useState } from 'react'
 import type { AdPerformanceData } from '../../../docs/design/meta-api-data-aggregation/interfaces'
 
 interface CampaignFilterProps {
@@ -18,12 +18,12 @@ export function CampaignFilter({ data, onFilter, className = '' }: CampaignFilte
   const [searchTerm, setSearchTerm] = useState('')
 
   // データから一意のキャンペーンと広告セットを抽出
-  const { campaigns, adSets } = useMemo(() => {
+  const { campaigns, adSets } = React.useMemo(() => {
     if (!Array.isArray(data)) return { campaigns: [], adSets: [] }
-    
+
     const campaignMap = new Map<string, string>()
     const adSetMap = new Map<string, string>()
-    
+
     data.forEach((item: any) => {
       if (item.campaign_id && item.campaign_name) {
         campaignMap.set(item.campaign_id, item.campaign_name)
@@ -32,10 +32,10 @@ export function CampaignFilter({ data, onFilter, className = '' }: CampaignFilte
         adSetMap.set(item.adset_id, item.adset_name)
       }
     })
-    
+
     return {
       campaigns: Array.from(campaignMap.entries()).map(([id, name]) => ({ id, name })),
-      adSets: Array.from(adSetMap.entries()).map(([id, name]) => ({ id, name }))
+      adSets: Array.from(adSetMap.entries()).map(([id, name]) => ({ id, name })),
     }
   }, [data])
 
@@ -50,25 +50,22 @@ export function CampaignFilter({ data, onFilter, className = '' }: CampaignFilte
 
     // キャンペーンフィルター
     if (selectedCampaigns.size > 0) {
-      filtered = filtered.filter((item: any) => 
-        selectedCampaigns.has(item.campaign_id)
-      )
+      filtered = filtered.filter((item: any) => selectedCampaigns.has(item.campaign_id))
     }
 
     // 広告セットフィルター
     if (selectedAdSets.size > 0) {
-      filtered = filtered.filter((item: any) => 
-        selectedAdSets.has(item.adset_id)
-      )
+      filtered = filtered.filter((item: any) => selectedAdSets.has(item.adset_id))
     }
 
     // 検索フィルター
     if (searchTerm) {
       const term = searchTerm.toLowerCase()
-      filtered = filtered.filter((item: any) => 
-        item.ad_name?.toLowerCase().includes(term) ||
-        item.campaign_name?.toLowerCase().includes(term) ||
-        item.adset_name?.toLowerCase().includes(term)
+      filtered = filtered.filter(
+        (item: any) =>
+          item.ad_name?.toLowerCase().includes(term) ||
+          item.campaign_name?.toLowerCase().includes(term) ||
+          item.adset_name?.toLowerCase().includes(term)
       )
     }
 
@@ -118,10 +115,7 @@ export function CampaignFilter({ data, onFilter, className = '' }: CampaignFilte
             <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
               {activeFilterCount}個のフィルター
             </span>
-            <button
-              onClick={clearFilters}
-              className="text-sm text-gray-600 hover:text-gray-900"
-            >
+            <button onClick={clearFilters} className="text-sm text-gray-600 hover:text-gray-900">
               クリア
             </button>
           </div>
@@ -141,53 +135,59 @@ export function CampaignFilter({ data, onFilter, className = '' }: CampaignFilte
 
       {/* 詳細フィルター - 常時表示 */}
       <div className="space-y-4 mt-4">
-          {/* キャンペーン選択 */}
-          {campaigns.length > 0 && (
-            <div>
-              <h4 className="text-sm font-medium text-gray-700 mb-2">
-                キャンペーン ({selectedCampaigns.size}/{campaigns.length})
-              </h4>
-              <div className="space-y-1 max-h-40 overflow-y-auto border border-gray-200 rounded p-2">
-                {campaigns.map(({ id, name }) => (
-                  <label key={id} className="flex items-center cursor-pointer hover:bg-gray-50 p-1 rounded">
-                    <input
-                      type="checkbox"
-                      checked={selectedCampaigns.has(id)}
-                      onChange={() => handleCampaignToggle(id)}
-                      className="mr-2"
-                    />
-                    <span className="text-sm text-gray-700 truncate" title={name}>
-                      {name}
-                    </span>
-                  </label>
-                ))}
-              </div>
+        {/* キャンペーン選択 */}
+        {campaigns.length > 0 && (
+          <div>
+            <h4 className="text-sm font-medium text-gray-700 mb-2">
+              キャンペーン ({selectedCampaigns.size}/{campaigns.length})
+            </h4>
+            <div className="space-y-1 max-h-40 overflow-y-auto border border-gray-200 rounded p-2">
+              {campaigns.map(({ id, name }) => (
+                <label
+                  key={id}
+                  className="flex items-center cursor-pointer hover:bg-gray-50 p-1 rounded"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedCampaigns.has(id)}
+                    onChange={() => handleCampaignToggle(id)}
+                    className="mr-2"
+                  />
+                  <span className="text-sm text-gray-700 truncate" title={name}>
+                    {name}
+                  </span>
+                </label>
+              ))}
             </div>
-          )}
+          </div>
+        )}
 
-          {/* 広告セット選択 */}
-          {adSets.length > 0 && (
-            <div>
-              <h4 className="text-sm font-medium text-gray-700 mb-2">
-                広告セット ({selectedAdSets.size}/{adSets.length})
-              </h4>
-              <div className="space-y-1 max-h-40 overflow-y-auto border border-gray-200 rounded p-2">
-                {adSets.map(({ id, name }) => (
-                  <label key={id} className="flex items-center cursor-pointer hover:bg-gray-50 p-1 rounded">
-                    <input
-                      type="checkbox"
-                      checked={selectedAdSets.has(id)}
-                      onChange={() => handleAdSetToggle(id)}
-                      className="mr-2"
-                    />
-                    <span className="text-sm text-gray-700 truncate" title={name}>
-                      {name}
-                    </span>
-                  </label>
-                ))}
-              </div>
+        {/* 広告セット選択 */}
+        {adSets.length > 0 && (
+          <div>
+            <h4 className="text-sm font-medium text-gray-700 mb-2">
+              広告セット ({selectedAdSets.size}/{adSets.length})
+            </h4>
+            <div className="space-y-1 max-h-40 overflow-y-auto border border-gray-200 rounded p-2">
+              {adSets.map(({ id, name }) => (
+                <label
+                  key={id}
+                  className="flex items-center cursor-pointer hover:bg-gray-50 p-1 rounded"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedAdSets.has(id)}
+                    onChange={() => handleAdSetToggle(id)}
+                    className="mr-2"
+                  />
+                  <span className="text-sm text-gray-700 truncate" title={name}>
+                    {name}
+                  </span>
+                </label>
+              ))}
             </div>
-          )}
+          </div>
+        )}
       </div>
     </div>
   )
