@@ -21,6 +21,8 @@ import type * as apiConfig from "../apiConfig.js";
 import type * as cache_cacheEntries from "../cache/cacheEntries.js";
 import type * as cache_dataFreshness from "../cache/dataFreshness.js";
 import type * as cache_differentialUpdates from "../cache/differentialUpdates.js";
+import type * as cacheEntries from "../cacheEntries.js";
+import type * as cacheMetrics from "../cacheMetrics.js";
 import type * as cacheSchema from "../cacheSchema.js";
 import type * as campaigns from "../campaigns.js";
 import type * as clearMetaInsights from "../clearMetaInsights.js";
@@ -78,6 +80,8 @@ declare const fullApi: ApiFromModules<{
   "cache/cacheEntries": typeof cache_cacheEntries;
   "cache/dataFreshness": typeof cache_dataFreshness;
   "cache/differentialUpdates": typeof cache_differentialUpdates;
+  cacheEntries: typeof cacheEntries;
+  cacheMetrics: typeof cacheMetrics;
   cacheSchema: typeof cacheSchema;
   campaigns: typeof campaigns;
   clearMetaInsights: typeof clearMetaInsights;

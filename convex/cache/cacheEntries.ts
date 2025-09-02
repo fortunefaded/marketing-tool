@@ -7,7 +7,6 @@
 import { v } from 'convex/values'
 import { mutation, query } from '../_generated/server'
 import { Doc, Id } from '../_generated/dataModel'
-import crypto from 'crypto'
 
 // ============================================================================
 // CREATE
@@ -160,13 +159,12 @@ export const getStats = query({
     accountId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    let query = ctx.db.query('cacheEntries')
-
-    if (args.accountId) {
-      query = query.withIndex('by_account', (q) => q.eq('accountId', args.accountId))
-    }
-
-    const entries = await query.collect()
+    const entries = args.accountId
+      ? await ctx.db
+          .query('cacheEntries')
+          .withIndex('by_account', (q) => q.eq('accountId', args.accountId!))
+          .collect()
+      : await ctx.db.query('cacheEntries').collect()
     const now = Date.now()
 
     const validEntries = entries.filter((e) => e.expiresAt > now)
@@ -287,13 +285,13 @@ export const removeExpired = mutation({
   },
   handler: async (ctx, args) => {
     const now = Date.now()
-    let query = ctx.db.query('cacheEntries')
 
-    if (args.accountId) {
-      query = query.withIndex('by_account', (q) => q.eq('accountId', args.accountId))
-    }
-
-    const entries = await query.collect()
+    const entries = args.accountId
+      ? await ctx.db
+          .query('cacheEntries')
+          .withIndex('by_account', (q) => q.eq('accountId', args.accountId!))
+          .collect()
+      : await ctx.db.query('cacheEntries').collect()
     const expiredEntries = entries.filter((e) => e.expiresAt < now)
 
     const deletedIds = []
@@ -343,20 +341,30 @@ export const removeByAccount = mutation({
  * キャッシュキーを生成
  */
 function generateCacheKey(accountId: string, dateRange: string): string {
-  const hash = crypto
-    .createHash('md5')
-    .update(`${accountId}_${dateRange}`)
-    .digest('hex')
-    .substring(0, 8)
+  // Simple hash function for browser environment
+  const str = `${accountId}_${dateRange}`
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i)
+    hash = (hash << 5) - hash + char
+    hash = hash & hash // Convert to 32bit integer
+  }
+  const hashStr = Math.abs(hash).toString(16).padStart(8, '0').substring(0, 8)
 
-  return `${accountId}_${dateRange}_${hash}`
+  return `${accountId}_${dateRange}_${hashStr}`
 }
 
 /**
  * チェックサムを生成
  */
 function generateChecksum(data: string): string {
-  return crypto.createHash('sha256').update(data).digest('hex').substring(0, 16)
+  // Simple checksum for browser environment
+  let checksum = 0
+  for (let i = 0; i < data.length; i++) {
+    checksum = (checksum << 5) - checksum + data.charCodeAt(i)
+    checksum = checksum & checksum
+  }
+  return Math.abs(checksum).toString(16).padStart(16, '0').substring(0, 16)
 }
 
 /**
