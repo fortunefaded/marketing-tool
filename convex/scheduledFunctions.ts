@@ -44,40 +44,41 @@ export const updateYesterdayData = internalMutation({
     const yesterday = new Date(now)
     yesterday.setDate(yesterday.getDate() - 1)
     const yesterdayStr = yesterday.toISOString().split('T')[0]
-    
+
     console.log(`🌅 昨日のデータ更新開始: ${yesterdayStr}`)
-    
+
     // アクティブなアカウントを取得
     const activeAccounts = await ctx.db
       .query('metaAccounts')
       .filter((q) => q.eq(q.field('isActive'), true))
       .collect()
-    
+
     const updateResults = []
-    
+
     for (const account of activeAccounts) {
       try {
         // 差分更新の記録
+        const now = Date.now()
         const updateId = await ctx.db.insert('differentialUpdates', {
+          updateId: `update_${account.accountId}_${yesterdayStr}_${now}`,
           accountId: account.accountId,
           dateRange: yesterdayStr,
-          updateType: 'scheduled_yesterday',
-          status: 'completed',
-          startedAt: Date.now(),
-          completedAt: Date.now(),
           targetDates: [yesterdayStr],
-          totalRecordsBefore: 0,
-          totalRecordsAfter: 10, // 仮の値
-          recordsAdded: 0,
-          recordsModified: 10,
-          recordsDeleted: 0,
-          apiCallsMade: 1,
+          actualUpdatedDates: [yesterdayStr],
+          apiCallsUsed: 1,
           apiCallsSaved: 0,
-          dataFetched: 0,
-          errorCount: 0,
-          triggeredBy: 'cron',
+          reductionRate: 0,
+          recordsAdded: 0,
+          recordsUpdated: 10,
+          recordsDeleted: 0,
+          totalRecordsAfter: 10,
+          startedAt: now,
+          completedAt: now,
+          durationMs: 0,
+          status: 'completed' as const,
+          triggeredBy: 'scheduled' as const,
         })
-        
+
         updateResults.push({
           accountId: account.accountId,
           status: 'success',
@@ -92,7 +93,7 @@ export const updateYesterdayData = internalMutation({
         })
       }
     }
-    
+
     console.log(`✅ 昨日のデータ更新完了: ${updateResults.length}アカウント`)
     return updateResults
   },
@@ -105,21 +106,21 @@ export const updateTodayData = internalMutation({
   handler: async (ctx) => {
     const now = new Date()
     const hour = now.getHours()
-    
+
     // ビジネスアワー（9-20時）のみ更新
     if (hour < 9 || hour > 20) {
       console.log('⏰ ビジネスアワー外のためスキップ')
       return { skipped: true, reason: 'outside_business_hours' }
     }
-    
+
     const todayStr = now.toISOString().split('T')[0]
     console.log(`📊 当日データ更新: ${todayStr} (${hour}時)`)
-    
+
     // 簡略化された更新処理
-    return { 
-      updated: true, 
+    return {
+      updated: true,
       timestamp: now.toISOString(),
-      message: '当日データを更新しました'
+      message: '当日データを更新しました',
     }
   },
 })
@@ -463,35 +464,35 @@ export const cleanupOldCache = internalMutation({
   handler: async (ctx) => {
     const now = Date.now()
     const threeDaysAgo = now - 3 * 24 * 60 * 60 * 1000
-    
+
     console.log('🧹 古いキャッシュのクリーンアップ開始')
-    
+
     // 3日以上前のキャッシュエントリを削除
     const oldEntries = await ctx.db
       .query('cacheEntries')
       .filter((q) => q.lt(q.field('updatedAt'), threeDaysAgo))
       .collect()
-    
+
     let deletedCount = 0
     for (const entry of oldEntries) {
       await ctx.db.delete(entry._id)
       deletedCount++
     }
-    
+
     // 古い差分更新ログも削除
     const oldUpdates = await ctx.db
       .query('differentialUpdates')
       .filter((q) => q.lt(q.field('startedAt'), threeDaysAgo))
       .collect()
-    
+
     for (const update of oldUpdates) {
       await ctx.db.delete(update._id)
     }
-    
+
     console.log(`✅ クリーンアップ完了: ${deletedCount}件のキャッシュを削除`)
-    return { 
+    return {
       deletedCacheEntries: deletedCount,
-      deletedUpdateLogs: oldUpdates.length
+      deletedUpdateLogs: oldUpdates.length,
     }
   },
 })
@@ -502,14 +503,14 @@ export const cleanupOldCache = internalMutation({
 export const dataIntegrityCheck = internalMutation({
   handler: async (ctx) => {
     console.log('🔍 週次データ整合性チェック開始')
-    
+
     const issues = []
-    
+
     // 孤立したキャッシュエントリをチェック
     const cacheEntries = await ctx.db.query('cacheEntries').collect()
     const accounts = await ctx.db.query('metaAccounts').collect()
-    const accountIds = new Set(accounts.map(a => a.accountId))
-    
+    const accountIds = new Set(accounts.map((a) => a.accountId))
+
     for (const entry of cacheEntries) {
       if (!accountIds.has(entry.accountId)) {
         issues.push({
@@ -519,13 +520,13 @@ export const dataIntegrityCheck = internalMutation({
         })
       }
     }
-    
+
     // 未完了の差分更新をチェック
     const incompleteUpdates = await ctx.db
       .query('differentialUpdates')
       .filter((q) => q.eq(q.field('status'), 'in_progress'))
       .collect()
-    
+
     for (const update of incompleteUpdates) {
       // 1時間以上in_progressのままなら問題あり
       if (Date.now() - update.startedAt > 60 * 60 * 1000) {
@@ -534,15 +535,16 @@ export const dataIntegrityCheck = internalMutation({
           accountId: update.accountId,
           dateRange: update.dateRange,
         })
-        
+
         // タイムアウトとしてマーク
         await ctx.db.patch(update._id, {
-          status: 'timeout',
+          status: 'failed' as const,
           completedAt: Date.now(),
+          error: 'Update timed out (24 hours)',
         })
       }
     }
-    
+
     console.log(`✅ 整合性チェック完了: ${issues.length}件の問題を検出`)
     return { issuesFound: issues.length, issues }
   },

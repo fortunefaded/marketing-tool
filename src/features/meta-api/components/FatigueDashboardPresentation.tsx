@@ -11,8 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useRateLimitStatus } from '../hooks/useRateLimitStatus'
 import { DataLoadingProgress } from './DataLoadingProgress'
 import { DateRangeFilter } from './DateRangeFilter'
-import { CampaignFilter } from './CampaignFilter'
-import { PerformanceFilter } from './PerformanceFilter'
+import { UnifiedFilterSection } from './UnifiedFilterSection'
 import { SafeFilterWrapper } from './SafeFilterWrapper'
 import type { DateRangeFilter as DateRangeFilterType } from '../hooks/useAdFatigueSimplified'
 
@@ -189,22 +188,6 @@ export function FatigueDashboardPresentation({
 
           {selectedAccountId && (
             <div className="flex items-center gap-4">
-              {/* フィルター件数の表示 */}
-              {totalInsights !== undefined &&
-                filteredCount !== undefined &&
-                filteredCount !== null && (
-                  <div className="text-sm text-gray-600">
-                    <div>
-                      表示中: {filteredCount}件 / 全{totalInsights}件
-                    </div>
-                    {totalInsights !== filteredCount && (
-                      <div className="text-xs text-blue-600">
-                        {totalInsights - filteredCount}件をフィルターで非表示
-                      </div>
-                    )}
-                  </div>
-                )}
-
               {dataSource && (
                 <div className="text-sm text-gray-600">
                   <div>データソース: {dataSource === 'cache' ? 'キャッシュ' : 'Meta API'}</div>
@@ -356,49 +339,18 @@ export function FatigueDashboardPresentation({
                   />
                 )}
 
-                {/* フィルターセクション - 常時表示 */}
+                {/* フィルターセクション */}
                 {onFilterChange && sourceData && (
                   <>
-                    <div className="mb-4 flex justify-between items-center">
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg font-medium text-gray-700">フィルター</span>
-                        {data?.length < sourceData?.length && (
-                          <button
-                            onClick={() => onFilterChange(sourceData)}
-                            className="px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded-lg hover:bg-blue-200"
-                          >
-                            クリア
-                          </button>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-4">
-                        <div className="text-sm text-gray-600">
-                          表示中: {data?.length || 0}件 / 全{sourceData?.length || 0}件
-                        </div>
-
-                        {/* データが0件でフィルターが有効な場合の警告 */}
-                        {data?.length === 0 && sourceData?.length > 0 && (
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm text-orange-600">
-                              フィルター条件に該当するデータがありません
-                            </span>
-                            <button
-                              onClick={() => onFilterChange(sourceData)}
-                              className="text-sm text-blue-600 hover:text-blue-800 underline"
-                            >
-                              フィルターをリセット
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* フィルターパネル - 常時表示 */}
+                    {/* 統合フィルターパネル - 折り畳み可能 */}
                     <SafeFilterWrapper>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                        <CampaignFilter data={sourceData} onFilter={onFilterChange} />
-                        <PerformanceFilter data={sourceData} onFilter={onFilterChange} />
+                      <div className="mb-6">
+                        <UnifiedFilterSection
+                          data={sourceData}
+                          onFilter={onFilterChange}
+                          filteredCount={filteredCount}
+                          totalCount={totalInsights}
+                        />
                       </div>
                     </SafeFilterWrapper>
                   </>
