@@ -1,16 +1,20 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useConvex, useMutation } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import { ThreeLayerCache } from '../../features/meta-api/core/three-layer-cache'
 import { SimpleAccountStore } from '../../features/meta-api/account/account-store'
+import { FatigueDashboardPresentation } from '../../features/meta-api/components/FatigueDashboardPresentation'
+import { MetaAccount } from '@/types'
 import { 
   ArrowPathIcon, 
-  CheckCircleIcon, 
   ExclamationTriangleIcon,
   CalendarDaysIcon,
-  CloudArrowDownIcon
+  CloudArrowDownIcon,
+  ChartBarIcon,
+  CheckCircleIcon as CheckCircleOutlineIcon
 } from '@heroicons/react/24/outline'
+import { CheckCircleIcon } from '@heroicons/react/24/solid'
 
 interface SyncStats {
   totalRecords: number
@@ -61,7 +65,22 @@ export default function WeeklySyncPage() {
   
   // アカウント情報
   const [accountId, setAccountId] = useState<string | null>(null)
+  const [accounts, setAccounts] = useState<MetaAccount[]>([])
+  const [isLoadingAccounts, setIsLoadingAccounts] = useState(true)
   const [cacheSystem] = useState(() => new ThreeLayerCache(convex))
+  
+  // ダッシュボード用の状態
+  const [dashboardData, setDashboardData] = useState<any[]>([])
+  const [insights, setInsights] = useState<any[]>([])
+  const [dateRange, setDateRange] = useState<'today' | 'yesterday' | 'last_7d' | 'last_14d' | 'last_30d' | 'last_month' | 'last_90d' | 'all'>('last_7d')
+  const [filteredData, setFilteredData] = useState<any>(null)
+  const [dataSource, setDataSource] = useState<'cache' | 'api' | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null)
+  const [loadedDays, setLoadedDays] = useState(7) // 現在読み込まれている日数
+  const [isLoadingMore, setIsLoadingMore] = useState(false) // 追加読み込み中
+  const [isFilterLoading, setIsFilterLoading] = useState(false) // フィルター変更時のローディング
+  const [filterUpdateMessage, setFilterUpdateMessage] = useState<string | null>(null) // フィルター更新完了メッセージ
   
   // Convexミューテーション
   const bulkInsertCacheData = useMutation(api.cache.cacheEntries.bulkInsert)
@@ -74,19 +93,53 @@ export default function WeeklySyncPage() {
   
   const loadAccountInfo = async () => {
     try {
+      setIsLoadingAccounts(true)
       const store = new SimpleAccountStore(convex)
+      const accountsList = await store.getAccounts()
+      setAccounts(accountsList)
+      
       const activeAccount = await store.getActiveAccount()
+      let targetAccountId: string | null = null
       
       if (!activeAccount) {
-        navigate('/meta-api-setup')
-        return
+        if (accountsList.length > 0) {
+          targetAccountId = accountsList[0].accountId
+          setAccountId(targetAccountId)
+          cacheSystem.setAccessToken(accountsList[0].accessToken)
+        } else {
+          navigate('/meta-api-setup')
+          return
+        }
+      } else {
+        targetAccountId = activeAccount.accountId
+        setAccountId(targetAccountId)
+        cacheSystem.setAccessToken(activeAccount.accessToken)
       }
       
-      setAccountId(activeAccount.accountId)
-      cacheSystem.setAccessToken(activeAccount.accessToken)
+      // アカウントが設定されたら既存データを読み込む（初期は7日分のみ）
+      if (targetAccountId) {
+        await loadExistingData(targetAccountId, 7)
+        setLoadedDays(7)
+      }
     } catch (error) {
       console.error('Failed to load account:', error)
+    } finally {
+      setIsLoadingAccounts(false)
     }
+  }
+  
+  // アカウント選択ハンドラ
+  const handleAccountSelect = async (selectedAccountId: string) => {
+    setAccountId(selectedAccountId)
+    const store = new SimpleAccountStore(convex)
+    await store.setActiveAccount(selectedAccountId)
+    const account = accounts.find(acc => acc.accountId === selectedAccountId)
+    if (account) {
+      cacheSystem.setAccessToken(account.accessToken)
+    }
+    // アカウント切り替え時も既存データを読み込む（7日分）
+    await loadExistingData(selectedAccountId, 7)
+    setLoadedDays(7)
   }
   
   const loadLastSyncTime = async () => {
@@ -101,6 +154,91 @@ export default function WeeklySyncPage() {
       }
     } catch (error) {
       console.error('Failed to load last sync time:', error)
+    }
+  }
+  
+  // 既存データを読み込む関数（期間指定可能）
+  const loadExistingData = async (targetAccountId: string, daysToLoad: number = 7) => {
+    try {
+      console.log(`📊 過去${daysToLoad}日分のデータを読み込み中...`)
+      setIsLoading(true)
+      
+      // 日付範囲を計算
+      const endDate = new Date()
+      const startDate = new Date()
+      startDate.setDate(startDate.getDate() - daysToLoad)
+      const startDateStr = formatDate(startDate)
+      const endDateStr = formatDate(endDate)
+      
+      // Convexから既存データを取得（サーバー側でフィルタリング）
+      const existingEntries = await convex.query(api.cache.cacheEntries.getByAccountWithDateFilter, {
+        accountId: targetAccountId.replace('act_', ''),
+        startDate: startDateStr,
+        endDate: endDateStr,
+        includeExpired: false
+      })
+      
+      if (existingEntries && existingEntries.length > 0) {
+        // データを結合（既にフィルタリング済み）
+        const allData: any[] = []
+        existingEntries.forEach((entry: any) => {
+          if (entry.data && Array.isArray(entry.data)) {
+            // 配列の場合
+            allData.push(...entry.data)
+          } else if (entry.data) {
+            // 単一のデータオブジェクトの場合
+            allData.push(entry.data)
+          }
+        })
+        
+        // 日付でソート（新しい順）
+        allData.sort((a, b) => {
+          const dateA = new Date(a.date_start || '').getTime()
+          const dateB = new Date(b.date_start || '').getTime()
+          return dateB - dateA
+        })
+        
+        console.log(`✅ ${allData.length}件のデータを読み込みました（過去${daysToLoad}日分）`)
+        
+        // ダッシュボードのデータを設定
+        setDashboardData(allData)
+        setInsights(allData)
+        setLastUpdateTime(new Date())
+        setDataSource('cache')
+      } else {
+        console.log('📭 保存されたデータが見つかりません')
+        // データがない場合は空配列を設定
+        setDashboardData([])
+        setInsights([])
+      }
+    } catch (error) {
+      console.error('❌ データ読み込みエラー:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+  
+  // 追加データを読み込む関数
+  const loadMoreData = async () => {
+    if (!accountId) return
+    
+    setIsLoadingMore(true)
+    try {
+      // 次の期間を計算（30日、90日、365日と段階的に）
+      let nextDays = 30
+      if (loadedDays >= 30) nextDays = 90
+      if (loadedDays >= 90) nextDays = 365
+      
+      console.log(`📈 ${loadedDays}日から${nextDays}日分に拡張中...`)
+      
+      // 新しい期間のデータを読み込む
+      await loadExistingData(accountId, nextDays)
+      setLoadedDays(nextDays)
+      
+    } catch (error) {
+      console.error('追加データ読み込みエラー:', error)
+    } finally {
+      setIsLoadingMore(false)
     }
   }
   
@@ -252,6 +390,11 @@ export default function WeeklySyncPage() {
       // 差分データを保存
       setDataDiffs(diffs)
       
+      // ダッシュボード用にデータを設定
+      setDashboardData(fetchResult.data || [])
+      setInsights(fetchResult.data || [])
+      setDataSource('api')
+      
       // Convexにバッチ保存
       const batchSize = 50
       for (let i = 0; i < totalRecords; i += batchSize) {
@@ -332,9 +475,10 @@ export default function WeeklySyncPage() {
   }
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-100 py-12 px-4">
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-2xl shadow-xl p-8">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-100 py-6 px-4">
+      <div className="max-w-7xl mx-auto">
+        {/* 同期セクション */}
+        <div className="bg-white rounded-2xl shadow-xl p-8 mb-6">
           {/* ヘッダー */}
           <div className="border-b pb-6 mb-6">
             <div className="flex items-center justify-between">
@@ -601,7 +745,7 @@ export default function WeeklySyncPage() {
                    syncStats.newRecords === 0 && 
                    syncStats.updatedRecords === 0 && (
                     <div className="p-4 bg-gray-50 text-center">
-                      <CheckCircleIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                      <CheckCircleOutlineIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
                       <p className="text-sm text-gray-600">
                         全{dataDiffs.length}件のデータに変更はありませんでした
                       </p>
@@ -666,6 +810,165 @@ export default function WeeklySyncPage() {
               将来的には自動同期機能の実装も検討してください。
             </p>
           </div>
+        </div>
+        
+        {/* フィルター更新完了メッセージ */}
+        {filterUpdateMessage && (
+          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center justify-between animate-fade-in">
+            <div className="flex items-center">
+              <CheckCircleIcon className="h-5 w-5 text-green-600 mr-2" />
+              <span className="text-sm text-green-800">{filterUpdateMessage}</span>
+            </div>
+          </div>
+        )}
+        
+        {/* ダッシュボードセクション */}
+        <div className="bg-white rounded-2xl shadow-xl relative">
+          {/* フィルター変更時のローディングオーバーレイ */}
+          {isFilterLoading && (
+            <div className="absolute inset-0 bg-white bg-opacity-75 z-10 flex items-center justify-center rounded-2xl">
+              <div className="text-center">
+                <ArrowPathIcon className="h-8 w-8 animate-spin text-indigo-600 mx-auto mb-2" />
+                <p className="text-sm text-gray-600">データを読み込み中...</p>
+              </div>
+            </div>
+          )}
+          
+          <div className="border-b px-8 py-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <ChartBarIcon className="h-8 w-8 text-indigo-600 mr-3" />
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">広告パフォーマンス</h2>
+                    <p className="text-sm text-gray-600 mt-1">
+                      キャンペーン、広告セット、広告の詳細分析
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm font-medium text-gray-900">
+                    {dashboardData.length.toLocaleString()}件
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    過去{loadedDays}日分
+                    {isFilterLoading && (
+                      <span className="ml-2 text-indigo-600">
+                        更新中...
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <FatigueDashboardPresentation
+              // アカウント関連
+              accounts={accounts}
+              selectedAccountId={accountId}
+              isLoadingAccounts={isLoadingAccounts}
+              onAccountSelect={handleAccountSelect}
+              // データ関連
+              data={dashboardData}
+              insights={insights}
+              isLoading={isLoading || isSyncing}
+              isRefreshing={false}
+              error={null}
+              // アクション
+              onRefresh={async () => await performWeeklySync()}
+              // メタ情報
+              dataSource={dataSource}
+              lastUpdateTime={lastSyncTime}
+              // 進捗情報
+              progress={undefined}
+              // フィルター関連
+              dateRange={dateRange}
+              onDateRangeChange={async (newRange) => {
+                setDateRange(newRange)
+                setIsFilterLoading(true) // ローディング開始
+                
+                // 日付範囲に応じてデータを再読み込み
+                let days = 7
+                if (newRange === 'today') days = 1
+                if (newRange === 'yesterday') days = 2
+                if (newRange === 'last_7d') days = 7
+                if (newRange === 'last_14d') days = 14
+                if (newRange === 'last_30d') days = 30
+                if (newRange === 'last_month') days = 30
+                if (newRange === 'last_90d') days = 90
+                if (newRange === 'all') days = 365
+                
+                try {
+                  if (accountId) {
+                    await loadExistingData(accountId, days)
+                    setLoadedDays(days)
+                    
+                    // 更新完了メッセージを表示
+                    const rangeText = {
+                      'today': '今日',
+                      'yesterday': '昨日',
+                      'last_7d': '過去7日間',
+                      'last_14d': '過去14日間', 
+                      'last_30d': '過去30日間',
+                      'last_month': '先月',
+                      'last_90d': '過去90日間',
+                      'all': '全期間'
+                    }[newRange] || newRange
+                    
+                    setFilterUpdateMessage(`${rangeText}のデータを表示中`)
+                    setTimeout(() => setFilterUpdateMessage(null), 3000) // 3秒後に消す
+                  }
+                } finally {
+                  setIsFilterLoading(false) // ローディング終了
+                }
+              }}
+              totalInsights={dashboardData.length}
+              filteredCount={dashboardData.length}
+              // 集約関連
+              enableAggregation={false}
+              aggregatedData={null}
+              aggregationMetrics={undefined}
+              isAggregating={false}
+              // フィルター関連
+              onFilterChange={setFilteredData}
+              sourceData={dashboardData}
+              // キャッシュ情報
+              cacheLayerUsed={'L3'}
+            />
+            
+            {/* 追加データ読み込みボタン */}
+            {loadedDays < 365 && (
+              <div className="px-8 py-6 border-t bg-gray-50">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-gray-600">
+                    現在: 過去{loadedDays}日分のデータを表示中
+                    {loadedDays < 30 && ' • 次: 過去30日分'}
+                    {loadedDays >= 30 && loadedDays < 90 && ' • 次: 過去90日分'}
+                    {loadedDays >= 90 && loadedDays < 365 && ' • 次: 過去1年分'}
+                  </div>
+                  <button
+                    onClick={loadMoreData}
+                    disabled={isLoadingMore}
+                    className={`flex items-center px-4 py-2 rounded-lg font-medium transition-colors ${
+                      isLoadingMore
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-white text-indigo-600 border border-indigo-300 hover:bg-indigo-50'
+                    }`}
+                  >
+                    {isLoadingMore ? (
+                      <>
+                        <ArrowPathIcon className="h-4 w-4 mr-2 animate-spin" />
+                        読み込み中...
+                      </>
+                    ) : (
+                      <>
+                        <CalendarDaysIcon className="h-4 w-4 mr-2" />
+                        過去のデータをもっと見る
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
         </div>
       </div>
     </div>

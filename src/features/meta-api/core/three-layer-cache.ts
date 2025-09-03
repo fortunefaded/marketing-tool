@@ -68,7 +68,24 @@ export class ThreeLayerCache {
     // Force refresh オプション
     if (options.forceRefresh) {
       console.log('[ThreeLayerCache] Force refresh requested, going to L3')
-      return this.fetchFromApi(key, startTime)
+      // keyからaccountIdとdateRangeを抽出
+      const keyWithoutPrefix = key.replace('act_', '')
+      const firstUnderscoreIndex = keyWithoutPrefix.indexOf('_')
+      
+      let accountId: string
+      let dateRange: string
+      
+      if (firstUnderscoreIndex > 0) {
+        accountId = keyWithoutPrefix.substring(0, firstUnderscoreIndex)
+        dateRange = keyWithoutPrefix.substring(firstUnderscoreIndex + 1)
+      } else {
+        console.error('[ThreeLayerCache] Invalid cache key format:', key)
+        accountId = keyWithoutPrefix
+        dateRange = 'last_30d'
+      }
+      
+      console.log('[ThreeLayerCache] Force refresh - extracted:', { key, accountId, dateRange })
+      return this.fetchFromApi(accountId, dateRange, options)
     }
 
     // L1: メモリキャッシュ
@@ -126,9 +143,25 @@ export class ThreeLayerCache {
     // L3: Meta API
     console.log('[ThreeLayerCache] Going to L3 (Meta API)')
     // keyからaccountIdとdateRangeを抽出
-    const parts = key.split('_')
-    const accountId = parts[0]
-    const dateRange = parts.slice(1).join('_')
+    // 例: "act_596086994975714_last_30d" -> accountId: "596086994975714", dateRange: "last_30d"
+    // act_プレフィックスと最初の数値部分を分離
+    const keyWithoutPrefix = key.replace('act_', '')
+    const firstUnderscoreIndex = keyWithoutPrefix.indexOf('_')
+    
+    let accountId: string
+    let dateRange: string
+    
+    if (firstUnderscoreIndex > 0) {
+      accountId = keyWithoutPrefix.substring(0, firstUnderscoreIndex)
+      dateRange = keyWithoutPrefix.substring(firstUnderscoreIndex + 1)
+    } else {
+      // フォールバック（_が見つからない場合）
+      console.error('[ThreeLayerCache] Invalid cache key format:', key)
+      accountId = keyWithoutPrefix
+      dateRange = 'last_30d'
+    }
+    
+    console.log('[ThreeLayerCache] Extracted from key:', { key, accountId, dateRange })
     return this.fetchFromApi(accountId, dateRange, options)
   }
 
