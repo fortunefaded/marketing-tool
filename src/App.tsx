@@ -29,6 +29,8 @@ import Header from './components/Header'
 import { vibe } from './lib/vibelogger'
 import { setupTestAccount } from './services/testAccountSetup'
 import { ApiConvexTestPage } from './pages/ApiConvexTestPage'
+import { ThreeLayerCacheTestPage } from './pages/ThreeLayerCacheTestPage'
+import { ProjectCloverPage } from './pages/ProjectCloverPage'
 
 // Convex URLのフォールバック処理を追加
 const convexUrl = import.meta.env.VITE_CONVEX_URL || 'https://temporary-convex-url.convex.cloud'
@@ -76,11 +78,13 @@ function AppContent() {
             <Route path="/settings" element={<SettingsManagement />} />
             {/* TODO: Replace with new implementation */}
             <Route path="/ad-fatigue" element={<SafeFatigueDashboardWrapper />} />
+            <Route path="/project-clover" element={<ProjectCloverPage />} />
             <Route path="/test-new-meta-api" element={<NewMetaApiTest />} />
             <Route path="/ad-fatigue-simple" element={<SafeFatigueDashboardWrapper />} />
             <Route path="/api-convex-test" element={<ApiConvexTestPage />} />
             <Route path="/test-simple" element={<SimpleTestDashboard />} />
             <Route path="/test-aggregation" element={<AggregationTestComponent />} />
+            <Route path="/three-layer-cache-test" element={<ThreeLayerCacheTestPage />} />
             <Route
               path="/media"
               element={

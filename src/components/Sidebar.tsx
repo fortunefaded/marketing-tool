@@ -7,6 +7,7 @@ import {
   AcademicCapIcon,
   ChevronDoubleLeftIcon,
   ChevronDoubleRightIcon,
+  SparklesIcon,
 } from '@heroicons/react/24/outline'
 import { ComponentType, useState, useEffect } from 'react'
 
@@ -57,6 +58,11 @@ export default function Sidebar() {
       name: '広告疲労度分析',
       path: '/ad-fatigue',
       icon: ExclamationTriangleIcon,
+    },
+    {
+      name: 'プロジェクト・クローバー',
+      path: '/project-clover',
+      icon: SparklesIcon,
     },
     {
       name: 'テストダッシュボード',

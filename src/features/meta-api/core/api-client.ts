@@ -192,10 +192,19 @@ export class SimpleMetaApi {
     
     // 日付範囲設定（カスタム範囲 > プリセット > デフォルト）
     if (options.timeRange) {
-      url.searchParams.append('time_range', JSON.stringify({
+      const timeRange = {
         since: options.timeRange.since,
         until: options.timeRange.until
-      }))
+      }
+      url.searchParams.append('time_range', JSON.stringify(timeRange))
+      
+      // タイムゾーンを明示的に指定
+      url.searchParams.append('time_zone', 'Asia/Tokyo')
+      
+      // アトリビューション設定（重要）
+      url.searchParams.append('use_unified_attribution_setting', 'true')
+      
+      console.log('📊 Time range with attribution:', timeRange)
     } else {
       url.searchParams.append('date_preset', options.datePreset || 'last_30d')
     }

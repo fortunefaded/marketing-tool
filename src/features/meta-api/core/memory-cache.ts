@@ -37,7 +37,7 @@ export interface CacheHealth {
   itemCount: number
 }
 
-export class MemoryCache<T> {
+export class MemoryCache<T = any> {
   private cache: Map<string, CacheItem<T>> = new Map()
   private hits: number = 0
   private misses: number = 0
@@ -62,15 +62,20 @@ export class MemoryCache<T> {
   }
 
   /**
-   * キャッシュからデータを取得
+   * キャッシュからデータを取得（互換性のためのオーバーロード）
    */
-  get(key: string): CacheResult<T> {
+  get(key: string): T | undefined
+  get(key: string, detailed: true): CacheResult<T>
+  get(key: string, detailed = false): T | undefined | CacheResult<T> {
     const item = this.cache.get(key)
     const now = Date.now()
 
     if (!item) {
       this.misses++
-      return { hit: false, timestamp: now }
+      if (detailed) {
+        return { hit: false, timestamp: now }
+      }
+      return undefined
     }
 
     // TTL期限切れチェック
@@ -78,7 +83,10 @@ export class MemoryCache<T> {
       this.cache.delete(key)
       this.currentSize -= item.size
       this.misses++
-      return { hit: false, timestamp: now }
+      if (detailed) {
+        return { hit: false, timestamp: now }
+      }
+      return undefined
     }
 
     // LRU: アクセス時間更新
@@ -87,12 +95,15 @@ export class MemoryCache<T> {
     }
 
     this.hits++
-    return {
-      hit: true,
-      data: item.data,
-      timestamp: now,
-      ttl: item.ttl
+    if (detailed) {
+      return {
+        hit: true,
+        data: item.data,
+        timestamp: now,
+        ttl: item.ttl
+      }
     }
+    return item.data
   }
 
   /**
@@ -135,6 +146,25 @@ export class MemoryCache<T> {
   clear(): void {
     this.cache.clear()
     this.currentSize = 0
+  }
+
+  /**
+   * 特定のキーを削除
+   */
+  delete(key: string): boolean {
+    const item = this.cache.get(key)
+    if (item) {
+      this.currentSize -= item.size
+      return this.cache.delete(key)
+    }
+    return false
+  }
+
+  /**
+   * キャッシュサイズを取得
+   */
+  size(): number {
+    return this.cache.size
   }
 
   /**
