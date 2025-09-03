@@ -152,6 +152,70 @@ export const getByAccount = query({
 })
 
 /**
+ * アカウントのキャッシュエントリを日付範囲でフィルタリングして取得
+ */
+export const getByAccountWithDateFilter = query({
+  args: {
+    accountId: v.string(),
+    startDate: v.string(), // YYYY-MM-DD format
+    endDate: v.optional(v.string()), // YYYY-MM-DD format, defaults to today
+    includeExpired: v.optional(v.boolean()),
+    limit: v.optional(v.number()), // 最大取得件数
+  },
+  handler: async (ctx, args) => {
+    const entries = await ctx.db
+      .query('cacheEntries')
+      .withIndex('by_account', (q) => q.eq('accountId', args.accountId))
+      .collect()
+
+    // 有効期限でフィルタリング
+    let filteredEntries = entries
+    if (!args.includeExpired) {
+      const now = Date.now()
+      filteredEntries = entries.filter((entry) => entry.expiresAt > now)
+    }
+
+    // 日付範囲でデータをフィルタリング
+    const endDate = args.endDate || new Date().toISOString().split('T')[0]
+    const resultEntries = []
+    
+    for (const entry of filteredEntries) {
+      if (entry.data) {
+        if (Array.isArray(entry.data)) {
+          // 配列の場合、各要素をフィルタリング
+          const filteredData = entry.data.filter((item: any) => {
+            if (item.date_start) {
+              return item.date_start >= args.startDate && item.date_start <= endDate
+            }
+            return false
+          })
+          
+          if (filteredData.length > 0) {
+            resultEntries.push({
+              ...entry,
+              data: filteredData,
+              recordCount: filteredData.length,
+            })
+          }
+        } else if (entry.data.date_start) {
+          // 単一オブジェクトの場合
+          if (entry.data.date_start >= args.startDate && entry.data.date_start <= endDate) {
+            resultEntries.push(entry)
+          }
+        }
+      }
+    }
+
+    // 制限を適用
+    if (args.limit && resultEntries.length > args.limit) {
+      return resultEntries.slice(0, args.limit)
+    }
+
+    return resultEntries
+  },
+})
+
+/**
  * キャッシュ統計を取得
  */
 export const getStats = query({

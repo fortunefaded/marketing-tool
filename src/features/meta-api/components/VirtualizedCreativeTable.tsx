@@ -1,267 +1,327 @@
-/**
- * VirtualizedCreativeTable.tsx
- *
- * 仮想スクロール対応の高性能テーブルコンポーネント
- * 大量データ（1000件以上）でも60fpsを維持
- */
-
-import React, { memo, CSSProperties } from 'react'
+import React, { useState, useCallback, useMemo } from 'react'
 import { FixedSizeList as List } from 'react-window'
-import { UnifiedAdData } from '../utils/safe-data-access'
-import { FatigueScoreDetail } from '../core/fatigue-calculator-v2'
+import {
+  ChevronUpIcon,
+  ChevronDownIcon,
+  PhotoIcon,
+  VideoCameraIcon,
+  DocumentTextIcon,
+  ViewColumnsIcon,
+} from '@heroicons/react/24/outline'
+import { FatigueData } from '@/types'
+import { normalizeCreativeMediaType } from '../utils/creative-type'
+import { CreativeDetailModal } from './CreativeDetailModal'
+import { getSafeMetrics } from '../utils/safe-data-access'
+import { aggregateCreativesByName, AggregatedCreative } from '../utils/creative-aggregation'
 
 interface VirtualizedCreativeTableProps {
-  data: UnifiedAdData[]
-  fatigueScores?: Map<string, FatigueScoreDetail>
-  onRowClick?: (item: UnifiedAdData) => void
-  height?: number // テーブルの高さ（デフォルト: 600px）
+  data: FatigueData[]
+  insights: any[]
+  selectedAccountId: string | null
+  isLoading: boolean
 }
 
-/**
- * 行のレンダリングコンポーネント（メモ化）
- */
-const Row = memo(
-  ({
-    index,
-    style,
-    data,
-  }: {
-    index: number
-    style: CSSProperties
-    data: {
-      items: UnifiedAdData[]
-      fatigueScores?: Map<string, FatigueScoreDetail>
-      onRowClick?: (item: UnifiedAdData) => void
-    }
-  }) => {
-    const item = data.items[index]
-    const fatigueScore = data.fatigueScores?.get(item.ad_id)
+export function VirtualizedCreativeTable({
+  data,
+  insights,
+  selectedAccountId: _,
+  isLoading,
+}: VirtualizedCreativeTableProps) {
+  // ソート状態管理
+  const [sortField, setSortField] = useState<string>('score')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
+  
+  // モーダル状態管理
+  const [selectedItem, setSelectedItem] = useState<FatigueData | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
-    // スコアに基づく背景色
-    const getRowClassName = () => {
-      if (!fatigueScore) return 'bg-white hover:bg-gray-50'
+  // クリエイティブタイプを判定する関数
+  const getCreativeType = (insight: any): { type: string; icon: any; color: string } => {
+    if (!insight) return { type: 'UNKNOWN', icon: DocumentTextIcon, color: 'text-gray-500' }
 
-      if (fatigueScore.status === 'critical') {
-        return 'bg-red-50 hover:bg-red-100'
-      } else if (fatigueScore.status === 'warning') {
-        return 'bg-yellow-50 hover:bg-yellow-100'
+    const objectType =
+      insight.creative?.object_type || insight.creative_type || insight.creative_media_type
+    const normalizedType = normalizeCreativeMediaType(objectType)
+
+    if (normalizedType === 'text') {
+      if (insight.video_url || insight.video_id) {
+        return { type: 'VIDEO', icon: VideoCameraIcon, color: 'text-purple-600' }
       }
-      return 'bg-white hover:bg-gray-50'
+      if (insight.image_url || insight.thumbnail_url) {
+        return { type: 'IMAGE', icon: PhotoIcon, color: 'text-blue-600' }
+      }
     }
 
-    // スコアバッジの色
-    const getScoreBadgeColor = (score: number) => {
-      if (score >= 70) return 'bg-red-600 text-white'
-      if (score >= 50) return 'bg-yellow-500 text-white'
-      return 'bg-green-600 text-white'
+    switch (normalizedType) {
+      case 'video':
+        return { type: 'VIDEO', icon: VideoCameraIcon, color: 'text-purple-600' }
+      case 'image':
+        return { type: 'IMAGE', icon: PhotoIcon, color: 'text-blue-600' }
+      case 'carousel':
+        return { type: 'CAROUSEL', icon: ViewColumnsIcon, color: 'text-green-600' }
+      default:
+        return { type: 'TEXT', icon: DocumentTextIcon, color: 'text-gray-600' }
     }
+  }
+
+  // insightsをマップ化
+  const insightsMap = useMemo(() => {
+    const map = new Map()
+    if (insights && Array.isArray(insights)) {
+      insights.forEach((insight) => {
+        if (insight.ad_id) {
+          map.set(insight.ad_id, insight)
+        }
+      })
+    }
+    return map
+  }, [insights])
+
+  // データを集約してからソート
+  const sortedData = useMemo(() => {
+    if (!data || !Array.isArray(data)) return []
+
+    // まずクリエイティブ名で集約
+    const aggregated = aggregateCreativesByName(data)
+    
+    // 各集約データにクリエイティブタイプ情報を追加
+    const items = aggregated.map((item) => {
+      // 最初の広告IDでinsightを取得
+      const insight = item.adIds.length > 0 ? insightsMap.get(item.adIds[0]) : null
+      const creativeInfo = getCreativeType(insight || item.originalInsight)
+
+      return {
+        ...item,
+        adId: item.adIds[0] || '', // 代表ID
+        creativeType: creativeInfo.type,
+        creativeIcon: creativeInfo.icon,
+        creativeColor: creativeInfo.color,
+        score: item.fatigue_score,
+        revenue: item.conversion_values,
+        insight: insight || item.originalInsight,
+      }
+    })
+
+    // ソート処理
+    items.sort((a, b) => {
+      let aValue: any = 0
+      let bValue: any = 0
+
+      switch (sortField) {
+        case 'adName':
+          aValue = a.adName.toLowerCase()
+          bValue = b.adName.toLowerCase()
+          break
+        case 'creativeType':
+          aValue = a.creativeType.toLowerCase()
+          bValue = b.creativeType.toLowerCase()
+          break
+        default:
+          aValue = Number(a[sortField as keyof typeof a]) || 0
+          bValue = Number(b[sortField as keyof typeof b]) || 0
+      }
+
+      if (typeof aValue === 'string') {
+        return sortDirection === 'asc' 
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue)
+      }
+
+      return sortDirection === 'asc' ? aValue - bValue : bValue - aValue
+    })
+
+    return items
+  }, [data, insightsMap, sortField, sortDirection])
+
+  const handleSort = useCallback((field: string) => {
+    if (sortField === field) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortDirection('desc')
+    }
+  }, [sortField])
+
+  const handleViewDetails = useCallback((item: any) => {
+    setSelectedItem(item)
+    setIsModalOpen(true)
+  }, [])
+
+  const closeModal = useCallback(() => {
+    setIsModalOpen(false)
+    setSelectedItem(null)
+  }, [])
+
+  const formatNumber = (num: number) => new Intl.NumberFormat('ja-JP').format(Math.round(num))
+  const formatCurrency = (num: number) => `¥${formatNumber(num)}`
+  const formatPercentage = (num: number) => `${num.toFixed(2)}%`
+
+  // 行のレンダリング関数
+  const Row = useCallback(({ index, style }: { index: number; style: React.CSSProperties }) => {
+    const item = sortedData[index]
+    if (!item) return null
+
+    const CreativeIcon = item.creativeIcon
 
     return (
-      <div
-        style={style}
-        className={`${getRowClassName()} border-b border-gray-200 cursor-pointer transition-colors`}
-        onClick={() => data.onRowClick?.(item)}
-      >
-        <div className="flex items-center px-4 py-3">
-          {/* 疲労度スコア */}
-          <div className="w-24 flex-shrink-0">
-            {fatigueScore ? (
-              <div className="flex items-center gap-2">
-                <span
-                  className={`px-2 py-1 rounded-full text-xs font-bold ${getScoreBadgeColor(fatigueScore.totalScore)}`}
-                >
-                  {fatigueScore.totalScore}
-                </span>
-                <div className="flex flex-col">
-                  <span className="text-xs text-gray-500">C:{fatigueScore.scores.creative}</span>
-                  <span className="text-xs text-gray-500">A:{fatigueScore.scores.audience}</span>
-                </div>
-              </div>
-            ) : (
-              <span className="text-gray-400 text-sm">-</span>
-            )}
-          </div>
+      <div style={style} className="flex items-center border-b border-gray-200 hover:bg-gray-50">
+        {/* タイプ */}
+        <div className="flex items-center justify-center" style={{ width: '80px' }}>
+          <CreativeIcon className={`h-5 w-5 ${item.creativeColor}`} />
+        </div>
+        
+        {/* クリエイティブ名 */}
+        <div className="px-4 truncate" style={{ width: '300px' }}>
+          <button
+            onClick={() => handleViewDetails(item)}
+            className="text-left text-sm text-blue-600 hover:text-blue-800 hover:underline truncate block w-full"
+            title={item.adName}
+          >
+            {item.adName}
+          </button>
+        </div>
 
-          {/* 広告名 */}
-          <div className="flex-1 min-w-0 px-4">
-            <div className="font-medium text-gray-900 truncate">{item.ad_name}</div>
-            <div className="text-sm text-gray-500 truncate">{item.campaign_name}</div>
-          </div>
+        {/* 疲労度 */}
+        <div className="text-center" style={{ width: '80px' }}>
+          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+            item.score >= 70
+              ? 'bg-red-100 text-red-800'
+              : item.score >= 40
+              ? 'bg-yellow-100 text-yellow-800'
+              : 'bg-green-100 text-green-800'
+          }`}>
+            {Math.round(item.score)}
+          </span>
+        </div>
 
-          {/* メトリクス */}
-          <div className="grid grid-cols-6 gap-4 flex-shrink-0 w-[600px]">
-            {/* インプレッション */}
-            <div className="text-right">
-              <div className="text-sm font-medium text-gray-900">
-                {item.metrics.impressions.toLocaleString()}
-              </div>
-              <div className="text-xs text-gray-500">Imp</div>
-            </div>
-
-            {/* CTR */}
-            <div className="text-right">
-              <div className="text-sm font-medium text-gray-900">
-                {item.metrics.ctr.toFixed(2)}%
-              </div>
-              <div className="text-xs text-gray-500">CTR</div>
-            </div>
-
-            {/* Frequency */}
-            <div className="text-right">
-              <div
-                className={`text-sm font-medium ${item.metrics.frequency > 3.5 ? 'text-red-600' : 'text-gray-900'}`}
-              >
-                {item.metrics.frequency.toFixed(2)}
-              </div>
-              <div className="text-xs text-gray-500">Freq</div>
-            </div>
-
-            {/* CPM */}
-            <div className="text-right">
-              <div className="text-sm font-medium text-gray-900">
-                ¥{item.metrics.cpm.toFixed(0)}
-              </div>
-              <div className="text-xs text-gray-500">CPM</div>
-            </div>
-
-            {/* 支出 */}
-            <div className="text-right">
-              <div className="text-sm font-medium text-gray-900">
-                ¥{item.metrics.spend.toLocaleString()}
-              </div>
-              <div className="text-xs text-gray-500">Spend</div>
-            </div>
-
-            {/* ROAS */}
-            <div className="text-right">
-              <div
-                className={`text-sm font-medium ${item.metrics.roas < 1 ? 'text-red-600' : 'text-green-600'}`}
-              >
-                {item.metrics.roas.toFixed(2)}
-              </div>
-              <div className="text-xs text-gray-500">ROAS</div>
-            </div>
-          </div>
-
-          {/* 推奨アクション */}
-          {fatigueScore && fatigueScore.recommendations.length > 0 && (
-            <div className="w-8 flex-shrink-0 flex justify-center">
-              <div className="group relative" title={fatigueScore.recommendations[0]}>
-                <svg className="w-5 h-5 text-orange-500" fill="currentColor" viewBox="0 0 20 20">
-                  <path
-                    fillRule="evenodd"
-                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-
-                {/* ホバー時のツールチップ */}
-                <div className="hidden group-hover:block absolute z-10 right-0 top-6 w-64 p-2 bg-gray-900 text-white text-xs rounded shadow-lg">
-                  {fatigueScore.recommendations[0]}
-                </div>
-              </div>
-            </div>
-          )}
+        {/* メトリクス */}
+        <div className="text-center text-sm" style={{ width: '70px' }}>
+          {item.frequency.toFixed(2)}
+        </div>
+        <div className="text-center text-sm" style={{ width: '70px' }}>
+          {formatPercentage(item.ctr)}
+        </div>
+        <div className="text-center text-sm" style={{ width: '70px' }}>
+          {formatPercentage(item.unique_ctr)}
+        </div>
+        <div className="text-center text-sm" style={{ width: '80px' }}>
+          {formatCurrency(item.cpm)}
+        </div>
+        <div className="text-center text-sm" style={{ width: '80px' }}>
+          {formatCurrency(item.cpc)}
+        </div>
+        <div className="text-center text-sm" style={{ width: '100px' }}>
+          {formatNumber(item.impressions)}
+        </div>
+        <div className="text-center text-sm" style={{ width: '80px' }}>
+          {formatNumber(item.clicks)}
+        </div>
+        <div className="text-center text-sm" style={{ width: '100px' }}>
+          {formatCurrency(item.spend)}
+        </div>
+        <div className="text-center text-sm" style={{ width: '75px' }}>
+          {formatNumber(item.conversions)}
+        </div>
+        <div className="text-center text-sm" style={{ width: '90px' }}>
+          {formatCurrency(item.cpa)}
+        </div>
+        <div className="text-center text-sm" style={{ width: '100px' }}>
+          {formatCurrency(item.revenue)}
+        </div>
+        <div className="text-center text-sm" style={{ width: '80px' }}>
+          {item.roas.toFixed(2)}x
         </div>
       </div>
     )
-  }
-)
+  }, [sortedData, handleViewDetails, formatNumber, formatCurrency, formatPercentage])
 
-Row.displayName = 'VirtualizedRow'
-
-/**
- * ヘッダーコンポーネント
- */
-const Header = memo(() => (
-  <div className="sticky top-0 z-10 bg-gray-100 border-b-2 border-gray-300">
-    <div className="flex items-center px-4 py-3 font-medium text-gray-700 text-sm">
-      <div className="w-24 flex-shrink-0">疲労度</div>
-      <div className="flex-1 px-4">広告名 / キャンペーン</div>
-      <div className="grid grid-cols-6 gap-4 flex-shrink-0 w-[600px] text-right">
-        <div>インプレッション</div>
-        <div>CTR</div>
-        <div>Frequency</div>
-        <div>CPM</div>
-        <div>支出</div>
-        <div>ROAS</div>
-      </div>
-      <div className="w-8 flex-shrink-0"></div>
-    </div>
-  </div>
-))
-
-Header.displayName = 'VirtualizedHeader'
-
-/**
- * 仮想スクロール対応テーブル
- */
-export const VirtualizedCreativeTable: React.FC<VirtualizedCreativeTableProps> = ({
-  data,
-  fatigueScores,
-  onRowClick,
-  height = 600,
-}) => {
-  // データをメモ化
-  const itemData = React.useMemo(
-    () => ({
-      items: data,
-      fatigueScores,
-      onRowClick,
-    }),
-    [data, fatigueScores, onRowClick]
-  )
-
-  // データがない場合
-  if (data.length === 0) {
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64 bg-gray-50 rounded-lg">
-        <p className="text-gray-500">表示するデータがありません</p>
+      <div className="flex items-center justify-center h-64">
+        <div className="text-gray-500">データを読み込み中...</div>
       </div>
     )
   }
+
+  if (!sortedData || sortedData.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-gray-500">データがありません</div>
+      </div>
+    )
+  }
+
+  // ヘッダーのカラム定義
+  const columns = [
+    { field: 'creativeType', label: 'タイプ', width: 80 },
+    { field: 'adName', label: 'クリエイティブ名', width: 300 },
+    { field: 'score', label: '疲労度', width: 80 },
+    { field: 'frequency', label: 'Freq', width: 70 },
+    { field: 'ctr', label: 'CTR', width: 70 },
+    { field: 'unique_ctr', label: 'U-CTR', width: 70 },
+    { field: 'cpm', label: 'CPM', width: 80 },
+    { field: 'cpc', label: 'CPC', width: 80 },
+    { field: 'impressions', label: 'IMP', width: 100 },
+    { field: 'clicks', label: 'クリック', width: 80 },
+    { field: 'spend', label: '消化金額', width: 100 },
+    { field: 'conversions', label: 'CV', width: 75 },
+    { field: 'cpa', label: 'CPA', width: 90 },
+    { field: 'revenue', label: '売上', width: 100 },
+    { field: 'roas', label: 'ROAS', width: 80 },
+  ]
+
+  const totalWidth = columns.reduce((sum, col) => sum + col.width, 0)
 
   return (
-    <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-      {/* ヘッダー */}
-      <Header />
-
-      {/* 仮想スクロールリスト */}
-      <List
-        height={height}
-        itemCount={data.length}
-        itemSize={80} // 各行の高さ（px）
-        width="100%"
-        itemData={itemData}
-        overscanCount={5} // 表示領域外にレンダリングする行数
-      >
-        {Row}
-      </List>
-
-      {/* フッター統計 */}
-      <div className="border-t border-gray-200 bg-gray-50 px-4 py-3">
-        <div className="flex justify-between items-center text-sm">
-          <span className="text-gray-600">全 {data.length} 件の広告</span>
-          {fatigueScores && (
-            <div className="flex gap-4">
-              <span className="text-red-600">
-                Critical:{' '}
-                {Array.from(fatigueScores.values()).filter((s) => s.status === 'critical').length}
-              </span>
-              <span className="text-yellow-600">
-                Warning:{' '}
-                {Array.from(fatigueScores.values()).filter((s) => s.status === 'warning').length}
-              </span>
-              <span className="text-green-600">
-                Healthy:{' '}
-                {Array.from(fatigueScores.values()).filter((s) => s.status === 'healthy').length}
-              </span>
+    <div className="w-full max-w-none">
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        {/* ヘッダー */}
+        <div className="overflow-x-auto">
+          <div className="bg-gray-50 border-b border-gray-200" style={{ width: `${totalWidth}px` }}>
+            <div className="flex">
+              {columns.map((col) => (
+                <div
+                  key={col.field}
+                  className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  style={{ width: `${col.width}px` }}
+                  onClick={() => handleSort(col.field)}
+                >
+                  <div className="flex items-center justify-center gap-1">
+                    {col.label}
+                    {sortField === col.field && (
+                      sortDirection === 'asc' ? (
+                        <ChevronUpIcon className="h-3 w-3" />
+                      ) : (
+                        <ChevronDownIcon className="h-3 w-3" />
+                      )
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
-          )}
+          </div>
+
+          {/* 仮想スクロールリスト */}
+          <List
+            height={600} // 表示領域の高さ
+            itemCount={sortedData.length}
+            itemSize={48} // 各行の高さ
+            width={totalWidth}
+          >
+            {Row}
+          </List>
         </div>
       </div>
+
+      {/* 詳細モーダル */}
+      {selectedItem && (
+        <CreativeDetailModal
+          isOpen={isModalOpen}
+          onClose={closeModal}
+          data={selectedItem}
+          insight={selectedItem.insight}
+        />
+      )}
     </div>
   )
 }
-
-export default VirtualizedCreativeTable

@@ -3,6 +3,7 @@ import { AccountSelector } from '../account/AccountSelector'
 import { StatCard } from './StatCard'
 import { AggregatedFatigueTable } from './AggregatedFatigueTable'
 import { CreativeTableTab } from './CreativeTableTab'
+import { VirtualizedCreativeTable } from './VirtualizedCreativeTable'
 import { Alert } from './Alert'
 import { DataValidationAlert } from './DataValidationAlert'
 import { MetaAccount, FatigueData } from '@/types'
@@ -100,6 +101,10 @@ export function FatigueDashboardPresentation({
   const data = Array.isArray(rawData) ? rawData : []
   const insights = Array.isArray(rawInsights) ? rawInsights : []
   const sourceData = Array.isArray(rawSourceData) ? rawSourceData : []
+  
+  // 仮想スクロールの使用状態
+  const [useVirtualScroll, setUseVirtualScroll] = useState(data.length > 100) // 100件以上で自動的に有効化
+  
   // フィルターの表示状態
   // デバッグモード設定（初回のみ）
   useEffect(() => {
@@ -418,12 +423,44 @@ export function FatigueDashboardPresentation({
                           </div>
                         )}
 
-                        <CreativeTableTab
-                          data={data}
-                          insights={insights}
-                          selectedAccountId={selectedAccountId}
-                          isLoading={isLoading}
-                        />
+                        {/* 仮想スクロールトグル（大量データ時のみ表示） */}
+                        {data.length > 50 && (
+                          <div className="mb-4 flex items-center justify-between">
+                            <div className="text-sm text-gray-600">
+                              {data.length}件のデータ
+                            </div>
+                            <div className="flex items-center">
+                              <label className="flex items-center cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={useVirtualScroll}
+                                  onChange={(e) => setUseVirtualScroll(e.target.checked)}
+                                  className="mr-2"
+                                />
+                                <span className="text-sm text-gray-700">
+                                  高速スクロールモード（仮想スクロール）
+                                </span>
+                              </label>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* テーブル表示（条件分岐） */}
+                        {useVirtualScroll ? (
+                          <VirtualizedCreativeTable
+                            data={data}
+                            insights={insights}
+                            selectedAccountId={selectedAccountId}
+                            isLoading={isLoading}
+                          />
+                        ) : (
+                          <CreativeTableTab
+                            data={data}
+                            insights={insights}
+                            selectedAccountId={selectedAccountId}
+                            isLoading={isLoading}
+                          />
+                        )}
                       </TabsContent>
 
                       <TabsContent value="adset">
