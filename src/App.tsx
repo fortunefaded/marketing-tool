@@ -3,6 +3,7 @@ import { ConvexProvider, ConvexReactClient } from 'convex/react'
 import { useEffect } from 'react'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { UnifiedDashboard } from './pages/UnifiedDashboard'
+import MainDashboard from './pages/MainDashboard'
 import Campaigns from './routes/Campaigns'
 import Tasks from './routes/Tasks'
 // import { MetaDashboardReal } from './pages/MetaDashboardReal'
@@ -64,8 +65,9 @@ function AppContent() {
         <main className="flex-1 overflow-auto">
           <RouteLogger />
           <Routes>
-            <Route path="/" element={<UnifiedDashboard />} />
-            <Route path="/meta-dashboard" element={<UnifiedDashboard />} />
+            <Route path="/" element={<MainDashboard />} />
+            <Route path="/legacy-dashboard" element={<UnifiedDashboard />} />
+            <Route path="/meta-dashboard" element={<MainDashboard />} />
             {/* TODO: Create new setup flow */}
             <Route path="/meta-api-setup" element={<ConnectStepConvex />} />
             <Route path="/meta-api-setup/connect" element={<ConnectStepConvex />} />
