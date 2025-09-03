@@ -150,7 +150,7 @@ export const TestStepConvex: React.FC = () => {
 
   const handleContinue = () => {
     if (allTestsPassed) {
-      navigate('/meta-api-setup/complete')
+      navigate('/meta-api-setup/sync')
     }
   }
 

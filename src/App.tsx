@@ -11,6 +11,8 @@ import Tasks from './routes/Tasks'
 import { ConnectStepConvex } from './pages/meta-setup/ConnectStepConvex'
 import { PermissionsStepConvex } from './pages/meta-setup/PermissionsStepConvex'
 import { TestStepConvex } from './pages/meta-setup/TestStepConvex'
+import MetaApiSyncPage from './pages/meta-api-setup/sync'
+import WeeklySyncPage from './pages/meta-api-setup/weekly-sync'
 import { CompleteStepConvex } from './pages/meta-setup/CompleteStepConvex'
 import { ECForceImporter } from './components/ecforce/ECForceImporter'
 import { ECForceContainer } from './pages/ECForceContainer'
@@ -31,6 +33,7 @@ import { setupTestAccount } from './services/testAccountSetup'
 import { ApiConvexTestPage } from './pages/ApiConvexTestPage'
 import { ThreeLayerCacheTestPage } from './pages/ThreeLayerCacheTestPage'
 import { ProjectCloverPage } from './pages/ProjectCloverPage'
+import { CacheDataViewer } from './pages/CacheDataViewer'
 
 // Convex URLのフォールバック処理を追加
 const convexUrl = import.meta.env.VITE_CONVEX_URL || 'https://temporary-convex-url.convex.cloud'
@@ -68,6 +71,8 @@ function AppContent() {
             <Route path="/meta-api-setup/connect" element={<ConnectStepConvex />} />
             <Route path="/meta-api-setup/permissions" element={<PermissionsStepConvex />} />
             <Route path="/meta-api-setup/test" element={<TestStepConvex />} />
+            <Route path="/meta-api-setup/sync" element={<MetaApiSyncPage />} />
+            <Route path="/meta-api-setup/weekly-sync" element={<WeeklySyncPage />} />
             <Route path="/meta-api-setup/complete" element={<CompleteStepConvex />} />
             <Route path="/ecforce-import" element={<ECForceImporter />} />
             <Route path="/ecforce" element={<ECForceContainer />} />
@@ -85,6 +90,7 @@ function AppContent() {
             <Route path="/test-simple" element={<SimpleTestDashboard />} />
             <Route path="/test-aggregation" element={<AggregationTestComponent />} />
             <Route path="/three-layer-cache-test" element={<ThreeLayerCacheTestPage />} />
+            <Route path="/cache-viewer" element={<CacheDataViewer />} />
             <Route
               path="/media"
               element={
