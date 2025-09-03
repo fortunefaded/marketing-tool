@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import { ConvexProvider, ConvexReactClient } from 'convex/react'
 import { useEffect } from 'react'
 import { ErrorBoundary } from './components/ErrorBoundary'
-import { ConvexCleaner } from './utils/convex-cleanup'
+import { ConvexUsageTracker } from './utils/convex-usage-tracker'
 import { UnifiedDashboard } from './pages/UnifiedDashboard'
 import MainDashboard from './pages/MainDashboard'
 import Campaigns from './routes/Campaigns'
@@ -45,6 +45,22 @@ vibe.info('アプリケーション初期化', {
   mode: import.meta.env.MODE,
   convexUrl: convexUrl ? '接続先設定済み' : '未設定',
 })
+
+// 開発環境でConvex使用量トラッカーを初期化
+if (import.meta.env.DEV && typeof window !== 'undefined') {
+  const tracker = new ConvexUsageTracker(convex)
+  tracker.start()
+
+  // グローバルに公開（デバッグ用）
+  ;(window as any).convexTracker = tracker
+
+  console.log('💡 Convex使用量トラッカーが有効です')
+  console.log('   コンソールで以下のコマンドが使用可能:')
+  console.log('   - convexTracker.printStats() : 統計を表示')
+  console.log('   - convexTracker.exportLogs() : ログをエクスポート')
+  console.log('   - convexTracker.reset()      : 統計をリセット')
+  console.log('   - convexTracker.stop()       : トラッキング停止')
+}
 
 function RouteLogger() {
   const location = useLocation()
@@ -142,23 +158,6 @@ function App() {
           }
         })
         .catch((error) => vibe.bad('テストアカウントセットアップ失敗', { error }))
-    }
-    
-    // Convexクリーンアップの初期化（本番環境のみ）
-    if (import.meta.env.PROD) {
-      const cleaner = new ConvexCleaner(convex)
-      cleaner.initialize()
-        .then(() => {
-          vibe.good('Convexクリーンアップスケジュール開始')
-        })
-        .catch((error) => {
-          vibe.bad('Convexクリーンアップ初期化失敗', { error })
-        })
-      
-      // コンポーネントアンマウント時にクリーンアップを停止
-      return () => {
-        cleaner.stop()
-      }
     }
   }, [])
 
