@@ -56,7 +56,7 @@ export default function Sidebar() {
     },
     {
       name: '広告疲労度分析',
-      path: '/ad-fatigue',
+      path: '/meta-api-setup/weekly-sync',
       icon: ExclamationTriangleIcon,
     },
     {

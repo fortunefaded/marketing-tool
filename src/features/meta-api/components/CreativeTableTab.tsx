@@ -7,6 +7,7 @@ import {
   calculateMetric,
   debugDataStructure,
 } from '../utils/safe-data-access'
+import { aggregateCreativesByName } from '../utils/creative-aggregation'
 import {
   ChevronUpIcon,
   ChevronDownIcon,
@@ -103,48 +104,74 @@ export function CreativeTableTab({
       return []
     }
 
+    // クリエイティブ名で集約
+    const aggregatedCreatives = aggregateCreativesByName(normalizedData)
+    console.log('CreativeTableTab: Aggregated creatives:', {
+      originalCount: normalizedData.length,
+      aggregatedCount: aggregatedCreatives.length
+    })
+
     // 疲労度データの詳細をログ出力（安全）
     console.log(
       '📊 疲労度データの詳細:',
-      normalizedData.slice(0, 5).map((d) => ({
-        adName: d.ad_name,
-        score: d.fatigueScore,
-        status: d.status,
-        frequency: d.metrics.frequency,
-        ctr: d.metrics.ctr,
-        cpm: d.metrics.cpm,
+      aggregatedCreatives.slice(0, 5).map((d) => ({
+        adName: d.adName,
+        score: d.fatigue_score,
+        status: d.status || 'normal',
+        frequency: d.frequency,
+        ctr: d.ctr,
+        cpm: d.cpm,
       }))
     )
 
-    const enrichedData = normalizedData.map((item) => {
-      const insight = insightsMap.get(item.ad_id)
-      const metrics = getSafeMetrics(item)
+    const enrichedData = aggregatedCreatives.map((item) => {
+      // 集約されたクリエイティブの最初のIDからinsightを取得
+      const insight = item.adIds.length > 0 ? insightsMap.get(item.adIds[0]) : null
+      // 集約データのメトリクスを直接使用
+      const metrics = {
+        impressions: item.impressions,
+        clicks: item.clicks,
+        spend: item.spend,
+        conversions: item.conversions,
+        frequency: item.frequency,
+        ctr: item.ctr,
+        unique_ctr: item.unique_ctr,
+        cpm: item.cpm,
+        cpc: item.cpc
+      }
+
+      // ステータスを計算（疲労度スコアベース）
+      const status = item.fatigue_score >= 80 ? 'critical' : 
+                     item.fatigue_score >= 60 ? 'warning' : 'normal'
 
       return {
         ...item,
         // 元のデータ構造との互換性を保つためのマッピング
-        adId: item.ad_id,
-        adName: item.ad_name,
-        campaignId: item.campaign_id,
-        campaignName: item.campaign_name,
-        adsetId: item.adset_id,
-        adsetName: item.adset_name,
-        score: item.fatigueScore,
+        adId: item.adIds[0], // 最初のIDを代表として使用
+        adIds: item.adIds, // 全てのIDを保持
+        adName: item.adName,
+        campaignId: item.campaignId,
+        campaignName: item.campaignName,
+        adsetId: item.adsetId,
+        adsetName: item.adsetName,
+        score: item.fatigue_score,
+        status: status,
+        metrics: metrics,
 
         // インサイトデータ
         insight,
 
-        // 安全に取得したメトリクス
-        impressions: metrics.impressions,
-        clicks: metrics.clicks,
-        spend: metrics.spend,
-        conversions: metrics.conversions,
+        // 集約されたメトリクスを使用
+        impressions: item.impressions,
+        clicks: item.clicks,
+        spend: item.spend,
+        conversions: item.conversions,
 
-        // 計算メトリクス（安全）
-        cpa: calculateMetric(metrics, 'cpa'),
-        roas: calculateMetric(metrics, 'roas'),
-        cvr: calculateMetric(metrics, 'cvr'),
-        revenue: insight?.conversion_value || 0,
+        // 計算メトリクス（集約データから）
+        cpa: item.cpa,
+        roas: item.roas,
+        cvr: item.conversions > 0 && item.clicks > 0 ? (item.conversions / item.clicks) * 100 : 0,
+        revenue: item.conversion_values,
         // クリエイティブタイプ
         creativeType: getCreativeType(insight).type,
       }
@@ -274,15 +301,18 @@ export function CreativeTableTab({
   }
 
   const handleViewDetails = (item: any) => {
-    const insight = insightsMap.get(item.adId)
+    // 集約されたクリエイティブの最初のIDからinsightを取得
+    const insight = item.adIds && item.adIds.length > 0 ? insightsMap.get(item.adIds[0]) : insightsMap.get(item.adId)
     const creativeInfo = getCreativeType(insight)
 
     console.log('詳細表示:', {
       adId: item.adId,
+      adIds: item.adIds,
       adName: item.adName,
       creativeType: creativeInfo.type,
       fatigueScore: item.score,
       metrics: item.metrics,
+      dailyData: item.dailyData,
       insight: insight,
       urls: {
         image: insight?.image_url,
@@ -574,7 +604,7 @@ export function CreativeTableTab({
                   {/* クリエイティブタイプ */}
                   <td className="px-2 py-3 whitespace-nowrap text-center">
                     {(() => {
-                      const insight = insightsMap.get(item.adId)
+                      const insight = item.adIds && item.adIds.length > 0 ? insightsMap.get(item.adIds[0]) : insightsMap.get(item.adId)
                       const { type, icon: Icon, color } = getCreativeType(insight)
                       return (
                         <div className="flex flex-col items-center">
@@ -593,8 +623,11 @@ export function CreativeTableTab({
                     >
                       {item.adName || `Creative ${index + 1}`}
                     </div>
-                    <div className="text-xs text-gray-500 truncate" title={item.adId}>
-                      {item.adId}
+                    <div className="text-xs text-gray-500 truncate">
+                      {item.adIds && item.adIds.length > 1 
+                        ? `${item.adIds.length} ads (${item.firstDate} - ${item.lastDate})`
+                        : item.adId
+                      }
                     </div>
                   </td>
 
@@ -755,7 +788,9 @@ export function CreativeTableTab({
           isOpen={isModalOpen}
           onClose={closeModal}
           item={selectedItem}
-          insight={insightsMap.get(selectedItem.adId)}
+          insight={selectedItem.adIds && selectedItem.adIds.length > 0 
+            ? insightsMap.get(selectedItem.adIds[0]) 
+            : insightsMap.get(selectedItem.adId)}
         />
       )}
     </div>

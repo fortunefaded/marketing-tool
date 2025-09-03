@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import { ConvexProvider, ConvexReactClient } from 'convex/react'
 import { useEffect } from 'react'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { ConvexCleaner } from './utils/convex-cleanup'
 import { UnifiedDashboard } from './pages/UnifiedDashboard'
 import MainDashboard from './pages/MainDashboard'
 import Campaigns from './routes/Campaigns'
@@ -20,7 +21,6 @@ import { ECForceContainer } from './pages/ECForceContainer'
 import { IntegratedDashboard } from './pages/IntegratedDashboard'
 import { ReportManagement } from './pages/ReportManagement'
 import { SettingsManagement } from './pages/SettingsManagement'
-import { SafeFatigueDashboardWrapper } from './features/meta-api/components/SafeFatigueDashboardWrapper'
 import { SimpleTestDashboard } from './pages/SimpleTestDashboard'
 // TODO: Replace with new implementation - archived components removed
 // import { FatigueDashboardWithAccount } from './_archived/components/AdFatigue/FatigueDashboardWithAccount'
@@ -83,11 +83,9 @@ function AppContent() {
             <Route path="/tasks" element={<Tasks />} />
             <Route path="/reports" element={<ReportManagement />} />
             <Route path="/settings" element={<SettingsManagement />} />
-            {/* TODO: Replace with new implementation */}
-            <Route path="/ad-fatigue" element={<SafeFatigueDashboardWrapper />} />
+            {/* ad-fatigueは/weekly-syncに統合されました */}
             <Route path="/project-clover" element={<ProjectCloverPage />} />
             <Route path="/test-new-meta-api" element={<NewMetaApiTest />} />
-            <Route path="/ad-fatigue-simple" element={<SafeFatigueDashboardWrapper />} />
             <Route path="/api-convex-test" element={<ApiConvexTestPage />} />
             <Route path="/test-simple" element={<SimpleTestDashboard />} />
             <Route path="/test-aggregation" element={<AggregationTestComponent />} />
@@ -144,6 +142,23 @@ function App() {
           }
         })
         .catch((error) => vibe.bad('テストアカウントセットアップ失敗', { error }))
+    }
+    
+    // Convexクリーンアップの初期化（本番環境のみ）
+    if (import.meta.env.PROD) {
+      const cleaner = new ConvexCleaner(convex)
+      cleaner.initialize()
+        .then(() => {
+          vibe.good('Convexクリーンアップスケジュール開始')
+        })
+        .catch((error) => {
+          vibe.bad('Convexクリーンアップ初期化失敗', { error })
+        })
+      
+      // コンポーネントアンマウント時にクリーンアップを停止
+      return () => {
+        cleaner.stop()
+      }
     }
   }, [])
 
