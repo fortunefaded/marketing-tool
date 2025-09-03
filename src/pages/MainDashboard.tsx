@@ -170,13 +170,9 @@ export default function MainDashboard() {
       const startDateStr = formatDate(startDate)
       const endDateStr = formatDate(endDate)
       
-      // Convexから既存データを取得（サーバー側でフィルタリング）
-      const existingEntries = await convex.query(api.cache.cacheEntries.getByAccountWithDateFilter, {
-        accountId: targetAccountId.replace('act_', ''),
-        startDate: startDateStr,
-        endDate: endDateStr,
-        includeExpired: false
-      })
+      // 【最適化】既存データ取得を削除（Bandwidth削減のため）
+      console.log('⚠️ 既存データ取得をスキップ（Bandwidth削減）')
+      const existingEntries = null // 一時的に無効化
       
       if (existingEntries && existingEntries.length > 0) {
         // データを結合（既にフィルタリング済み）
@@ -314,20 +310,9 @@ export default function MainDashboard() {
       let newCount = 0
       let updateCount = 0
       
-      // 既存データを取得（過去7日分）
-      const existingData = await convex.query(api.cache.cacheEntries.getByAccount, {
-        accountId,
-        includeExpired: false
-      })
-      
-      // キーでインデックス化
-      const existingByKey = new Map()
-      existingData?.forEach((entry: any) => {
-        if (entry.data) {
-          const key = `${entry.data.ad_id}_${entry.data.date_start}`
-          existingByKey.set(key, entry.data)
-        }
-      })
+      // 【最適化】既存データ取得を削除（Bandwidth削減のため）
+      console.log('📊 差分計算をスキップ（Bandwidth削減）')
+      const existingByKey = new Map() // 空のマップ（全てを新規として扱う）
       
       // 新規データと既存データを比較（全レコードを保持）
       fetchResult.data.forEach((newRecord: any) => {

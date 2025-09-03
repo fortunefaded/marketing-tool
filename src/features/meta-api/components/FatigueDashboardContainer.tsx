@@ -105,27 +105,10 @@ export function FatigueDashboardContainer() {
         // 強制リフレッシュの場合（weekly-syncと同じ方式）
         console.log('🔄 強制リフレッシュ: Meta APIから最新データを取得して差分を計算')
         
-        // 1. まずConvexから既存データを取得（差分計算用）
-        console.log('📊 既存データをConvexから取得中...')
-        try {
-          const existingEntries = await convex.query(api.cache.cacheEntries.getByAccount, {
-            accountId: selectedAccountId.replace('act_', ''),
-            includeExpired: false
-          })
-          
-          // 既存データをマップ化
-          const existingByKey = new Map()
-          if (existingEntries && existingEntries.length > 0) {
-            existingEntries.forEach((entry: any) => {
-              if (entry.data && Array.isArray(entry.data)) {
-                entry.data.forEach((record: any) => {
-                  const key = `${record.ad_id}_${record.date_start}`
-                  existingByKey.set(key, record)
-                })
-              }
-            })
-          }
-          console.log(`📊 既存データ: ${existingByKey.size}件`)
+        // 1. 【最適化】既存データ取得を削除（Bandwidth削減のため）
+        console.log('📊 差分計算をスキップ（Bandwidth削減）')
+        const existingByKey = new Map() // 空のマップ（全てを新規として扱う）
+        console.log('📊 既存データ: 0件（スキップ）')
           
           // 2. Meta APIから最新データを取得
           // 日付範囲の設定（過去7日間）
@@ -224,10 +207,6 @@ export function FatigueDashboardContainer() {
               await cacheSystem.set(cacheKey, result.data)
             }
           }
-        } catch (error) {
-          console.error('❌ 既存データ取得エラー:', error)
-          // エラーでも続行（新規データとして扱う）
-        }
       } else {
         // 通常のキャッシュシステムから取得
         result = await cacheSystem.get(cacheKey, {
