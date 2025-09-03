@@ -108,7 +108,10 @@ export class ThreeLayerCache {
     }
 
     // L2: Convexデータベース
-    if (!options.skipL2) {
+    // 【最適化】L2を一時的に無効化（Bandwidth削減のため）
+    if (!options.skipL2 && false) { // 強制的に無効化
+      console.log('[ThreeLayerCache] L2スキップ（Bandwidth削減）')
+      /*
       console.log('[ThreeLayerCache] Checking L2 (Convex Database)')
       try {
         const convexData = await this.convex.query(api.cache.cacheEntries.getByCacheKey, {
@@ -138,6 +141,7 @@ export class ThreeLayerCache {
       } catch (error) {
         console.error('[ThreeLayerCache] Convex cache error:', error)
       }
+      */
     }
 
     // L3: Meta API
@@ -180,7 +184,10 @@ export class ThreeLayerCache {
     }
 
     // L2: Convexに保存
-    if (!options.skipL2) {
+    // 【最適化】L2への保存を一時的に無効化（Bandwidth削減のため）
+    if (!options.skipL2 && false) { // 強制的に無効化
+      console.log('[ThreeLayerCache] L2への保存をスキップ（Bandwidth削減）')
+      /*
       try {
         // キーからaccountIdとdateRangeを抽出
         const parts = key.split('_')
@@ -195,6 +202,7 @@ export class ThreeLayerCache {
       } catch (error) {
         console.error('Failed to save to Convex:', error)
       }
+      */
     }
   }
 
