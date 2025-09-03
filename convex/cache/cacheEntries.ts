@@ -37,9 +37,9 @@ export const create = mutation({
       return await updateEntry(ctx, existing._id, args.data, args.expiresInHours)
     }
 
-    // データサイズを計算
+    // データサイズを計算（Blobを使わない方法）
     const dataStr = JSON.stringify(args.data)
-    const dataSize = new Blob([dataStr]).size
+    const dataSize = dataStr.length * 2 // UTF-16として概算
     const checksum = generateChecksum(dataStr)
 
     // 有効期限を設定（デフォルト24時間）
@@ -183,11 +183,11 @@ export const getStats = query({
       avgAccessCount: Math.round(avgAccessCount),
       oldestEntry:
         validEntries.length > 0
-          ? new Date(Math.min(...validEntries.map((e) => e.createdAt)))
+          ? Math.min(...validEntries.map((e) => e.createdAt))
           : null,
       newestEntry:
         validEntries.length > 0
-          ? new Date(Math.max(...validEntries.map((e) => e.createdAt)))
+          ? Math.max(...validEntries.map((e) => e.createdAt))
           : null,
     }
   },
@@ -273,6 +273,80 @@ export const remove = mutation({
 
     await ctx.db.delete(entry._id)
     return entry._id
+  },
+})
+
+/**
+ * 複数のキャッシュエントリを一括作成
+ */
+export const bulkInsert = mutation({
+  args: {
+    records: v.array(v.object({
+      accountId: v.string(),
+      cacheKey: v.string(),
+      data: v.any(),
+      expiresAt: v.optional(v.number()),
+    }))
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now()
+    const insertedIds = []
+    
+    for (const record of args.records) {
+      // 既存のエントリをチェック
+      const existing = await ctx.db
+        .query('cacheEntries')
+        .withIndex('by_cache_key', (q) => q.eq('cacheKey', record.cacheKey))
+        .first()
+      
+      if (existing) {
+        // 既存エントリがある場合は更新
+        const dataStr = JSON.stringify(record.data)
+        const dataSize = dataStr.length * 2
+        const checksum = generateChecksum(dataStr)
+        
+        await ctx.db.patch(existing._id, {
+          data: record.data,
+          dataSize,
+          recordCount: Array.isArray(record.data) ? record.data.length : 1,
+          updatedAt: now,
+          expiresAt: record.expiresAt || (now + 365 * 24 * 60 * 60 * 1000), // デフォルト1年
+          checksum,
+        })
+        insertedIds.push(existing._id)
+      } else {
+        // データサイズを計算（Blobを使わない方法）
+        const dataStr = JSON.stringify(record.data)
+        const dataSize = dataStr.length * 2 // UTF-16として概算
+        const checksum = generateChecksum(dataStr)
+        
+        // 新規作成
+        const entryId = await ctx.db.insert('cacheEntries', {
+          cacheKey: record.cacheKey,
+          accountId: record.accountId,
+          dateRange: 'custom', // 固定値に変更
+          data: record.data,
+          dataSize,
+          recordCount: Array.isArray(record.data) ? record.data.length : 1,
+          createdAt: now,
+          updatedAt: now,
+          expiresAt: record.expiresAt || (now + 365 * 24 * 60 * 60 * 1000), // デフォルト1年
+          accessCount: 0,
+          lastAccessedAt: now,
+          checksum,
+          isComplete: true,
+          isCompressed: false,
+          fetchTimeMs: 0,
+          processTimeMs: 0,
+        })
+        insertedIds.push(entryId)
+      }
+    }
+    
+    return {
+      insertedCount: insertedIds.length,
+      insertedIds,
+    }
   },
 })
 
@@ -378,7 +452,7 @@ async function updateEntry(
 ) {
   const now = Date.now()
   const dataStr = JSON.stringify(data)
-  const dataSize = new Blob([dataStr]).size
+  const dataSize = dataStr.length * 2 // UTF-16として概算
   const checksum = generateChecksum(dataStr)
 
   const existing = await ctx.db.get(entryId)

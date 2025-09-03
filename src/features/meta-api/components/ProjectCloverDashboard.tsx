@@ -6,8 +6,9 @@ import { SimpleAccountStore } from '../account/account-store'
 import { MetaAccount } from '@/types'
 import type { DateRangeFilter } from '../hooks/useAdFatigueSimplified'
 import type { CacheResult } from '../core/three-layer-cache'
-import { ArrowPathIcon, BoltIcon, TrashIcon, BugAntIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline'
+import { ArrowPathIcon, BoltIcon, TrashIcon, BugAntIcon, ChevronDownIcon, ChevronUpIcon, TableCellsIcon, ChartBarIcon } from '@heroicons/react/24/outline'
 import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/solid'
+import { ProjectCloverHierarchyView } from './ProjectCloverHierarchyView'
 
 /**
  * データ取得モード
@@ -99,6 +100,9 @@ export function ProjectCloverDashboard() {
   const [showDebugPanel, setShowDebugPanel] = useState(true)
   const maxLogs = 200 // 最大ログ数（差分分析のため増やす）
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set()) // 展開された行の管理
+  
+  // ビュー切り替え
+  const [currentView, setCurrentView] = useState<'hierarchy' | 'comparison' | 'debug'>('hierarchy')
   
   // LocalStorage キー
   const STORAGE_KEY = 'project_clover_csv_data'
@@ -1062,8 +1066,57 @@ export function ProjectCloverDashboard() {
         )}
       </div>
 
-      {/* API URL情報パネル（重要！） */}
-      {lastApiUrl && (
+      {/* ビュー切り替えタブ */}
+      <div className="bg-white rounded-lg shadow-lg p-4 mb-6">
+        <div className="flex space-x-2">
+          <button
+            onClick={() => setCurrentView('hierarchy')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+              currentView === 'hierarchy'
+                ? 'bg-green-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            <ChartBarIcon className="w-5 h-5" />
+            階層ビュー
+          </button>
+          <button
+            onClick={() => setCurrentView('comparison')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+              currentView === 'comparison'
+                ? 'bg-green-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            <TableCellsIcon className="w-5 h-5" />
+            比較ビュー
+          </button>
+          <button
+            onClick={() => setCurrentView('debug')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+              currentView === 'debug'
+                ? 'bg-green-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            <BugAntIcon className="w-5 h-5" />
+            デバッグ
+          </button>
+        </div>
+      </div>
+
+      {/* 階層ビュー */}
+      {currentView === 'hierarchy' && (
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          <ProjectCloverHierarchyView 
+            data={apiData || []} 
+            isLoading={isFetching}
+          />
+        </div>
+      )}
+
+      {/* API URL情報パネル（デバッグビューの一部） */}
+      {currentView === 'debug' && lastApiUrl && (
         <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg shadow-lg p-6 mb-6">
           <h2 className="text-xl font-bold text-yellow-800 mb-4">
             🔍 API URL デバッグ情報
@@ -1143,7 +1196,7 @@ export function ProjectCloverDashboard() {
         </div>
       )}
 
-      {/* コントロールパネル */}
+      {/* コントロールパネル（常に表示） */}
       <div className="bg-white rounded-lg shadow-lg p-6">
         <h2 className="text-xl font-bold text-green-800 mb-4">
           🍀 データ取得コントロール（2025年8月データ）
@@ -1612,8 +1665,8 @@ export function ProjectCloverDashboard() {
         </div>
       </div>
 
-      {/* CSV差分比較テーブル */}
-      {csvData.length > 0 && (
+      {/* CSV差分比較テーブル（比較ビュー） */}
+      {currentView === 'comparison' && csvData.length > 0 && (
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold text-gray-800">
@@ -1951,9 +2004,18 @@ export function ProjectCloverDashboard() {
           </div>
         </div>
       )}
+      
+      {/* 比較ビューでCSVデータがない場合のメッセージ */}
+      {currentView === 'comparison' && csvData.length === 0 && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+          <p className="text-yellow-800">
+            CSVデータがアップロードされていません。比較を行うにはCSVファイルをアップロードしてください。
+          </p>
+        </div>
+      )}
 
-      {/* Meta Ad Manager データ検証パネル */}
-      {apiData && apiData.length > 0 && (
+      {/* Meta Ad Manager データ検証パネル（デバッグビュー） */}
+      {currentView === 'debug' && apiData && apiData.length > 0 && (
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold text-gray-800">

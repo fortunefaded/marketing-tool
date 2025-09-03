@@ -125,7 +125,11 @@ export class ThreeLayerCache {
 
     // L3: Meta API
     console.log('[ThreeLayerCache] Going to L3 (Meta API)')
-    return this.fetchFromApi(key, startTime)
+    // keyからaccountIdとdateRangeを抽出
+    const parts = key.split('_')
+    const accountId = parts[0]
+    const dateRange = parts.slice(1).join('_')
+    return this.fetchFromApi(accountId, dateRange, options)
   }
 
   /**
@@ -200,12 +204,15 @@ export class ThreeLayerCache {
   }
 
   /**
-   * Meta APIからデータを取得
+   * Meta APIからデータを取得（パブリックメソッドに変更）
    */
-  private async fetchFromApi<T>(
-    key: string,
-    startTime: number
+  async fetchFromApi<T>(
+    accountId: string,
+    dateRange: string,
+    options?: any
   ): Promise<CacheResult<T>> {
+    const startTime = Date.now()
+    const key = `${accountId}_${dateRange}`
     console.log('[ThreeLayerCache] fetchFromApi() called', { key })
     
     try {
@@ -229,16 +236,11 @@ export class ThreeLayerCache {
         tokenPrefix: this.accessToken.substring(0, 10) + '...'
       })
 
-      // キーからパラメータを抽出
-      // キーフォーマット: "accountId_date_range" (例: "596086994975714_last_30d")
-      const parts = key.split('_')
-      const accountId = parts[0]
-      const dateRange = parts.slice(1).join('_') // last_30d のようなアンダースコアを含む値に対応
-      console.log('[ThreeLayerCache] Extracted params', { 
-        key,
-        parts,
+      // パラメータはすでに引数として渡されているので、そのまま使用
+      console.log('[ThreeLayerCache] Using params', { 
         accountId, 
-        dateRange 
+        dateRange,
+        options 
       })
       
       // Meta API v23.0エンドポイント
@@ -248,9 +250,25 @@ export class ThreeLayerCache {
       // パラメータ設定
       url.searchParams.append('access_token', this.accessToken)
       
-      // 2025年8月の固定期間を設定（time_rangeをJSON形式で指定）
-      if (dateRange === 'august_2025') {
-        // time_rangeをJSON形式で正しく指定（重要！）
+      // カスタム日付範囲の処理
+      if (options && options.since && options.until) {
+        // time_rangeをJSON形式で指定
+        const timeRange = {
+          since: options.since,
+          until: options.until
+        }
+        url.searchParams.append('time_range', JSON.stringify(timeRange))
+        
+        // タイムゾーンを明示的に指定（日本時間）
+        url.searchParams.append('time_zone', 'Asia/Tokyo')
+        
+        // アトリビューション設定を追加（重要！）
+        url.searchParams.append('use_unified_attribution_setting', 'true')
+        url.searchParams.append('action_attribution_windows', '1d_click,7d_click,1d_view,7d_view')
+        
+        console.log('[ThreeLayerCache] Using custom time_range:', timeRange)
+      } else if (dateRange === 'august_2025') {
+        // 2025年8月の固定期間を設定（time_rangeをJSON形式で指定）
         const timeRange = {
           since: '2025-08-01',
           until: '2025-08-31'  // 8月1日から8月31日まで
@@ -278,9 +296,10 @@ export class ThreeLayerCache {
       //     value: ['ACTIVE', 'PAUSED', 'DELETED', 'ARCHIVED']
       //   }
       // ]))
-      url.searchParams.append('fields', [
-        'ad_id',           // 広告IDを追加（重要！）
-        'campaign_id',     // キャンペーンIDを追加
+      // フィールド設定（optionsから取得、なければデフォルト）
+      const fields = options?.fields || [
+        'ad_id',
+        'campaign_id',
         'campaign_name',
         'adset_name',
         'ad_name',
@@ -292,12 +311,21 @@ export class ThreeLayerCache {
         'spend',
         'unique_ctr',
         'inline_link_click_ctr',
-        'date_start',  // 実際の日付範囲を確認
-        'date_stop'    // 実際の日付範囲を確認
-      ].join(','))
-      url.searchParams.append('level', 'ad')
-      url.searchParams.append('limit', '1000') // 制限を1000に増やす
-      url.searchParams.append('time_increment', '1') // 日別データ
+        'date_start',
+        'date_stop'
+      ]
+      url.searchParams.append('fields', fields.join(','))
+      
+      // レベル設定（optionsから取得、なければ'ad'）
+      url.searchParams.append('level', options?.level || 'ad')
+      
+      // 制限設定（optionsから取得、なければ1000）
+      url.searchParams.append('limit', options?.limit || '1000')
+      
+      // 時間増分設定（optionsから取得、なければ日別）
+      if (options?.time_increment) {
+        url.searchParams.append('time_increment', options.time_increment)
+      }
       
       // API URLの詳細をログに記録（重要！）
       const urlParams = Object.fromEntries(url.searchParams.entries())
@@ -447,24 +475,20 @@ export class ThreeLayerCache {
           paging: responseData.paging
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('[ThreeLayerCache] API fetch error:', {
         error: error instanceof Error ? {
           name: error.name,
           message: error.message,
           stack: error.stack
-        } : error
+        } : error,
+        accountId,
+        dateRange,
+        options
       })
-      this.recordMiss(key)
-      return {
-        data: null,
-        source: 'miss',
-        metadata: {
-          hitRate: this.getHitRate(key),
-          latency: Date.now() - startTime,
-          error: error instanceof Error ? error.message : String(error)
-        }
-      }
+      
+      // エラーをそのまま投げて、呼び出し元でキャッチできるようにする
+      throw error
     }
   }
 
@@ -475,6 +499,8 @@ export class ThreeLayerCache {
     const metrics = this.metrics.get(key)
     if (metrics) {
       metrics.hits++
+    } else {
+      this.metrics.set(key, { hits: 1, misses: 0 })
     }
   }
 
@@ -485,6 +511,8 @@ export class ThreeLayerCache {
     const metrics = this.metrics.get(key)
     if (metrics) {
       metrics.misses++
+    } else {
+      this.metrics.set(key, { hits: 0, misses: 1 })
     }
   }
 
