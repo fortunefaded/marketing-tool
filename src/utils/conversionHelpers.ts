@@ -10,16 +10,24 @@ export const isPurchaseAction = (actionType: string | undefined | null): boolean
   if (!actionType || typeof actionType !== 'string') return false
 
   // Meta APIで定義されている購入関連のアクションタイプ
+  // 参考: https://developers.facebook.com/docs/marketing-api/conversions-api/parameters/server-event
   const purchaseTypes = [
     'offsite_conversion.fb_pixel_purchase', // Facebookピクセル経由の購入
+    'offsite_conversion.fb_pixel_complete_registration', // 登録完了
     'offsite_conversion.fb_pixel_initiate_checkout', // チェックアウト開始
-    'offsite_conversion.fb_pixel_add_to_cart', // カート追加（オプション）
+    'offsite_conversion.fb_pixel_add_payment_info', // 支払い情報追加
+    'offsite_conversion.fb_pixel_add_to_cart', // カート追加
+    'offsite_conversion.fb_pixel_lead', // リード獲得
+    'offsite_conversion', // 一般的なオフサイトコンバージョン
     'omni_purchase', // オムニチャネル購入
     'purchase', // 一般的な購入
     'mobile_app_purchase', // モバイルアプリ内購入
     'onsite_conversion.purchase', // サイト内購入
+    'onsite_conversion.lead', // サイト内リード
+    'onsite_conversion', // 一般的なオンサイトコンバージョン
     'app_custom_event.fb_mobile_purchase', // カスタムイベント購入
     'offline_conversion.purchase', // オフライン購入
+    'offline_conversion', // 一般的なオフラインコンバージョン
   ]
 
   // 小文字に変換して部分一致でチェック
@@ -63,16 +71,43 @@ export const extractConversions = (item: any) => {
     let fcv_candidate3 = 0 // unique_actions['7d_click']
     let fcv_candidate4 = 0 // unique_conversions
 
+    // デバッグ: 入力データの確認
+    if (process.env.NODE_ENV === 'development' && item.ad_name) {
+      console.log(`🔍 Conversion extraction for: ${item.ad_name?.substring(0, 30)}...`)
+      console.log('  - conversions field:', item.conversions)
+      console.log(
+        '  - actions field exists:',
+        !!item.actions,
+        Array.isArray(item.actions) ? `(${item.actions.length} items)` : ''
+      )
+      console.log('  - unique_actions exists:', !!item.unique_actions)
+    }
+
     // CV: 総コンバージョン数の取得
-    // action_attribution_windows: ['1d_click']指定により、
-    // conversionsフィールドは1日クリックアトリビューションの値
-    if (item.conversions !== undefined && item.conversions !== null) {
+    // 優先順位：
+    // 1. conversionsフィールド（Meta APIが集計した値）
+    // 2. actionsフィールドから購入系アクションを集計
+    if (item.conversions !== undefined && item.conversions !== null && item.conversions !== '') {
       cv = parseInt(item.conversions) || 0
-    } else if (item.actions && Array.isArray(item.actions)) {
-      // actionsフィールドから購入系アクションを集計
+    }
+
+    // conversionsが0またはない場合、actionsからも計算
+    if (cv === 0 && item.actions && Array.isArray(item.actions)) {
+      // デバッグ: どんなアクションタイプが存在するか
+      if (process.env.NODE_ENV === 'development') {
+        const actionTypes = item.actions.map((a: any) => a.action_type)
+        console.log('  - Available action types:', actionTypes)
+      }
+
       item.actions.forEach((action: any) => {
         if (isPurchaseAction(action.action_type)) {
-          cv += parseInt(action.value || '0')
+          // valueフィールドが標準（action_attribution_windows適用済み）
+          const actionValue = parseInt(action.value || '0')
+          cv += actionValue
+
+          if (process.env.NODE_ENV === 'development' && actionValue > 0) {
+            console.log(`  ✅ Found purchase action: ${action.action_type} = ${actionValue}`)
+          }
         }
       })
     }
@@ -108,17 +143,22 @@ export const extractConversions = (item: any) => {
     }
 
     // 最も妥当なF-CV値を選択（優先順位を調整）
-    // 1. unique_actions['1d_click']（最も正確）
-    // 2. unique_actionsのvalue
-    // 3. unique_conversions
-    // 4. フォールバック: CV値（すべて初回購入と仮定）
-    let fcv = fcv_candidate2 || fcv_candidate1 || fcv_candidate4 || cv
+    // CVが0の場合、F-CVも必ず0
+    let fcv = 0
+    if (cv > 0) {
+      // 優先順位：
+      // 1. unique_actions['1d_click']（最も正確）
+      // 2. unique_actionsのvalue
+      // 3. unique_conversions
+      // 4. フォールバック: CV値と同じ（すべて初回購入と仮定）
+      fcv = fcv_candidate2 || fcv_candidate1 || fcv_candidate4 || cv
+    }
 
     // データ整合性チェック: CV ≥ F-CV の保証
     const cv_fcv_valid = cv >= fcv
     if (!cv_fcv_valid) {
-      console.warn(`⚠️ データ不整合検出: F-CV (${fcv}) > CV (${cv}), F-CVをCVと同値に修正`)
-      fcv = cv
+      console.warn(`⚠️ データ不整合検出: F-CV (${fcv}) > CV (${cv}), F-CVを0に修正`)
+      fcv = 0 // CVが0の場合は、F-CVも0にする
     }
 
     // デバッグ情報を含めて返却
