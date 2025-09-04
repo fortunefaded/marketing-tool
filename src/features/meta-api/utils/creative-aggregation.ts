@@ -18,6 +18,7 @@ export interface AggregatedCreative {
   conversions: number
   conversions_1d_click: number // F-CV: 初回コンバージョン
   conversion_values: number
+  fcv_debug?: any // F-CVデバッグ情報
 
   // 計算メトリクス
   ctr: number
@@ -210,6 +211,7 @@ export function aggregateCreativesByName(data: any[]): AggregatedCreative[] {
       conversions: totalConversions,
       conversions_1d_click: totalConversions1dClick,
       conversion_values: totalConversionValues,
+      fcv_debug: first.fcv_debug, // 最初のアイテムのデバッグ情報を使用
       ctr,
       unique_ctr,
       cpm,

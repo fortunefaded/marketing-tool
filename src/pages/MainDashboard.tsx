@@ -238,9 +238,10 @@ export default function MainDashboard() {
           }),
           level: 'ad',
           fields:
-            'ad_id,ad_name,campaign_id,campaign_name,adset_id,adset_name,impressions,clicks,spend,ctr,cpm,cpc,frequency,reach,date_start,date_stop,conversions,actions,action_values,unique_actions,unique_action_values,unique_conversions,cost_per_action_type,cost_per_conversion',
-          // F-CV調査用: action_attribution_windowsで1日クリックアトリビューションを指定
-          action_attribution_windows: JSON.stringify(['1d_click']),
+            'ad_id,ad_name,campaign_id,campaign_name,adset_id,adset_name,impressions,clicks,spend,ctr,cpm,cpc,frequency,reach,date_start,date_stop,conversions,actions,action_values,unique_actions,cost_per_action_type,cost_per_unique_action_type,website_purchase_roas,purchase_roas',
+          // F-CV調査用: 複数のアトリビューション期間を取得して比較
+          action_attribution_windows: JSON.stringify(['1d_click', '7d_click']),
+          action_breakdowns: JSON.stringify(['action_type']),
           use_unified_attribution_setting: true,
           // time_increment: '1' を削除 - 期間全体の集約データを取得
           limit: '500',
@@ -272,20 +273,76 @@ export default function MainDashboard() {
 
         // データの形式を整形（数値文字列を数値に変換）
         const formattedData = (result.data || []).map((item: any, index: number) => {
-          // 最初の1件だけ詳細ログ
-          if (index === 0) {
-            console.log('📊 変換前の生データ:', {
-              ad_name: item.ad_name,
-              impressions: item.impressions,
-              impressions_type: typeof item.impressions,
-              clicks: item.clicks,
-              clicks_type: typeof item.clicks,
-              spend: item.spend,
-              spend_type: typeof item.spend,
-              ctr: item.ctr,
-              ctr_type: typeof item.ctr,
-              allKeys: Object.keys(item),
+          // 最初の3件だけ超詳細ログ
+          if (index < 3) {
+            console.log(`🔬 === F-CV調査 アイテム${index + 1} ===`)
+            console.log('📋 利用可能フィールド:', Object.keys(item))
+
+            // conversionsフィールド
+            console.log('1️⃣ conversions:', item.conversions)
+
+            // actions配列の詳細
+            if (item.actions && Array.isArray(item.actions)) {
+              console.log('2️⃣ actions配列:')
+              item.actions.forEach((action: any) => {
+                if (
+                  action.action_type?.includes('purchase') ||
+                  action.action_type?.includes('omni_purchase') ||
+                  action.action_type?.includes('conversion')
+                ) {
+                  console.log('  - 購入系アクション:', {
+                    type: action.action_type,
+                    value: action.value,
+                    '1d_click': action['1d_click'],
+                    '7d_click': action['7d_click'],
+                    '1d_view': action['1d_view'],
+                    '28d_click': action['28d_click'],
+                  })
+                }
+              })
+            }
+
+            // unique_actions配列の詳細（これが最重要！）
+            if (item.unique_actions && Array.isArray(item.unique_actions)) {
+              console.log('3️⃣ 🔥 unique_actions配列（F-CV候補）:')
+              item.unique_actions.forEach((action: any) => {
+                if (
+                  action.action_type?.includes('purchase') ||
+                  action.action_type?.includes('omni_purchase') ||
+                  action.action_type?.includes('conversion')
+                ) {
+                  console.log('  - ユニーク購入アクション:', {
+                    type: action.action_type,
+                    value: action.value,
+                    '1d_click': action['1d_click'],
+                    '7d_click': action['7d_click'],
+                  })
+                }
+              })
+            } else {
+              console.log('3️⃣ ⚠️ unique_actionsが存在しません')
+            }
+
+            // 比較サマリー
+            const normalPurchase =
+              item.actions
+                ?.filter((a: any) => a.action_type?.includes('purchase'))
+                ?.reduce((sum: number, a: any) => sum + parseInt(a.value || '0'), 0) || 0
+
+            const uniquePurchase =
+              item.unique_actions
+                ?.filter((a: any) => a.action_type?.includes('purchase'))
+                ?.reduce((sum: number, a: any) => sum + parseInt(a.value || '0'), 0) || 0
+
+            console.log('📊 購入コンバージョン比較:', {
+              通常購入: normalPurchase,
+              ユニーク購入: uniquePurchase,
+              比率:
+                normalPurchase > 0
+                  ? `${((uniquePurchase / normalPurchase) * 100).toFixed(1)}%`
+                  : 'N/A',
             })
+            console.log('---')
           }
 
           // F-CV調査: コンバージョンデータを抽出
@@ -297,7 +354,7 @@ export default function MainDashboard() {
             impressions: parseInt(item.impressions) || 0,
             clicks: parseInt(item.clicks) || 0,
             spend: parseFloat(item.spend) || 0,
-            // コンバージョンメトリクスを追加
+            // コンバージョンメトリクスを追加（extractConversionsから取得）
             conversions: conversionData.conversions,
             conversions_1d_click: conversionData.conversions_1d_click,
             fcv_debug: conversionData.fcv_debug,
@@ -306,12 +363,11 @@ export default function MainDashboard() {
             cpc: parseFloat(item.cpc) || 0,
             frequency: parseFloat(item.frequency) || 0,
             reach: parseInt(item.reach) || 0,
-            // コンバージョン関連は存在しない場合があるのでオプショナル
-            conversions: item.conversions ? parseInt(item.conversions) : 0,
             conversion_values: item.conversion_values ? parseFloat(item.conversion_values) : 0,
-            cost_per_conversion: item.cost_per_conversion
-              ? parseFloat(item.cost_per_conversion)
-              : 0,
+            cost_per_conversion:
+              conversionData.conversions > 0
+                ? parseFloat(item.spend || '0') / conversionData.conversions
+                : 0,
             // 疲労度ステータスを追加（仮の判定）
             status: 'normal' as const,
             fatigueScore: 0,
