@@ -1,11 +1,7 @@
 import React, { useState } from 'react'
 // CreativeTable import removed - component not used
 import { FatigueData } from '@/types'
-import {
-  getSafeMetrics,
-  calculateMetric,
-  debugDataStructure,
-} from '../utils/safe-data-access'
+import { getSafeMetrics, calculateMetric, debugDataStructure } from '../utils/safe-data-access'
 import { aggregateCreativesByName } from '../utils/creative-aggregation'
 import {
   ChevronUpIcon,
@@ -105,7 +101,7 @@ export function CreativeTableTab({
     const aggregatedCreatives = aggregateCreativesByName(data)
     console.log('CreativeTableTab: Aggregated creatives:', {
       originalCount: data.length,
-      aggregatedCount: aggregatedCreatives.length
+      aggregatedCount: aggregatedCreatives.length,
     })
 
     // 疲労度データの詳細をログ出力（安全）
@@ -134,14 +130,19 @@ export function CreativeTableTab({
         ctr: item.ctr,
         unique_ctr: item.unique_ctr,
         cpm: item.cpm,
-        cpc: item.cpc
+        cpc: item.cpc,
       }
 
       // ステータスを計算（疲労度スコアベース）
       // 疲労度スコアが未計算（-1）の場合は'unknown'
-      const status = item.fatigue_score < 0 ? 'unknown' :
-                     item.fatigue_score >= 80 ? 'critical' : 
-                     item.fatigue_score >= 60 ? 'warning' : 'normal'
+      const status =
+        item.fatigue_score < 0
+          ? 'unknown'
+          : item.fatigue_score >= 80
+            ? 'critical'
+            : item.fatigue_score >= 60
+              ? 'warning'
+              : 'normal'
 
       return {
         ...item,
@@ -165,6 +166,7 @@ export function CreativeTableTab({
         clicks: item.clicks,
         spend: item.spend,
         conversions: item.conversions,
+        conversions_1d_click: item.conversions_1d_click,
 
         // 計算メトリクス（集約データから）
         cpa: item.cpa,
@@ -225,6 +227,10 @@ export function CreativeTableTab({
         case 'conversions':
           aValue = Number(a.conversions) || 0
           bValue = Number(b.conversions) || 0
+          break
+        case 'conversions_1d_click':
+          aValue = Number(a.conversions_1d_click) || 0
+          bValue = Number(b.conversions_1d_click) || 0
           break
         case 'cpa':
           aValue = Number(a.cpa) || 0
@@ -301,7 +307,10 @@ export function CreativeTableTab({
 
   const handleViewDetails = (item: any) => {
     // 集約されたクリエイティブの最初のIDからinsightを取得
-    const insight = item.adIds && item.adIds.length > 0 ? insightsMap.get(item.adIds[0]) : insightsMap.get(item.adId)
+    const insight =
+      item.adIds && item.adIds.length > 0
+        ? insightsMap.get(item.adIds[0])
+        : insightsMap.get(item.adId)
     const creativeInfo = getCreativeType(insight)
 
     console.log('詳細表示:', {
@@ -534,10 +543,19 @@ export function CreativeTableTab({
                   </div>
                 </th>
                 <th
-                  className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   style={{ width: '75px' }}
+                  onClick={() => handleSort('conversions_1d_click')}
                 >
-                  <div className="flex items-center justify-center gap-1">F-CV</div>
+                  <div className="flex items-center justify-center gap-1">
+                    F-CV
+                    {sortField === 'conversions_1d_click' &&
+                      (sortDirection === 'asc' ? (
+                        <ChevronUpIcon className="h-3 w-3" />
+                      ) : (
+                        <ChevronDownIcon className="h-3 w-3" />
+                      ))}
+                  </div>
                 </th>
                 <th
                   className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
@@ -603,7 +621,10 @@ export function CreativeTableTab({
                   {/* クリエイティブタイプ */}
                   <td className="px-2 py-3 whitespace-nowrap text-center">
                     {(() => {
-                      const insight = item.adIds && item.adIds.length > 0 ? insightsMap.get(item.adIds[0]) : insightsMap.get(item.adId)
+                      const insight =
+                        item.adIds && item.adIds.length > 0
+                          ? insightsMap.get(item.adIds[0])
+                          : insightsMap.get(item.adId)
                       const { type, icon: Icon, color } = getCreativeType(insight)
                       return (
                         <div className="flex flex-col items-center">
@@ -623,10 +644,9 @@ export function CreativeTableTab({
                       {item.adName || `Creative ${index + 1}`}
                     </div>
                     <div className="text-xs text-gray-500 truncate">
-                      {item.adIds && item.adIds.length > 1 
+                      {item.adIds && item.adIds.length > 1
                         ? `${item.adIds.length} ads (${item.firstDate} - ${item.lastDate})`
-                        : item.adId
-                      }
+                        : item.adId}
                     </div>
                   </td>
 
@@ -702,8 +722,8 @@ export function CreativeTableTab({
                   </td>
 
                   {/* ファーストCV */}
-                  <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-gray-500">
-                    N/A
+                  <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-gray-900">
+                    {formatNumber(item.conversions_1d_click || 0)}
                   </td>
 
                   {/* CPA */}
@@ -795,9 +815,11 @@ export function CreativeTableTab({
           isOpen={isModalOpen}
           onClose={closeModal}
           item={selectedItem}
-          insight={selectedItem.adIds && selectedItem.adIds.length > 0 
-            ? insightsMap.get(selectedItem.adIds[0]) 
-            : insightsMap.get(selectedItem.adId)}
+          insight={
+            selectedItem.adIds && selectedItem.adIds.length > 0
+              ? insightsMap.get(selectedItem.adIds[0])
+              : insightsMap.get(selectedItem.adId)
+          }
         />
       )}
     </div>
