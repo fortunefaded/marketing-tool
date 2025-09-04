@@ -2,7 +2,6 @@ import React, { useState } from 'react'
 // CreativeTable import removed - component not used
 import { FatigueData } from '@/types'
 import {
-  normalizeDataArray,
   getSafeMetrics,
   calculateMetric,
   debugDataStructure,
@@ -96,18 +95,16 @@ export function CreativeTableTab({
     // デバッグ情報を出力（開発環境のみ）
     debugDataStructure(data, 'CreativeTableTab Input Data')
 
-    // データを正規化（null/undefined対策済み）
-    const normalizedData = normalizeDataArray(data)
-
-    if (normalizedData.length === 0) {
-      console.warn('CreativeTableTab: No valid data after normalization')
+    // データのnullチェック
+    if (!data || !Array.isArray(data) || data.length === 0) {
+      console.warn('CreativeTableTab: No valid data')
       return []
     }
 
-    // クリエイティブ名で集約
-    const aggregatedCreatives = aggregateCreativesByName(normalizedData)
+    // クリエイティブ名で集約（正規化せずに直接渡す）
+    const aggregatedCreatives = aggregateCreativesByName(data)
     console.log('CreativeTableTab: Aggregated creatives:', {
-      originalCount: normalizedData.length,
+      originalCount: data.length,
       aggregatedCount: aggregatedCreatives.length
     })
 
@@ -141,7 +138,9 @@ export function CreativeTableTab({
       }
 
       // ステータスを計算（疲労度スコアベース）
-      const status = item.fatigue_score >= 80 ? 'critical' : 
+      // 疲労度スコアが未計算（-1）の場合は'unknown'
+      const status = item.fatigue_score < 0 ? 'unknown' :
+                     item.fatigue_score >= 80 ? 'critical' : 
                      item.fatigue_score >= 60 ? 'warning' : 'normal'
 
       return {
@@ -633,18 +632,22 @@ export function CreativeTableTab({
 
                   {/* 疲労度スコア */}
                   <td className="px-2 py-3 whitespace-nowrap text-center">
-                    <span
-                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        item.score >= 80
-                          ? 'bg-red-100 text-red-800'
-                          : item.score >= 60
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : 'bg-green-100 text-green-800'
-                      }`}
-                      title={`総合疲労度スコア: ${item.score}`}
-                    >
-                      {item.score || 0}
-                    </span>
+                    {item.score < 0 ? (
+                      <span className="text-gray-400 text-sm">-</span>
+                    ) : (
+                      <span
+                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                          item.score >= 80
+                            ? 'bg-red-100 text-red-800'
+                            : item.score >= 60
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : 'bg-green-100 text-green-800'
+                        }`}
+                        title={`総合疲労度スコア: ${item.score}`}
+                      >
+                        {item.score}
+                      </span>
+                    )}
                   </td>
 
                   {/* Frequency */}
@@ -732,17 +735,21 @@ export function CreativeTableTab({
 
                   {/* ステータス */}
                   <td className="px-2 py-3 whitespace-nowrap text-center">
-                    <span
-                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        item.status === 'critical'
-                          ? 'bg-red-100 text-red-800'
-                          : item.status === 'warning'
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : 'bg-green-100 text-green-800'
-                      }`}
-                    >
-                      {item.status}
-                    </span>
+                    {item.status === 'unknown' ? (
+                      <span className="text-gray-400 text-sm">未計算</span>
+                    ) : (
+                      <span
+                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                          item.status === 'critical'
+                            ? 'bg-red-100 text-red-800'
+                            : item.status === 'warning'
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : 'bg-green-100 text-green-800'
+                        }`}
+                      >
+                        {item.status}
+                      </span>
+                    )}
                   </td>
                 </tr>
               ))}

@@ -1,961 +1,657 @@
-import React, { useState, useEffect, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useConvex, useMutation } from 'convex/react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
+import { useConvex } from 'convex/react'
 import { api } from '../../convex/_generated/api'
-import { ThreeLayerCache } from '../features/meta-api/core/three-layer-cache'
-import { SimpleAccountStore } from '../features/meta-api/account/account-store'
 import { FatigueDashboardPresentation } from '../features/meta-api/components/FatigueDashboardPresentation'
 import { MetaAccount } from '@/types'
 import { 
-  ArrowPathIcon, 
-  ExclamationTriangleIcon,
-  CalendarDaysIcon,
-  CloudArrowDownIcon,
-  ChartBarIcon,
-  CheckCircleIcon as CheckCircleOutlineIcon
-} from '@heroicons/react/24/outline'
-import { CheckCircleIcon } from '@heroicons/react/24/solid'
-
-interface SyncStats {
-  totalRecords: number
-  updatedRecords: number
-  newRecords: number
-  failedRecords: number
-  startTime?: Date
-  endTime?: Date
-}
-
-interface DataDiff {
-  adId: string
-  adName: string
-  campaignName: string
-  date: string
-  type: 'new' | 'updated' | 'unchanged'
-  changes?: {
-    field: string
-    oldValue: any
-    newValue: any
-  }[]
-  metrics?: {
-    impressions?: number
-    clicks?: number
-    spend?: number
-    ctr?: number
-    conversions?: number
-  }
-}
+  saveSelectedAccount, 
+  getSelectedAccount, 
+  saveCachedData, 
+  getCachedData, 
+  clearCachedData,
+  saveDateRange,
+  getDateRange 
+} from '@/utils/localStorage'
 
 export default function MainDashboard() {
-  const navigate = useNavigate()
   const convex = useConvex()
-  
-  // 同期状態
-  const [isSyncing, setIsSyncing] = useState(false)
-  const [syncStats, setSyncStats] = useState<SyncStats>({
-    totalRecords: 0,
-    updatedRecords: 0,
-    newRecords: 0,
-    failedRecords: 0
-  })
-  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null)
-  const [errors, setErrors] = useState<string[]>([])
-  const [dataDiffs, setDataDiffs] = useState<DataDiff[]>([])
-  const [showDiffDetails, setShowDiffDetails] = useState(false)
-  const [showUnchanged, setShowUnchanged] = useState(false)
-  
-  // アカウント情報
-  const [accountId, setAccountId] = useState<string | null>(null)
-  const [accounts, setAccounts] = useState<MetaAccount[]>([])
-  const [isLoadingAccounts, setIsLoadingAccounts] = useState(true)
-  const [cacheSystem] = useState(() => new ThreeLayerCache(convex))
-  
-  // ダッシュボード用の状態
-  const [dashboardData, setDashboardData] = useState<any[]>([])
-  const [insights, setInsights] = useState<any[]>([])
-  const [dateRange, setDateRange] = useState<'today' | 'yesterday' | 'last_7d' | 'last_14d' | 'last_30d' | 'last_month' | 'last_90d' | 'all'>('last_7d')
-  const [filteredData, setFilteredData] = useState<any>(null)
-  const [dataSource, setDataSource] = useState<'cache' | 'api' | null>(null)
+  const [data, setData] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const [accounts, setAccounts] = useState<MetaAccount[]>([])
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
+  const [isLoadingAccounts, setIsLoadingAccounts] = useState(true)
+  const [dateRange, setDateRange] = useState<'last_7d' | 'last_14d' | 'last_30d' | 'last_month' | 'last_90d' | 'all' | 'custom'>('last_7d')
+  const [customDateRange, setCustomDateRange] = useState<{ start: Date; end: Date } | null>(null)
+  const [filteredData, setFilteredData] = useState<any>(null)
   const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null)
-  const [loadedDays, setLoadedDays] = useState(7) // 現在読み込まれている日数
-  const [isLoadingMore, setIsLoadingMore] = useState(false) // 追加読み込み中
-  const [isFilterLoading, setIsFilterLoading] = useState(false) // フィルター変更時のローディング
-  const [filterUpdateMessage, setFilterUpdateMessage] = useState<string | null>(null) // フィルター更新完了メッセージ
+  const [dailyDataCache, setDailyDataCache] = useState<Record<string, any>>({}) // 日別データのキャッシュ
+  const [cacheAge, setCacheAge] = useState<number>(Infinity) // キャッシュの経過時間
   
-  // Convexミューテーション
-  const bulkInsertCacheData = useMutation(api.cache.cacheEntries.bulkInsert)
-  
-  // 初期化
-  useEffect(() => {
-    loadAccountInfo()
-    loadLastSyncTime()
-  }, [])
-  
-  const loadAccountInfo = async () => {
+  // Convexからアカウント情報を取得
+  const loadAccountsFromConvex = useCallback(async () => {
     try {
       setIsLoadingAccounts(true)
-      const store = new SimpleAccountStore(convex)
-      const accountsList = await store.getAccounts()
-      setAccounts(accountsList)
+      console.log('📱 Convexからアカウント情報を取得中...')
       
-      const activeAccount = await store.getActiveAccount()
-      let targetAccountId: string | null = null
+      // Convexからアカウント情報を取得
+      const convexAccounts = await convex.query(api.metaAccounts.getAccounts)
       
-      if (!activeAccount) {
-        if (accountsList.length > 0) {
-          targetAccountId = accountsList[0].accountId
-          setAccountId(targetAccountId)
-          cacheSystem.setAccessToken(accountsList[0].accessToken)
-        } else {
-          navigate('/meta-api-setup')
-          return
-        }
-      } else {
-        targetAccountId = activeAccount.accountId
-        setAccountId(targetAccountId)
-        cacheSystem.setAccessToken(activeAccount.accessToken)
+      if (!convexAccounts || convexAccounts.length === 0) {
+        throw new Error('アカウントが登録されていません。設定画面からアカウントを接続してください。')
       }
       
-      // アカウントが設定されたら既存データを読み込む（初期は7日分のみ）
-      if (targetAccountId) {
-        await loadExistingData(targetAccountId, 7)
-        setLoadedDays(7)
-      }
-    } catch (error) {
-      console.error('Failed to load account:', error)
+      // MetaAccount型に変換
+      const formattedAccounts: MetaAccount[] = convexAccounts.map((acc: any) => ({
+        accountId: acc.accountId,
+        accountName: acc.accountName,
+        accessToken: acc.accessToken,
+        isActive: acc.isActive || false
+      }))
+      
+      setAccounts(formattedAccounts)
+      
+      // 保存されたアカウントIDを復元、なければアクティブなアカウントを探す
+      const savedAccountId = getSelectedAccount()
+      const savedAccount = savedAccountId ? 
+        formattedAccounts.find(acc => acc.accountId === savedAccountId) : null
+      
+      const accountToUse = savedAccount || 
+        formattedAccounts.find(acc => acc.isActive) || 
+        formattedAccounts[0]
+      
+      setSelectedAccountId(accountToUse.accountId)
+      saveSelectedAccount(accountToUse.accountId) // 選択を保存
+      
+      console.log('✅ アカウント情報取得完了:', accountToUse.accountId)
+      return accountToUse
+      
+    } catch (err: any) {
+      console.error('❌ アカウント情報取得エラー:', err)
+      setError(err.message)
+      throw err
     } finally {
       setIsLoadingAccounts(false)
     }
-  }
+  }, [convex])
   
-  // アカウント選択ハンドラ
-  const handleAccountSelect = async (selectedAccountId: string) => {
-    setAccountId(selectedAccountId)
-    const store = new SimpleAccountStore(convex)
-    await store.setActiveAccount(selectedAccountId)
-    const account = accounts.find(acc => acc.accountId === selectedAccountId)
-    if (account) {
-      cacheSystem.setAccessToken(account.accessToken)
+  // Meta APIから過去7日分のデータを直接取得
+  const fetchDataFromMetaAPI = useCallback(async (
+    accountId?: string | null, 
+    forceRefresh: boolean = false,
+    customRange?: { start: Date; end: Date } | null
+  ) => {
+    if (!accountId && !selectedAccountId) {
+      console.log('アカウントIDが設定されていません')
+      return
     }
-    // アカウント切り替え時も既存データを読み込む（7日分）
-    await loadExistingData(selectedAccountId, 7)
-    setLoadedDays(7)
-  }
-  
-  const loadLastSyncTime = async () => {
-    // TODO: Convexから最終同期時刻を取得
-    try {
-      const stats = await convex.query(api.cache.cacheEntries.getStats, {
-        accountId: accountId || undefined
-      })
+    
+    const targetAccountId = accountId || selectedAccountId
+    const account = accounts.find(acc => acc.accountId === targetAccountId)
+    
+    if (!account) {
+      console.log('アカウント情報が見つかりません')
+      return
+    }
+    
+    // キャッシュチェック（強制リフレッシュでない場合）
+    if (!forceRefresh) {
+      // 日付範囲を含めたキャッシュキー（カスタムの場合は日付を含める）
+      const effectiveRange = customRange || customDateRange
+      const cacheKey = dateRange === 'custom' && effectiveRange
+        ? `${targetAccountId}_custom_${effectiveRange.start.toISOString().split('T')[0]}_${effectiveRange.end.toISOString().split('T')[0]}`
+        : `${targetAccountId}_${dateRange}`
+      const { data: cachedData, age } = getCachedData(cacheKey)
       
-      if (stats?.newestEntry) {
-        setLastSyncTime(new Date(stats.newestEntry))
+      if (cachedData) {
+        // 30分以内ならキャッシュを使用
+        if (age < 30 * 60 * 1000) {
+          console.log('💾 キャッシュを使用（' + Math.floor(age / 1000) + '秒前）', { dateRange })
+          setCacheAge(age)
+          
+          // キャッシュデータも数値型に変換
+          const formattedCachedData = (cachedData || []).map((item: any) => ({
+            ...item,
+            impressions: parseInt(item.impressions) || 0,
+            clicks: parseInt(item.clicks) || 0,
+            spend: parseFloat(item.spend) || 0,
+            ctr: parseFloat(item.ctr) || 0,
+            cpm: parseFloat(item.cpm) || 0,
+            cpc: parseFloat(item.cpc) || 0,
+            frequency: parseFloat(item.frequency) || 0,
+            reach: parseInt(item.reach) || 0,
+              conversions: item.conversions ? parseInt(item.conversions) : 0,
+              conversion_values: item.conversion_values ? parseFloat(item.conversion_values) : 0,
+              cost_per_conversion: item.cost_per_conversion ? parseFloat(item.cost_per_conversion) : 0,
+              status: item.status || 'normal',
+              fatigueScore: item.fatigueScore || 0
+            }))
+            
+          setData(formattedCachedData)
+          // タイムスタンプから最終更新時刻を計算
+          setLastUpdateTime(new Date(Date.now() - age))
+          return
+        }
       }
-    } catch (error) {
-      console.error('Failed to load last sync time:', error)
     }
-  }
-  
-  // 既存データを読み込む関数（期間指定可能）
-  const loadExistingData = async (targetAccountId: string, daysToLoad: number = 7) => {
+    
+    setIsLoading(true)
+    setError(null)
+    
     try {
-      console.log(`📊 過去${daysToLoad}日分のデータを読み込み中...`)
-      setIsLoading(true)
+      console.log('📊 Meta APIからデータを取得開始')
+      
+      if (!account.accessToken) {
+        throw new Error('アクセストークンが見つかりません')
+      }
       
       // 日付範囲を計算
       const endDate = new Date()
       const startDate = new Date()
-      startDate.setDate(startDate.getDate() - daysToLoad)
-      const startDateStr = formatDate(startDate)
-      const endDateStr = formatDate(endDate)
       
-      // 【最適化】既存データ取得を削除（Bandwidth削減のため）
-      console.log('⚠️ 既存データ取得をスキップ（Bandwidth削減）')
-      const existingEntries = null // 一時的に無効化
+      // dateRangeに応じて期間を設定
+      console.log('📅 fetchDataFromMetaAPI: Setting date range', {
+        dateRange,
+        hasCustomDateRange: !!customDateRange,
+        hasCustomRange: !!customRange,
+        customDateRange: customDateRange ? {
+          start: customDateRange.start.toISOString(),
+          end: customDateRange.end.toISOString()
+        } : null,
+        customRange: customRange ? {
+          start: customRange.start.toISOString(),
+          end: customRange.end.toISOString()
+        } : null
+      })
       
-      if (existingEntries && existingEntries.length > 0) {
-        // データを結合（既にフィルタリング済み）
-        const allData: any[] = []
-        existingEntries.forEach((entry: any) => {
-          if (entry.data && Array.isArray(entry.data)) {
-            // 配列の場合
-            allData.push(...entry.data)
-          } else if (entry.data) {
-            // 単一のデータオブジェクトの場合
-            allData.push(entry.data)
-          }
+      const effectiveCustomRange = customRange || customDateRange
+      if (dateRange === 'custom' && effectiveCustomRange) {
+        // カスタム日付範囲を使用
+        startDate.setTime(effectiveCustomRange.start.getTime())
+        endDate.setTime(effectiveCustomRange.end.getTime())
+        console.log('📅 Using custom date range:', {
+          start: startDate.toISOString(),
+          end: endDate.toISOString(),
+          source: customRange ? 'argument' : 'state'
         })
-        
-        // 日付でソート（新しい順）
-        allData.sort((a, b) => {
-          const dateA = new Date(a.date_start || '').getTime()
-          const dateB = new Date(b.date_start || '').getTime()
-          return dateB - dateA
-        })
-        
-        console.log(`✅ ${allData.length}件のデータを読み込みました（過去${daysToLoad}日分）`)
-        
-        // ダッシュボードのデータを設定
-        setDashboardData(allData)
-        setInsights(allData)
-        setLastUpdateTime(new Date())
-        setDataSource('cache')
       } else {
-        console.log('📭 保存されたデータが見つかりません')
-        // データがない場合は空配列を設定
-        setDashboardData([])
-        setInsights([])
+        // プリセット範囲を使用
+        switch(dateRange) {
+          case 'last_7d':
+            startDate.setDate(startDate.getDate() - 7)
+            break
+          case 'last_14d':
+            startDate.setDate(startDate.getDate() - 14)
+            break
+          case 'last_30d':
+            startDate.setDate(startDate.getDate() - 30)
+            break
+          case 'last_month': {
+            // 先月の初日から最終日
+            const now = new Date()
+            startDate.setFullYear(now.getFullYear(), now.getMonth() - 1, 1)
+            endDate.setFullYear(now.getFullYear(), now.getMonth(), 0)
+            break
+          }
+          case 'last_90d':
+            startDate.setDate(startDate.getDate() - 90)
+            break
+          case 'all':
+            startDate.setDate(startDate.getDate() - 365)
+            break
+        }
       }
-    } catch (error) {
-      console.error('❌ データ読み込みエラー:', error)
+      
+      const formatDate = (date: Date) => {
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        return `${year}-${month}-${day}`
+      }
+      
+      // Meta API URL構築
+      const baseUrl = 'https://graph.facebook.com/v23.0'
+      const cleanAccountId = account.accountId.replace('act_', '')
+      const url = new URL(`${baseUrl}/act_${cleanAccountId}/insights`)
+      
+      // パラメータ設定
+      // 注: time_incrementは削除 - メイン表示では期間集約データを取得
+      // 日別データは詳細分析モーダルで個別に取得
+      const params = {
+        access_token: account.accessToken,
+        time_range: JSON.stringify({
+          since: formatDate(startDate),
+          until: formatDate(endDate)
+        }),
+        level: 'ad',
+        fields: 'ad_id,ad_name,campaign_id,campaign_name,adset_id,adset_name,impressions,clicks,spend,ctr,cpm,cpc,frequency,reach,date_start,date_stop',
+        // time_increment: '1' を削除 - 期間全体の集約データを取得
+        limit: '500'
+      }
+      
+      Object.entries(params).forEach(([key, value]) => {
+        url.searchParams.append(key, value)
+      })
+      
+      console.log('🔗 API URL:', url.toString().replace(account.accessToken, '***'))
+      
+      // API呼び出し
+      const response = await fetch(url.toString())
+      const result = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(result.error?.message || 'Meta API Error')
+      }
+      
+      console.log(`✅ ${result.data?.length || 0}件のデータ取得完了`)
+      
+      // デバッグ: 生のAPIレスポンスを確認
+      console.log('🔍 API生データ（最初の3件）:', {
+        count: result.data?.length,
+        firstItems: result.data?.slice(0, 3),
+        allFields: result.data?.[0] ? Object.keys(result.data[0]) : [],
+        sampleData: result.data?.[0] ? JSON.stringify(result.data[0], null, 2) : 'No data'
+      })
+      
+      // データの形式を整形（数値文字列を数値に変換）
+      const formattedData = (result.data || []).map((item: any, index: number) => {
+        // 最初の1件だけ詳細ログ
+        if (index === 0) {
+          console.log('📊 変換前の生データ:', {
+            ad_name: item.ad_name,
+            impressions: item.impressions,
+            impressions_type: typeof item.impressions,
+            clicks: item.clicks,
+            clicks_type: typeof item.clicks,
+            spend: item.spend,
+            spend_type: typeof item.spend,
+            ctr: item.ctr,
+            ctr_type: typeof item.ctr,
+            allKeys: Object.keys(item)
+          })
+        }
+        
+        const formatted = {
+          ...item,
+          // 数値型に変換（文字列から数値へ）
+          impressions: parseInt(item.impressions) || 0,
+          clicks: parseInt(item.clicks) || 0,
+          spend: parseFloat(item.spend) || 0,
+          ctr: parseFloat(item.ctr) || 0,
+          cpm: parseFloat(item.cpm) || 0,
+          cpc: parseFloat(item.cpc) || 0,
+          frequency: parseFloat(item.frequency) || 0,
+          reach: parseInt(item.reach) || 0,
+          // コンバージョン関連は存在しない場合があるのでオプショナル
+          conversions: item.conversions ? parseInt(item.conversions) : 0,
+          conversion_values: item.conversion_values ? parseFloat(item.conversion_values) : 0,
+          cost_per_conversion: item.cost_per_conversion ? parseFloat(item.cost_per_conversion) : 0,
+          // 疲労度ステータスを追加（仮の判定）
+          status: 'normal' as const,
+          fatigueScore: 0
+        }
+        
+        // 最初の1件だけ変換後のデータも確認
+        if (index === 0) {
+          console.log('📊 変換後のデータ:', {
+            ad_name: formatted.ad_name,
+            impressions: formatted.impressions,
+            clicks: formatted.clicks,
+            spend: formatted.spend,
+            ctr: formatted.ctr
+          })
+        }
+        
+        return formatted
+      })
+      
+      // データをセット
+      setData(formattedData)
+      setLastUpdateTime(new Date())
+      setCacheAge(0) // 新規取得なので経過時間はゼロ
+      
+      // localStorageにキャッシュ（日付範囲を含めたキーで保存）
+      const effectiveDateRange = customRange || customDateRange
+      const cacheKey = dateRange === 'custom' && effectiveDateRange
+        ? `${targetAccountId}_custom_${effectiveDateRange.start.toISOString().split('T')[0]}_${effectiveDateRange.end.toISOString().split('T')[0]}`
+        : `${targetAccountId}_${dateRange}`
+      saveCachedData(cacheKey, formattedData)
+      
+    } catch (err: any) {
+      console.error('❌ データ取得エラー:', err)
+      setError(err.message)
+      
+      // エラー時はキャッシュから復元を試みる
+      const fallbackCacheKey = `${targetAccountId}_${dateRange}`
+      const { data: cachedData, age } = getCachedData(fallbackCacheKey)
+      if (cachedData) {
+        try {
+          console.log('💾 エラー時のフォールバック: キャッシュから復元')
+          setCacheAge(age)
+          
+          // エラー時のキャッシュデータも数値型に変換
+          const formattedCachedData = (cachedData || []).map((item: any) => ({
+            ...item,
+            impressions: parseInt(item.impressions) || 0,
+            clicks: parseInt(item.clicks) || 0,
+            spend: parseFloat(item.spend) || 0,
+            ctr: parseFloat(item.ctr) || 0,
+            cpm: parseFloat(item.cpm) || 0,
+            cpc: parseFloat(item.cpc) || 0,
+            frequency: parseFloat(item.frequency) || 0,
+            reach: parseInt(item.reach) || 0,
+            conversions: item.conversions ? parseInt(item.conversions) : 0,
+            conversion_values: item.conversion_values ? parseFloat(item.conversion_values) : 0,
+            cost_per_conversion: item.cost_per_conversion ? parseFloat(item.cost_per_conversion) : 0,
+            status: item.status || 'normal',
+            fatigueScore: item.fatigueScore || 0
+          }))
+          
+          setData(formattedCachedData)
+        } catch (e) {
+          console.error('キャッシュ復元エラー:', e)
+        }
+      }
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [selectedAccountId, accounts, dateRange]) // customDateRangeを削除して無限ループを防ぐ
   
-  // 追加データを読み込む関数
-  const loadMoreData = async () => {
-    if (!accountId) return
-    
-    setIsLoadingMore(true)
-    try {
-      // 次の期間を計算（30日、90日、365日と段階的に）
-      let nextDays = 30
-      if (loadedDays >= 30) nextDays = 90
-      if (loadedDays >= 90) nextDays = 365
-      
-      console.log(`📈 ${loadedDays}日から${nextDays}日分に拡張中...`)
-      
-      // 新しい期間のデータを読み込む
-      await loadExistingData(accountId, nextDays)
-      setLoadedDays(nextDays)
-      
-    } catch (error) {
-      console.error('追加データ読み込みエラー:', error)
-    } finally {
-      setIsLoadingMore(false)
+  // 初回ロード時
+  useEffect(() => {
+    const initializeData = async () => {
+      try {
+        // Convexからアカウント情報を取得
+        const account = await loadAccountsFromConvex()
+        
+        // データを取得
+        if (account) {
+          await fetchDataFromMetaAPI(account.accountId, false, null)
+        }
+      } catch (err: any) {
+        // エラー処理は各関数内で実施済み
+      }
     }
+    
+    initializeData()
+  }, []) // 初回のみ実行
+  
+  // アカウント変更時
+  const handleAccountSelect = async (accountId: string) => {
+    setSelectedAccountId(accountId)
+    saveSelectedAccount(accountId) // 選択を保存
+    
+    // まずキャッシュを確認
+    await fetchDataFromMetaAPI(accountId, false, null) // キャッシュがあれば使う
   }
   
-  const performWeeklySync = async () => {
-    if (!accountId) return
+  // リフレッシュボタン用
+  const handleRefresh = async (options?: { clearCache?: boolean }) => {
+    console.log('🔄 手動リフレッシュ', { clearCache: options?.clearCache, dateRange })
     
-    setIsSyncing(true)
-    setErrors([])
-    setSyncStats({
-      totalRecords: 0,
-      updatedRecords: 0,
-      newRecords: 0,
-      failedRecords: 0,
-      startTime: new Date()
-    })
+    // キャッシュをクリアする場合（日付範囲を含めたキーで削除）
+    if (options?.clearCache && selectedAccountId) {
+      const cacheKey = `${selectedAccountId}_${dateRange}`
+      clearCachedData(cacheKey)
+    }
+    
+    await fetchDataFromMetaAPI(selectedAccountId, true, customDateRange) // 強制リフレッシュ
+  }
+  
+  // 日付範囲変更時（デバウンス付き）
+  useEffect(() => {
+    if (selectedAccountId && !isLoadingAccounts) {
+      console.log('📅 Date range changed, scheduling data fetch...', { 
+        dateRange, 
+        customDateRange,
+        selectedAccountId 
+      })
+      
+      // 既存のタイマーをクリア
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current)
+      }
+      
+      // 300ms後にデータ取得（連続的な変更を防ぐ）
+      fetchTimeoutRef.current = setTimeout(() => {
+        console.log('📅 Executing delayed fetch...')
+        fetchDataFromMetaAPI(selectedAccountId, false, customDateRange)
+      }, 300)
+    }
+    
+    // クリーンアップ
+    return () => {
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current)
+      }
+    }
+  }, [dateRange, customDateRange, selectedAccountId, fetchDataFromMetaAPI])
+  
+  // 詳細分析用：特定の広告の日別データを取得
+  const fetchDailyDataForAd = useCallback(async (adId: string) => {
+    // キャッシュチェック
+    const cacheKey = `${adId}_${dateRange}`
+    if (dailyDataCache[cacheKey]) {
+      console.log('📊 日別データをキャッシュから取得')
+      return dailyDataCache[cacheKey]
+    }
+    
+    const account = accounts.find(acc => acc.accountId === selectedAccountId)
+    if (!account || !account.accessToken) {
+      console.error('アカウント情報が見つかりません')
+      return []
+    }
     
     try {
-      // 日付範囲: 過去7日間 + 今日
+      console.log(`📈 広告 ${adId} の日別データを取得中...`)
+      
+      // 日付範囲を計算
       const endDate = new Date()
       const startDate = new Date()
-      startDate.setDate(startDate.getDate() - 7)
       
-      console.log('📅 週次同期開始:', {
-        accountId,
-        dateRange: {
+      switch(dateRange) {
+        case 'last_7d':
+          startDate.setDate(startDate.getDate() - 7)
+          break
+        case 'last_14d':
+          startDate.setDate(startDate.getDate() - 14)
+          break
+        case 'last_30d':
+          startDate.setDate(startDate.getDate() - 30)
+          break
+        case 'last_month': {
+          // 先月の初日から最終日
+          const now = new Date()
+          startDate.setFullYear(now.getFullYear(), now.getMonth() - 1, 1)
+          endDate.setFullYear(now.getFullYear(), now.getMonth(), 0)
+          break
+        }
+        case 'last_90d':
+          startDate.setDate(startDate.getDate() - 90)
+          break
+        case 'all':
+          startDate.setDate(startDate.getDate() - 365)
+          break
+      }
+      
+      const formatDate = (date: Date) => {
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        return `${year}-${month}-${day}`
+      }
+      
+      // Meta API URL構築
+      const baseUrl = 'https://graph.facebook.com/v23.0'
+      const cleanAdId = adId.replace('act_', '')
+      const url = new URL(`${baseUrl}/${cleanAdId}/insights`)
+      
+      // パラメータ設定 - 日別データ取得
+      const params = {
+        access_token: account.accessToken,
+        time_range: JSON.stringify({
           since: formatDate(startDate),
           until: formatDate(endDate)
-        }
-      })
-      
-      // Meta APIからデータ取得
-      const fetchResult = await cacheSystem.fetchFromApi(
-        accountId,
-        'weekly_update',
-        {
-          since: formatDate(startDate),
-          until: formatDate(endDate),
-          level: 'ad',
-          time_increment: '1',
-          fields: [
-            'ad_id',
-            'ad_name',
-            'campaign_id',
-            'campaign_name',
-            'adset_id',
-            'adset_name',
-            'impressions',
-            'clicks',
-            'spend',
-            'ctr',
-            'cpm',
-            'cpc',
-            'frequency',
-            'reach',
-            'conversions',
-            'conversion_values',
-            'cost_per_conversion',
-            'date_start',
-            'date_stop'
-          ]
-        }
-      )
-      
-      if (!fetchResult.data || fetchResult.data.length === 0) {
-        throw new Error('最新データが見つかりませんでした')
+        }),
+        fields: 'impressions,clicks,spend,ctr,cpm,cpc,frequency,reach,conversions,date_start,date_stop',
+        time_increment: '1',  // 日別データ
+        limit: '100'
       }
       
-      const totalRecords = fetchResult.data.length
-      console.log(`✅ ${totalRecords}件のデータを取得`)
-      
-      // 既存データを取得して差分を検出
-      const diffs: DataDiff[] = []
-      let newCount = 0
-      let updateCount = 0
-      
-      // 【最適化】既存データ取得を削除（Bandwidth削減のため）
-      console.log('📊 差分計算をスキップ（Bandwidth削減）')
-      const existingByKey = new Map() // 空のマップ（全てを新規として扱う）
-      
-      // 新規データと既存データを比較（全レコードを保持）
-      fetchResult.data.forEach((newRecord: any) => {
-        const key = `${newRecord.ad_id}_${newRecord.date_start}`
-        const existingRecord = existingByKey.get(key)
-        
-        const diff: DataDiff = {
-          adId: newRecord.ad_id,
-          adName: newRecord.ad_name || 'Unknown',
-          campaignName: newRecord.campaign_name || 'Unknown',
-          date: newRecord.date_start,
-          type: 'unchanged',
-          metrics: {
-            impressions: parseInt(newRecord.impressions) || 0,
-            clicks: parseInt(newRecord.clicks) || 0,
-            spend: parseFloat(newRecord.spend) || 0,
-            ctr: parseFloat(newRecord.ctr) || 0,
-            conversions: parseInt(newRecord.conversions) || 0
-          }
-        }
-        
-        if (!existingRecord) {
-          // 新規レコード
-          diff.type = 'new'
-          newCount++
-        } else {
-          // 既存レコードと比較
-          const changes: any[] = []
-          
-          // 重要なメトリクスの変更をチェック
-          const fieldsToCompare = ['impressions', 'clicks', 'spend', 'ctr', 'conversions']
-          fieldsToCompare.forEach(field => {
-            const oldVal = existingRecord[field]
-            const newVal = newRecord[field]
-            
-            // 数値として比較
-            const oldNum = parseFloat(oldVal) || 0
-            const newNum = parseFloat(newVal) || 0
-            
-            if (Math.abs(oldNum - newNum) > 0.01) {
-              changes.push({
-                field,
-                oldValue: oldVal,
-                newValue: newVal
-              })
-            }
-          })
-          
-          if (changes.length > 0) {
-            diff.type = 'updated'
-            diff.changes = changes
-            updateCount++
-          }
-        }
-        
-        // 全レコードを保持（変更なしも含む）
-        diffs.push(diff)
+      Object.entries(params).forEach(([key, value]) => {
+        url.searchParams.append(key, value)
       })
       
-      // 差分データを保存
-      setDataDiffs(diffs)
+      // API呼び出し
+      const response = await fetch(url.toString())
+      const result = await response.json()
       
-      // ダッシュボード用にデータを設定
-      setDashboardData(fetchResult.data || [])
-      setInsights(fetchResult.data || [])
-      setDataSource('api')
-      
-      // Convexにバッチ保存
-      const batchSize = 50
-      for (let i = 0; i < totalRecords; i += batchSize) {
-        const batch = fetchResult.data.slice(i, i + batchSize)
-        
-        const convexRecords = batch.map((record: any) => ({
-          accountId,
-          cacheKey: `${accountId}_${record.ad_id}_${record.date_start}`,
-          data: record,
-          expiresAt: undefined // 永続化
-        }))
-        
-        try {
-          await bulkInsertCacheData({ records: convexRecords })
-          console.log(`📦 バッチ ${Math.floor(i/batchSize) + 1} 保存完了`)
-        } catch (error) {
-          console.error('バッチ保存エラー:', error)
-          setSyncStats(prev => ({
-            ...prev,
-            failedRecords: prev.failedRecords + batch.length
-          }))
-        }
+      if (!response.ok) {
+        throw new Error(result.error?.message || 'Meta API Error')
       }
       
-      setSyncStats({
-        totalRecords,
-        updatedRecords: updateCount,
-        newRecords: newCount,
-        failedRecords: 0,
-        endTime: new Date()
-      })
+      console.log(`✅ ${result.data?.length || 0}件の日別データ取得完了`)
       
-      setLastSyncTime(new Date())
-      console.log('🎉 週次同期完了!')
+      // データの形式を整形
+      const formattedData = (result.data || []).map((item: any) => ({
+        ...item,
+        date: item.date_start,
+        impressions: parseInt(item.impressions) || 0,
+        clicks: parseInt(item.clicks) || 0,
+        spend: parseFloat(item.spend) || 0,
+        ctr: parseFloat(item.ctr) || 0,
+        cpm: parseFloat(item.cpm) || 0,
+        cpc: parseFloat(item.cpc) || 0,
+        frequency: parseFloat(item.frequency) || 0,
+        reach: parseInt(item.reach) || 0,
+        conversions: parseInt(item.conversions) || 0
+      }))
       
-    } catch (error: any) {
-      console.error('週次同期エラー:', error)
-      setErrors([error.message || '同期中にエラーが発生しました'])
-    } finally {
-      setIsSyncing(false)
+      // キャッシュに保存
+      setDailyDataCache(prev => ({
+        ...prev,
+        [cacheKey]: formattedData
+      }))
+      
+      return formattedData
+      
+    } catch (err: any) {
+      console.error('❌ 日別データ取得エラー:', err)
+      return []
     }
-  }
-  
-  const formatDate = (date: Date): string => {
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    return `${year}-${month}-${day}`
-  }
-  
-  const formatDateTime = (date: Date | null): string => {
-    if (!date) return '未実行'
-    return date.toLocaleString('ja-JP', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
-  
-  const getTimeSinceLastSync = (): string => {
-    if (!lastSyncTime) return '未実行'
-    
-    const now = new Date()
-    const diffMs = now.getTime() - lastSyncTime.getTime()
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
-    const diffDays = Math.floor(diffHours / 24)
-    
-    if (diffDays > 0) {
-      return `${diffDays}日前`
-    } else if (diffHours > 0) {
-      return `${diffHours}時間前`
-    } else {
-      const diffMinutes = Math.floor(diffMs / (1000 * 60))
-      return `${diffMinutes}分前`
-    }
-  }
+  }, [accounts, selectedAccountId, dateRange, dailyDataCache])
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-100 py-6 px-4">
-      <div className="max-w-7xl mx-auto">
-        {/* 同期セクション */}
-        <div className="bg-white rounded-2xl shadow-xl p-8 mb-6">
-          {/* ヘッダー */}
-          <div className="border-b pb-6 mb-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-                  <CalendarDaysIcon className="h-8 w-8 mr-3 text-indigo-600" />
-                  広告パフォーマンスダッシュボード
-                </h1>
-                <p className="text-gray-600 mt-2">
-                  最新1週間のデータを取得して既存データを更新します
-                </p>
-              </div>
-              <button
-                onClick={() => navigate('/cache-viewer')}
-                className="px-4 py-2 text-sm text-indigo-600 hover:text-indigo-700"
-              >
-                データビューア →
-              </button>
-            </div>
-          </div>
-          
-          {/* 同期ステータス */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <div className="bg-gray-50 rounded-lg p-4">
-              <div className="text-sm text-gray-500 mb-1">最終同期</div>
-              <div className="text-lg font-semibold text-gray-900">
-                {formatDateTime(lastSyncTime)}
-              </div>
-              <div className="text-sm text-gray-500 mt-1">
-                {getTimeSinceLastSync()}
-              </div>
-            </div>
-            
-            <div className="bg-gray-50 rounded-lg p-4">
-              <div className="text-sm text-gray-500 mb-1">同期間隔</div>
-              <div className="text-lg font-semibold text-gray-900">
-                毎日推奨
-              </div>
-              <div className="text-sm text-gray-500 mt-1">
-                最大7日分を取得
-              </div>
-            </div>
-            
-            <div className="bg-gray-50 rounded-lg p-4">
-              <div className="text-sm text-gray-500 mb-1">アカウントID</div>
-              <div className="text-lg font-semibold text-gray-900">
-                {accountId || 'Loading...'}
-              </div>
-            </div>
-          </div>
-          
-          {/* 同期結果 */}
-          {syncStats.startTime && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
-              <h3 className="text-lg font-semibold text-blue-900 mb-4">
-                {isSyncing ? '同期中...' : '同期結果'}
-              </h3>
-              
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                <div>
-                  <div className="text-2xl font-bold text-gray-900">
-                    {syncStats.totalRecords}
-                  </div>
-                  <div className="text-sm text-gray-600">取得レコード</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-blue-600">
-                    {syncStats.updatedRecords}
-                  </div>
-                  <div className="text-sm text-gray-600">更新済み</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-green-600">
-                    {syncStats.newRecords}
-                  </div>
-                  <div className="text-sm text-gray-600">新規追加</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-red-600">
-                    {syncStats.failedRecords}
-                  </div>
-                  <div className="text-sm text-gray-600">エラー</div>
-                </div>
-              </div>
-              
-              {syncStats.endTime && (
-                <div className="mt-4 text-sm text-gray-600 text-center">
-                  実行時間: {Math.round((syncStats.endTime.getTime() - syncStats.startTime.getTime()) / 1000)}秒
-                </div>
-              )}
-            </div>
-          )}
-          
-          {/* 差分データ表示（テーブル形式） */}
-          {dataDiffs.length > 0 && (
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  同期結果の詳細 (全{dataDiffs.length}件)
-                </h3>
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="flex items-center">
-                      <div className="w-3 h-3 bg-green-500 rounded-full mr-1"></div>
-                      新規: {syncStats.newRecords}
-                    </span>
-                    <span className="flex items-center">
-                      <div className="w-3 h-3 bg-blue-500 rounded-full mr-1"></div>
-                      更新: {syncStats.updatedRecords}
-                    </span>
-                    <span className="flex items-center">
-                      <div className="w-3 h-3 bg-gray-400 rounded-full mr-1"></div>
-                      変更なし: {dataDiffs.length - syncStats.newRecords - syncStats.updatedRecords}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {showDiffDetails && (
-                      <button
-                        onClick={() => setShowUnchanged(!showUnchanged)}
-                        className="text-sm text-gray-600 hover:text-gray-700"
-                      >
-                        {showUnchanged ? '変更なしを隠す' : '変更なしも表示'}
-                      </button>
-                    )}
-                    <button
-                      onClick={() => setShowDiffDetails(!showDiffDetails)}
-                      className="text-sm text-indigo-600 hover:text-indigo-700"
-                    >
-                      {showDiffDetails ? '詳細を隠す' : '詳細を表示'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-              
-              {showDiffDetails && (
-                <div className="bg-white rounded-lg shadow overflow-hidden">
-                  {/* フィルター適用時の件数表示 */}
-                  {!showUnchanged && dataDiffs.filter(d => d.type === 'unchanged').length > 0 && (
-                    <div className="bg-gray-50 px-4 py-2 text-sm text-gray-600 border-b">
-                      {dataDiffs.filter(d => d.type === 'unchanged').length}件の変更なしレコードが非表示になっています
-                    </div>
-                  )}
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            状態
-                          </th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            日付
-                          </th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            広告名
-                          </th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            キャンペーン
-                          </th>
-                          <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Imp
-                          </th>
-                          <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Clicks
-                          </th>
-                          <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Spend (¥)
-                          </th>
-                          <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            CTR (%)
-                          </th>
-                          <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Conv
-                          </th>
-                          <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            変更詳細
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {dataDiffs
-                          .filter(diff => showUnchanged || diff.type !== 'unchanged')
-                          .map((diff, index) => (
-                          <tr 
-                            key={index}
-                            className={`hover:bg-gray-50 ${
-                              diff.type === 'new' 
-                                ? 'bg-green-50' 
-                                : diff.type === 'updated'
-                                ? 'bg-blue-50'
-                                : ''
-                            }`}
-                          >
-                            <td className="px-3 py-4 whitespace-nowrap">
-                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                diff.type === 'new'
-                                  ? 'bg-green-100 text-green-800'
-                                  : diff.type === 'updated'
-                                  ? 'bg-blue-100 text-blue-800'
-                                  : 'bg-gray-100 text-gray-800'
-                              }`}>
-                                {diff.type === 'new' ? '新規' : diff.type === 'updated' ? '更新' : '変更なし'}
-                              </span>
-                            </td>
-                            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {diff.date}
-                            </td>
-                            <td className="px-3 py-4 text-sm text-gray-900">
-                              <div className="truncate max-w-xs" title={diff.adName}>
-                                {diff.adName}
-                              </div>
-                              <div className="text-xs text-gray-500">ID: {diff.adId}</div>
-                            </td>
-                            <td className="px-3 py-4 text-sm text-gray-900">
-                              <div className="truncate max-w-xs" title={diff.campaignName}>
-                                {diff.campaignName}
-                              </div>
-                            </td>
-                            <td className="px-3 py-4 whitespace-nowrap text-sm text-right text-gray-900">
-                              {diff.metrics?.impressions?.toLocaleString()}
-                            </td>
-                            <td className="px-3 py-4 whitespace-nowrap text-sm text-right text-gray-900">
-                              {diff.metrics?.clicks?.toLocaleString()}
-                            </td>
-                            <td className="px-3 py-4 whitespace-nowrap text-sm text-right text-gray-900">
-                              {diff.metrics?.spend?.toLocaleString()}
-                            </td>
-                            <td className="px-3 py-4 whitespace-nowrap text-sm text-right text-gray-900">
-                              {diff.metrics?.ctr?.toFixed(2)}
-                            </td>
-                            <td className="px-3 py-4 whitespace-nowrap text-sm text-right text-gray-900">
-                              {diff.metrics?.conversions?.toLocaleString()}
-                            </td>
-                            <td className="px-3 py-4 text-xs">
-                              {diff.changes && diff.changes.length > 0 ? (
-                                <div className="space-y-1">
-                                  {diff.changes.map((change, i) => (
-                                    <div key={i} className="whitespace-nowrap">
-                                      <span className="font-medium text-gray-600">{change.field}:</span>
-                                      <span className="text-red-600 ml-1">{change.oldValue}</span>
-                                      <span className="mx-1 text-gray-400">→</span>
-                                      <span className="text-green-600 font-medium">{change.newValue}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              ) : (
-                                <span className="text-gray-400">-</span>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  
-                  {/* データがない場合のメッセージ */}
-                  {dataDiffs.length === 0 && (
-                    <div className="p-8 text-center text-gray-500">
-                      同期するデータがありません
-                    </div>
-                  )}
-                  
-                  {/* 全て変更なしの場合のメッセージ */}
-                  {dataDiffs.length > 0 && 
-                   syncStats.newRecords === 0 && 
-                   syncStats.updatedRecords === 0 && (
-                    <div className="p-4 bg-gray-50 text-center">
-                      <CheckCircleOutlineIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                      <p className="text-sm text-gray-600">
-                        全{dataDiffs.length}件のデータに変更はありませんでした
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-          
-          {/* エラー表示 */}
-          {errors.length > 0 && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-              <div className="flex">
-                <ExclamationTriangleIcon className="h-5 w-5 text-red-400 mt-0.5" />
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-red-800">エラー</h3>
-                  {errors.map((error, index) => (
-                    <p key={index} className="mt-1 text-sm text-red-700">{error}</p>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-          
-          {/* アクションボタン */}
-          <div className="flex gap-4">
-            <button
-              onClick={performWeeklySync}
-              disabled={isSyncing || !accountId}
-              className={`flex-1 flex items-center justify-center px-6 py-3 rounded-lg font-semibold transition-colors ${
-                isSyncing || !accountId
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-indigo-600 text-white hover:bg-indigo-700'
-              }`}
-            >
-              {isSyncing ? (
-                <>
-                  <ArrowPathIcon className="h-5 w-5 mr-2 animate-spin" />
-                  同期中...
-                </>
-              ) : (
-                <>
-                  <CloudArrowDownIcon className="h-5 w-5 mr-2" />
-                  週次同期を実行
-                </>
-              )}
-            </button>
-            
-            <button
-              onClick={() => navigate('/meta-api-setup/sync')}
-              className="px-6 py-3 border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
-            >
-              初回同期
-            </button>
-          </div>
-          
-          {/* 自動同期の案内 */}
-          <div className="mt-8 p-4 bg-gray-50 rounded-lg">
-            <p className="text-sm text-gray-600">
-              💡 <strong>ヒント:</strong> データの鮮度を保つため、毎日または週2-3回の同期を推奨します。
-              将来的には自動同期機能の実装も検討してください。
-            </p>
+    <div className="min-h-screen bg-gray-50">
+      {/* エラー表示 */}
+      {error && (
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+            <div className="font-medium">エラー</div>
+            <div className="text-sm mt-1">{error}</div>
           </div>
         </div>
-        
-        {/* フィルター更新完了メッセージ */}
-        {filterUpdateMessage && (
-          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center justify-between animate-fade-in">
-            <div className="flex items-center">
-              <CheckCircleIcon className="h-5 w-5 text-green-600 mr-2" />
-              <span className="text-sm text-green-800">{filterUpdateMessage}</span>
+      )}
+      
+      {/* ヘッダー情報 */}
+      <div className="bg-white border-b">
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">広告パフォーマンスダッシュボード</h1>
+              <p className="text-sm text-gray-500 mt-1">
+                Meta APIから直接取得 • アカウント情報はConvex使用
+              </p>
+              {selectedAccountId && (
+                <p className="text-xs text-gray-400 mt-1">
+                  データ件数: {data.length}件 • 
+                  最終更新: {lastUpdateTime ? lastUpdateTime.toLocaleTimeString('ja-JP') : '未取得'}
+                  {cacheAge < Infinity && cacheAge > 0 && (
+                    <>
+                      {' • '}
+                      <span className={cacheAge > 10 * 60 * 1000 ? 'text-yellow-600' : 'text-green-600'}>
+                        キャッシュ使用中（{Math.floor(cacheAge / 60000)}分前）
+                      </span>
+                    </>
+                  )}
+                </p>
+              )}
             </div>
           </div>
-        )}
-        
-        {/* ダッシュボードセクション */}
-        <div className="bg-white rounded-2xl shadow-xl relative">
-          {/* フィルター変更時のローディングオーバーレイ */}
-          {isFilterLoading && (
-            <div className="absolute inset-0 bg-white bg-opacity-75 z-10 flex items-center justify-center rounded-2xl">
-              <div className="text-center">
-                <ArrowPathIcon className="h-8 w-8 animate-spin text-indigo-600 mx-auto mb-2" />
-                <p className="text-sm text-gray-600">データを読み込み中...</p>
-              </div>
-            </div>
-          )}
-          
-          <div className="border-b px-8 py-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <ChartBarIcon className="h-8 w-8 text-indigo-600 mr-3" />
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-900">広告パフォーマンス</h2>
-                    <p className="text-sm text-gray-600 mt-1">
-                      キャンペーン、広告セット、広告の詳細分析
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm font-medium text-gray-900">
-                    {dashboardData.length.toLocaleString()}件
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    過去{loadedDays}日分
-                    {isFilterLoading && (
-                      <span className="ml-2 text-indigo-600">
-                        更新中...
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <FatigueDashboardPresentation
-              // アカウント関連
-              accounts={accounts}
-              selectedAccountId={accountId}
-              isLoadingAccounts={isLoadingAccounts}
-              onAccountSelect={handleAccountSelect}
-              // データ関連
-              data={dashboardData}
-              insights={insights}
-              isLoading={isLoading || isSyncing}
-              isRefreshing={false}
-              error={null}
-              // アクション
-              onRefresh={async () => await performWeeklySync()}
-              // メタ情報
-              dataSource={dataSource}
-              lastUpdateTime={lastSyncTime}
-              // 進捗情報
-              progress={undefined}
-              // フィルター関連
-              dateRange={dateRange}
-              onDateRangeChange={async (newRange) => {
-                setDateRange(newRange)
-                setIsFilterLoading(true) // ローディング開始
-                
-                // 日付範囲に応じてデータを再読み込み
-                let days = 7
-                if (newRange === 'today') days = 1
-                if (newRange === 'yesterday') days = 2
-                if (newRange === 'last_7d') days = 7
-                if (newRange === 'last_14d') days = 14
-                if (newRange === 'last_30d') days = 30
-                if (newRange === 'last_month') days = 30
-                if (newRange === 'last_90d') days = 90
-                if (newRange === 'all') days = 365
-                
-                try {
-                  if (accountId) {
-                    await loadExistingData(accountId, days)
-                    setLoadedDays(days)
-                    
-                    // 更新完了メッセージを表示
-                    const rangeText = {
-                      'today': '今日',
-                      'yesterday': '昨日',
-                      'last_7d': '過去7日間',
-                      'last_14d': '過去14日間', 
-                      'last_30d': '過去30日間',
-                      'last_month': '先月',
-                      'last_90d': '過去90日間',
-                      'all': '全期間'
-                    }[newRange] || newRange
-                    
-                    setFilterUpdateMessage(`${rangeText}のデータを表示中`)
-                    setTimeout(() => setFilterUpdateMessage(null), 3000) // 3秒後に消す
-                  }
-                } finally {
-                  setIsFilterLoading(false) // ローディング終了
-                }
-              }}
-              totalInsights={dashboardData.length}
-              filteredCount={dashboardData.length}
-              // 集約関連
-              enableAggregation={false}
-              aggregatedData={null}
-              aggregationMetrics={undefined}
-              isAggregating={false}
-              // フィルター関連
-              onFilterChange={setFilteredData}
-              sourceData={dashboardData}
-              // キャッシュ情報
-              cacheLayerUsed={'L3'}
-            />
-            
-            {/* 追加データ読み込みボタン */}
-            {loadedDays < 365 && (
-              <div className="px-8 py-6 border-t bg-gray-50">
-                <div className="flex items-center justify-between">
-                  <div className="text-sm text-gray-600">
-                    現在: 過去{loadedDays}日分のデータを表示中
-                    {loadedDays < 30 && ' • 次: 過去30日分'}
-                    {loadedDays >= 30 && loadedDays < 90 && ' • 次: 過去90日分'}
-                    {loadedDays >= 90 && loadedDays < 365 && ' • 次: 過去1年分'}
-                  </div>
-                  <button
-                    onClick={loadMoreData}
-                    disabled={isLoadingMore}
-                    className={`flex items-center px-4 py-2 rounded-lg font-medium transition-colors ${
-                      isLoadingMore
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : 'bg-white text-indigo-600 border border-indigo-300 hover:bg-indigo-50'
-                    }`}
-                  >
-                    {isLoadingMore ? (
-                      <>
-                        <ArrowPathIcon className="h-4 w-4 mr-2 animate-spin" />
-                        読み込み中...
-                      </>
-                    ) : (
-                      <>
-                        <CalendarDaysIcon className="h-4 w-4 mr-2" />
-                        過去のデータをもっと見る
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            )}
         </div>
       </div>
+      
+      {/* FatigueDashboardPresentationを使用 */}
+      {(() => {
+        console.log('🔍 MainDashboard: Passing data to FatigueDashboardPresentation:', {
+          dataLength: data.length,
+          sampleData: data.slice(0, 2),
+          firstItem: data[0] ? {
+            ad_name: data[0].ad_name,
+            impressions: data[0].impressions,
+            clicks: data[0].clicks,
+            spend: data[0].spend,
+            type_impressions: typeof data[0].impressions,
+            type_clicks: typeof data[0].clicks,
+            type_spend: typeof data[0].spend
+          } : null
+        })
+        return null
+      })()}
+      <FatigueDashboardPresentation
+        // アカウント関連
+        accounts={accounts}
+        selectedAccountId={selectedAccountId}
+        isLoadingAccounts={isLoadingAccounts}
+        onAccountSelect={handleAccountSelect}
+        
+        // データ関連
+        data={data}
+        insights={data}
+        isLoading={isLoading}
+        isRefreshing={false}
+        error={error ? new Error(error) : null}
+        
+        // アクション
+        onRefresh={handleRefresh}
+        
+        // メタ情報
+        dataSource="api"
+        lastUpdateTime={lastUpdateTime}
+        
+        // 日付範囲
+        dateRange={dateRange}
+        onDateRangeChange={(range) => setDateRange(range)}
+        customDateRange={customDateRange}
+        onCustomDateRange={(start, end) => {
+          console.log('📅 MainDashboard: Custom date range selected', {
+            start: start.toISOString(),
+            end: end.toISOString(),
+            selectedAccountId
+          })
+          
+          // カスタム日付範囲を設定
+          setCustomDateRange({ start, end })
+          setDateRange('custom')
+          // useEffectが自動的にデータ取得をトリガーする
+        }}
+        
+        // 進捗情報
+        progress={undefined}
+        
+        // フィルター関連
+        totalInsights={data.length}
+        filteredCount={filteredData?.length || data.length}
+        
+        // 集約関連
+        enableAggregation={true}
+        aggregatedData={undefined}
+        aggregationMetrics={undefined}
+        isAggregating={false}
+        onFilterChange={() => {}}
+        sourceData={data}
+      />
     </div>
   )
 }

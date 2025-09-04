@@ -108,18 +108,19 @@ export class ThreeLayerCache {
     }
 
     // L2: Convexデータベース
-    // 【最適化】L2を一時的に無効化（Bandwidth削減のため）
-    if (!options.skipL2 && false) { // 強制的に無効化
-      console.log('[ThreeLayerCache] L2スキップ（Bandwidth削減）')
-      /*
-      console.log('[ThreeLayerCache] Checking L2 (Convex Database)')
+    // 【最適化】L2を読み取り専用モードで有効化（書き込みは無効化）
+    if (!options.skipL2) {
+      console.log('[ThreeLayerCache] Checking L2 (Convex Database) - 読み取り専用モード')
       try {
         const convexData = await this.convex.query(api.cache.cacheEntries.getByCacheKey, {
           cacheKey: key
         })
         
         if (convexData && convexData.data) {
-          console.log('[ThreeLayerCache] L2 HIT!', { dataSize: JSON.stringify(convexData.data).length })
+          console.log('[ThreeLayerCache] L2 HIT! 既存データを取得', { 
+            dataSize: JSON.stringify(convexData.data).length,
+            key 
+          })
           this.recordHit(key)
           
           // L1に保存
@@ -137,11 +138,10 @@ export class ThreeLayerCache {
             }
           }
         }
-        console.log('[ThreeLayerCache] L2 MISS')
+        console.log('[ThreeLayerCache] L2 MISS - Convexにデータなし')
       } catch (error) {
         console.error('[ThreeLayerCache] Convex cache error:', error)
       }
-      */
     }
 
     // L3: Meta API
@@ -184,25 +184,10 @@ export class ThreeLayerCache {
     }
 
     // L2: Convexに保存
-    // 【最適化】L2への保存を一時的に無効化（Bandwidth削減のため）
-    if (!options.skipL2 && false) { // 強制的に無効化
-      console.log('[ThreeLayerCache] L2への保存をスキップ（Bandwidth削減）')
-      /*
-      try {
-        // キーからaccountIdとdateRangeを抽出
-        const parts = key.split('_')
-        const accountId = parts[0]
-        const dateRange = parts.slice(1).join('_') // last_30d のようなアンダースコアを含む値に対応
-        
-        await this.convex.mutation(api.cache.cacheEntries.create, {
-          accountId: accountId || 'unknown',
-          dateRange: dateRange || 'unknown',
-          data: data as any
-        })
-      } catch (error) {
-        console.error('Failed to save to Convex:', error)
-      }
-      */
+    // 【最適化】L2への保存を完全に無効化（Bandwidth削減のため）
+    // 読み取りは有効だが、書き込みは無効
+    if (!options.skipL2 && false) { // 書き込みは強制的に無効化
+      console.log('[ThreeLayerCache] L2への保存をスキップ（Bandwidth削減 - 読み取り専用モード）')
     }
   }
 

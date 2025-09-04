@@ -10,7 +10,7 @@ import { vibe } from '@/lib/vibelogger'
 import { getDateRangeInfo, isShortTermRange, DateRangePreset } from '../utils/date-range-helpers'
 
 // TASK-005: リファクタリング - DateRangeFilterをDateRangePresetに統一
-export type DateRangeFilter = DateRangePreset | 'all'
+export type DateRangeFilter = DateRangePreset | 'all' | 'custom'
 
 interface UseAdFatigueOptions {
   accountId: string

@@ -61,6 +61,19 @@ export interface AggregatedCreative {
 export function aggregateCreativesByName(data: any[]): AggregatedCreative[] {
   if (!data || !Array.isArray(data)) return []
   
+  console.log('📊 aggregateCreativesByName: Input data:', {
+    length: data.length,
+    firstItem: data[0] ? {
+      ad_name: data[0].ad_name,
+      impressions: data[0].impressions,
+      impressions_type: typeof data[0].impressions,
+      clicks: data[0].clicks,
+      clicks_type: typeof data[0].clicks,
+      spend: data[0].spend,
+      spend_type: typeof data[0].spend
+    } : null
+  })
+  
   // クリエイティブ名でグループ化
   const grouped = new Map<string, any[]>()
   
@@ -104,13 +117,15 @@ export function aggregateCreativesByName(data: any[]): AggregatedCreative[] {
     const dailyData: any[] = []
     
     sortedItems.forEach(item => {
-      const impressions = parseFloat(item.impressions) || 0
-      const clicks = parseFloat(item.clicks) || 0
-      const spend = parseFloat(item.spend) || 0
-      const conversions = parseFloat(item.conversions) || 0
-      const conversionValues = parseFloat(item.conversion_values || item.revenue) || 0
-      const frequency = parseFloat(item.frequency) || 0
-      const fatigueScore = parseFloat(item.fatigue_score || item.score) || 0
+      // 数値変換（文字列の場合も考慮）
+      const impressions = typeof item.impressions === 'number' ? item.impressions : (parseFloat(item.impressions) || 0)
+      const clicks = typeof item.clicks === 'number' ? item.clicks : (parseFloat(item.clicks) || 0)
+      const spend = typeof item.spend === 'number' ? item.spend : (parseFloat(item.spend) || 0)
+      const conversions = typeof item.conversions === 'number' ? item.conversions : (parseFloat(item.conversions) || 0)
+      const conversionValues = typeof item.conversion_values === 'number' ? item.conversion_values : (parseFloat(item.conversion_values || item.revenue) || 0)
+      const frequency = typeof item.frequency === 'number' ? item.frequency : (parseFloat(item.frequency) || 0)
+      // 疲労度スコアはオプショナル（ない場合は-1で未計算を表す）
+      const fatigueScore = item.fatigue_score !== undefined ? parseFloat(item.fatigue_score || item.score) : -1
       
       totalImpressions += impressions
       totalClicks += clicks
@@ -123,7 +138,10 @@ export function aggregateCreativesByName(data: any[]): AggregatedCreative[] {
         frequencyCount++
       }
       
-      maxFatigueScore = Math.max(maxFatigueScore, fatigueScore)
+      // 疲労度スコアが有効な場合のみ最大値を更新
+      if (fatigueScore >= 0) {
+        maxFatigueScore = Math.max(maxFatigueScore, fatigueScore)
+      }
       
       const adId = item.ad_id || item.adId || ''
       if (adId && !adIds.includes(adId)) {
@@ -182,7 +200,7 @@ export function aggregateCreativesByName(data: any[]): AggregatedCreative[] {
       cpa,
       roas,
       frequency: avgFrequency,
-      fatigue_score: maxFatigueScore,
+      fatigue_score: maxFatigueScore > 0 ? maxFatigueScore : -1, // 疲労度スコアが無い場合は-1
       dailyData,
       firstDate,
       lastDate,

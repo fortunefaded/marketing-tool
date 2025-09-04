@@ -7,7 +7,7 @@ import { ThreeLayerCache } from '../core/three-layer-cache'
 import { api } from '../../../../convex/_generated/api'
 
 // 日付範囲の型定義（シンプル化）
-export type DateRangeFilter = 'last_7d' | 'last_30d' | 'last_90d' | 'all'
+export type DateRangeFilter = 'last_7d' | 'last_14d' | 'last_30d' | 'last_month' | 'last_90d' | 'all'
 
 /**
  * FatigueDashboard のコンテナコンポーネント
@@ -220,6 +220,8 @@ export function FatigueDashboardContainer() {
           dataCount: result.data?.length || 0,
           cacheHit: result.source !== 'L3',
           timestamp: new Date().toISOString(),
+          hasData: !!result.data,
+          dataPreview: result.data?.slice(0, 2) // 最初の2件だけプレビュー
         })
 
         // 通常のキャッシュ取得時は同期結果を表示しない（forceRefresh時のみ表示）
