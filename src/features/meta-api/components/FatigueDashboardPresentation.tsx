@@ -105,10 +105,10 @@ export function FatigueDashboardPresentation({
   const data = Array.isArray(rawData) ? rawData : []
   const insights = Array.isArray(rawInsights) ? rawInsights : []
   const sourceData = Array.isArray(rawSourceData) ? rawSourceData : []
-  
+
   // 仮想スクロールの使用状態
   const [useVirtualScroll, setUseVirtualScroll] = useState(data.length > 100) // 100件以上で自動的に有効化
-  
+
   // フィルターの表示状態
   // デバッグモード設定（初回のみ）
   useEffect(() => {
@@ -205,8 +205,8 @@ export function FatigueDashboardPresentation({
               )}
 
               {/* 期間フィルター */}
-              <DateRangeFilter 
-                value={dateRange} 
+              <DateRangeFilter
+                value={dateRange}
                 onChange={onDateRangeChange}
                 customDateRange={customDateRange}
                 onCustomDateRange={onCustomDateRange}
@@ -384,61 +384,18 @@ export function FatigueDashboardPresentation({
                       </div>
                     )}
 
-                    <Tabs defaultValue="creative-table" className="w-full">
+                    <Tabs defaultValue="campaign" className="w-full">
                       <TabsList className="grid w-full grid-cols-3 mb-6">
-                        <TabsTrigger value="creative-table">クリエイティブ</TabsTrigger>
-                        <TabsTrigger value="adset">広告セット</TabsTrigger>
                         <TabsTrigger value="campaign">キャンペーン</TabsTrigger>
+                        <TabsTrigger value="adset">広告セット</TabsTrigger>
+                        <TabsTrigger value="creative-table">クリエイティブ</TabsTrigger>
                       </TabsList>
 
                       <TabsContent value="creative-table">
-                        {data.length > 0 && (
-                          <div className="grid grid-cols-4 gap-4 mb-8">
-                            <StatCard
-                              title="広告数"
-                              value={data.length}
-                              subtitle={
-                                aggregationMetrics
-                                  ? `${aggregationMetrics.inputRows}行 → ${aggregationMetrics.outputRows}行`
-                                  : undefined
-                              }
-                            />
-                            <StatCard
-                              title="Critical"
-                              value={
-                                Array.isArray(data)
-                                  ? data.filter((d: any) => d.status === 'critical').length
-                                  : 0
-                              }
-                              color="red"
-                            />
-                            <StatCard
-                              title="Warning"
-                              value={
-                                Array.isArray(data)
-                                  ? data.filter((d: any) => d.status === 'warning').length
-                                  : 0
-                              }
-                              color="yellow"
-                            />
-                            <StatCard
-                              title="Healthy"
-                              value={
-                                Array.isArray(data)
-                                  ? data.filter((d: any) => d.status === 'healthy').length
-                                  : 0
-                              }
-                              color="green"
-                            />
-                          </div>
-                        )}
-
                         {/* 仮想スクロールトグル（大量データ時のみ表示） */}
                         {data.length > 50 && (
                           <div className="mb-4 flex items-center justify-between">
-                            <div className="text-sm text-gray-600">
-                              {data.length}件のデータ
-                            </div>
+                            <div className="text-sm text-gray-600">{data.length}件のデータ</div>
                             <div className="flex items-center">
                               <label className="flex items-center cursor-pointer">
                                 <input
@@ -454,7 +411,7 @@ export function FatigueDashboardPresentation({
                             </div>
                           </div>
                         )}
-                        
+
                         {/* テーブル表示（条件分岐） */}
                         {useVirtualScroll ? (
                           <VirtualizedCreativeTable

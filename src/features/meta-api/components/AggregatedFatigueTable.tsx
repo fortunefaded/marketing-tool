@@ -404,6 +404,77 @@ export function AggregatedFatigueTable({ data, level }: AggregatedFatigueTablePr
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
+          {/* 集計行 */}
+          <tr className="bg-blue-50 font-bold border-b-2 border-blue-200">
+            <td className="px-4 py-3 text-left text-sm text-blue-900">合計</td>
+            <td className="px-4 py-3 text-center text-sm text-blue-900">
+              {sortedData.reduce((sum, item) => sum + item.adCount, 0)}
+            </td>
+            <td className="px-4 py-3 text-center text-sm text-blue-900">-</td>
+            <td className="px-4 py-3 text-right text-sm text-blue-900">
+              {formatCurrency(sortedData.reduce((sum, item) => sum + item.spend, 0))}
+            </td>
+            <td className="px-4 py-3 text-right text-sm text-blue-900">
+              {formatNumber(sortedData.reduce((sum, item) => sum + item.impressions, 0))}
+            </td>
+            <td className="px-4 py-3 text-right text-sm text-blue-900">
+              {formatNumber(sortedData.reduce((sum, item) => sum + item.clicks, 0))}
+            </td>
+            <td className="px-4 py-3 text-right text-sm text-blue-900">
+              {sortedData.reduce((sum, item) => sum + item.conversions, 0)}
+            </td>
+            <td className="px-4 py-3 text-right text-sm text-blue-900">
+              {sortedData.reduce((sum, item) => sum + item.fcv, 0)}
+            </td>
+            <td className="px-4 py-3 text-right text-sm text-blue-900">
+              {sortedData.reduce((sum, item) => sum + item.conversions, 0) > 0
+                ? formatCurrency(
+                    sortedData.reduce((sum, item) => sum + item.spend, 0) /
+                      sortedData.reduce((sum, item) => sum + item.conversions, 0)
+                  )
+                : '-'}
+            </td>
+            <td className="px-4 py-3 text-right text-sm text-blue-900">
+              {sortedData.reduce((sum, item) => sum + item.impressions, 0) > 0
+                ? (
+                    (sortedData.reduce((sum, item) => sum + item.clicks, 0) /
+                      sortedData.reduce((sum, item) => sum + item.impressions, 0)) *
+                    100
+                  ).toFixed(2) + '%'
+                : '-'}
+            </td>
+            <td className="px-4 py-3 text-right text-sm text-blue-900">
+              {sortedData.length > 0
+                ? formatCurrency(
+                    sortedData.reduce((sum, item) => sum + item.cpc, 0) / sortedData.length
+                  )
+                : '-'}
+            </td>
+            <td className="px-4 py-3 text-right text-sm text-blue-900">
+              {sortedData.reduce((sum, item) => sum + item.clicks, 0) > 0 &&
+              sortedData.reduce((sum, item) => sum + item.conversions, 0) > 0
+                ? (
+                    (sortedData.reduce((sum, item) => sum + item.conversions, 0) /
+                      sortedData.reduce((sum, item) => sum + item.clicks, 0)) *
+                    100
+                  ).toFixed(2) + '%'
+                : '-'}
+            </td>
+            <td className="px-4 py-3 text-right text-sm text-blue-900">
+              {sortedData.length > 0
+                ? formatCurrency(
+                    sortedData.reduce((sum, item) => sum + item.cpm, 0) / sortedData.length
+                  )
+                : '-'}
+            </td>
+            <td className="px-4 py-3 text-right text-sm text-blue-900">
+              {sortedData.length > 0
+                ? (
+                    sortedData.reduce((sum, item) => sum + item.frequency, 0) / sortedData.length
+                  ).toFixed(2)
+                : '-'}
+            </td>
+          </tr>
           {sortedData.map((item) => (
             <React.Fragment key={item.id}>
               {/* Main row for campaign/adset */}

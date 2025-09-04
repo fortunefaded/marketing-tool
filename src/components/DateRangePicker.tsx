@@ -24,11 +24,11 @@ export function DateRangePicker({
   maxDate = new Date(), // デフォルトは今日まで
   minDate = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000), // デフォルトは1年前まで
   disabled = false,
-  className = ''
+  className = '',
 }: DateRangePickerProps) {
   const [localStartDate, setLocalStartDate] = useState<Date | null>(startDate)
   const [localEndDate, setLocalEndDate] = useState<Date | null>(endDate)
-  
+
   // propsの変更を反映
   React.useEffect(() => {
     setLocalStartDate(startDate)
@@ -55,7 +55,7 @@ export function DateRangePicker({
     console.log('🔵 DateRangePicker: Apply button handler called', {
       localStartDate: localStartDate?.toISOString(),
       localEndDate: localEndDate?.toISOString(),
-      hasOnApply: !!onApply
+      hasOnApply: !!onApply,
     })
     if (localStartDate && localEndDate) {
       // まずonChangeを呼んで親コンポーネントの状態を更新
@@ -68,7 +68,7 @@ export function DateRangePicker({
     } else {
       console.warn('🔵 DateRangePicker: Cannot apply - missing dates', {
         hasStart: !!localStartDate,
-        hasEnd: !!localEndDate
+        hasEnd: !!localEndDate,
       })
     }
   }
@@ -78,13 +78,13 @@ export function DateRangePicker({
     const end = new Date()
     const start = new Date()
     start.setDate(start.getDate() - days)
-    
+
     console.log('🔵 DateRangePicker: Quick select', {
       days,
       start: start.toISOString(),
-      end: end.toISOString()
+      end: end.toISOString(),
     })
-    
+
     setLocalStartDate(start)
     setLocalEndDate(end)
     onChange(start, end)
@@ -199,20 +199,38 @@ export function DateRangePicker({
             onClick={handleApply}
             disabled={isLoading}
             className={`px-4 py-2 rounded-lg text-white text-sm font-medium transition-all ${
-              isLoading 
-                ? 'bg-gray-400 cursor-not-allowed' 
+              isLoading
+                ? 'bg-gray-400 cursor-not-allowed'
                 : 'bg-blue-600 hover:bg-blue-700 active:scale-95'
             }`}
           >
             {isLoading ? (
               <span className="flex items-center gap-2">
-                <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                <svg
+                  className="animate-spin h-4 w-4"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
                 </svg>
                 取得中...
               </span>
-            ) : '適用'}
+            ) : (
+              '適用'
+            )}
           </button>
         )}
       </div>
@@ -238,12 +256,37 @@ export function DateRangePicker({
           過去30日
         </button>
         <button
+          onClick={() => {
+            // 先月の設定
+            const now = new Date()
+            const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+            const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0)
+
+            console.log('🔵 DateRangePicker: 先月を選択', {
+              start: lastMonthStart.toISOString(),
+              end: lastMonthEnd.toISOString(),
+            })
+
+            setLocalStartDate(lastMonthStart)
+            setLocalEndDate(lastMonthEnd)
+            onChange(lastMonthStart, lastMonthEnd)
+
+            if (onApply) {
+              console.log('🔵 DateRangePicker: 先月選択を自動適用')
+              setTimeout(() => onApply(), 0)
+            }
+          }}
+          className="px-3 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50 transition-colors"
+        >
+          先月
+        </button>
+        <button
           onClick={() => setPresetRange(90)}
           className="px-3 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50 transition-colors"
         >
           過去90日
         </button>
-        
+
         {/* 選択クリア */}
         {(localStartDate || localEndDate) && (
           <button

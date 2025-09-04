@@ -612,6 +612,113 @@ export function CreativeTableTab({
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
+              {/* 集計行 */}
+              <tr className="bg-blue-50 font-bold border-b-2 border-blue-200">
+                {/* タイプ */}
+                <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">-</td>
+                {/* クリエイティブ名 */}
+                <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-blue-900">
+                  合計
+                </td>
+                {/* 疲労度 */}
+                <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">-</td>
+                {/* Frequency */}
+                <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">
+                  {sortedData.length > 0
+                    ? formatDecimal(
+                        sortedData.reduce((sum, item) => sum + (item.metrics?.frequency || 0), 0) /
+                          sortedData.length
+                      )
+                    : '-'}
+                </td>
+                {/* CTR */}
+                <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">
+                  {sortedData.reduce((sum, item) => sum + (item.impressions || 0), 0) > 0
+                    ? formatPercentage(
+                        (sortedData.reduce((sum, item) => sum + (item.clicks || 0), 0) /
+                          sortedData.reduce((sum, item) => sum + (item.impressions || 0), 0)) *
+                          100
+                      )
+                    : '-'}
+                </td>
+                {/* U-CTR */}
+                <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">
+                  {sortedData.length > 0
+                    ? formatPercentage(
+                        sortedData.reduce((sum, item) => sum + (item.metrics?.unique_ctr || 0), 0) /
+                          sortedData.length
+                      )
+                    : '-'}
+                </td>
+                {/* CPM */}
+                <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">
+                  ¥
+                  {sortedData.length > 0
+                    ? formatNumber(
+                        sortedData.reduce((sum, item) => sum + (item.metrics?.cpm || 0), 0) /
+                          sortedData.length
+                      )
+                    : '0'}
+                </td>
+                {/* CPC */}
+                <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">
+                  ¥
+                  {sortedData.length > 0
+                    ? formatNumber(
+                        sortedData.reduce((sum, item) => sum + (item.metrics?.cpc || 0), 0) /
+                          sortedData.length
+                      )
+                    : '0'}
+                </td>
+                {/* IMP */}
+                <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">
+                  {formatNumber(sortedData.reduce((sum, item) => sum + (item.impressions || 0), 0))}
+                </td>
+                {/* クリック */}
+                <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">
+                  {formatNumber(sortedData.reduce((sum, item) => sum + (item.clicks || 0), 0))}
+                </td>
+                {/* 消化金額 */}
+                <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">
+                  ¥{formatNumber(sortedData.reduce((sum, item) => sum + (item.spend || 0), 0))}
+                </td>
+                {/* CV */}
+                <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">
+                  {formatNumber(sortedData.reduce((sum, item) => sum + (item.conversions || 0), 0))}
+                </td>
+                {/* F-CV */}
+                <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">
+                  {formatNumber(
+                    sortedData.reduce((sum, item) => sum + (item.conversions_1d_click || 0), 0)
+                  )}
+                </td>
+                {/* CPA */}
+                <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">
+                  {sortedData.reduce((sum, item) => sum + (item.conversions || 0), 0) > 0
+                    ? `¥${formatNumber(
+                        sortedData.reduce((sum, item) => sum + (item.spend || 0), 0) /
+                          sortedData.reduce((sum, item) => sum + (item.conversions || 0), 0)
+                      )}`
+                    : '-'}
+                </td>
+                {/* 売上 */}
+                <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">
+                  {sortedData.reduce((sum, item) => sum + (item.revenue || 0), 0) > 0
+                    ? `¥${formatNumber(sortedData.reduce((sum, item) => sum + (item.revenue || 0), 0))}`
+                    : '-'}
+                </td>
+                {/* ROAS */}
+                <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">
+                  {sortedData.length > 0 && sortedData.some((item) => item.roas > 0)
+                    ? `${formatDecimal(
+                        sortedData.reduce((sum, item) => sum + (item.roas || 0), 0) /
+                          sortedData.filter((item) => item.roas > 0).length
+                      )}x`
+                    : '-'}
+                </td>
+                {/* ステータス */}
+                <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">-</td>
+              </tr>
               {sortedData.map((item, index) => (
                 <tr
                   key={`${item.adId}-${index}`}
