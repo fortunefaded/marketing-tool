@@ -167,6 +167,7 @@ export function CreativeTableTab({
         spend: item.spend,
         conversions: item.conversions,
         conversions_1d_click: item.conversions_1d_click,
+        fcv_debug: item.fcv_debug,
 
         // 計算メトリクス（集約データから）
         cpa: item.cpa,
@@ -722,8 +723,95 @@ export function CreativeTableTab({
                   </td>
 
                   {/* ファーストCV */}
-                  <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-gray-900">
-                    {formatNumber(item.conversions_1d_click || 0)}
+                  <td className="px-2 py-3 whitespace-nowrap text-center text-sm">
+                    <div className="group relative cursor-help inline-block">
+                      {/* メイン表示 */}
+                      <span
+                        className={
+                          item.fcv_debug?.cv_fcv_valid === false
+                            ? 'text-red-600 font-bold'
+                            : 'text-gray-900'
+                        }
+                      >
+                        {formatNumber(item.conversions_1d_click || 0)}
+                      </span>
+
+                      {/* デバッグ情報（開発環境のみ） */}
+                      {process.env.NODE_ENV === 'development' && item.fcv_debug && (
+                        <span className="ml-1 text-xs text-gray-400">
+                          ({item.fcv_debug.unique_actions_value}/
+                          {item.fcv_debug.unique_actions_1d_click})
+                        </span>
+                      )}
+
+                      {/* ツールチップ */}
+                      {item.fcv_debug && (
+                        <div className="hidden group-hover:block absolute z-50 bg-gray-900 text-white text-xs rounded-lg p-3 bottom-full left-1/2 transform -translate-x-1/2 w-80 shadow-xl">
+                          <div className="font-bold mb-2 text-yellow-300">F-CVデバッグ情報</div>
+                          <div className="space-y-1">
+                            <div>
+                              unique_actions.value:{' '}
+                              <span className="font-mono text-green-300">
+                                {item.fcv_debug.unique_actions_value || 'N/A'}
+                              </span>
+                            </div>
+                            <div>
+                              unique_actions['1d_click']:{' '}
+                              <span className="font-mono text-green-300">
+                                {item.fcv_debug.unique_actions_1d_click || 'N/A'}
+                              </span>
+                            </div>
+                            <div>
+                              unique_actions['7d_click']:{' '}
+                              <span className="font-mono text-gray-400">
+                                {item.fcv_debug.unique_actions_7d_click || 'N/A'}
+                              </span>
+                            </div>
+                            <div>
+                              unique_conversions:{' '}
+                              <span className="font-mono text-gray-400">
+                                {item.fcv_debug.unique_conversions || 'N/A'}
+                              </span>
+                            </div>
+                            <div>
+                              unique_actions存在:{' '}
+                              <span
+                                className={
+                                  item.fcv_debug.has_unique_actions
+                                    ? 'text-green-400'
+                                    : 'text-red-400'
+                                }
+                              >
+                                {item.fcv_debug.has_unique_actions ? '✓' : '✗'}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="mt-2 pt-2 border-t border-gray-700">
+                            <div>
+                              CV: <span className="font-mono">{item.conversions}</span>
+                            </div>
+                            <div>
+                              F-CV: <span className="font-mono">{item.conversions_1d_click}</span>
+                            </div>
+                            <div
+                              className={
+                                item.fcv_debug.cv_fcv_valid
+                                  ? 'text-green-400'
+                                  : 'text-red-400 font-bold'
+                              }
+                            >
+                              CV≥F-CV: {item.fcv_debug.cv_fcv_valid ? '✓ 正常' : '✗ エラー'}
+                            </div>
+                          </div>
+                          <div className="mt-2 text-xs text-gray-400">
+                            ※Meta Ad Managerの値と比較してください
+                          </div>
+                          <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-full">
+                            <div className="border-8 border-transparent border-t-gray-900"></div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </td>
 
                   {/* CPA */}

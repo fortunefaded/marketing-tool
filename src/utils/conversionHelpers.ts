@@ -41,7 +41,10 @@ export const isPurchaseAction = (actionType: string | undefined | null): boolean
 export interface FCVDebugInfo {
   unique_actions_value: number // unique_actionsの合計値
   unique_actions_1d_click: number // unique_actions内の1d_click値
+  unique_actions_7d_click: number // unique_actions内の7d_click値
   unique_conversions: number // unique_conversionsフィールド（存在する場合）
+  has_unique_actions: boolean // unique_actionsフィールドの存在
+  cv_fcv_valid: boolean // CV≥F-CVのバリデーション
   raw_unique_actions?: any // 生のunique_actionsデータ
   raw_actions?: any // 生のactionsデータ
   raw_conversions?: any // 生のconversionsフィールド
@@ -57,29 +60,8 @@ export const extractConversions = (item: any) => {
     let cv = 0 // CV: 1日クリックの総コンバージョン
     let fcv_candidate1 = 0 // unique_actions.value
     let fcv_candidate2 = 0 // unique_actions['1d_click']
-    let fcv_candidate3 = 0 // unique_conversions
-
-    // デバッグ用: APIレスポンスの構造を確認（開発環境のみ）
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔬 === F-CV調査デバッグ ===')
-      console.log('利用可能フィールド:', Object.keys(item || {}))
-
-      if (item.actions) {
-        console.log('actions構造:', item.actions)
-      }
-
-      if (item.unique_actions) {
-        console.log('🔥 unique_actions構造（F-CV候補）:', item.unique_actions)
-      }
-
-      if (item.conversions !== undefined) {
-        console.log('conversionsフィールド:', item.conversions)
-      }
-
-      if (item.unique_conversions !== undefined) {
-        console.log('unique_conversionsフィールド:', item.unique_conversions)
-      }
-    }
+    let fcv_candidate3 = 0 // unique_actions['7d_click']
+    let fcv_candidate4 = 0 // unique_conversions
 
     // CV: 総コンバージョン数の取得
     // action_attribution_windows: ['1d_click']指定により、
@@ -101,7 +83,7 @@ export const extractConversions = (item: any) => {
     const uniquePurchaseActions =
       item.unique_actions?.filter((a: any) => isPurchaseAction(a.action_type)) || []
 
-    // F-CV候補1: unique_actionsのvalue合計
+    // F-CV候補: unique_actionsから抽出
     if (item.unique_actions && Array.isArray(item.unique_actions)) {
       item.unique_actions.forEach((action: any) => {
         if (isPurchaseAction(action.action_type)) {
@@ -111,39 +93,30 @@ export const extractConversions = (item: any) => {
           if (action['1d_click'] !== undefined) {
             fcv_candidate2 += parseInt(action['1d_click'] || '0')
           }
+
+          // 7d_click属性がある場合
+          if (action['7d_click'] !== undefined) {
+            fcv_candidate3 += parseInt(action['7d_click'] || '0')
+          }
         }
       })
     }
 
-    // F-CV候補3: unique_conversions（もし存在すれば）
+    // F-CV候補4: unique_conversions（もし存在すれば）
     if (item.unique_conversions !== undefined && item.unique_conversions !== null) {
-      fcv_candidate3 = parseInt(item.unique_conversions) || 0
+      fcv_candidate4 = parseInt(item.unique_conversions) || 0
     }
 
-    // デバッグモードでの詳細比較
-    if (
-      process.env.NODE_ENV === 'development' &&
-      (purchaseActions.length > 0 || uniquePurchaseActions.length > 0)
-    ) {
-      console.log('購入アクション比較:', {
-        通常: purchaseActions,
-        ユニーク: uniquePurchaseActions,
-        通常合計: cv,
-        ユニーク候補1: fcv_candidate1,
-        ユニーク候補2: fcv_candidate2,
-        ユニーク候補3: fcv_candidate3,
-      })
-    }
-
-    // 最も妥当なF-CV値を選択（暫定的な優先順位）
-    // 1. unique_actionsのvalue（最も可能性が高い）
-    // 2. unique_actions['1d_click']
+    // 最も妥当なF-CV値を選択（優先順位を調整）
+    // 1. unique_actions['1d_click']（最も正確）
+    // 2. unique_actionsのvalue
     // 3. unique_conversions
     // 4. フォールバック: CV値（すべて初回購入と仮定）
-    let fcv = fcv_candidate1 || fcv_candidate2 || fcv_candidate3 || cv
+    let fcv = fcv_candidate2 || fcv_candidate1 || fcv_candidate4 || cv
 
     // データ整合性チェック: CV ≥ F-CV の保証
-    if (fcv > cv) {
+    const cv_fcv_valid = cv >= fcv
+    if (!cv_fcv_valid) {
       console.warn(`⚠️ データ不整合検出: F-CV (${fcv}) > CV (${cv}), F-CVをCVと同値に修正`)
       fcv = cv
     }
@@ -156,7 +129,10 @@ export const extractConversions = (item: any) => {
       fcv_debug: {
         unique_actions_value: fcv_candidate1,
         unique_actions_1d_click: fcv_candidate2,
-        unique_conversions: fcv_candidate3,
+        unique_actions_7d_click: fcv_candidate3,
+        unique_conversions: fcv_candidate4,
+        has_unique_actions: !!item.unique_actions,
+        cv_fcv_valid,
         raw_unique_actions: item.unique_actions,
         raw_actions: item.actions,
         raw_conversions: item.conversions,
@@ -172,7 +148,10 @@ export const extractConversions = (item: any) => {
       fcv_debug: {
         unique_actions_value: 0,
         unique_actions_1d_click: 0,
+        unique_actions_7d_click: 0,
         unique_conversions: 0,
+        has_unique_actions: false,
+        cv_fcv_valid: true,
       } as FCVDebugInfo,
     }
   }
