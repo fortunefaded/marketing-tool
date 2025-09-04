@@ -47,6 +47,8 @@ interface FatigueDashboardPresentationProps {
   // フィルター関連
   dateRange: DateRangeFilterType
   onDateRangeChange: (dateRange: DateRangeFilterType) => void
+  customDateRange?: { start: Date; end: Date } | null
+  onCustomDateRange?: (start: Date, end: Date) => void
   totalInsights?: number
   filteredCount?: number
 
@@ -87,6 +89,8 @@ export function FatigueDashboardPresentation({
   progress,
   dateRange,
   onDateRangeChange,
+  customDateRange,
+  onCustomDateRange,
   totalInsights,
   filteredCount,
   enableAggregation = true, // デフォルトをtrueに変更
@@ -201,7 +205,13 @@ export function FatigueDashboardPresentation({
               )}
 
               {/* 期間フィルター */}
-              <DateRangeFilter value={dateRange} onChange={onDateRangeChange} />
+              <DateRangeFilter 
+                value={dateRange} 
+                onChange={onDateRangeChange}
+                customDateRange={customDateRange}
+                onCustomDateRange={onCustomDateRange}
+                isLoading={isLoading || isRefreshing}
+              />
 
               {/* 集約トグル削除: 常時集約有効のため不要 */}
 
