@@ -715,36 +715,6 @@ export default function MainDashboard() {
         </div>
       )}
 
-      {/* ヘッダー情報 */}
-      <div className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">広告パフォーマンスダッシュボード</h1>
-              <p className="text-sm text-gray-500 mt-1">
-                Meta APIから直接取得 • アカウント情報はConvex使用
-              </p>
-              {selectedAccountId && (
-                <p className="text-xs text-gray-400 mt-1">
-                  データ件数: {data.length}件 • 最終更新:{' '}
-                  {lastUpdateTime ? lastUpdateTime.toLocaleTimeString('ja-JP') : '未取得'}
-                  {cacheAge < Infinity && cacheAge > 0 && (
-                    <>
-                      {' • '}
-                      <span
-                        className={cacheAge > 10 * 60 * 1000 ? 'text-yellow-600' : 'text-green-600'}
-                      >
-                        キャッシュ使用中（{Math.floor(cacheAge / 60000)}分前）
-                      </span>
-                    </>
-                  )}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* FatigueDashboardPresentationを使用 */}
       {(() => {
         console.log('🔍 MainDashboard: Passing data to FatigueDashboardPresentation:', {
