@@ -245,20 +245,6 @@ export function AggregatedFatigueTable({ data, level }: AggregatedFatigueTablePr
               </div>
             </th>
             <th
-              className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-              onClick={() => handleSort('fatigueScore')}
-            >
-              <div className="flex items-center justify-center gap-1">
-                疲労度
-                {sortField === 'fatigueScore' &&
-                  (sortDirection === 'asc' ? (
-                    <ChevronUpIcon className="h-3 w-3" />
-                  ) : (
-                    <ChevronDownIcon className="h-3 w-3" />
-                  ))}
-              </div>
-            </th>
-            <th
               className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
               onClick={() => handleSort('spend')}
             >
@@ -410,35 +396,36 @@ export function AggregatedFatigueTable({ data, level }: AggregatedFatigueTablePr
             <td className="px-4 py-3 text-center text-sm text-blue-900">
               {sortedData.reduce((sum, item) => sum + item.adCount, 0)}
             </td>
-            <td className="px-4 py-3 text-center text-sm text-blue-900">-</td>
             <td className="px-4 py-3 text-right text-sm text-blue-900">
-              {formatCurrency(sortedData.reduce((sum, item) => sum + item.spend, 0))}
+              {formatCurrency(sortedData.reduce((sum, item) => sum + (item.metrics.spend || 0), 0))}
             </td>
             <td className="px-4 py-3 text-right text-sm text-blue-900">
-              {formatNumber(sortedData.reduce((sum, item) => sum + item.impressions, 0))}
+              {formatNumber(
+                sortedData.reduce((sum, item) => sum + (item.metrics.impressions || 0), 0)
+              )}
             </td>
             <td className="px-4 py-3 text-right text-sm text-blue-900">
-              {formatNumber(sortedData.reduce((sum, item) => sum + item.clicks, 0))}
+              {formatNumber(sortedData.reduce((sum, item) => sum + (item.metrics.clicks || 0), 0))}
             </td>
             <td className="px-4 py-3 text-right text-sm text-blue-900">
-              {sortedData.reduce((sum, item) => sum + item.conversions, 0)}
+              {sortedData.reduce((sum, item) => sum + (item.metrics.conversions || 0), 0)}
             </td>
             <td className="px-4 py-3 text-right text-sm text-blue-900">
-              {sortedData.reduce((sum, item) => sum + item.fcv, 0)}
+              {sortedData.reduce((sum, item) => sum + (item.fcv || 0), 0)}
             </td>
             <td className="px-4 py-3 text-right text-sm text-blue-900">
-              {sortedData.reduce((sum, item) => sum + item.conversions, 0) > 0
+              {sortedData.reduce((sum, item) => sum + (item.metrics.conversions || 0), 0) > 0
                 ? formatCurrency(
-                    sortedData.reduce((sum, item) => sum + item.spend, 0) /
-                      sortedData.reduce((sum, item) => sum + item.conversions, 0)
+                    sortedData.reduce((sum, item) => sum + (item.metrics.spend || 0), 0) /
+                      sortedData.reduce((sum, item) => sum + (item.metrics.conversions || 0), 0)
                   )
                 : '-'}
             </td>
             <td className="px-4 py-3 text-right text-sm text-blue-900">
-              {sortedData.reduce((sum, item) => sum + item.impressions, 0) > 0
+              {sortedData.reduce((sum, item) => sum + (item.metrics.impressions || 0), 0) > 0
                 ? (
-                    (sortedData.reduce((sum, item) => sum + item.clicks, 0) /
-                      sortedData.reduce((sum, item) => sum + item.impressions, 0)) *
+                    (sortedData.reduce((sum, item) => sum + (item.metrics.clicks || 0), 0) /
+                      sortedData.reduce((sum, item) => sum + (item.metrics.impressions || 0), 0)) *
                     100
                   ).toFixed(2) + '%'
                 : '-'}
@@ -446,16 +433,17 @@ export function AggregatedFatigueTable({ data, level }: AggregatedFatigueTablePr
             <td className="px-4 py-3 text-right text-sm text-blue-900">
               {sortedData.length > 0
                 ? formatCurrency(
-                    sortedData.reduce((sum, item) => sum + item.cpc, 0) / sortedData.length
+                    sortedData.reduce((sum, item) => sum + (item.metrics.cpc || 0), 0) /
+                      sortedData.length
                   )
                 : '-'}
             </td>
             <td className="px-4 py-3 text-right text-sm text-blue-900">
-              {sortedData.reduce((sum, item) => sum + item.clicks, 0) > 0 &&
-              sortedData.reduce((sum, item) => sum + item.conversions, 0) > 0
+              {sortedData.reduce((sum, item) => sum + (item.metrics.clicks || 0), 0) > 0 &&
+              sortedData.reduce((sum, item) => sum + (item.metrics.conversions || 0), 0) > 0
                 ? (
-                    (sortedData.reduce((sum, item) => sum + item.conversions, 0) /
-                      sortedData.reduce((sum, item) => sum + item.clicks, 0)) *
+                    (sortedData.reduce((sum, item) => sum + (item.metrics.conversions || 0), 0) /
+                      sortedData.reduce((sum, item) => sum + (item.metrics.clicks || 0), 0)) *
                     100
                   ).toFixed(2) + '%'
                 : '-'}
@@ -463,14 +451,16 @@ export function AggregatedFatigueTable({ data, level }: AggregatedFatigueTablePr
             <td className="px-4 py-3 text-right text-sm text-blue-900">
               {sortedData.length > 0
                 ? formatCurrency(
-                    sortedData.reduce((sum, item) => sum + item.cpm, 0) / sortedData.length
+                    sortedData.reduce((sum, item) => sum + (item.metrics.cpm || 0), 0) /
+                      sortedData.length
                   )
                 : '-'}
             </td>
             <td className="px-4 py-3 text-right text-sm text-blue-900">
               {sortedData.length > 0
                 ? (
-                    sortedData.reduce((sum, item) => sum + item.frequency, 0) / sortedData.length
+                    sortedData.reduce((sum, item) => sum + (item.metrics.frequency || 0), 0) /
+                    sortedData.length
                   ).toFixed(2)
                 : '-'}
             </td>
@@ -502,20 +492,6 @@ export function AggregatedFatigueTable({ data, level }: AggregatedFatigueTablePr
                 </td>
                 <td className="px-4 py-4 whitespace-nowrap text-center">
                   <span className="text-sm text-gray-900">{item.adCount}</span>
-                </td>
-                <td className="px-4 py-4 whitespace-nowrap text-center">
-                  <div className="flex flex-col items-center">
-                    <span className="text-lg font-semibold text-gray-900">
-                      {item.fatigueScore !== undefined ? item.fatigueScore : '-'}
-                    </span>
-                    {item.fatigueStatus && (
-                      <span
-                        className={`mt-1 px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(item.fatigueStatus)}`}
-                      >
-                        {item.fatigueStatus}
-                      </span>
-                    )}
-                  </div>
                 </td>
                 <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900">
                   {formatCurrency(item.metrics.spend)}
@@ -555,7 +531,7 @@ export function AggregatedFatigueTable({ data, level }: AggregatedFatigueTablePr
               {/* Expanded content showing individual ads */}
               {expandedRows.has(item.id) && item.insights.length > 0 && (
                 <tr>
-                  <td colSpan={14} className="px-4 py-2 bg-gray-50 border-l-4 border-indigo-200">
+                  <td colSpan={13} className="px-4 py-2 bg-gray-50 border-l-4 border-indigo-200">
                     <div className="space-y-2">
                       <div className="text-sm font-medium text-gray-700 mb-3">
                         この{level === 'campaign' ? 'キャンペーン' : '広告セット'}の広告 (

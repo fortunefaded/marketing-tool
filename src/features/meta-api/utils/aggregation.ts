@@ -1,6 +1,35 @@
 import { AdInsight, FatigueData } from '@/types'
 import { SimpleFatigueCalculator } from '../fatigue/calculator'
 
+// コンバージョンデータを正しく抽出する関数（重複カウント回避）
+function extractConversionData(item: any) {
+  let cv = 0
+  let fcv = null // F-CVは後日Pixel実装で対応
+
+  // CV: offsite_conversion.fb_pixel_purchaseのみを使用（重複回避）
+  if (item.actions && Array.isArray(item.actions)) {
+    const fbPixelPurchase = item.actions.find(
+      (action: any) => action.action_type === 'offsite_conversion.fb_pixel_purchase'
+    )
+
+    if (fbPixelPurchase) {
+      // 1d_click値を優先、なければvalue値を使用
+      cv = parseInt(fbPixelPurchase['1d_click'] || fbPixelPurchase.value || '0')
+    }
+    // Pixelが設置されていない場合のフォールバック
+    else {
+      const purchaseAction = item.actions.find((action: any) => action.action_type === 'purchase')
+      if (purchaseAction) {
+        cv = parseInt(purchaseAction['1d_click'] || purchaseAction.value || '0')
+      }
+    }
+  }
+
+  // conversionsフィールドは使用しない（3214という誤った値のため）
+
+  return { cv, fcv }
+}
+
 export type AggregationLevel = 'creative' | 'campaign' | 'adset'
 
 export interface AggregatedData {
@@ -116,32 +145,36 @@ export function aggregateByLevel(insights: AdInsight[], level: AggregationLevel)
     const calculator = new SimpleFatigueCalculator()
     const fatigueData = calculator.calculate(insights)
 
-    return insights.map((insight, index) => ({
-      id: insight.ad_id,
-      name: insight.ad_name || 'Unnamed Ad',
-      level: 'creative' as AggregationLevel,
-      metrics: {
-        spend: Number(insight.spend) || 0,
-        impressions: Number(insight.impressions) || 0,
-        clicks: Number(insight.clicks) || 0,
-        conversions: Number(insight.conversions) || 0,
-        reach: Number(insight.reach) || 0,
-        frequency: Number(insight.frequency) || 0,
-        cpa:
-          Number(insight.conversions) > 0 ? Number(insight.spend) / Number(insight.conversions) : 0,
-        ctr: Number(insight.ctr) || 0,
-        cpc: Number(insight.cpc) || 0,
-        cvr:
-          Number(insight.clicks) > 0
-            ? (Number(insight.conversions || 0) / Number(insight.clicks)) * 100
-            : 0,
-        cpm: Number(insight.cpm) || 0,
-      },
-      adCount: 1,
-      fatigueScore: fatigueData[index]?.score,
-      fatigueStatus: fatigueData[index]?.status,
-      insights: [insight],
-    }))
+    return insights.map((insight, index) => {
+      // 正しいコンバージョン値を取得
+      const conversionData = extractConversionData(insight)
+
+      return {
+        id: insight.ad_id,
+        name: insight.ad_name || 'Unnamed Ad',
+        level: 'creative' as AggregationLevel,
+        metrics: {
+          spend: Number(insight.spend) || 0,
+          impressions: Number(insight.impressions) || 0,
+          clicks: Number(insight.clicks) || 0,
+          conversions: conversionData.cv, // 正しいCV値を使用
+          reach: Number(insight.reach) || 0,
+          frequency: Number(insight.frequency) || 0,
+          cpa: conversionData.cv > 0 ? Number(insight.spend) / conversionData.cv : 0, // 正しいCV値でCPA計算
+          ctr: Number(insight.ctr) || 0,
+          cpc: Number(insight.cpc) || 0,
+          cvr:
+            Number(insight.clicks) > 0
+              ? (conversionData.cv / Number(insight.clicks)) * 100 // 正しいCV値でCVR計算
+              : 0,
+          cpm: Number(insight.cpm) || 0,
+        },
+        adCount: 1,
+        fatigueScore: fatigueData[index]?.score,
+        fatigueStatus: fatigueData[index]?.status,
+        insights: [insight],
+      }
+    })
   }
 
   // キャンペーンまたは広告セット単位で集計
@@ -191,11 +224,14 @@ export function aggregateByLevel(insights: AdInsight[], level: AggregationLevel)
       }
     }
 
+    // 正しいコンバージョン値を取得
+    const conversionData = extractConversionData(insight)
+
     // メトリクスを累積（文字列を確実に数値に変換）
     acc[key].metrics.spend += Number(insight.spend) || 0
     acc[key].metrics.impressions += Number(insight.impressions) || 0
     acc[key].metrics.clicks += Number(insight.clicks) || 0
-    acc[key].metrics.conversions += Number(insight.conversions) || 0
+    acc[key].metrics.conversions += conversionData.cv // 正しいCV値を使用
     acc[key].metrics.reach += Number(insight.reach) || 0
     acc[key].adCount += 1
     acc[key].insights.push(insight)

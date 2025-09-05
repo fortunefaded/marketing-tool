@@ -971,37 +971,6 @@ export function CreativeTableTab({
             </tbody>
           </table>
         </div>
-
-        {/* サマリー情報 */}
-        <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            <div>
-              <p className="text-gray-500">表示件数</p>
-              <p className="font-semibold text-gray-900">{sortedData.length}件</p>
-            </div>
-            <div>
-              <p className="text-gray-500">合計インプレッション</p>
-              <p className="font-semibold text-gray-900">
-                {formatNumber(sortedData.reduce((sum, item) => sum + (item.impressions || 0), 0))}
-              </p>
-            </div>
-            <div>
-              <p className="text-gray-500">合計消化金額</p>
-              <p className="font-semibold text-gray-900">
-                {formatCurrency(sortedData.reduce((sum, item) => sum + (item.spend || 0), 0))}
-              </p>
-            </div>
-            <div>
-              <p className="text-gray-500">平均ROAS</p>
-              <p className="font-semibold text-gray-900">
-                {formatDecimal(
-                  sortedData.reduce((sum, item) => sum + (item.roas || 0), 0) / sortedData.length
-                )}
-                x
-              </p>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* 詳細モーダル */}
