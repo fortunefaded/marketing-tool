@@ -73,29 +73,6 @@ export function DateRangePicker({
     }
   }
 
-  // クイック選択ボタン
-  const setPresetRange = (days: number) => {
-    const end = new Date()
-    const start = new Date()
-    start.setDate(start.getDate() - days)
-
-    console.log('🔵 DateRangePicker: Quick select', {
-      days,
-      start: start.toISOString(),
-      end: end.toISOString(),
-    })
-
-    setLocalStartDate(start)
-    setLocalEndDate(end)
-    onChange(start, end)
-    // クイック選択は即座に適用
-    if (onApply) {
-      console.log('🔵 DateRangePicker: Auto-applying quick selection')
-      // setTimeoutを使って、状態更新後に確実にonApplyを呼ぶ
-      setTimeout(() => onApply(), 0)
-    }
-  }
-
   return (
     <div className={`flex flex-col gap-2 ${className}`}>
       <div className="flex items-center gap-2">
@@ -231,73 +208,6 @@ export function DateRangePicker({
             ) : (
               '適用'
             )}
-          </button>
-        )}
-      </div>
-
-      {/* クイック選択 */}
-      <div className="flex gap-2">
-        <button
-          onClick={() => setPresetRange(7)}
-          className="px-3 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50 transition-colors"
-        >
-          過去7日
-        </button>
-        <button
-          onClick={() => setPresetRange(14)}
-          className="px-3 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50 transition-colors"
-        >
-          過去14日
-        </button>
-        <button
-          onClick={() => setPresetRange(30)}
-          className="px-3 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50 transition-colors"
-        >
-          過去30日
-        </button>
-        <button
-          onClick={() => {
-            // 先月の設定
-            const now = new Date()
-            const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-            const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0)
-
-            console.log('🔵 DateRangePicker: 先月を選択', {
-              start: lastMonthStart.toISOString(),
-              end: lastMonthEnd.toISOString(),
-            })
-
-            setLocalStartDate(lastMonthStart)
-            setLocalEndDate(lastMonthEnd)
-            onChange(lastMonthStart, lastMonthEnd)
-
-            if (onApply) {
-              console.log('🔵 DateRangePicker: 先月選択を自動適用')
-              setTimeout(() => onApply(), 0)
-            }
-          }}
-          className="px-3 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50 transition-colors"
-        >
-          先月
-        </button>
-        <button
-          onClick={() => setPresetRange(90)}
-          className="px-3 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50 transition-colors"
-        >
-          過去90日
-        </button>
-
-        {/* 選択クリア */}
-        {(localStartDate || localEndDate) && (
-          <button
-            onClick={() => {
-              setLocalStartDate(null)
-              setLocalEndDate(null)
-              onChange(null, null)
-            }}
-            className="px-3 py-1 text-xs text-red-600 border border-red-300 rounded hover:bg-red-50 transition-colors ml-auto"
-          >
-            クリア
           </button>
         )}
       </div>
