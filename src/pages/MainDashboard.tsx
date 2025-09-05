@@ -12,7 +12,6 @@ import {
   saveDateRange,
   getDateRange,
 } from '@/utils/localStorage'
-import { extractConversions } from '@/utils/conversionHelpers'
 
 export default function MainDashboard() {
   const convex = useConvex()
@@ -257,6 +256,70 @@ export default function MainDashboard() {
         const response = await fetch(url.toString())
         const result = await response.json()
 
+        // コンバージョンデータを正しく抽出する関数（重複カウント回避）
+        const extractConversionData = (item: any) => {
+          let cv = 0
+          let fcv = null // F-CVは後日Pixel実装で対応
+          let action_type_used = 'none'
+
+          // CV: offsite_conversion.fb_pixel_purchaseのみを使用（重複回避）
+          if (item.actions && Array.isArray(item.actions)) {
+            const fbPixelPurchase = item.actions.find(
+              (action: any) => action.action_type === 'offsite_conversion.fb_pixel_purchase'
+            )
+
+            if (fbPixelPurchase) {
+              // 1d_click値を優先、なければvalue値を使用
+              cv = parseInt(fbPixelPurchase['1d_click'] || fbPixelPurchase.value || '0')
+              action_type_used = 'offsite_conversion.fb_pixel_purchase'
+            }
+            // Pixelが設置されていない場合のフォールバック
+            else {
+              const purchaseAction = item.actions.find(
+                (action: any) => action.action_type === 'purchase'
+              )
+              if (purchaseAction) {
+                cv = parseInt(purchaseAction['1d_click'] || purchaseAction.value || '0')
+                action_type_used = 'purchase (fallback)'
+              }
+            }
+          }
+
+          // conversionsフィールドは使用しない（3214という誤った値のため）
+
+          return {
+            cv,
+            fcv,
+            debug: {
+              original_conversions_field: item.conversions, // デバッグ用
+              calculated_cv: cv,
+              action_type_used: action_type_used,
+              all_actions: item.actions?.map((a: any) => ({
+                type: a.action_type,
+                value: a.value,
+                '1d_click': a['1d_click'],
+              })),
+            },
+          }
+        }
+
+        // デバッグ: 250802_テキスト流しのCV確認
+        const debugTarget = result.data?.find((item) =>
+          item.ad_name?.includes('250802_テキスト流し')
+        )
+
+        if (debugTarget) {
+          const conversionData = extractConversionData(debugTarget)
+          console.log('🎯 250802_テキスト流し CVデバッグ:')
+          console.log('  正しいCV:', conversionData.cv)
+          console.log('  使用したaction_type:', conversionData.debug.action_type_used)
+          console.log(
+            '  元のconversionsフィールド:',
+            conversionData.debug.original_conversions_field
+          )
+          console.log('  全actions:', conversionData.debug.all_actions)
+        }
+
         if (!response.ok) {
           throw new Error(result.error?.message || 'Meta API Error')
         }
@@ -345,8 +408,8 @@ export default function MainDashboard() {
             console.log('---')
           }
 
-          // F-CV調査: コンバージョンデータを抽出
-          const conversionData = extractConversions(item)
+          // コンバージョンデータを正しく抽出（重複カウント回避）
+          const conversionData = extractConversionData(item)
 
           const formatted = {
             ...item,
@@ -354,10 +417,10 @@ export default function MainDashboard() {
             impressions: parseInt(item.impressions) || 0,
             clicks: parseInt(item.clicks) || 0,
             spend: parseFloat(item.spend) || 0,
-            // コンバージョンメトリクスを追加（extractConversionsから取得）
-            conversions: conversionData.conversions,
-            conversions_1d_click: conversionData.conversions_1d_click,
-            fcv_debug: conversionData.fcv_debug,
+            // コンバージョンメトリクスを追加（extractConversionDataから取得）
+            conversions: conversionData.cv, // 正しいCV値
+            conversions_1d_click: conversionData.fcv, // F-CV（現在はnull）
+            conversion_debug: conversionData.debug, // デバッグ情報
             ctr: parseFloat(item.ctr) || 0,
             cpm: parseFloat(item.cpm) || 0,
             cpc: parseFloat(item.cpc) || 0,
@@ -365,9 +428,7 @@ export default function MainDashboard() {
             reach: parseInt(item.reach) || 0,
             conversion_values: item.conversion_values ? parseFloat(item.conversion_values) : 0,
             cost_per_conversion:
-              conversionData.conversions > 0
-                ? parseFloat(item.spend || '0') / conversionData.conversions
-                : 0,
+              conversionData.cv > 0 ? parseFloat(item.spend || '0') / conversionData.cv : 0,
             // 疲労度ステータスを追加（仮の判定）
             status: 'normal' as const,
             fatigueScore: 0,

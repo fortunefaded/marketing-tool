@@ -116,8 +116,8 @@ function MetricRow({
 }
 
 export function CreativeDetailModal({ isOpen, onClose, item, insight }: CreativeDetailModalProps) {
-  const [activeTab, setActiveTab] = useState<'metrics' | 'platform' | 'daily'>('metrics')
-  
+  const [activeTab, setActiveTab] = useState<'metrics' | 'platform' | 'daily' | 'raw'>('metrics')
+
   // 日別データがあるかチェック
   const hasDailyData = item.dailyData && item.dailyData.length > 0
 
@@ -352,6 +352,29 @@ export function CreativeDetailModal({ isOpen, onClose, item, insight }: Creative
                       <ChartBarIcon className="h-4 w-4" />
                       時系列分析
                     </button>
+                    <button
+                      onClick={() => setActiveTab('raw')}
+                      className={`${
+                        activeTab === 'raw'
+                          ? 'border-indigo-500 text-indigo-600'
+                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      } whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2`}
+                    >
+                      <svg
+                        className="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"
+                        />
+                      </svg>
+                      生データ（全フィールド）
+                    </button>
                   </nav>
                 </div>
 
@@ -360,12 +383,14 @@ export function CreativeDetailModal({ isOpen, onClose, item, insight }: Creative
                   // 日別データテーブル
                   <div className="overflow-x-auto">
                     <div className="mb-4">
-                      <h3 className="text-lg font-semibold text-gray-900">日別パフォーマンス推移</h3>
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        日別パフォーマンス推移
+                      </h3>
                       <p className="text-sm text-gray-600 mt-1">
                         {item.firstDate} 〜 {item.lastDate}（{item.dayCount}日間）
                       </p>
                     </div>
-                    
+
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50">
                         <tr>
@@ -426,13 +451,15 @@ export function CreativeDetailModal({ isOpen, onClose, item, insight }: Creative
                               {day.conversions}
                             </td>
                             <td className="px-3 py-4 whitespace-nowrap text-sm text-right">
-                              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                                day.fatigue_score >= 70
-                                  ? 'bg-red-100 text-red-800'
-                                  : day.fatigue_score >= 40
-                                  ? 'bg-yellow-100 text-yellow-800'
-                                  : 'bg-green-100 text-green-800'
-                              }`}>
+                              <span
+                                className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                  day.fatigue_score >= 70
+                                    ? 'bg-red-100 text-red-800'
+                                    : day.fatigue_score >= 40
+                                      ? 'bg-yellow-100 text-yellow-800'
+                                      : 'bg-green-100 text-green-800'
+                                }`}
+                              >
                                 {day.fatigue_score.toFixed(0)}
                               </span>
                             </td>
@@ -440,13 +467,15 @@ export function CreativeDetailModal({ isOpen, onClose, item, insight }: Creative
                         ))}
                       </tbody>
                     </table>
-                    
+
                     {/* 集計行 */}
                     <div className="mt-4 p-4 bg-gray-50 rounded-lg">
                       <div className="grid grid-cols-4 gap-4 text-sm">
                         <div>
                           <span className="text-gray-600">合計表示回数:</span>
-                          <span className="ml-2 font-semibold">{item.impressions.toLocaleString()}</span>
+                          <span className="ml-2 font-semibold">
+                            {item.impressions.toLocaleString()}
+                          </span>
                         </div>
                         <div>
                           <span className="text-gray-600">合計クリック:</span>
@@ -647,6 +676,219 @@ export function CreativeDetailModal({ isOpen, onClose, item, insight }: Creative
                         unit="¥"
                         description="1件あたりの獲得コスト"
                       />
+                    </div>
+                  </div>
+                ) : activeTab === 'raw' ? (
+                  /* Raw Data Tab - 生データの完全表示 */
+                  <div className="space-y-6">
+                    <div className="bg-white rounded-lg border border-gray-200 p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                        APIレスポンス生データ（全フィールド）
+                        <span className="ml-2 text-xs text-blue-500 font-normal">
+                          Meta Graph API v23.0
+                        </span>
+                      </h3>
+
+                      {/* 重要フィールドのサマリー */}
+                      <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <h4 className="font-medium text-yellow-800 mb-2">
+                          重要フィールドのクイックビュー
+                        </h4>
+                        <div className="grid grid-cols-3 gap-4 text-sm">
+                          <div>
+                            <span className="text-gray-600">ad_id:</span>
+                            <span className="ml-2 font-mono">{item.adId || 'N/A'}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">conversions:</span>
+                            <span className="ml-2 font-mono">{item.conversions || 'N/A'}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">conversions_1d_click:</span>
+                            <span className="ml-2 font-mono">
+                              {item.conversions_1d_click || 'N/A'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">spend:</span>
+                            <span className="ml-2 font-mono">
+                              ¥{item.spend?.toLocaleString() || 'N/A'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">impressions:</span>
+                            <span className="ml-2 font-mono">
+                              {item.impressions?.toLocaleString() || 'N/A'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">clicks:</span>
+                            <span className="ml-2 font-mono">
+                              {item.clicks?.toLocaleString() || 'N/A'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 全フィールドの表示 */}
+                      <div className="space-y-4">
+                        <div>
+                          <h4 className="font-medium text-gray-700 mb-2">
+                            itemオブジェクト（処理済みデータ）
+                          </h4>
+                          <div className="bg-gray-50 rounded-lg p-4 max-h-96 overflow-y-auto">
+                            <pre className="text-xs font-mono whitespace-pre-wrap break-all">
+                              {JSON.stringify(item, null, 2)}
+                            </pre>
+                          </div>
+                        </div>
+
+                        {insight && (
+                          <div>
+                            <h4 className="font-medium text-gray-700 mb-2">
+                              insightオブジェクト（APIレスポンス）
+                            </h4>
+                            <div className="bg-gray-50 rounded-lg p-4 max-h-96 overflow-y-auto">
+                              <pre className="text-xs font-mono whitespace-pre-wrap break-all">
+                                {JSON.stringify(insight, null, 2)}
+                              </pre>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* actionsフィールドの詳細表示 */}
+                        {(item.actions || insight?.actions) && (
+                          <div>
+                            <h4 className="font-medium text-gray-700 mb-2">Actions配列詳細</h4>
+                            <div className="bg-blue-50 rounded-lg p-4 max-h-64 overflow-y-auto">
+                              <table className="min-w-full divide-y divide-gray-200 text-xs">
+                                <thead>
+                                  <tr>
+                                    <th className="px-2 py-1 text-left">action_type</th>
+                                    <th className="px-2 py-1 text-right">value</th>
+                                    <th className="px-2 py-1 text-right">1d_click</th>
+                                    <th className="px-2 py-1 text-right">7d_click</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-200">
+                                  {(item.actions || insight?.actions || []).map(
+                                    (action: any, idx: number) => (
+                                      <tr key={idx}>
+                                        <td className="px-2 py-1 font-mono">
+                                          {action.action_type}
+                                        </td>
+                                        <td className="px-2 py-1 text-right font-mono">
+                                          {action.value}
+                                        </td>
+                                        <td className="px-2 py-1 text-right font-mono">
+                                          {action['1d_click'] || '-'}
+                                        </td>
+                                        <td className="px-2 py-1 text-right font-mono">
+                                          {action['7d_click'] || '-'}
+                                        </td>
+                                      </tr>
+                                    )
+                                  )}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* unique_actionsフィールドの詳細表示 */}
+                        {(item.unique_actions || insight?.unique_actions) && (
+                          <div>
+                            <h4 className="font-medium text-gray-700 mb-2">
+                              Unique Actions配列詳細
+                            </h4>
+                            <div className="bg-green-50 rounded-lg p-4 max-h-64 overflow-y-auto">
+                              <table className="min-w-full divide-y divide-gray-200 text-xs">
+                                <thead>
+                                  <tr>
+                                    <th className="px-2 py-1 text-left">action_type</th>
+                                    <th className="px-2 py-1 text-right">value</th>
+                                    <th className="px-2 py-1 text-right">1d_click</th>
+                                    <th className="px-2 py-1 text-right">7d_click</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-200">
+                                  {(item.unique_actions || insight?.unique_actions || []).map(
+                                    (action: any, idx: number) => (
+                                      <tr key={idx}>
+                                        <td className="px-2 py-1 font-mono">
+                                          {action.action_type}
+                                        </td>
+                                        <td className="px-2 py-1 text-right font-mono">
+                                          {action.value}
+                                        </td>
+                                        <td className="px-2 py-1 text-right font-mono">
+                                          {action['1d_click'] || '-'}
+                                        </td>
+                                        <td className="px-2 py-1 text-right font-mono">
+                                          {action['7d_click'] || '-'}
+                                        </td>
+                                      </tr>
+                                    )
+                                  )}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 全フィールドのキー一覧 */}
+                        <div>
+                          <h4 className="font-medium text-gray-700 mb-2">利用可能な全フィールド</h4>
+                          <div className="bg-purple-50 rounded-lg p-4">
+                            <div className="grid grid-cols-4 gap-2 text-xs">
+                              <div>
+                                <h5 className="font-semibold mb-1">itemのフィールド</h5>
+                                <ul className="space-y-1">
+                                  {Object.keys(item)
+                                    .sort()
+                                    .map((key) => (
+                                      <li key={key} className="font-mono text-purple-700">
+                                        {key}: {typeof item[key]}
+                                      </li>
+                                    ))}
+                                </ul>
+                              </div>
+                              {insight && (
+                                <div>
+                                  <h5 className="font-semibold mb-1">insightのフィールド</h5>
+                                  <ul className="space-y-1">
+                                    {Object.keys(insight)
+                                      .sort()
+                                      .map((key) => (
+                                        <li key={key} className="font-mono text-purple-700">
+                                          {key}: {typeof insight[key]}
+                                        </li>
+                                      ))}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* デバッグ情報 */}
+                        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded text-xs">
+                          <p className="font-semibold text-red-800">デバッグ情報</p>
+                          <p>item type: {typeof item}</p>
+                          <p>insight type: {typeof insight}</p>
+                          <p>item keys: {Object.keys(item).length}</p>
+                          <p>insight keys: {insight ? Object.keys(insight).length : 0}</p>
+                          <p>has actions: {!!(item.actions || insight?.actions)}</p>
+                          <p>
+                            has unique_actions: {!!(item.unique_actions || insight?.unique_actions)}
+                          </p>
+                          <p>
+                            conversions field exists:{' '}
+                            {item.conversions !== undefined ? 'Yes' : 'No'}
+                          </p>
+                          <p>conversions value: {item.conversions}</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 ) : (
