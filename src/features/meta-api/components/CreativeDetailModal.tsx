@@ -1072,29 +1072,85 @@ export function CreativeDetailModal({
                                 </tr>
                               </thead>
                               <tbody className="bg-white divide-y divide-gray-200">
-                                {/* 基本情報 */}
+                                {/* ===== 基本情報 ===== */}
+                                <tr className="bg-gray-100">
+                                  <td
+                                    colSpan={4}
+                                    className="px-4 py-2 font-bold text-sm text-gray-700"
+                                  >
+                                    📋 基本情報
+                                  </td>
+                                </tr>
                                 <tr className="hover:bg-gray-50">
                                   <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    ad_id
+                                    ad_id / adId
                                   </td>
                                   <td className="px-4 py-2 text-sm text-gray-600">
                                     広告の一意識別子。広告を特定するための固有ID
                                   </td>
                                   <td className="px-4 py-2 text-sm text-gray-500">string</td>
                                   <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    {item.adId || 'N/A'}
+                                    {item.adId || insight?.ad_id || 'N/A'}
                                   </td>
                                 </tr>
                                 <tr className="hover:bg-gray-50">
                                   <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    ad_name
+                                    ad_name / adName
                                   </td>
                                   <td className="px-4 py-2 text-sm text-gray-600">
                                     広告の名称。管理画面で設定した広告名
                                   </td>
                                   <td className="px-4 py-2 text-sm text-gray-500">string</td>
                                   <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    {item.adName || 'N/A'}
+                                    {item.adName || insight?.ad_name || 'N/A'}
+                                  </td>
+                                </tr>
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    adset_id
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    広告セットID。この広告が属する広告セットの識別子
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">string</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    {insight?.adset_id || 'N/A'}
+                                  </td>
+                                </tr>
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    adset_name
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    広告セット名。ターゲティングや予算設定の単位
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">string</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    {insight?.adset_name || 'N/A'}
+                                  </td>
+                                </tr>
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    campaign_id
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    キャンペーンID。最上位の広告グループ識別子
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">string</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    {insight?.campaign_id || 'N/A'}
+                                  </td>
+                                </tr>
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    campaign_name
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    キャンペーン名。広告の目的やビジネス目標を表す
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">string</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    {insight?.campaign_name || 'N/A'}
                                   </td>
                                 </tr>
                                 <tr className="hover:bg-gray-50">
@@ -1102,7 +1158,7 @@ export function CreativeDetailModal({
                                     status
                                   </td>
                                   <td className="px-4 py-2 text-sm text-gray-600">
-                                    広告のステータス（ACTIVE、PAUSED、DELETED等）
+                                    広告のステータス（ACTIVE、PAUSED、DELETED、ARCHIVED等）
                                   </td>
                                   <td className="px-4 py-2 text-sm text-gray-500">string</td>
                                   <td className="px-4 py-2 font-mono text-sm text-gray-900">
@@ -1110,7 +1166,15 @@ export function CreativeDetailModal({
                                   </td>
                                 </tr>
 
-                                {/* パフォーマンス指標 */}
+                                {/* ===== パフォーマンス指標 ===== */}
+                                <tr className="bg-gray-100">
+                                  <td
+                                    colSpan={4}
+                                    className="px-4 py-2 font-bold text-sm text-gray-700"
+                                  >
+                                    📊 パフォーマンス指標
+                                  </td>
+                                </tr>
                                 <tr className="hover:bg-gray-50">
                                   <td className="px-4 py-2 font-mono text-sm text-gray-900">
                                     impressions
@@ -1173,7 +1237,15 @@ export function CreativeDetailModal({
                                   </td>
                                 </tr>
 
-                                {/* コスト指標 */}
+                                {/* ===== コスト指標 ===== */}
+                                <tr className="bg-gray-100">
+                                  <td
+                                    colSpan={4}
+                                    className="px-4 py-2 font-bold text-sm text-gray-700"
+                                  >
+                                    💰 コスト指標
+                                  </td>
+                                </tr>
                                 <tr className="hover:bg-gray-50">
                                   <td className="px-4 py-2 font-mono text-sm text-gray-900">
                                     spend
@@ -1207,7 +1279,15 @@ export function CreativeDetailModal({
                                   </td>
                                 </tr>
 
-                                {/* コンバージョン指標 */}
+                                {/* ===== コンバージョン指標 ===== */}
+                                <tr className="bg-gray-100">
+                                  <td
+                                    colSpan={4}
+                                    className="px-4 py-2 font-bold text-sm text-gray-700"
+                                  >
+                                    🎯 コンバージョン指標
+                                  </td>
+                                </tr>
                                 <tr className="hover:bg-gray-50">
                                   <td className="px-4 py-2 font-mono text-sm text-gray-900">
                                     conversions
@@ -1265,7 +1345,98 @@ export function CreativeDetailModal({
                                   </td>
                                 </tr>
 
-                                {/* 疲労度指標 */}
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    conversion_values
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    コンバージョンの金額的価値。売上やLTV等の合計値
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">number</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    ¥{insight?.conversion_values?.toLocaleString() || 'N/A'}
+                                  </td>
+                                </tr>
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    cost_per_conversion
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    コンバージョン単価。1件のコンバージョンにかかった平均費用
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">number</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    ¥{insight?.cost_per_conversion?.toFixed(0) || 'N/A'}
+                                  </td>
+                                </tr>
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    revenue
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    収益。広告経由で発生した売上高
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">number</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    ¥{item.revenue?.toLocaleString() || 'N/A'}
+                                  </td>
+                                </tr>
+
+                                {/* ===== ROASとパフォーマンス評価 ===== */}
+                                <tr className="bg-gray-100">
+                                  <td
+                                    colSpan={4}
+                                    className="px-4 py-2 font-bold text-sm text-gray-700"
+                                  >
+                                    📈 ROASとパフォーマンス評価
+                                  </td>
+                                </tr>
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    purchase_roas
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    購入ROAS。購入イベントベースの広告費用対効果
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">object</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    {JSON.stringify(insight?.purchase_roas) || 'N/A'}
+                                  </td>
+                                </tr>
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    website_purchase_roas
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    ウェブサイト購入ROAS。ECサイトでの購入に特化したROAS計測
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">object</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    {JSON.stringify(insight?.website_purchase_roas) || 'N/A'}
+                                  </td>
+                                </tr>
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    score
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    パフォーマンススコア。広告の総合的な効果を示す内部指標
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">number</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    {item.score?.toFixed(1) || 'N/A'}
+                                  </td>
+                                </tr>
+
+                                {/* ===== 疲労度指標 ===== */}
+                                <tr className="bg-gray-100">
+                                  <td
+                                    colSpan={4}
+                                    className="px-4 py-2 font-bold text-sm text-gray-700"
+                                  >
+                                    🔥 疲労度指標
+                                  </td>
+                                </tr>
                                 <tr className="hover:bg-gray-50">
                                   <td className="px-4 py-2 font-mono text-sm text-gray-900">
                                     fatigue_score
@@ -1279,7 +1450,28 @@ export function CreativeDetailModal({
                                   </td>
                                 </tr>
 
-                                {/* 日付関連 */}
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    fatigueScore
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    疲労度スコア（APIレスポンス）。広告の疲労度を示す独自指標
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">number</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    {insight?.fatigueScore?.toFixed(0) || 'N/A'}
+                                  </td>
+                                </tr>
+
+                                {/* ===== 日付関連 ===== */}
+                                <tr className="bg-gray-100">
+                                  <td
+                                    colSpan={4}
+                                    className="px-4 py-2 font-bold text-sm text-gray-700"
+                                  >
+                                    📅 日付関連
+                                  </td>
+                                </tr>
                                 <tr className="hover:bg-gray-50">
                                   <td className="px-4 py-2 font-mono text-sm text-gray-900">
                                     date_start
@@ -1305,7 +1497,52 @@ export function CreativeDetailModal({
                                   </td>
                                 </tr>
 
-                                {/* アクション関連 */}
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    firstDate
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    データ開始日（処理済み）。集計期間の最初の日付
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">string</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    {item.firstDate || 'N/A'}
+                                  </td>
+                                </tr>
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    lastDate
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    データ終了日（処理済み）。集計期間の最後の日付
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">string</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    {item.lastDate || 'N/A'}
+                                  </td>
+                                </tr>
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    dayCount
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    日数。データ取得期間の日数
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">number</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    {item.dayCount || 'N/A'}日
+                                  </td>
+                                </tr>
+
+                                {/* ===== アクション関連 ===== */}
+                                <tr className="bg-gray-100">
+                                  <td
+                                    colSpan={4}
+                                    className="px-4 py-2 font-bold text-sm text-gray-700"
+                                  >
+                                    🎬 アクション関連
+                                  </td>
+                                </tr>
                                 <tr className="hover:bg-gray-50">
                                   <td className="px-4 py-2 font-mono text-sm text-gray-900">
                                     actions
@@ -1329,6 +1566,114 @@ export function CreativeDetailModal({
                                   <td className="px-4 py-2 font-mono text-sm text-gray-900">
                                     {(item.unique_actions || insight?.unique_actions)?.length || 0}
                                     件
+                                  </td>
+                                </tr>
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    action_values
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    アクション価値。各アクションの金額的価値（購入金額等）
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">object</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    {JSON.stringify(insight?.action_values)?.substring(0, 50) ||
+                                      'N/A'}
+                                  </td>
+                                </tr>
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    cost_per_action_type
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    アクション別単価。各アクションタイプごとのコスト
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">object</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    {JSON.stringify(insight?.cost_per_action_type)?.substring(
+                                      0,
+                                      50
+                                    ) || 'N/A'}
+                                  </td>
+                                </tr>
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    cost_per_unique_action_type
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    ユニークアクション別単価。重複を除いたアクション単価
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">object</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    {JSON.stringify(
+                                      insight?.cost_per_unique_action_type
+                                    )?.substring(0, 50) || 'N/A'}
+                                  </td>
+                                </tr>
+
+                                {/* ===== デバッグ・詳細データ ===== */}
+                                <tr className="bg-gray-100">
+                                  <td
+                                    colSpan={4}
+                                    className="px-4 py-2 font-bold text-sm text-gray-700"
+                                  >
+                                    🔍 デバッグ・詳細データ
+                                  </td>
+                                </tr>
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    conversion_debug
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    コンバージョンデバッグ情報。トラッキング問題の診断用データ
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">object</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    {JSON.stringify(insight?.conversion_debug)?.substring(0, 50) ||
+                                      'N/A'}
+                                  </td>
+                                </tr>
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    conversions_1d_click
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    1日クリックアトリビューション詳細。クリック後1日以内の詳細CV
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">object</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    {item.conversions_1d_click ||
+                                      JSON.stringify(insight?.conversions_1d_click)?.substring(
+                                        0,
+                                        50
+                                      ) ||
+                                      'N/A'}
+                                  </td>
+                                </tr>
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    metrics
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    メトリクス集計オブジェクト。各種指標の集約データ
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">object</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    {JSON.stringify(item.metrics)?.substring(0, 50) || 'N/A'}
+                                  </td>
+                                </tr>
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    dailyData
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    日別データ配列。time_increment=1で取得した日次パフォーマンス
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">object</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    {item.dailyData
+                                      ? `${Object.keys(item.dailyData).length}日分`
+                                      : 'N/A'}
                                   </td>
                                 </tr>
                               </tbody>
