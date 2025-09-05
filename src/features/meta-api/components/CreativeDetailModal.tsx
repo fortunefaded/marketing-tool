@@ -1698,9 +1698,8 @@ export function CreativeDetailModal({
                                           <div className="font-semibold text-blue-800 mb-1">
                                             アクション詳細:
                                           </div>
-                                          {(item.actions || insight?.actions)
-                                            ?.slice(0, 5)
-                                            .map((action: any, idx: number) => (
+                                          {(item.actions || insight?.actions)?.map(
+                                            (action: any, idx: number) => (
                                               <div
                                                 key={idx}
                                                 className="border-b border-blue-100 pb-1 mb-1 last:border-0"
@@ -1766,12 +1765,7 @@ export function CreativeDetailModal({
                                                   </div>
                                                 </div>
                                               </div>
-                                            ))}
-                                          {(item.actions || insight?.actions)?.length > 5 && (
-                                            <div className="text-gray-600 mt-1">
-                                              他 {(item.actions || insight?.actions).length - 5}{' '}
-                                              件のアクション...
-                                            </div>
+                                            )
                                           )}
                                         </div>
                                       </div>
@@ -1781,58 +1775,295 @@ export function CreativeDetailModal({
                                   </td>
                                 </tr>
                                 <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900 align-top">
                                     unique_actions
                                   </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                  <td className="px-4 py-2 text-sm text-gray-600 align-top">
                                     ユニークアクション配列。重複を除いたユーザー単位のアクションデータ
                                   </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">object[]</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    {(item.unique_actions || insight?.unique_actions)?.length || 0}
-                                    件
+                                  <td className="px-4 py-2 text-sm text-gray-500 align-top">
+                                    object[]
+                                  </td>
+                                  <td className="px-4 py-2 text-sm">
+                                    {(item.unique_actions || insight?.unique_actions)?.length >
+                                    0 ? (
+                                      <div className="space-y-2">
+                                        <div className="font-mono text-gray-900">
+                                          {(item.unique_actions || insight?.unique_actions)?.length}
+                                          件
+                                        </div>
+                                        <div className="bg-green-50 p-2 rounded text-xs max-h-64 overflow-y-auto">
+                                          <div className="font-semibold text-green-800 mb-1">
+                                            ユニークアクション詳細:
+                                          </div>
+                                          {(item.unique_actions || insight?.unique_actions)?.map(
+                                            (action: any, idx: number) => (
+                                              <div
+                                                key={idx}
+                                                className="border-b border-green-100 pb-1 mb-1 last:border-0"
+                                              >
+                                                <div className="grid grid-cols-2 gap-1">
+                                                  <div>
+                                                    <span className="text-green-600">
+                                                      action_type:
+                                                    </span>
+                                                    <span className="font-mono ml-1">
+                                                      {action.action_type}
+                                                    </span>
+                                                  </div>
+                                                  <div className="text-gray-700 text-xs italic">
+                                                    {action.action_type?.includes('purchase') &&
+                                                      'ユニーク購入者数'}
+                                                    {action.action_type?.includes('add_to_cart') &&
+                                                      'ユニークカート追加者'}
+                                                    {action.action_type?.includes('lead') &&
+                                                      'ユニークリード数'}
+                                                    {action.action_type?.includes('view_content') &&
+                                                      'ユニーク閲覧者'}
+                                                  </div>
+                                                </div>
+                                                <div className="grid grid-cols-3 gap-1 mt-1">
+                                                  <div>
+                                                    <span className="text-green-600">合計:</span>
+                                                    <span className="font-mono ml-1">
+                                                      {action.value || 0}人
+                                                    </span>
+                                                  </div>
+                                                  <div>
+                                                    <span className="text-green-600">1日:</span>
+                                                    <span className="font-mono ml-1">
+                                                      {action['1d_click'] || '-'}人
+                                                    </span>
+                                                  </div>
+                                                  <div>
+                                                    <span className="text-green-600">7日:</span>
+                                                    <span className="font-mono ml-1">
+                                                      {action['7d_click'] || '-'}人
+                                                    </span>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            )
+                                          )}
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <span className="font-mono text-gray-900">N/A</span>
+                                    )}
                                   </td>
                                 </tr>
                                 <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900 align-top">
                                     action_values
                                   </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                  <td className="px-4 py-2 text-sm text-gray-600 align-top">
                                     アクション価値。各アクションの金額的価値（購入金額等）
                                   </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">object</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    {JSON.stringify(insight?.action_values)?.substring(0, 50) ||
-                                      'N/A'}
+                                  <td className="px-4 py-2 text-sm text-gray-500 align-top">
+                                    object
+                                  </td>
+                                  <td className="px-4 py-2 text-sm">
+                                    {insight?.action_values ? (
+                                      <div className="bg-yellow-50 p-2 rounded text-xs max-h-64 overflow-y-auto">
+                                        <div className="font-semibold text-yellow-800 mb-1">
+                                          アクション価値詳細:
+                                        </div>
+                                        {Array.isArray(insight.action_values) ? (
+                                          insight.action_values.map((val: any, idx: number) => (
+                                            <div
+                                              key={idx}
+                                              className="border-b border-yellow-100 pb-1 mb-1 last:border-0"
+                                            >
+                                              <div className="space-y-1">
+                                                <div>
+                                                  <span className="text-yellow-600">
+                                                    アクション:
+                                                  </span>
+                                                  <span className="font-mono ml-1 text-xs">
+                                                    {val.action_type}
+                                                  </span>
+                                                  <span className="text-gray-600 text-xs ml-1">
+                                                    {val.action_type?.includes('purchase') &&
+                                                      '(購入金額)'}
+                                                    {val.action_type?.includes('add_to_cart') &&
+                                                      '(カート金額)'}
+                                                    {val.action_type?.includes('lead') &&
+                                                      '(リード価値)'}
+                                                  </span>
+                                                </div>
+                                                <div className="grid grid-cols-3 gap-1">
+                                                  <div>
+                                                    <span className="text-yellow-600">総価値:</span>
+                                                    <span className="font-mono ml-1">
+                                                      ¥{parseFloat(val.value || 0).toLocaleString()}
+                                                    </span>
+                                                  </div>
+                                                  <div>
+                                                    <span className="text-yellow-600">1日:</span>
+                                                    <span className="font-mono ml-1">
+                                                      ¥
+                                                      {parseFloat(
+                                                        val['1d_click'] || 0
+                                                      ).toLocaleString()}
+                                                    </span>
+                                                  </div>
+                                                  <div>
+                                                    <span className="text-yellow-600">7日:</span>
+                                                    <span className="font-mono ml-1">
+                                                      ¥
+                                                      {parseFloat(
+                                                        val['7d_click'] || 0
+                                                      ).toLocaleString()}
+                                                    </span>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            </div>
+                                          ))
+                                        ) : (
+                                          <div className="font-mono text-xs">
+                                            {JSON.stringify(insight.action_values)}
+                                          </div>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <span className="font-mono text-gray-900">N/A</span>
+                                    )}
                                   </td>
                                 </tr>
                                 <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900 align-top">
                                     cost_per_action_type
                                   </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                  <td className="px-4 py-2 text-sm text-gray-600 align-top">
                                     アクション別単価。各アクションタイプごとのコスト
                                   </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">object</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    {JSON.stringify(insight?.cost_per_action_type)?.substring(
-                                      0,
-                                      50
-                                    ) || 'N/A'}
+                                  <td className="px-4 py-2 text-sm text-gray-500 align-top">
+                                    object
+                                  </td>
+                                  <td className="px-4 py-2 text-sm">
+                                    {insight?.cost_per_action_type ? (
+                                      <div className="bg-rose-50 p-2 rounded text-xs max-h-64 overflow-y-auto">
+                                        <div className="font-semibold text-rose-800 mb-1">
+                                          アクション別単価詳細:
+                                        </div>
+                                        {Array.isArray(insight.cost_per_action_type) ? (
+                                          insight.cost_per_action_type.map(
+                                            (cost: any, idx: number) => (
+                                              <div
+                                                key={idx}
+                                                className="border-b border-rose-100 pb-1 mb-1 last:border-0"
+                                              >
+                                                <div>
+                                                  <span className="text-rose-600">アクション:</span>
+                                                  <span className="font-mono ml-1 text-xs">
+                                                    {cost.action_type}
+                                                  </span>
+                                                </div>
+                                                <div className="grid grid-cols-3 gap-1 mt-1">
+                                                  <div>
+                                                    <span className="text-rose-600">単価:</span>
+                                                    <span className="font-mono ml-1">
+                                                      ¥{parseFloat(cost.value || 0).toFixed(0)}
+                                                    </span>
+                                                  </div>
+                                                  <div>
+                                                    <span className="text-rose-600">1日:</span>
+                                                    <span className="font-mono ml-1">
+                                                      ¥
+                                                      {parseFloat(cost['1d_click'] || 0).toFixed(0)}
+                                                    </span>
+                                                  </div>
+                                                  <div>
+                                                    <span className="text-rose-600">7日:</span>
+                                                    <span className="font-mono ml-1">
+                                                      ¥
+                                                      {parseFloat(cost['7d_click'] || 0).toFixed(0)}
+                                                    </span>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            )
+                                          )
+                                        ) : (
+                                          <div className="font-mono text-xs">
+                                            {JSON.stringify(insight.cost_per_action_type)}
+                                          </div>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <span className="font-mono text-gray-900">N/A</span>
+                                    )}
                                   </td>
                                 </tr>
                                 <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900 align-top">
                                     cost_per_unique_action_type
                                   </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                  <td className="px-4 py-2 text-sm text-gray-600 align-top">
                                     ユニークアクション別単価。重複を除いたアクション単価
                                   </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">object</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    {JSON.stringify(
-                                      insight?.cost_per_unique_action_type
-                                    )?.substring(0, 50) || 'N/A'}
+                                  <td className="px-4 py-2 text-sm text-gray-500 align-top">
+                                    object
+                                  </td>
+                                  <td className="px-4 py-2 text-sm">
+                                    {insight?.cost_per_unique_action_type ? (
+                                      <div className="bg-amber-50 p-2 rounded text-xs max-h-64 overflow-y-auto">
+                                        <div className="font-semibold text-amber-800 mb-1">
+                                          ユニークアクション単価:
+                                        </div>
+                                        {Array.isArray(insight.cost_per_unique_action_type) ? (
+                                          insight.cost_per_unique_action_type.map(
+                                            (cost: any, idx: number) => (
+                                              <div
+                                                key={idx}
+                                                className="border-b border-amber-100 pb-1 mb-1 last:border-0"
+                                              >
+                                                <div>
+                                                  <span className="text-amber-600">
+                                                    アクション:
+                                                  </span>
+                                                  <span className="font-mono ml-1 text-xs">
+                                                    {cost.action_type}
+                                                  </span>
+                                                </div>
+                                                <div className="text-xs text-gray-600 mb-1">
+                                                  重複除外でユニークユーザーあたりのコスト
+                                                </div>
+                                                <div className="grid grid-cols-3 gap-1">
+                                                  <div>
+                                                    <span className="text-amber-600">単価:</span>
+                                                    <span className="font-mono ml-1">
+                                                      ¥{parseFloat(cost.value || 0).toFixed(0)}
+                                                    </span>
+                                                  </div>
+                                                  <div>
+                                                    <span className="text-amber-600">1日:</span>
+                                                    <span className="font-mono ml-1">
+                                                      ¥
+                                                      {parseFloat(cost['1d_click'] || 0).toFixed(0)}
+                                                    </span>
+                                                  </div>
+                                                  <div>
+                                                    <span className="text-amber-600">7日:</span>
+                                                    <span className="font-mono ml-1">
+                                                      ¥
+                                                      {parseFloat(cost['7d_click'] || 0).toFixed(0)}
+                                                    </span>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            )
+                                          )
+                                        ) : (
+                                          <div className="font-mono text-xs">
+                                            {JSON.stringify(insight.cost_per_unique_action_type)}
+                                          </div>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <span className="font-mono text-gray-900">N/A</span>
+                                    )}
                                   </td>
                                 </tr>
 
@@ -1846,59 +2077,276 @@ export function CreativeDetailModal({
                                   </td>
                                 </tr>
                                 <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900 align-top">
                                     conversion_debug
                                   </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                  <td className="px-4 py-2 text-sm text-gray-600 align-top">
                                     コンバージョンデバッグ情報。トラッキング問題の診断用データ
                                   </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">object</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    {JSON.stringify(insight?.conversion_debug)?.substring(0, 50) ||
-                                      'N/A'}
+                                  <td className="px-4 py-2 text-sm text-gray-500 align-top">
+                                    object
+                                  </td>
+                                  <td className="px-4 py-2 text-sm">
+                                    {insight?.conversion_debug ? (
+                                      <div className="bg-red-50 p-2 rounded text-xs">
+                                        <div className="font-semibold text-red-800 mb-1">
+                                          コンバージョントラッキングデバッグ:
+                                        </div>
+                                        {typeof insight.conversion_debug === 'object' ? (
+                                          <div className="space-y-1">
+                                            {Object.entries(insight.conversion_debug).map(
+                                              ([key, value]: [string, any]) => (
+                                                <div
+                                                  key={key}
+                                                  className="border-b border-red-100 pb-1 last:border-0"
+                                                >
+                                                  <div className="grid grid-cols-2 gap-2">
+                                                    <div>
+                                                      <span className="text-red-600 font-semibold">
+                                                        {key}:
+                                                      </span>
+                                                    </div>
+                                                    <div className="text-gray-700">
+                                                      {key === 'calculated_cv' && (
+                                                        <span className="text-xs">
+                                                          計算されたCV数
+                                                        </span>
+                                                      )}
+                                                      {key === 'action_type_used' && (
+                                                        <span className="text-xs">
+                                                          使用されたアクションタイプ
+                                                        </span>
+                                                      )}
+                                                      {key === 'is_valid' && (
+                                                        <span className="text-xs">
+                                                          データ検証結果
+                                                        </span>
+                                                      )}
+                                                      {key === 'missing_data' && (
+                                                        <span className="text-xs">欠損データ</span>
+                                                      )}
+                                                      {key === 'pixel_status' && (
+                                                        <span className="text-xs">
+                                                          ピクセル状態
+                                                        </span>
+                                                      )}
+                                                    </div>
+                                                  </div>
+                                                  <div className="mt-1 font-mono text-xs bg-white p-1 rounded">
+                                                    {typeof value === 'object'
+                                                      ? JSON.stringify(value)
+                                                      : String(value)}
+                                                  </div>
+                                                </div>
+                                              )
+                                            )}
+                                          </div>
+                                        ) : (
+                                          <div className="font-mono text-xs">
+                                            {JSON.stringify(insight.conversion_debug)}
+                                          </div>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <span className="font-mono text-gray-900">N/A</span>
+                                    )}
                                   </td>
                                 </tr>
                                 <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900 align-top">
                                     conversions_1d_click
                                   </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                  <td className="px-4 py-2 text-sm text-gray-600 align-top">
                                     1日クリックアトリビューション詳細。クリック後1日以内の詳細CV
                                   </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">object</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    {item.conversions_1d_click ||
-                                      JSON.stringify(insight?.conversions_1d_click)?.substring(
-                                        0,
-                                        50
-                                      ) ||
-                                      'N/A'}
+                                  <td className="px-4 py-2 text-sm text-gray-500 align-top">
+                                    object
+                                  </td>
+                                  <td className="px-4 py-2 text-sm">
+                                    {item.conversions_1d_click || insight?.conversions_1d_click ? (
+                                      <div className="bg-orange-50 p-2 rounded text-xs">
+                                        <div className="font-semibold text-orange-800 mb-1">
+                                          1日クリックCV詳細:
+                                        </div>
+                                        <div className="font-mono">
+                                          {typeof (
+                                            item.conversions_1d_click ||
+                                            insight?.conversions_1d_click
+                                          ) === 'number' ? (
+                                            <span className="text-orange-700">
+                                              合計:{' '}
+                                              {item.conversions_1d_click ||
+                                                insight?.conversions_1d_click}
+                                              件
+                                              <span className="text-xs text-gray-600 ml-2">
+                                                (クリック後24時間以内のコンバージョン)
+                                              </span>
+                                            </span>
+                                          ) : (
+                                            <span className="text-xs">
+                                              {JSON.stringify(
+                                                item.conversions_1d_click ||
+                                                  insight?.conversions_1d_click
+                                              )}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <span className="font-mono text-gray-900">null</span>
+                                    )}
                                   </td>
                                 </tr>
                                 <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900 align-top">
                                     metrics
                                   </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                  <td className="px-4 py-2 text-sm text-gray-600 align-top">
                                     メトリクス集計オブジェクト。各種指標の集約データ
                                   </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">object</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    {JSON.stringify(item.metrics)?.substring(0, 50) || 'N/A'}
+                                  <td className="px-4 py-2 text-sm text-gray-500 align-top">
+                                    object
+                                  </td>
+                                  <td className="px-4 py-2 text-sm">
+                                    {item.metrics ? (
+                                      <div className="bg-cyan-50 p-2 rounded text-xs max-h-64 overflow-y-auto">
+                                        <div className="font-semibold text-cyan-800 mb-1">
+                                          メトリクス詳細:
+                                        </div>
+                                        <div className="space-y-1">
+                                          {Object.entries(item.metrics).map(
+                                            ([key, value]: [string, any]) => (
+                                              <div
+                                                key={key}
+                                                className="grid grid-cols-2 gap-2 border-b border-cyan-100 pb-1 last:border-0"
+                                              >
+                                                <div className="font-mono text-cyan-700">
+                                                  {key}:
+                                                </div>
+                                                <div className="font-mono text-gray-700">
+                                                  {typeof value === 'number'
+                                                    ? value.toLocaleString()
+                                                    : String(value)}
+                                                  <span className="text-xs text-gray-500 ml-1">
+                                                    {key === 'impressions' && '(表示回数)'}
+                                                    {key === 'clicks' && '(クリック数)'}
+                                                    {key === 'spend' && '(円)'}
+                                                    {key === 'ctr' && '(%)'}
+                                                    {key === 'cpm' && '(千回あたり)'}
+                                                    {key === 'cpc' && '(クリック単価)'}
+                                                    {key === 'frequency' && '(平均表示回数)'}
+                                                    {key === 'reach' && '(リーチ数)'}
+                                                    {key === 'conversions' && '(CV数)'}
+                                                    {key === 'cvr' && '(CV率%)'}
+                                                    {key === 'cpa' && '(獲得単価)'}
+                                                  </span>
+                                                </div>
+                                              </div>
+                                            )
+                                          )}
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <span className="font-mono text-gray-900">N/A</span>
+                                    )}
                                   </td>
                                 </tr>
                                 <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900 align-top">
                                     dailyData
                                   </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                  <td className="px-4 py-2 text-sm text-gray-600 align-top">
                                     日別データ配列。time_increment=1で取得した日次パフォーマンス
                                   </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">object</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    {item.dailyData
-                                      ? `${Object.keys(item.dailyData).length}日分`
-                                      : 'N/A'}
+                                  <td className="px-4 py-2 text-sm text-gray-500 align-top">
+                                    object
+                                  </td>
+                                  <td className="px-4 py-2 text-sm">
+                                    {item.dailyData ? (
+                                      <div className="bg-teal-50 p-2 rounded text-xs">
+                                        <div className="font-semibold text-teal-800 mb-1">
+                                          日別データ詳細:{' '}
+                                          {Array.isArray(item.dailyData)
+                                            ? item.dailyData.length
+                                            : Object.keys(item.dailyData).length}
+                                          日分
+                                        </div>
+                                        {Array.isArray(item.dailyData) &&
+                                          item.dailyData.length > 0 && (
+                                            <div className="space-y-1 max-h-64 overflow-y-auto">
+                                              <div className="text-xs text-teal-700 mb-1">
+                                                全{item.dailyData.length}日間のデータ:
+                                              </div>
+                                              {item.dailyData.map((day: any, idx: number) => (
+                                                <div
+                                                  key={idx}
+                                                  className="border-b border-teal-100 pb-1 last:border-0"
+                                                >
+                                                  <div className="font-mono text-xs text-teal-800">
+                                                    日付: {day.date}
+                                                  </div>
+                                                  <div className="grid grid-cols-4 gap-1 text-xs mt-1">
+                                                    <div>
+                                                      <span className="text-teal-600">表示:</span>{' '}
+                                                      {day.impressions?.toLocaleString()}
+                                                    </div>
+                                                    <div>
+                                                      <span className="text-teal-600">
+                                                        クリック:
+                                                      </span>{' '}
+                                                      {day.clicks}
+                                                    </div>
+                                                    <div>
+                                                      <span className="text-teal-600">費用:</span> ¥
+                                                      {day.spend?.toLocaleString()}
+                                                    </div>
+                                                    <div>
+                                                      <span className="text-teal-600">CV:</span>{' '}
+                                                      {day.conversions || 0}
+                                                    </div>
+                                                  </div>
+                                                  {day.ctr && (
+                                                    <div className="grid grid-cols-3 gap-1 text-xs mt-1">
+                                                      <div>
+                                                        <span className="text-teal-600">CTR:</span>{' '}
+                                                        {day.ctr}%
+                                                      </div>
+                                                      <div>
+                                                        <span className="text-teal-600">CPM:</span>{' '}
+                                                        ¥{day.cpm}
+                                                      </div>
+                                                      <div>
+                                                        <span className="text-teal-600">CPC:</span>{' '}
+                                                        ¥{day.cpc}
+                                                      </div>
+                                                    </div>
+                                                  )}
+                                                  {day.fatigue_score !== undefined && (
+                                                    <div className="mt-1">
+                                                      <span className="text-teal-600 text-xs">
+                                                        疲労度スコア:
+                                                      </span>
+                                                      <span
+                                                        className={`font-mono ml-1 text-xs ${
+                                                          day.fatigue_score > 70
+                                                            ? 'text-red-600'
+                                                            : day.fatigue_score > 40
+                                                              ? 'text-yellow-600'
+                                                              : 'text-green-600'
+                                                        }`}
+                                                      >
+                                                        {day.fatigue_score}
+                                                      </span>
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              ))}
+                                            </div>
+                                          )}
+                                      </div>
+                                    ) : (
+                                      <span className="font-mono text-gray-900">0日分</span>
+                                    )}
                                   </td>
                                 </tr>
                               </tbody>
