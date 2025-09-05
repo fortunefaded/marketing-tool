@@ -1045,6 +1045,326 @@ export function CreativeDetailModal({
                           </div>
                         </div>
 
+                        {/* フィールド説明テーブル */}
+                        <div>
+                          <h4 className="font-medium text-gray-700 mb-2">
+                            主要フィールドの詳細説明
+                            <span className="ml-2 text-xs text-blue-500 font-normal">
+                              Meta Ads API Documentation
+                            </span>
+                          </h4>
+                          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-300">
+                              <thead className="bg-gray-50">
+                                <tr>
+                                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                                    項目名
+                                  </th>
+                                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                                    説明
+                                  </th>
+                                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                                    データ型
+                                  </th>
+                                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                                    現在値
+                                  </th>
+                                </tr>
+                              </thead>
+                              <tbody className="bg-white divide-y divide-gray-200">
+                                {/* 基本情報 */}
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    ad_id
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    広告の一意識別子。広告を特定するための固有ID
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">string</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    {item.adId || 'N/A'}
+                                  </td>
+                                </tr>
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    ad_name
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    広告の名称。管理画面で設定した広告名
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">string</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    {item.adName || 'N/A'}
+                                  </td>
+                                </tr>
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    status
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    広告のステータス（ACTIVE、PAUSED、DELETED等）
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">string</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    {item.status || insight?.status || 'N/A'}
+                                  </td>
+                                </tr>
+
+                                {/* パフォーマンス指標 */}
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    impressions
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    広告の表示回数。広告がユーザーの画面に表示された総回数
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">number</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    {item.impressions?.toLocaleString() || 'N/A'}
+                                  </td>
+                                </tr>
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    reach
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    リーチ数。広告を少なくとも1回見たユニークユーザー数
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">number</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    {item.reach?.toLocaleString() ||
+                                      insight?.reach?.toLocaleString() ||
+                                      'N/A'}
+                                  </td>
+                                </tr>
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    frequency
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    フリークエンシー。1人あたりの平均表示回数（impressions ÷ reach）
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">number</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    {item.frequency?.toFixed(2) || 'N/A'}
+                                  </td>
+                                </tr>
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    clicks
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    クリック数。広告がクリックされた総回数
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">number</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    {item.clicks?.toLocaleString() || 'N/A'}
+                                  </td>
+                                </tr>
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">ctr</td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    クリック率。表示回数に対するクリック数の割合（clicks ÷
+                                    impressions × 100）
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">number</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    {item.ctr?.toFixed(2) || 'N/A'}%
+                                  </td>
+                                </tr>
+
+                                {/* コスト指標 */}
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    spend
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    消化金額。広告に費やされた総額（円）
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">number</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    ¥{item.spend?.toLocaleString() || 'N/A'}
+                                  </td>
+                                </tr>
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">cpc</td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    クリック単価。1クリックあたりの平均コスト（spend ÷ clicks）
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">number</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    ¥{item.cpc?.toFixed(0) || 'N/A'}
+                                  </td>
+                                </tr>
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">cpm</td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    1000インプレッション単価。1000回表示あたりのコスト
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">number</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    ¥{item.cpm?.toFixed(0) || 'N/A'}
+                                  </td>
+                                </tr>
+
+                                {/* コンバージョン指標 */}
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    conversions
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    総コンバージョン数。設定した全てのコンバージョンイベントの合計
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">number</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    {item.conversions || 'N/A'}
+                                  </td>
+                                </tr>
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    conversions_1d_click
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    1日クリックアトリビューション。クリック後1日以内のコンバージョン
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">number</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    {item.conversions_1d_click || 'N/A'}
+                                  </td>
+                                </tr>
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">cpa</td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    獲得単価。1コンバージョンあたりのコスト（spend ÷ conversions）
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">number</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    ¥{item.cpa?.toFixed(0) || 'N/A'}
+                                  </td>
+                                </tr>
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">cvr</td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    コンバージョン率。クリック数に対するコンバージョンの割合
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">number</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    {item.cvr?.toFixed(2) || 'N/A'}%
+                                  </td>
+                                </tr>
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    roas
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    広告費用対効果。広告費に対する売上の倍率（revenue ÷ spend）
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">number</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    {item.roas?.toFixed(2) || 'N/A'}
+                                  </td>
+                                </tr>
+
+                                {/* 疲労度指標 */}
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    fatigue_score
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    総合疲労度スコア。0-100の値で、高いほど広告疲労が進んでいる
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">number</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    {item.fatigue_score?.toFixed(0) || 'N/A'}
+                                  </td>
+                                </tr>
+
+                                {/* 日付関連 */}
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    date_start
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    データ期間の開始日。このデータが対象とする期間の始まり
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">string</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    {item.firstDate || insight?.date_start || 'N/A'}
+                                  </td>
+                                </tr>
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    date_stop
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    データ期間の終了日。このデータが対象とする期間の終わり
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">string</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    {item.lastDate || insight?.date_stop || 'N/A'}
+                                  </td>
+                                </tr>
+
+                                {/* アクション関連 */}
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    actions
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    アクション配列。購入、登録、カート追加など様々なアクションの詳細データ
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">object[]</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    {(item.actions || insight?.actions)?.length || 0}件
+                                  </td>
+                                </tr>
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    unique_actions
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    ユニークアクション配列。重複を除いたユーザー単位のアクションデータ
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">object[]</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    {(item.unique_actions || insight?.unique_actions)?.length || 0}
+                                    件
+                                  </td>
+                                </tr>
+                              </tbody>
+                            </table>
+
+                            {/* 追加ヒント */}
+                            <div className="mt-4 p-3 bg-yellow-100 border border-yellow-300 rounded-lg">
+                              <h5 className="font-semibold text-yellow-800 mb-2">
+                                💡 新機能開発のヒント
+                              </h5>
+                              <ul className="text-xs text-yellow-700 space-y-1">
+                                <li>
+                                  • <span className="font-mono">video_metrics</span>:
+                                  動画広告の詳細な視聴データ（再生率、完了率など）
+                                </li>
+                                <li>
+                                  • <span className="font-mono">cost_per_action_type</span>:
+                                  アクション毎のコスト分析が可能
+                                </li>
+                                <li>
+                                  • <span className="font-mono">relevance_score</span>:
+                                  広告の関連性スコア（1-10）による品質評価
+                                </li>
+                                <li>
+                                  • <span className="font-mono">website_purchase_roas</span>:
+                                  ウェブサイト購入に特化したROAS測定
+                                </li>
+                                <li>
+                                  • <span className="font-mono">inline_link_clicks</span>:
+                                  広告内リンクのクリック詳細
+                                </li>
+                              </ul>
+                            </div>
+                          </div>
+                        </div>
+
                         {/* デバッグ情報 */}
                         <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded text-xs">
                           <p className="font-semibold text-red-800">デバッグ情報</p>
