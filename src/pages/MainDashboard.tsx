@@ -785,6 +785,8 @@ export default function MainDashboard() {
         dateRange={dateRange}
         onDateRangeChange={(range) => setDateRange(range)}
         customDateRange={customDateRange}
+        // 認証情報（追加）
+        accessToken={accounts.find((acc) => acc.accountId === selectedAccountId)?.accessToken}
         onCustomDateRange={(start, end) => {
           console.log('📅 MainDashboard: Custom date range selected', {
             start: start.toISOString(),

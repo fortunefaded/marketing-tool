@@ -48,6 +48,9 @@ interface FatigueDashboardPresentationProps {
   dateRange: DateRangeFilterType
   onDateRangeChange: (dateRange: DateRangeFilterType) => void
   customDateRange?: { start: Date; end: Date } | null
+
+  // 認証情報（追加）
+  accessToken?: string
   onCustomDateRange?: (start: Date, end: Date) => void
   totalInsights?: number
   filteredCount?: number
@@ -91,6 +94,7 @@ export function FatigueDashboardPresentation({
   onDateRangeChange,
   customDateRange,
   onCustomDateRange,
+  accessToken, // 追加
   totalInsights,
   filteredCount,
   enableAggregation = true, // デフォルトをtrueに変更
@@ -426,18 +430,28 @@ export function FatigueDashboardPresentation({
                             insights={insights}
                             selectedAccountId={selectedAccountId}
                             isLoading={isLoading}
+                            accessToken={accessToken}
                           />
                         )}
                       </TabsContent>
 
                       <TabsContent value="adset">
-                        <AggregatedFatigueTable data={levelAggregatedData.adset} level="adset" />
+                        <AggregatedFatigueTable
+                          data={levelAggregatedData.adset}
+                          level="adset"
+                          insights={insights}
+                          accessToken={accessToken}
+                          accountId={selectedAccountId}
+                        />
                       </TabsContent>
 
                       <TabsContent value="campaign">
                         <AggregatedFatigueTable
                           data={levelAggregatedData.campaign}
                           level="campaign"
+                          insights={insights}
+                          accessToken={accessToken}
+                          accountId={selectedAccountId}
                         />
                       </TabsContent>
                     </Tabs>

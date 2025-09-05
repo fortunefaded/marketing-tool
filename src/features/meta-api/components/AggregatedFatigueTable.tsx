@@ -7,9 +7,18 @@ import { CreativeDetailModal } from './CreativeDetailModal'
 interface AggregatedFatigueTableProps {
   data: AggregatedData[]
   level: 'campaign' | 'adset'
+  insights?: any[] // insightsデータを追加
+  accessToken?: string // 認証トークン
+  accountId?: string | null // アカウントID
 }
 
-export function AggregatedFatigueTable({ data, level }: AggregatedFatigueTableProps) {
+export function AggregatedFatigueTable({
+  data,
+  level,
+  insights,
+  accessToken,
+  accountId,
+}: AggregatedFatigueTableProps) {
   // ソート状態管理
   const [sortField, setSortField] = useState<string>('fatigueScore')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
@@ -21,6 +30,19 @@ export function AggregatedFatigueTable({ data, level }: AggregatedFatigueTablePr
   const [selectedItem, setSelectedItem] = useState<FatigueData | null>(null)
   const [selectedInsight, setSelectedInsight] = useState<any | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+
+  // insightsをマップ化（クリエイティブタブと同じ方式）
+  const insightsMap = React.useMemo(() => {
+    const map = new Map()
+    if (insights && Array.isArray(insights)) {
+      insights.forEach((insight) => {
+        if (insight.ad_id) {
+          map.set(insight.ad_id, insight)
+        }
+      })
+    }
+    return map
+  }, [insights])
 
   // ソートされたデータ
   const sortedData = React.useMemo(() => {
@@ -192,6 +214,19 @@ export function AggregatedFatigueTable({ data, level }: AggregatedFatigueTablePr
         unique_inline_link_click_ctr: insight.unique_inline_link_click_ctr || 0,
         instagram_metrics: insight.instagram_metrics,
       },
+      // 日別データを追加（空配列で初期化）
+      dailyData: [],
+      dayCount: 0,
+      firstDate: '',
+      lastDate: '',
+      // その他のフィールドも追加（クリエイティブタブと同じ構造）
+      impressions: insight.impressions || 0,
+      clicks: insight.clicks || 0,
+      spend: insight.spend || 0,
+      conversions: insight.conversions || 0,
+      conversions_1d_click: insight.conversions_1d_click || 0,
+      revenue: insight.revenue || 0,
+      roas: insight.roas || 0,
     }
   }
 
@@ -200,7 +235,10 @@ export function AggregatedFatigueTable({ data, level }: AggregatedFatigueTablePr
     event.stopPropagation() // アコーディオンの切り替えを防ぐ
     const fatigueData = generateFatigueDataForAd(insight)
     setSelectedItem(fatigueData)
-    setSelectedInsight(insight)
+
+    // insightsMapから完全なinsightデータを取得（クリエイティブタブと同じ方式）
+    const fullInsight = insightsMap.get(insight.ad_id) || insight
+    setSelectedInsight(fullInsight)
     setIsModalOpen(true)
   }
 
@@ -598,6 +636,8 @@ export function AggregatedFatigueTable({ data, level }: AggregatedFatigueTablePr
           onClose={closeModal}
           item={selectedItem}
           insight={selectedInsight}
+          accessToken={accessToken}
+          accountId={accountId}
         />
       )}
     </div>

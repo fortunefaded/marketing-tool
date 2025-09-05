@@ -19,6 +19,7 @@ interface CreativeTableTabProps {
   insights: any[]
   selectedAccountId: string | null
   isLoading: boolean
+  accessToken?: string // 追加
 }
 
 /**
@@ -28,8 +29,9 @@ interface CreativeTableTabProps {
 export function CreativeTableTab({
   data,
   insights,
-  selectedAccountId: _, // unused
+  selectedAccountId,
   isLoading,
+  accessToken,
 }: CreativeTableTabProps) {
   // クリエイティブタイプを判定する関数
   const getCreativeType = (insight: any): { type: string; icon: any; color: string } => {
@@ -984,6 +986,8 @@ export function CreativeTableTab({
               ? insightsMap.get(selectedItem.adIds[0])
               : insightsMap.get(selectedItem.adId)
           }
+          accessToken={accessToken}
+          accountId={selectedAccountId}
         />
       )}
     </div>
