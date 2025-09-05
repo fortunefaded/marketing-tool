@@ -1,4 +1,4 @@
-import React, { Fragment, useState } from 'react'
+import React, { Fragment, useState, useEffect } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { XMarkIcon, ChartBarIcon } from '@heroicons/react/24/outline'
 import { FatigueData } from '@/types'
@@ -16,6 +16,8 @@ interface CreativeDetailModalProps {
   onClose: () => void
   item: FatigueData | any // AggregatedCreativeも受け入れる
   insight: any
+  accessToken?: string // アクセストークン
+  accountId?: string // アカウントID
 }
 
 interface MetricRowProps {
@@ -115,11 +117,97 @@ function MetricRow({
   )
 }
 
-export function CreativeDetailModal({ isOpen, onClose, item, insight }: CreativeDetailModalProps) {
+export function CreativeDetailModal({
+  isOpen,
+  onClose,
+  item,
+  insight,
+  accessToken,
+  accountId,
+}: CreativeDetailModalProps) {
   const [activeTab, setActiveTab] = useState<'metrics' | 'platform' | 'daily' | 'raw'>('metrics')
+  const [dailyData, setDailyData] = useState<any[]>([]) // 日別データ
+  const [isLoadingDaily, setIsLoadingDaily] = useState(false) // ローディング状態
+  const [dailyDataError, setDailyDataError] = useState<string | null>(null) // エラー状態
 
-  // 日別データがあるかチェック
-  const hasDailyData = item.dailyData && item.dailyData.length > 0
+  // 日別データがあるかチェック（既存データまたは取得したデータ）
+  const hasDailyData = (item.dailyData && item.dailyData.length > 0) || dailyData.length > 0
+
+  // モーダルが開かれた時に日別データを取得
+  useEffect(() => {
+    if (isOpen && item.adId && accessToken && accountId) {
+      fetchDailyData()
+    }
+  }, [isOpen, item.adId, accessToken, accountId])
+
+  // 日別データを取得する関数
+  const fetchDailyData = async () => {
+    setIsLoadingDaily(true)
+    setDailyDataError(null)
+
+    try {
+      // propsから認証情報を取得
+      if (!accessToken || !accountId) {
+        console.warn('認証情報が指定されていません')
+        setDailyDataError('認証情報が利用できません')
+        return
+      }
+
+      // 日別データ取得のAPIエンドポイント
+      // accountIdがact_で始まらない場合は追加
+      const formattedAccountId = accountId.startsWith('act_') ? accountId : `act_${accountId}`
+      const url = `https://graph.facebook.com/v23.0/${formattedAccountId}/insights`
+
+      const params = new URLSearchParams({
+        access_token: accessToken,
+        time_increment: '1', // 日別データを取得
+        date_preset: 'last_30d', // 過去30日間
+        fields: 'ad_id,ad_name,impressions,clicks,spend,ctr,cpc,cpm,frequency,conversions,reach',
+        filtering: `[{"field":"ad.id","operator":"IN","value":["${item.adId}"]}]`,
+        limit: '100',
+      })
+
+      const response = await fetch(`${url}?${params}`)
+      const data = await response.json()
+
+      if (data.error) {
+        throw new Error(data.error.message || '日別データの取得に失敗しました')
+      }
+
+      // 日別データをフォーマット
+      const formattedDailyData = (data.data || []).map((day: any) => ({
+        date: day.date_start,
+        impressions: day.impressions || 0,
+        clicks: day.clicks || 0,
+        spend: parseFloat(day.spend || '0'),
+        ctr: parseFloat(day.ctr || '0'),
+        cpc: parseFloat(day.cpc || '0'),
+        cpm: parseFloat(day.cpm || '0'),
+        frequency: parseFloat(day.frequency || '0'),
+        conversions: day.conversions || 0,
+        reach: day.reach || 0,
+        fatigue_score: calculateFatigueScore(day), // 疲労度スコア計算
+      }))
+
+      setDailyData(formattedDailyData)
+      console.log('日別データ取得成功:', formattedDailyData)
+    } catch (error) {
+      console.error('日別データ取得エラー:', error)
+      setDailyDataError(error instanceof Error ? error.message : '日別データの取得に失敗しました')
+    } finally {
+      setIsLoadingDaily(false)
+    }
+  }
+
+  // 疲労度スコアを計算する関数
+  const calculateFatigueScore = (day: any) => {
+    const scores = calculateAllFatigueScores({
+      ctr: parseFloat(day.ctr || '0'),
+      frequency: parseFloat(day.frequency || '0'),
+      cpm: parseFloat(day.cpm || '0'),
+    })
+    return scores.overallScore
+  }
 
   // 疲労度スコアを計算
   const fatigueScores = calculateAllFatigueScores({
@@ -328,19 +416,24 @@ export function CreativeDetailModal({ isOpen, onClose, item, insight }: Creative
                     >
                       パフォーマンス指標
                     </button>
-                    {hasDailyData && (
-                      <button
-                        onClick={() => setActiveTab('daily')}
-                        className={`${
-                          activeTab === 'daily'
-                            ? 'border-indigo-500 text-indigo-600'
-                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                        } whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2`}
-                      >
-                        <ChartBarIcon className="h-4 w-4" />
-                        日別推移（{item.dayCount || 0}日間）
-                      </button>
-                    )}
+                    <button
+                      onClick={() => setActiveTab('daily')}
+                      className={`${
+                        activeTab === 'daily'
+                          ? 'border-indigo-500 text-indigo-600'
+                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      } whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2`}
+                    >
+                      <ChartBarIcon className="h-4 w-4" />
+                      日別推移
+                      {isLoadingDaily ? (
+                        <span className="text-xs">（取得中...）</span>
+                      ) : (
+                        <span>
+                          （{dailyData.length > 0 ? dailyData.length : item.dayCount || 0}日間）
+                        </span>
+                      )}
+                    </button>
                     <button
                       onClick={() => setActiveTab('timeseries')}
                       className={`${
@@ -379,119 +472,200 @@ export function CreativeDetailModal({ isOpen, onClose, item, insight }: Creative
                 </div>
 
                 {/* Content - Conditional based on active tab */}
-                {activeTab === 'daily' && hasDailyData ? (
+                {activeTab === 'daily' ? (
                   // 日別データテーブル
-                  <div className="overflow-x-auto">
-                    <div className="mb-4">
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        日別パフォーマンス推移
-                      </h3>
-                      <p className="text-sm text-gray-600 mt-1">
-                        {item.firstDate} 〜 {item.lastDate}（{item.dayCount}日間）
-                      </p>
+                  isLoadingDaily ? (
+                    // ローディング中の表示
+                    <div className="flex items-center justify-center h-96">
+                      <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">
+                          日別データを取得中...
+                        </h3>
+                        <p className="text-sm text-gray-500">
+                          time_increment=1で過去30日間のデータを取得しています
+                        </p>
+                      </div>
                     </div>
+                  ) : dailyDataError ? (
+                    // エラーの表示
+                    <div className="flex items-center justify-center h-96">
+                      <div className="text-center">
+                        <div className="text-red-500 mb-4">
+                          <svg
+                            className="mx-auto h-12 w-12"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
+                          </svg>
+                        </div>
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">データ取得エラー</h3>
+                        <p className="text-sm text-red-600">{dailyDataError}</p>
+                      </div>
+                    </div>
+                  ) : hasDailyData ? (
+                    <div className="overflow-x-auto">
+                      <div className="mb-4">
+                        <h3 className="text-lg font-semibold text-gray-900">
+                          日別パフォーマンス推移
+                          {dailyData.length > 0 && (
+                            <span className="ml-2 text-sm text-green-600">
+                              (取得成功: {dailyData.length}日分)
+                            </span>
+                          )}
+                        </h3>
+                        <p className="text-sm text-gray-600 mt-1">
+                          {dailyData.length > 0
+                            ? `${dailyData[0].date} 〜 ${dailyData[dailyData.length - 1].date}（${dailyData.length}日間）`
+                            : `${item.firstDate || '-'} 〜 ${item.lastDate || '-'}（${item.dayCount || 0}日間）`}
+                        </p>
+                      </div>
 
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            日付
-                          </th>
-                          <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            表示回数
-                          </th>
-                          <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            クリック
-                          </th>
-                          <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            CTR
-                          </th>
-                          <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            CPM
-                          </th>
-                          <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            CPC
-                          </th>
-                          <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            消化金額
-                          </th>
-                          <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            CV
-                          </th>
-                          <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            疲労度
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {item.dailyData.map((day: any, index: number) => (
-                          <tr key={index} className="hover:bg-gray-50">
-                            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {day.date}
-                            </td>
-                            <td className="px-3 py-4 whitespace-nowrap text-sm text-right text-gray-900">
-                              {day.impressions.toLocaleString()}
-                            </td>
-                            <td className="px-3 py-4 whitespace-nowrap text-sm text-right text-gray-900">
-                              {day.clicks.toLocaleString()}
-                            </td>
-                            <td className="px-3 py-4 whitespace-nowrap text-sm text-right text-gray-900">
-                              {day.ctr.toFixed(2)}%
-                            </td>
-                            <td className="px-3 py-4 whitespace-nowrap text-sm text-right text-gray-900">
-                              ¥{day.cpm.toFixed(0)}
-                            </td>
-                            <td className="px-3 py-4 whitespace-nowrap text-sm text-right text-gray-900">
-                              ¥{day.cpc.toFixed(0)}
-                            </td>
-                            <td className="px-3 py-4 whitespace-nowrap text-sm text-right text-gray-900">
-                              ¥{day.spend.toLocaleString()}
-                            </td>
-                            <td className="px-3 py-4 whitespace-nowrap text-sm text-right text-gray-900">
-                              {day.conversions}
-                            </td>
-                            <td className="px-3 py-4 whitespace-nowrap text-sm text-right">
-                              <span
-                                className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                                  day.fatigue_score >= 70
-                                    ? 'bg-red-100 text-red-800'
-                                    : day.fatigue_score >= 40
-                                      ? 'bg-yellow-100 text-yellow-800'
-                                      : 'bg-green-100 text-green-800'
-                                }`}
-                              >
-                                {day.fatigue_score.toFixed(0)}
-                              </span>
-                            </td>
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              日付
+                            </th>
+                            <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              表示回数
+                            </th>
+                            <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              クリック
+                            </th>
+                            <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              CTR
+                            </th>
+                            <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              CPM
+                            </th>
+                            <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              CPC
+                            </th>
+                            <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              消化金額
+                            </th>
+                            <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              CV
+                            </th>
+                            <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              疲労度
+                            </th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {(dailyData.length > 0 ? dailyData : item.dailyData || []).map(
+                            (day: any, index: number) => (
+                              <tr key={index} className="hover:bg-gray-50">
+                                <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
+                                  {day.date}
+                                </td>
+                                <td className="px-3 py-4 whitespace-nowrap text-sm text-right text-gray-900">
+                                  {day.impressions.toLocaleString()}
+                                </td>
+                                <td className="px-3 py-4 whitespace-nowrap text-sm text-right text-gray-900">
+                                  {day.clicks.toLocaleString()}
+                                </td>
+                                <td className="px-3 py-4 whitespace-nowrap text-sm text-right text-gray-900">
+                                  {day.ctr.toFixed(2)}%
+                                </td>
+                                <td className="px-3 py-4 whitespace-nowrap text-sm text-right text-gray-900">
+                                  ¥{day.cpm.toFixed(0)}
+                                </td>
+                                <td className="px-3 py-4 whitespace-nowrap text-sm text-right text-gray-900">
+                                  ¥{day.cpc.toFixed(0)}
+                                </td>
+                                <td className="px-3 py-4 whitespace-nowrap text-sm text-right text-gray-900">
+                                  ¥{day.spend.toLocaleString()}
+                                </td>
+                                <td className="px-3 py-4 whitespace-nowrap text-sm text-right text-gray-900">
+                                  {day.conversions}
+                                </td>
+                                <td className="px-3 py-4 whitespace-nowrap text-sm text-right">
+                                  <span
+                                    className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                      day.fatigue_score >= 70
+                                        ? 'bg-red-100 text-red-800'
+                                        : day.fatigue_score >= 40
+                                          ? 'bg-yellow-100 text-yellow-800'
+                                          : 'bg-green-100 text-green-800'
+                                    }`}
+                                  >
+                                    {day.fatigue_score.toFixed(0)}
+                                  </span>
+                                </td>
+                              </tr>
+                            )
+                          )}
+                        </tbody>
+                      </table>
 
-                    {/* 集計行 */}
-                    <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                      <div className="grid grid-cols-4 gap-4 text-sm">
-                        <div>
-                          <span className="text-gray-600">合計表示回数:</span>
-                          <span className="ml-2 font-semibold">
-                            {item.impressions.toLocaleString()}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-gray-600">合計クリック:</span>
-                          <span className="ml-2 font-semibold">{item.clicks.toLocaleString()}</span>
-                        </div>
-                        <div>
-                          <span className="text-gray-600">合計消化金額:</span>
-                          <span className="ml-2 font-semibold">¥{item.spend.toLocaleString()}</span>
-                        </div>
-                        <div>
-                          <span className="text-gray-600">合計CV:</span>
-                          <span className="ml-2 font-semibold">{item.conversions}</span>
+                      {/* 集計行 */}
+                      <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                        <div className="grid grid-cols-4 gap-4 text-sm">
+                          <div>
+                            <span className="text-gray-600">合計表示回数:</span>
+                            <span className="ml-2 font-semibold">
+                              {dailyData.length > 0
+                                ? dailyData
+                                    .reduce((sum, day) => sum + day.impressions, 0)
+                                    .toLocaleString()
+                                : (item.impressions || 0).toLocaleString()}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">合計クリック:</span>
+                            <span className="ml-2 font-semibold">
+                              {dailyData.length > 0
+                                ? dailyData
+                                    .reduce((sum, day) => sum + day.clicks, 0)
+                                    .toLocaleString()
+                                : (item.clicks || 0).toLocaleString()}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">合計消化金額:</span>
+                            <span className="ml-2 font-semibold">
+                              ¥
+                              {dailyData.length > 0
+                                ? dailyData
+                                    .reduce((sum, day) => sum + day.spend, 0)
+                                    .toLocaleString()
+                                : (item.spend || 0).toLocaleString()}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">合計CV:</span>
+                            <span className="ml-2 font-semibold">
+                              {dailyData.length > 0
+                                ? dailyData.reduce((sum, day) => sum + day.conversions, 0)
+                                : item.conversions || 0}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
+                  ) : (
+                    // データがない場合の表示
+                    <div className="flex items-center justify-center h-96">
+                      <div className="text-center">
+                        <ChartBarIcon className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">
+                          日別データはありません
+                        </h3>
+                        <p className="text-sm text-gray-500">
+                          このクリエイティブの日別パフォーマンスデータは取得されていません
+                        </p>
+                      </div>
+                    </div>
+                  )
                 ) : activeTab === 'metrics' ? (
                   <div className="grid grid-cols-3 gap-6">
                     {/* Left Column - Fatigue Analysis with Donut Charts */}
