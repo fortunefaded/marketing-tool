@@ -1392,27 +1392,162 @@ export function CreativeDetailModal({
                                   </td>
                                 </tr>
                                 <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900 align-top">
                                     purchase_roas
                                   </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                  <td className="px-4 py-2 text-sm text-gray-600 align-top">
                                     購入ROAS。購入イベントベースの広告費用対効果
                                   </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">object</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    {JSON.stringify(insight?.purchase_roas) || 'N/A'}
+                                  <td className="px-4 py-2 text-sm text-gray-500 align-top">
+                                    object
+                                  </td>
+                                  <td className="px-4 py-2 text-sm">
+                                    {insight?.purchase_roas ? (
+                                      <div className="bg-purple-50 p-2 rounded text-xs">
+                                        <div className="font-semibold text-purple-800 mb-1">
+                                          購入ROAS詳細:
+                                        </div>
+                                        {Array.isArray(insight.purchase_roas) ? (
+                                          insight.purchase_roas.map((roas: any, idx: number) => (
+                                            <div
+                                              key={idx}
+                                              className="border-b border-purple-100 pb-1 mb-1 last:border-0"
+                                            >
+                                              <div className="space-y-1">
+                                                <div>
+                                                  <span className="text-purple-600">
+                                                    アクションタイプ:
+                                                  </span>
+                                                  <span className="font-mono ml-1 text-xs">
+                                                    {roas.action_type}
+                                                  </span>
+                                                </div>
+                                                <div className="grid grid-cols-3 gap-1">
+                                                  <div>
+                                                    <span className="text-purple-600">
+                                                      合計ROAS:
+                                                    </span>
+                                                    <span className="font-mono ml-1">
+                                                      {roas.value || 0}
+                                                    </span>
+                                                    <span className="text-gray-500 text-xs ml-1">
+                                                      (売上÷広告費)
+                                                    </span>
+                                                  </div>
+                                                  <div>
+                                                    <span className="text-purple-600">
+                                                      1日クリック:
+                                                    </span>
+                                                    <span className="font-mono ml-1">
+                                                      {roas['1d_click'] || '-'}
+                                                    </span>
+                                                  </div>
+                                                  <div>
+                                                    <span className="text-purple-600">
+                                                      7日クリック:
+                                                    </span>
+                                                    <span className="font-mono ml-1">
+                                                      {roas['7d_click'] || '-'}
+                                                    </span>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            </div>
+                                          ))
+                                        ) : (
+                                          <div className="font-mono text-xs">
+                                            {JSON.stringify(insight.purchase_roas)}
+                                          </div>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <span className="font-mono text-gray-900">N/A</span>
+                                    )}
                                   </td>
                                 </tr>
                                 <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900 align-top">
                                     website_purchase_roas
                                   </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                  <td className="px-4 py-2 text-sm text-gray-600 align-top">
                                     ウェブサイト購入ROAS。ECサイトでの購入に特化したROAS計測
                                   </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">object</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    {JSON.stringify(insight?.website_purchase_roas) || 'N/A'}
+                                  <td className="px-4 py-2 text-sm text-gray-500 align-top">
+                                    object
+                                  </td>
+                                  <td className="px-4 py-2 text-sm">
+                                    {insight?.website_purchase_roas ? (
+                                      <div className="bg-indigo-50 p-2 rounded text-xs">
+                                        <div className="font-semibold text-indigo-800 mb-1">
+                                          ウェブサイト購入ROAS詳細:
+                                        </div>
+                                        {Array.isArray(insight.website_purchase_roas) ? (
+                                          insight.website_purchase_roas.map(
+                                            (roas: any, idx: number) => (
+                                              <div
+                                                key={idx}
+                                                className="border-b border-indigo-100 pb-1 mb-1 last:border-0"
+                                              >
+                                                <div className="space-y-1">
+                                                  <div>
+                                                    <span className="text-indigo-600">
+                                                      アクションタイプ:
+                                                    </span>
+                                                    <span className="font-mono ml-1 text-xs">
+                                                      {roas.action_type}
+                                                    </span>
+                                                    <span className="text-gray-600 text-xs ml-1">
+                                                      {roas.action_type?.includes(
+                                                        'offsite_conversion'
+                                                      ) && '(オフサイトコンバージョン)'}
+                                                      {roas.action_type?.includes('fb_pixel') &&
+                                                        '(Facebookピクセル計測)'}
+                                                    </span>
+                                                  </div>
+                                                  <div className="grid grid-cols-3 gap-1">
+                                                    <div>
+                                                      <span className="text-indigo-600">
+                                                        合計ROAS:
+                                                      </span>
+                                                      <span className="font-mono ml-1">
+                                                        {parseFloat(roas.value || 0).toFixed(2)}
+                                                      </span>
+                                                      <span className="text-gray-500 text-xs ml-1">
+                                                        {parseFloat(roas.value || 0) >= 1
+                                                          ? '✓ 黒字'
+                                                          : '⚠️ 赤字'}
+                                                      </span>
+                                                    </div>
+                                                    <div>
+                                                      <span className="text-indigo-600">1日:</span>
+                                                      <span className="font-mono ml-1">
+                                                        {parseFloat(roas['1d_click'] || 0).toFixed(
+                                                          2
+                                                        )}
+                                                      </span>
+                                                    </div>
+                                                    <div>
+                                                      <span className="text-indigo-600">7日:</span>
+                                                      <span className="font-mono ml-1">
+                                                        {parseFloat(roas['7d_click'] || 0).toFixed(
+                                                          2
+                                                        )}
+                                                      </span>
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            )
+                                          )
+                                        ) : (
+                                          <div className="font-mono text-xs">
+                                            {JSON.stringify(insight.website_purchase_roas)}
+                                          </div>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <span className="font-mono text-gray-900">N/A</span>
+                                    )}
                                   </td>
                                 </tr>
                                 <tr className="hover:bg-gray-50">
@@ -1544,15 +1679,105 @@ export function CreativeDetailModal({
                                   </td>
                                 </tr>
                                 <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900 align-top">
                                     actions
                                   </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                  <td className="px-4 py-2 text-sm text-gray-600 align-top">
                                     アクション配列。購入、登録、カート追加など様々なアクションの詳細データ
                                   </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">object[]</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    {(item.actions || insight?.actions)?.length || 0}件
+                                  <td className="px-4 py-2 text-sm text-gray-500 align-top">
+                                    object[]
+                                  </td>
+                                  <td className="px-4 py-2 text-sm">
+                                    {(item.actions || insight?.actions)?.length > 0 ? (
+                                      <div className="space-y-2">
+                                        <div className="font-mono text-gray-900">
+                                          {(item.actions || insight?.actions)?.length}件
+                                        </div>
+                                        <div className="bg-blue-50 p-2 rounded text-xs">
+                                          <div className="font-semibold text-blue-800 mb-1">
+                                            アクション詳細:
+                                          </div>
+                                          {(item.actions || insight?.actions)
+                                            ?.slice(0, 5)
+                                            .map((action: any, idx: number) => (
+                                              <div
+                                                key={idx}
+                                                className="border-b border-blue-100 pb-1 mb-1 last:border-0"
+                                              >
+                                                <div className="grid grid-cols-2 gap-1">
+                                                  <div>
+                                                    <span className="text-blue-600">
+                                                      action_type:
+                                                    </span>
+                                                    <span className="font-mono ml-1">
+                                                      {action.action_type}
+                                                    </span>
+                                                  </div>
+                                                  <div className="text-gray-700 text-xs italic">
+                                                    {action.action_type?.includes('purchase') &&
+                                                      '購入イベント'}
+                                                    {action.action_type?.includes('add_to_cart') &&
+                                                      'カート追加'}
+                                                    {action.action_type?.includes('lead') &&
+                                                      'リード獲得'}
+                                                    {action.action_type?.includes('view_content') &&
+                                                      'コンテンツ閲覧'}
+                                                    {action.action_type?.includes(
+                                                      'complete_registration'
+                                                    ) && '登録完了'}
+                                                    {action.action_type?.includes('link_click') &&
+                                                      'リンククリック'}
+                                                    {action.action_type?.includes(
+                                                      'landing_page_view'
+                                                    ) && 'LP表示'}
+                                                    {action.action_type?.includes('omni_') &&
+                                                      'オムニチャネル'}
+                                                    {action.action_type?.includes(
+                                                      'page_engagement'
+                                                    ) && 'ページエンゲージメント'}
+                                                    {action.action_type?.includes(
+                                                      'post_engagement'
+                                                    ) && '投稿エンゲージメント'}
+                                                  </div>
+                                                </div>
+                                                <div className="grid grid-cols-3 gap-1 mt-1">
+                                                  <div>
+                                                    <span className="text-blue-600">合計:</span>
+                                                    <span className="font-mono ml-1">
+                                                      {action.value || 0}
+                                                    </span>
+                                                  </div>
+                                                  <div>
+                                                    <span className="text-blue-600">1日:</span>
+                                                    <span className="font-mono ml-1">
+                                                      {action['1d_click'] ||
+                                                        action['1d_view'] ||
+                                                        '-'}
+                                                    </span>
+                                                  </div>
+                                                  <div>
+                                                    <span className="text-blue-600">7日:</span>
+                                                    <span className="font-mono ml-1">
+                                                      {action['7d_click'] ||
+                                                        action['7d_view'] ||
+                                                        '-'}
+                                                    </span>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            ))}
+                                          {(item.actions || insight?.actions)?.length > 5 && (
+                                            <div className="text-gray-600 mt-1">
+                                              他 {(item.actions || insight?.actions).length - 5}{' '}
+                                              件のアクション...
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <span className="font-mono text-gray-900">N/A</span>
+                                    )}
                                   </td>
                                 </tr>
                                 <tr className="hover:bg-gray-50">
