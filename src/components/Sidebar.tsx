@@ -2,12 +2,9 @@ import { Link, useLocation } from 'react-router-dom'
 import { useVibeLogger } from '../hooks/useVibeLogger'
 import {
   Squares2X2Icon,
-  ChartBarIcon,
-  ExclamationTriangleIcon,
-  AcademicCapIcon,
+  Cog6ToothIcon,
   ChevronDoubleLeftIcon,
   ChevronDoubleRightIcon,
-  SparklesIcon,
 } from '@heroicons/react/24/outline'
 import { ComponentType, useState, useEffect } from 'react'
 
@@ -45,34 +42,14 @@ export default function Sidebar() {
 
   const menuItems: MenuItem[] = [
     {
-      name: '統合ダッシュボード',
+      name: 'ダッシュボード',
       path: '/',
       icon: Squares2X2Icon,
     },
     {
-      name: 'Meta広告詳細',
-      path: '/meta-dashboard',
-      icon: ChartBarIcon,
-    },
-    {
-      name: '広告疲労度分析',
-      path: '/meta-api-setup/weekly-sync',
-      icon: ExclamationTriangleIcon,
-    },
-    {
-      name: 'プロジェクト・クローバー',
-      path: '/project-clover',
-      icon: SparklesIcon,
-    },
-    {
-      name: 'テストダッシュボード',
-      path: '/test-simple',
-      icon: AcademicCapIcon,
-    },
-    {
-      name: 'ECForce詳細',
-      path: '/ecforce',
-      icon: ChartBarIcon,
+      name: '設定・管理',
+      path: '/settings',
+      icon: Cog6ToothIcon,
     },
   ]
 
