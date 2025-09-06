@@ -8,7 +8,6 @@ import { SettingsManagement } from './pages/SettingsManagement'
 import Sidebar from './components/Sidebar'
 import Header from './components/Header'
 import { vibe } from './lib/vibelogger'
-import { setupTestAccount } from './services/testAccountSetup'
 
 // Convex URLのフォールバック処理を追加
 const convexUrl = import.meta.env.VITE_CONVEX_URL || 'https://temporary-convex-url.convex.cloud'
@@ -74,19 +73,6 @@ function AppContent() {
 }
 
 function App() {
-  useEffect(() => {
-    // 開発環境でテストアカウントをセットアップ
-    if (import.meta.env.DEV) {
-      setupTestAccount()
-        .then((account) => {
-          if (account) {
-            vibe.good('テストアカウントセットアップ完了', { account: account.accountId })
-          }
-        })
-        .catch((error) => vibe.bad('テストアカウントセットアップ失敗', { error }))
-    }
-  }, [])
-
   return (
     <ErrorBoundary>
       <ConvexProvider client={convex}>
