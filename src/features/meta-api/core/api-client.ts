@@ -234,29 +234,50 @@ export class SimpleMetaApi {
   
   private getFieldsString(includeTimeFields: boolean = false, includeCurrency: boolean = false): string {
     const baseFields = [
-      // Basic ad info
+      // === 基本的な広告情報 ===
       'ad_id', 'ad_name', 'campaign_id', 'campaign_name', 'adset_id', 'adset_name',
       
-      // Performance metrics
+      // === パフォーマンスメトリクス ===
       'impressions', 'reach', 'frequency', 'spend',
       
-      // Click metrics
+      // === クリック関連 ===
       'clicks', 'unique_clicks', 'cpc', 'cost_per_unique_click',
       
-      // CTR metrics
-      'ctr', 'unique_ctr', 'unique_link_clicks_ctr', 'unique_inline_link_clicks', 'unique_inline_link_click_ctr',
+      // === CTR関連 ===
+      'ctr', 'unique_ctr', 
+      'inline_link_clicks', 'inline_link_click_ctr',
+      'unique_inline_link_clicks',
+      'outbound_clicks',
+      'website_ctr',
       
-      // CPM metrics
-      'cpm', 'cpp',
+      // === コスト関連 ===
+      'cpm', 'cpp', 'social_spend',
       
-      // Conversion metrics
-      'actions', 'cost_per_action_type', 'conversions', 'cost_per_conversion',
+      // === コンバージョン関連 ===
+      'actions', 'unique_actions', 'action_values',
+      'conversions', 'conversion_values', 
+      'cost_per_conversion', 'cost_per_action_type', 'cost_per_unique_action_type',
       
-      // Creative info (may not always be available)
-      'video_p25_watched_actions', 'video_p50_watched_actions', 'video_p75_watched_actions', 'video_p100_watched_actions',
+      // === 動画メトリクス (API v23.0) ===
+      'video_play_actions',
+      'video_p25_watched_actions', 
+      'video_p50_watched_actions', 
+      'video_p75_watched_actions',
+      'video_p100_watched_actions',
+      'video_thruplay_watched_actions',
+      'video_avg_time_watched_actions',
+      'video_continuous_2_sec_watched_actions',
+      'video_15_sec_watched_actions',
+      'cost_per_thruplay',
       
-      // Instagram specific (through actions)
-      'unique_actions'
+      // === 品質ランキング (API v23.0) ===
+      'quality_ranking',
+      'engagement_rate_ranking',
+      'conversion_rate_ranking',
+      
+      // === ROAS関連 ===
+      'purchase_roas',
+      'website_purchase_roas'
     ]
     
     // 時系列データ用に日付フィールドを追加

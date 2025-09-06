@@ -1,4 +1,4 @@
-import React, { Fragment, useState, useEffect } from 'react'
+import React, { Fragment, useState, useEffect, useCallback, useMemo } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { XMarkIcon, ChartBarIcon } from '@heroicons/react/24/outline'
 import { FatigueData } from '@/types'
@@ -18,6 +18,10 @@ interface CreativeDetailModalProps {
   insight: any
   accessToken?: string // アクセストークン
   accountId?: string // アカウントID
+  dateRange?: { // 日付範囲を追加
+    start: Date | string
+    end: Date | string
+  }
 }
 
 interface MetricRowProps {
@@ -31,6 +35,7 @@ interface MetricRowProps {
   chartThreshold?: number
   metricType?: MetricType
   chartType?: 'line' | 'area'
+  dailyData?: Array<any> // 日別データ配列
 }
 
 function MetricRow({
@@ -44,6 +49,7 @@ function MetricRow({
   chartThreshold,
   metricType,
   chartType,
+  dailyData,
 }: MetricRowProps) {
   const formatValue = (val: number | string) => {
     if (typeof val === 'number') {
@@ -109,6 +115,7 @@ function MetricRow({
               currentValue={value}
               metricType={metricType}
               chartType={chartType}
+              dailyData={dailyData}
             />
           ) : null}
         </div>
@@ -117,14 +124,59 @@ function MetricRow({
   )
 }
 
-export function CreativeDetailModal({
-  isOpen,
-  onClose,
-  item,
-  insight,
-  accessToken,
-  accountId,
-}: CreativeDetailModalProps) {
+export function CreativeDetailModal(props: CreativeDetailModalProps) {
+  // propsを直接確認
+  console.log('🚀 CreativeDetailModal - Raw props:', {
+    allKeys: Object.keys(props),
+    dateRangeProp: props.dateRange,
+    hasDateRange: 'dateRange' in props,
+    dateRangeValue: props.dateRange,
+    dateRangeStringified: JSON.stringify(props.dateRange),
+    propsStringified: JSON.stringify(props)
+  })
+  
+  const {
+    isOpen,
+    onClose,
+    item,
+    insight,
+    accessToken,
+    accountId,
+    dateRange,
+  } = props
+  
+  // デストラクチャリング後も確認
+  console.log('📅 After destructuring:', {
+    dateRange,
+    dateRangeType: typeof dateRange,
+    dateRangeValue: dateRange ? JSON.stringify(dateRange) : 'undefined/null'
+  })
+  
+  // デフォルト値を設定（dateRangeがundefinedの場合の対策）
+  const effectiveDateRange = useMemo(() => {
+    if (dateRange && dateRange.start && dateRange.end) {
+      console.log('📅 Using provided dateRange:', dateRange)
+      return dateRange
+    }
+    
+    // デフォルト値：過去30日間
+    const defaultRange = {
+      start: new Date(new Date().getTime() - 30 * 24 * 60 * 60 * 1000),
+      end: new Date()
+    }
+    console.log('📅 Using default dateRange (last 30 days):', defaultRange)
+    return defaultRange
+  }, [dateRange])
+  
+  // デバッグ：受け取ったpropsと実効値を確認
+  console.log('📅 CreativeDetailModal - Received props:', {
+    dateRange,
+    effectiveDateRange,
+    hasDateRange: !!dateRange,
+    dateRangeType: typeof dateRange,
+    dateRangeValue: dateRange ? JSON.stringify(dateRange) : 'null/undefined',
+  })
+  
   const [activeTab, setActiveTab] = useState<'metrics' | 'platform' | 'daily' | 'raw'>('metrics')
   const [dailyData, setDailyData] = useState<any[]>([]) // 日別データ
   const [isLoadingDaily, setIsLoadingDaily] = useState(false) // ローディング状態
@@ -133,17 +185,17 @@ export function CreativeDetailModal({
   // 日別データがあるかチェック（既存データまたは取得したデータ）
   const hasDailyData = (item.dailyData && item.dailyData.length > 0) || dailyData.length > 0
 
-  // モーダルが開かれた時に日別データを取得
-  useEffect(() => {
-    if (isOpen && item.adId && accessToken && accountId) {
-      fetchDailyData()
-    }
-  }, [isOpen, item.adId, accessToken, accountId])
-
-  // 日別データを取得する関数
-  const fetchDailyData = async () => {
+  // 日別データを取得する関数（useCallbackでラップ）
+  const fetchDailyData = useCallback(async () => {
     setIsLoadingDaily(true)
     setDailyDataError(null)
+    
+    console.log('🎯 CreativeDetailModal - fetchDailyData called with:', {
+      effectiveDateRange,
+      adId: item.adId,
+      accessToken: !!accessToken,
+      accountId
+    })
 
     try {
       // propsから認証情報を取得
@@ -158,14 +210,138 @@ export function CreativeDetailModal({
       const formattedAccountId = accountId.startsWith('act_') ? accountId : `act_${accountId}`
       const url = `https://graph.facebook.com/v23.0/${formattedAccountId}/insights`
 
+      // 日付範囲の処理（effectiveDateRangeを使用）
+      let dateParams: any = {}
+      if (effectiveDateRange && effectiveDateRange.start && effectiveDateRange.end) {
+        // 日付をYYYY-MM-DD形式にフォーマット（ローカルタイムゾーン）
+        const formatDate = (date: Date | string) => {
+          const d = typeof date === 'string' ? new Date(date) : date
+          const year = d.getFullYear()
+          const month = String(d.getMonth() + 1).padStart(2, '0')
+          const day = String(d.getDate()).padStart(2, '0')
+          return `${year}-${month}-${day}`
+        }
+        
+        dateParams.time_range = JSON.stringify({
+          since: formatDate(effectiveDateRange.start),
+          until: formatDate(effectiveDateRange.end),
+        })
+        
+        console.log('🔍 API call with date range:', {
+          since: formatDate(effectiveDateRange.start),
+          until: formatDate(effectiveDateRange.end),
+          startDate: effectiveDateRange.start.toLocaleDateString('ja-JP'),
+          endDate: effectiveDateRange.end.toLocaleDateString('ja-JP'),
+          raw: effectiveDateRange
+        })
+      } else {
+        // デフォルトは過去30日間（これは起こらないはず）
+        dateParams.date_preset = 'last_30d'
+        console.log('📅 Using default date preset: last_30d (no effectiveDateRange provided)')
+      }
+
       const params = new URLSearchParams({
         access_token: accessToken,
         time_increment: '1', // 日別データを取得
-        date_preset: 'last_30d', // 過去30日間
-        fields: 'ad_id,ad_name,impressions,clicks,spend,ctr,cpc,cpm,frequency,conversions,reach',
+        fields: [
+          // === 基本フィールド（必須） ===
+          'ad_id',
+          'ad_name',
+          'adset_id',
+          'adset_name',
+          'campaign_id',
+          'campaign_name',
+          'impressions',
+          'clicks',
+          'spend',
+          'reach',
+          'frequency',
+          'ctr',
+          'cpc',
+          'cpm',
+          
+          // === 品質評価指標（API v23.0） ===
+          'quality_ranking',
+          'engagement_rate_ranking',
+          'conversion_rate_ranking',
+          
+          // === コンバージョン関連（検証済み） ===
+          'conversions',
+          'conversion_values',
+          'cost_per_conversion',
+          // 'purchase', // 削除（#100エラー回避）
+          // 'purchases', // 削除（#100エラー回避）
+          // 'omni_purchase', // 削除（#100エラー回避）
+          // 'website_purchases', // 削除（#100エラー回避）
+          
+          // === 動画メトリクス（API v23.0） ===
+          'video_play_actions',
+          'video_p25_watched_actions',
+          'video_p50_watched_actions',
+          'video_p75_watched_actions',
+          // 'video_p95_watched_actions', // 削除（存在しない可能性）
+          'video_p100_watched_actions',
+          'video_thruplay_watched_actions',
+          'video_avg_time_watched_actions',
+          'video_continuous_2_sec_watched_actions',
+          'video_15_sec_watched_actions',
+          
+          // === リンククリック詳細（検証済み） ===
+          'inline_link_clicks',
+          'inline_link_click_ctr',
+          'unique_inline_link_clicks',
+          // 'unique_inline_link_click_ctr', // 削除（#100エラー回避）
+          'outbound_clicks',
+          // 'outbound_clicks_ctr', // 削除（#100エラー回避）
+          // 'unique_outbound_clicks', // 削除（#100エラー回避）
+          // 'unique_outbound_clicks_ctr', // 削除（#100エラー回避）
+          // 'link_clicks', // 削除（#100エラー回避）
+          // 'unique_link_clicks', // 削除（#100エラー回避）
+          'website_ctr',
+          
+          // === ROAS関連 ===
+          'purchase_roas',
+          'website_purchase_roas',
+          // 'mobile_app_purchase_roas', // 削除（#100エラー回避）
+          
+          // === アクション関連の詳細 ===
+          'actions',
+          'action_values',
+          'unique_actions',
+          'cost_per_action_type',
+          'cost_per_unique_action_type',
+          'cost_per_thruplay',
+          'cost_per_unique_click',
+          
+          // === その他の有用なフィールド ===
+          'unique_clicks',
+          'social_spend',
+          'unique_ctr',
+          // 'objective', // 削除（insightsエンドポイントでは使用不可）
+          // 'optimization_goal', // 削除（insightsエンドポイントでは使用不可）
+          // 'buying_type', // 削除（insightsエンドポイントでは使用不可）
+          // 'bid_strategy', // 削除（insightsエンドポイントでは使用不可）
+          // 'daily_budget', // 削除（insightsエンドポイントでは使用不可）
+          // 'lifetime_budget', // 削除（insightsエンドポイントでは使用不可）
+          'account_currency',
+          'account_name',
+          // 'created_time', // 削除（insightsエンドポイントでは使用不可）
+          // 'updated_time', // 削除（insightsエンドポイントでは使用不可）
+          // 'status', // 削除（insightsエンドポイントでは使用不可）
+          // 'effective_status', // 削除（insightsエンドポイントでは使用不可）
+          'date_start',
+          'date_stop'
+        ].join(','),
         filtering: `[{"field":"ad.id","operator":"IN","value":["${item.adId}"]}]`,
         limit: '100',
       })
+      
+      // 日付範囲パラメータを追加
+      if (dateParams.time_range) {
+        params.append('time_range', dateParams.time_range)
+      } else if (dateParams.date_preset) {
+        params.append('date_preset', dateParams.date_preset)
+      }
 
       const response = await fetch(`${url}?${params}`)
       const data = await response.json()
@@ -174,20 +350,101 @@ export function CreativeDetailModal({
         throw new Error(data.error.message || '日別データの取得に失敗しました')
       }
 
+      // APIレスポンスのデバッグログ
+      if (data.data && data.data.length > 0) {
+        console.log('📊 取得したフィールド一覧:', Object.keys(data.data[0]))
+        console.log('🔍 品質評価:', {
+          quality: data.data[0].quality_ranking,
+          engagement: data.data[0].engagement_rate_ranking,
+          conversion: data.data[0].conversion_rate_ranking
+        })
+        console.log('🎬 動画メトリクス:', {
+          play: data.data[0].video_play_actions,
+          p25: data.data[0].video_p25_watched_actions,
+          p50: data.data[0].video_p50_watched_actions,
+          p75: data.data[0].video_p75_watched_actions,
+          p100: data.data[0].video_p100_watched_actions
+        })
+        console.log('🔗 リンククリック:', {
+          inline: data.data[0].inline_link_clicks,
+          inline_ctr: data.data[0].inline_link_click_ctr,
+          outbound: data.data[0].outbound_clicks
+        })
+        console.log('💰 ROAS:', {
+          purchase: data.data[0].purchase_roas,
+          website: data.data[0].website_purchase_roas
+        })
+      }
+
       // 日別データをフォーマット
-      const formattedDailyData = (data.data || []).map((day: any) => ({
-        date: day.date_start,
-        impressions: day.impressions || 0,
-        clicks: day.clicks || 0,
-        spend: parseFloat(day.spend || '0'),
-        ctr: parseFloat(day.ctr || '0'),
-        cpc: parseFloat(day.cpc || '0'),
-        cpm: parseFloat(day.cpm || '0'),
-        frequency: parseFloat(day.frequency || '0'),
-        conversions: day.conversions || 0,
-        reach: day.reach || 0,
-        fatigue_score: calculateFatigueScore(day), // 疲労度スコア計算
-      }))
+      const formattedDailyData = (data.data || []).map((day: any) => {
+        // コンバージョンを取得（aggregation.tsと同じロジックを使用）
+        let conversions = 0
+        
+        // 1. actionsフィールドから優先順位に従って取得
+        if (day.actions && Array.isArray(day.actions)) {
+          // 最優先: Facebook Pixelによる購入追跡
+          const fbPixelPurchase = day.actions.find(
+            (action: any) => action.action_type === 'offsite_conversion.fb_pixel_purchase'
+          )
+          
+          if (fbPixelPurchase) {
+            // 1d_click値を優先、なければvalue値を使用
+            conversions = parseInt(fbPixelPurchase['1d_click'] || fbPixelPurchase.value || '0')
+          }
+          // 次の優先: 通常のpurchaseアクション
+          else {
+            const purchaseAction = day.actions.find((action: any) => action.action_type === 'purchase')
+            if (purchaseAction) {
+              conversions = parseInt(purchaseAction['1d_click'] || purchaseAction.value || '0')
+            }
+          }
+        }
+        
+        // 2. conversionsフィールドは使用しない（不正確な値の可能性があるため）
+        // Note: conversionsフィールドは合計値が含まれている可能性があるため使用しない
+        
+        return {
+          // 基本メトリクス
+          date: day.date_start,
+          impressions: day.impressions || 0,
+          clicks: day.clicks || 0,
+          spend: parseFloat(day.spend || '0'),
+          reach: day.reach || 0,
+          frequency: parseFloat(day.frequency || '0'),
+          ctr: parseFloat(day.ctr || '0'),
+          cpc: parseFloat(day.cpc || '0'),
+          cpm: parseFloat(day.cpm || '0'),
+          
+          // 品質評価（新規追加）
+          quality_ranking: day.quality_ranking || 'unknown',
+          engagement_rate_ranking: day.engagement_rate_ranking || 'unknown',
+          conversion_rate_ranking: day.conversion_rate_ranking || 'unknown',
+          
+          // コンバージョン（新規追加）
+          conversions,
+          conversion_values: day.conversion_values || 0,
+          
+          // リンククリック（新規追加）
+          inline_link_clicks: day.inline_link_clicks || 0,
+          inline_link_click_ctr: parseFloat(day.inline_link_click_ctr || '0'),
+          outbound_clicks: day.outbound_clicks?.[0]?.value || 0,
+          
+          // 動画メトリクス（新規追加）
+          video_play_actions: day.video_play_actions?.[0]?.value || null,
+          video_p25_watched: day.video_p25_watched_actions?.[0]?.value || null,
+          video_p50_watched: day.video_p50_watched_actions?.[0]?.value || null,
+          video_p75_watched: day.video_p75_watched_actions?.[0]?.value || null,
+          video_p100_watched: day.video_p100_watched_actions?.[0]?.value || null,
+          
+          // ROAS（新規追加）
+          purchase_roas: day.purchase_roas?.[0]?.value || null,
+          website_purchase_roas: day.website_purchase_roas?.[0]?.value || null,
+          
+          // 疲労度スコア
+          fatigue_score: calculateFatigueScore(day),
+        }
+      })
 
       setDailyData(formattedDailyData)
       console.log('日別データ取得成功:', formattedDailyData)
@@ -197,7 +454,15 @@ export function CreativeDetailModal({
     } finally {
       setIsLoadingDaily(false)
     }
-  }
+  }, [effectiveDateRange, item.adId, accessToken, accountId]) // 依存配列に含める
+
+  // モーダルが開かれた時に日別データを取得
+  useEffect(() => {
+    if (isOpen && item.adId && accessToken && accountId) {
+      console.log('📍 useEffect calling fetchDailyData with effectiveDateRange:', effectiveDateRange)
+      fetchDailyData()
+    }
+  }, [isOpen, fetchDailyData]) // fetchDailyDataを依存配列に
 
   // 疲労度スコアを計算する関数
   const calculateFatigueScore = (day: any) => {
@@ -515,6 +780,11 @@ export function CreativeDetailModal({
                             ? `${dailyData[0].date} 〜 ${dailyData[dailyData.length - 1].date}（${dailyData.length}日間）`
                             : `${item.firstDate || '-'} 〜 ${item.lastDate || '-'}（${item.dayCount || 0}日間）`}
                         </p>
+                        {effectiveDateRange && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            指定期間: {effectiveDateRange.start.toLocaleDateString('ja-JP')} 〜 {effectiveDateRange.end.toLocaleDateString('ja-JP')}
+                          </p>
+                        )}
                       </div>
 
                       <table className="min-w-full divide-y divide-gray-200">
@@ -550,6 +820,60 @@ export function CreativeDetailModal({
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
+                          {/* 合計行 */}
+                          <tr className="bg-blue-50 font-semibold">
+                            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
+                              合計
+                            </td>
+                            <td className="px-3 py-4 whitespace-nowrap text-sm text-right text-gray-900">
+                              {(dailyData.length > 0 ? dailyData : item.dailyData || [])
+                                .reduce((sum: number, day: any) => sum + Number(day.impressions || 0), 0)
+                                .toLocaleString()}
+                            </td>
+                            <td className="px-3 py-4 whitespace-nowrap text-sm text-right text-gray-900">
+                              {(dailyData.length > 0 ? dailyData : item.dailyData || [])
+                                .reduce((sum: number, day: any) => sum + Number(day.clicks || 0), 0)
+                                .toLocaleString()}
+                            </td>
+                            <td className="px-3 py-4 whitespace-nowrap text-sm text-right text-gray-900">
+                              {(() => {
+                                const data = dailyData.length > 0 ? dailyData : item.dailyData || []
+                                const totalClicks = data.reduce((sum: number, day: any) => sum + Number(day.clicks || 0), 0)
+                                const totalImpressions = data.reduce((sum: number, day: any) => sum + Number(day.impressions || 0), 0)
+                                return totalImpressions > 0 ? ((totalClicks / totalImpressions) * 100).toFixed(2) : '0.00'
+                              })()}%
+                            </td>
+                            <td className="px-3 py-4 whitespace-nowrap text-sm text-right text-gray-900">
+                              ¥{(() => {
+                                const data = dailyData.length > 0 ? dailyData : item.dailyData || []
+                                const totalSpend = data.reduce((sum: number, day: any) => sum + Number(day.spend || 0), 0)
+                                const totalImpressions = data.reduce((sum: number, day: any) => sum + Number(day.impressions || 0), 0)
+                                return totalImpressions > 0 ? Math.round((totalSpend / totalImpressions) * 1000) : 0
+                              })()}
+                            </td>
+                            <td className="px-3 py-4 whitespace-nowrap text-sm text-right text-gray-900">
+                              ¥{(() => {
+                                const data = dailyData.length > 0 ? dailyData : item.dailyData || []
+                                const totalSpend = data.reduce((sum: number, day: any) => sum + Number(day.spend || 0), 0)
+                                const totalClicks = data.reduce((sum: number, day: any) => sum + Number(day.clicks || 0), 0)
+                                return totalClicks > 0 ? Math.round(totalSpend / totalClicks) : 0
+                              })()}
+                            </td>
+                            <td className="px-3 py-4 whitespace-nowrap text-sm text-right text-gray-900">
+                              ¥{(dailyData.length > 0 ? dailyData : item.dailyData || [])
+                                .reduce((sum: number, day: any) => sum + Number(day.spend || 0), 0)
+                                .toLocaleString()}
+                            </td>
+                            <td className="px-3 py-4 whitespace-nowrap text-sm text-right text-gray-900">
+                              {(dailyData.length > 0 ? dailyData : item.dailyData || [])
+                                .reduce((sum: number, day: any) => sum + Number(day.conversions || 0), 0)}
+                            </td>
+                            <td className="px-3 py-4 whitespace-nowrap text-sm text-right text-gray-900">
+                              -
+                            </td>
+                          </tr>
+                          
+                          {/* 各日付の行 */}
                           {(dailyData.length > 0 ? dailyData : item.dailyData || []).map(
                             (day: any, index: number) => (
                               <tr key={index} className="hover:bg-gray-50">
@@ -596,50 +920,6 @@ export function CreativeDetailModal({
                         </tbody>
                       </table>
 
-                      {/* 集計行 */}
-                      <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                        <div className="grid grid-cols-4 gap-4 text-sm">
-                          <div>
-                            <span className="text-gray-600">合計表示回数:</span>
-                            <span className="ml-2 font-semibold">
-                              {dailyData.length > 0
-                                ? dailyData
-                                    .reduce((sum, day) => sum + day.impressions, 0)
-                                    .toLocaleString()
-                                : (item.impressions || 0).toLocaleString()}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-gray-600">合計クリック:</span>
-                            <span className="ml-2 font-semibold">
-                              {dailyData.length > 0
-                                ? dailyData
-                                    .reduce((sum, day) => sum + day.clicks, 0)
-                                    .toLocaleString()
-                                : (item.clicks || 0).toLocaleString()}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-gray-600">合計消化金額:</span>
-                            <span className="ml-2 font-semibold">
-                              ¥
-                              {dailyData.length > 0
-                                ? dailyData
-                                    .reduce((sum, day) => sum + day.spend, 0)
-                                    .toLocaleString()
-                                : (item.spend || 0).toLocaleString()}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-gray-600">合計CV:</span>
-                            <span className="ml-2 font-semibold">
-                              {dailyData.length > 0
-                                ? dailyData.reduce((sum, day) => sum + day.conversions, 0)
-                                : item.conversions || 0}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
                     </div>
                   ) : (
                     // データがない場合の表示
@@ -719,6 +999,8 @@ export function CreativeDetailModal({
                           videoId={insight?.video_id}
                           platform={item.metrics.instagram_metrics?.publisher_platform}
                           creativeName={item.adName}
+                          adId={item.adId}
+                          accountId={accountId}
                         />
                       </div>
                       <p className="text-xs text-gray-500 text-center mt-4">
@@ -750,6 +1032,7 @@ export function CreativeDetailModal({
                         showChart={true}
                         metricType="spend"
                         chartType="area"
+                        dailyData={dailyData.length > 0 ? dailyData : item.dailyData}
                       />
 
                       <MetricRow
@@ -759,6 +1042,7 @@ export function CreativeDetailModal({
                         showChart={true}
                         metricType="impressions"
                         chartType="area"
+                        dailyData={dailyData.length > 0 ? dailyData : item.dailyData}
                       />
 
                       <MetricRow
@@ -769,6 +1053,7 @@ export function CreativeDetailModal({
                         showChart={true}
                         chartThreshold={3.5}
                         metricType="frequency"
+                        dailyData={dailyData.length > 0 ? dailyData : item.dailyData}
                       />
 
                       <MetricRow
@@ -784,6 +1069,16 @@ export function CreativeDetailModal({
                         showChart={true}
                         metricType="conversions"
                         chartType="line"
+                        dailyData={(() => {
+                          const data = dailyData.length > 0 ? dailyData : item.dailyData
+                          // デバッグ: 最初のデータ確認
+                          if (data && data.length > 0) {
+                            console.log('🎯 Conversion MetricRow - First day data:', data[0])
+                            console.log('🎯 Conversion MetricRow - Total days:', data.length)
+                            console.log('🎯 Conversion MetricRow - Current value:', item.metrics.conversions)
+                          }
+                          return data
+                        })()}
                       />
 
                       <MetricRow
@@ -801,6 +1096,7 @@ export function CreativeDetailModal({
                         showChart={true}
                         metricType="ctr"
                         chartType="line"
+                        dailyData={dailyData.length > 0 ? dailyData : item.dailyData}
                       />
 
                       <MetricRow
@@ -827,6 +1123,7 @@ export function CreativeDetailModal({
                         showChart={true}
                         metricType="cpm"
                         chartType="line"
+                        dailyData={dailyData.length > 0 ? dailyData : item.dailyData}
                       />
 
                       <MetricRow
@@ -2338,6 +2635,253 @@ export function CreativeDetailModal({
                                     )}
                                   </td>
                                 </tr>
+
+                                {/* ===== 品質評価指標（API v23.0） ===== */}
+                                <tr className="bg-gray-100">
+                                  <td
+                                    colSpan={4}
+                                    className="px-4 py-2 font-bold text-sm text-gray-700"
+                                  >
+                                    ⭐ 品質評価指標
+                                    <span className="ml-2 text-xs font-normal text-blue-600">
+                                      (API v23.0 - 2019年4月30日より relevance_score から移行)
+                                    </span>
+                                  </td>
+                                </tr>
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    quality_ranking
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    品質ランキング。広告の品質を他の広告と比較した評価
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">string</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    <span className={`inline-flex px-2 py-1 text-xs rounded-full ${
+                                      insight?.quality_ranking === 'above_average'
+                                        ? 'bg-green-100 text-green-800'
+                                        : insight?.quality_ranking === 'average'
+                                        ? 'bg-yellow-100 text-yellow-800'
+                                        : insight?.quality_ranking === 'below_average'
+                                        ? 'bg-red-100 text-red-800'
+                                        : 'bg-gray-100 text-gray-800'
+                                    }`}>
+                                      {insight?.quality_ranking || 'N/A'}
+                                    </span>
+                                  </td>
+                                </tr>
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    engagement_rate_ranking
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    エンゲージメント率ランキング。いいね、コメント、シェア等の反応率評価
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">string</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    <span className={`inline-flex px-2 py-1 text-xs rounded-full ${
+                                      insight?.engagement_rate_ranking === 'above_average'
+                                        ? 'bg-green-100 text-green-800'
+                                        : insight?.engagement_rate_ranking === 'average'
+                                        ? 'bg-yellow-100 text-yellow-800'
+                                        : insight?.engagement_rate_ranking === 'below_average'
+                                        ? 'bg-red-100 text-red-800'
+                                        : 'bg-gray-100 text-gray-800'
+                                    }`}>
+                                      {insight?.engagement_rate_ranking || 'N/A'}
+                                    </span>
+                                  </td>
+                                </tr>
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    conversion_rate_ranking
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    コンバージョン率ランキング。目標達成率を他の広告と比較した評価
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">string</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    <span className={`inline-flex px-2 py-1 text-xs rounded-full ${
+                                      insight?.conversion_rate_ranking === 'above_average'
+                                        ? 'bg-green-100 text-green-800'
+                                        : insight?.conversion_rate_ranking === 'average'
+                                        ? 'bg-yellow-100 text-yellow-800'
+                                        : insight?.conversion_rate_ranking === 'below_average'
+                                        ? 'bg-red-100 text-red-800'
+                                        : 'bg-gray-100 text-gray-800'
+                                    }`}>
+                                      {insight?.conversion_rate_ranking || 'N/A'}
+                                    </span>
+                                  </td>
+                                </tr>
+
+                                {/* ===== 動画メトリクス（API v23.0） ===== */}
+                                <tr className="bg-gray-100">
+                                  <td
+                                    colSpan={4}
+                                    className="px-4 py-2 font-bold text-sm text-gray-700"
+                                  >
+                                    🎬 動画メトリクス
+                                    <span className="ml-2 text-xs font-normal text-gray-600">
+                                      (動画広告のみ利用可能)
+                                    </span>
+                                  </td>
+                                </tr>
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    video_play_actions
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    動画再生アクション。動画が再生された回数
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">array</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    {insight?.video_play_actions?.[0]?.value || 'N/A'}
+                                  </td>
+                                </tr>
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    video_p25_watched_actions
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    25%視聴完了。動画の25%以上が視聴された回数
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">array</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    {insight?.video_p25_watched_actions?.[0]?.value || 'N/A'}
+                                  </td>
+                                </tr>
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    video_p50_watched_actions
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    50%視聴完了。動画の半分以上が視聴された回数
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">array</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    {insight?.video_p50_watched_actions?.[0]?.value || 'N/A'}
+                                  </td>
+                                </tr>
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    video_p75_watched_actions
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    75%視聴完了。動画の75%以上が視聴された回数
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">array</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    {insight?.video_p75_watched_actions?.[0]?.value || 'N/A'}
+                                  </td>
+                                </tr>
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    video_p100_watched_actions
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    完全視聴。動画が最後まで視聴された回数
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">array</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    {insight?.video_p100_watched_actions?.[0]?.value || 'N/A'}
+                                  </td>
+                                </tr>
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    video_thruplay_watched_actions
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    ThruPlay視聴。15秒以上または全体（短い方）を視聴した回数
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">array</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    {insight?.video_thruplay_watched_actions?.[0]?.value || 'N/A'}
+                                  </td>
+                                </tr>
+
+                                {/* ===== リンククリック詳細（API v23.0） ===== */}
+                                <tr className="bg-gray-100">
+                                  <td
+                                    colSpan={4}
+                                    className="px-4 py-2 font-bold text-sm text-gray-700"
+                                  >
+                                    🔗 リンククリック詳細
+                                  </td>
+                                </tr>
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    inline_link_clicks
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    広告内リンククリック。広告内のリンクがクリックされた総回数
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">number</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    {insight?.inline_link_clicks?.toLocaleString() || 'N/A'}
+                                  </td>
+                                </tr>
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    inline_link_click_ctr
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    広告内リンクCTR。インプレッションに対する広告内リンククリック率
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">number</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    {insight?.inline_link_click_ctr
+                                      ? `${parseFloat(insight.inline_link_click_ctr).toFixed(2)}%`
+                                      : 'N/A'}
+                                  </td>
+                                </tr>
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    unique_inline_link_clicks
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    ユニーク広告内リンククリック。重複を除いたユニークユーザー数
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">number</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    {insight?.unique_inline_link_clicks?.toLocaleString() || 'N/A'}
+                                  </td>
+                                </tr>
+                                <tr className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    outbound_clicks
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    外部クリック。Facebook/Instagram外へのリンククリック数
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">array</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                    {insight?.outbound_clicks?.[0]?.value || 'N/A'}
+                                  </td>
+                                </tr>
+
+                                {/* ===== 廃止されたフィールド ===== */}
+                                <tr className="bg-red-50">
+                                  <td
+                                    colSpan={4}
+                                    className="px-4 py-2 font-bold text-sm text-red-700"
+                                  >
+                                    ⚠️ 廃止されたフィールド
+                                  </td>
+                                </tr>
+                                <tr className="hover:bg-red-50">
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-900 line-through">
+                                    relevance_score
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-600">
+                                    <span className="text-red-600">【廃止】</span> 2019年4月30日に廃止。
+                                    quality_ranking, engagement_rate_ranking, conversion_rate_ranking に置き換え
+                                  </td>
+                                  <td className="px-4 py-2 text-sm text-gray-500">-</td>
+                                  <td className="px-4 py-2 font-mono text-sm text-gray-500">
+                                    廃止済み
+                                  </td>
+                                </tr>
                               </tbody>
                             </table>
 
@@ -2348,16 +2892,16 @@ export function CreativeDetailModal({
                               </h5>
                               <ul className="text-xs text-yellow-700 space-y-1">
                                 <li>
-                                  • <span className="font-mono">video_metrics</span>:
-                                  動画広告の詳細な視聴データ（再生率、完了率など）
+                                  • <span className="font-mono">video_play_actions, video_p25_watched_actions等</span>:
+                                  動画広告の詳細な視聴データ（個別フィールドとして提供）
                                 </li>
                                 <li>
                                   • <span className="font-mono">cost_per_action_type</span>:
                                   アクション毎のコスト分析が可能
                                 </li>
                                 <li>
-                                  • <span className="font-mono">relevance_score</span>:
-                                  広告の関連性スコア（1-10）による品質評価
+                                  • <span className="font-mono">quality_ranking, engagement_rate_ranking, conversion_rate_ranking</span>:
+                                  品質評価指標（relevance_scoreの後継）
                                 </li>
                                 <li>
                                   • <span className="font-mono">website_purchase_roas</span>:
