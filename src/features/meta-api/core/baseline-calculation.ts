@@ -7,7 +7,7 @@ import {
   Platform,
   CalculationConfidence 
 } from './types'
-import { logger } from '../../../modules/shared/utils/logger'
+import { vibe } from '@/lib/vibelogger'
 
 export class BaselineCalculationService {
   constructor(
@@ -28,7 +28,7 @@ export class BaselineCalculationService {
       
       // If data is insufficient, use industry fallback
       if (!validation.isValid || validation.confidence < 0.7) {
-        logger.info(`Using industry fallback for ad ${adId} due to insufficient data`)
+        vibe.info(`Using industry fallback for ad ${adId} due to insufficient data`)
         return await this.createIndustryFallbackBaseline(historicalData[0])
       }
       
@@ -36,7 +36,7 @@ export class BaselineCalculationService {
       return this.calculateFromHistoricalData(historicalData, validation)
       
     } catch (error) {
-      logger.error(`Baseline calculation failed for ad ${adId}:`, error)
+      vibe.error(`Baseline calculation failed for ad ${adId}:`, error)
       throw error
     }
   }
