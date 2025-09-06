@@ -20,6 +20,10 @@ interface CreativeTableTabProps {
   selectedAccountId: string | null
   isLoading: boolean
   accessToken?: string // 追加
+  dateRange?: { // 日付範囲を追加
+    start: Date | string
+    end: Date | string
+  }
 }
 
 /**
@@ -32,37 +36,56 @@ export function CreativeTableTab({
   selectedAccountId,
   isLoading,
   accessToken,
+  dateRange,
 }: CreativeTableTabProps) {
   // クリエイティブタイプを判定する関数
   const getCreativeType = (insight: any): { type: string; icon: any; color: string } => {
     if (!insight) return { type: 'UNKNOWN', icon: DocumentTextIcon, color: 'text-gray-500' }
 
-    // Meta APIのobject_typeから判定（優先）
+    // クリエイティブ名から推測（拡張子やパターンを見る）
+    const adName = insight.ad_name || ''
+    const namePattern = adName.toLowerCase()
+    
+    // 名前から判定
+    if (namePattern.includes('動画') || namePattern.includes('video') || namePattern.includes('ver') || namePattern.includes('.mp4')) {
+      return { type: 'VIDEO', icon: VideoCameraIcon, color: 'text-purple-600' }
+    }
+    if (namePattern.includes('画像') || namePattern.includes('image') || namePattern.includes('.jpg') || namePattern.includes('.png')) {
+      return { type: 'IMAGE', icon: PhotoIcon, color: 'text-blue-600' }
+    }
+    if (namePattern.includes('カルーセル') || namePattern.includes('carousel')) {
+      return { type: 'CAROUSEL', icon: ViewColumnsIcon, color: 'text-green-600' }
+    }
+    
+    // URLベースの判定
+    if (insight.video_url || insight.video_id) {
+      return { type: 'VIDEO', icon: VideoCameraIcon, color: 'text-purple-600' }
+    }
+    if (insight.image_url || insight.thumbnail_url) {
+      return { type: 'IMAGE', icon: PhotoIcon, color: 'text-blue-600' }
+    }
+    
+    // Meta APIのobject_typeから判定
     const objectType =
       insight.creative?.object_type || insight.creative_type || insight.creative_media_type
-    const normalizedType = normalizeCreativeMediaType(objectType)
-
-    // 追加の判定ロジック（フォールバック）
-    if (normalizedType === 'text') {
-      if (insight.video_url || insight.video_id) {
-        return { type: 'VIDEO', icon: VideoCameraIcon, color: 'text-purple-600' }
-      }
-      if (insight.image_url || insight.thumbnail_url) {
-        return { type: 'IMAGE', icon: PhotoIcon, color: 'text-blue-600' }
+    
+    if (objectType) {
+      const normalizedType = normalizeCreativeMediaType(objectType)
+      switch (normalizedType) {
+        case 'video':
+          return { type: 'VIDEO', icon: VideoCameraIcon, color: 'text-purple-600' }
+        case 'image':
+          return { type: 'IMAGE', icon: PhotoIcon, color: 'text-blue-600' }
+        case 'carousel':
+          return { type: 'CAROUSEL', icon: ViewColumnsIcon, color: 'text-green-600' }
+        default:
+          // デフォルトは画像として扱う（多くの広告は画像）
+          return { type: 'IMAGE', icon: PhotoIcon, color: 'text-blue-600' }
       }
     }
 
-    // 正規化された値に基づいて判定
-    switch (normalizedType) {
-      case 'video':
-        return { type: 'VIDEO', icon: VideoCameraIcon, color: 'text-purple-600' }
-      case 'image':
-        return { type: 'IMAGE', icon: PhotoIcon, color: 'text-blue-600' }
-      case 'carousel':
-        return { type: 'CAROUSEL', icon: ViewColumnsIcon, color: 'text-green-600' }
-      default:
-        return { type: 'TEXT', icon: DocumentTextIcon, color: 'text-gray-600' }
-    }
+    // デフォルトは画像（TEXTではなく）
+    return { type: 'IMAGE', icon: PhotoIcon, color: 'text-blue-600' }
   }
 
   // ソート状態管理
@@ -988,6 +1011,7 @@ export function CreativeTableTab({
           }
           accessToken={accessToken}
           accountId={selectedAccountId}
+          dateRange={dateRange} // 日付範囲を渡す
         />
       )}
     </div>

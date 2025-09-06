@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { AggregatedData } from '../utils/aggregation'
 import { ChevronUpIcon, ChevronDownIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
 import { FatigueData } from '@/types'
@@ -10,6 +10,10 @@ interface AggregatedFatigueTableProps {
   insights?: any[] // insightsデータを追加
   accessToken?: string // 認証トークン
   accountId?: string | null // アカウントID
+  dateRange?: { // 日付範囲を追加
+    start: Date | string
+    end: Date | string
+  }
 }
 
 export function AggregatedFatigueTable({
@@ -18,7 +22,11 @@ export function AggregatedFatigueTable({
   insights,
   accessToken,
   accountId,
+  dateRange,
 }: AggregatedFatigueTableProps) {
+  // デバッグ：受け取ったdateRangeを確認
+  console.log('🔍 AggregatedFatigueTable - received dateRange:', dateRange)
+  
   // ソート状態管理
   const [sortField, setSortField] = useState<string>('fatigueScore')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
@@ -26,10 +34,29 @@ export function AggregatedFatigueTable({
   // アコーディオンの展開状態管理
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
 
-  // モーダル状態管理
-  const [selectedItem, setSelectedItem] = useState<FatigueData | null>(null)
-  const [selectedInsight, setSelectedInsight] = useState<any | null>(null)
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  // モーダル状態管理（統合管理方式）
+  const [modalProps, setModalProps] = useState<{
+    item: FatigueData | null
+    insight: any | null
+    dateRange: any | null
+    isOpen: boolean
+  }>({
+    item: null,
+    insight: null,
+    dateRange: null,
+    isOpen: false
+  })
+  
+  // modalPropsが更新されたときにログを出力
+  useEffect(() => {
+    console.log('📊 modalProps updated:', {
+      isOpen: modalProps.isOpen,
+      hasItem: !!modalProps.item,
+      hasInsight: !!modalProps.insight,
+      dateRange: modalProps.dateRange,
+      dateRangeStringified: modalProps.dateRange ? JSON.stringify(modalProps.dateRange) : 'null'
+    })
+  }, [modalProps])
 
   // insightsをマップ化（クリエイティブタブと同じ方式）
   const insightsMap = React.useMemo(() => {
@@ -233,20 +260,46 @@ export function AggregatedFatigueTable({
   // 広告詳細モーダルを開く
   const handleAdClick = (insight: any, event: React.MouseEvent) => {
     event.stopPropagation() // アコーディオンの切り替えを防ぐ
+    
+    // 詳細なデバッグログ
+    console.log('🎯 AggregatedFatigueTable - handleAdClick called:', {
+      currentDateRange: dateRange,
+      dateRangeType: typeof dateRange,
+      dateRangeStringified: JSON.stringify(dateRange),
+      hasStart: dateRange?.start !== undefined,
+      hasEnd: dateRange?.end !== undefined,
+      startValue: dateRange?.start,
+      endValue: dateRange?.end,
+      timestamp: new Date().toISOString()
+    })
+    
     const fatigueData = generateFatigueDataForAd(insight)
-    setSelectedItem(fatigueData)
-
-    // insightsMapから完全なinsightデータを取得（クリエイティブタブと同じ方式）
     const fullInsight = insightsMap.get(insight.ad_id) || insight
-    setSelectedInsight(fullInsight)
-    setIsModalOpen(true)
+    
+    // modalPropsに設定する前の値を確認
+    const newModalProps = {
+      item: fatigueData,
+      insight: fullInsight,
+      dateRange: dateRange,
+      isOpen: true
+    }
+    
+    console.log('📦 Setting modalProps with:', {
+      dateRangeInNewProps: newModalProps.dateRange,
+      stringified: JSON.stringify(newModalProps.dateRange)
+    })
+    
+    setModalProps(newModalProps)
   }
 
   // モーダルを閉じる
   const closeModal = () => {
-    setIsModalOpen(false)
-    setSelectedItem(null)
-    setSelectedInsight(null)
+    setModalProps({
+      item: null,
+      insight: null,
+      dateRange: null,
+      isOpen: false
+    })
   }
 
   return (
@@ -630,14 +683,15 @@ export function AggregatedFatigueTable({
       </table>
 
       {/* 詳細モーダル */}
-      {selectedItem && selectedInsight && (
+      {modalProps.item && modalProps.insight && (
         <CreativeDetailModal
-          isOpen={isModalOpen}
+          isOpen={modalProps.isOpen}
           onClose={closeModal}
-          item={selectedItem}
-          insight={selectedInsight}
+          item={modalProps.item}
+          insight={modalProps.insight}
           accessToken={accessToken}
           accountId={accountId}
+          dateRange={modalProps.dateRange} // modalPropsから取得
         />
       )}
     </div>
