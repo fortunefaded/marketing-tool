@@ -12,6 +12,10 @@ const metaInsightSchema = v.object({
   campaign_id: v.optional(v.string()),
   campaign_name: v.optional(v.string()),
 
+  // 広告セット情報
+  adset_id: v.optional(v.string()),
+  adset_name: v.optional(v.string()),
+
   // 広告情報
   ad_id: v.optional(v.string()),
   ad_name: v.optional(v.string()),

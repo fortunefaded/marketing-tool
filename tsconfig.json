@@ -17,10 +17,25 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@modules/*": ["./src/modules/*"],
+      "@meta/*": ["./src/modules/meta/*"],
+      "@creative/*": ["./src/modules/creative/*"],
+      "@ad-fatigue/*": ["./src/modules/ad-fatigue/*"],
+      "@ecforce/*": ["./src/modules/ecforce/*"],
+      "@storage/*": ["./src/modules/storage/*"],
+      "@shared/*": ["./src/modules/shared/*"]
     },
     "baseUrl": "."
   },
   "include": ["src", "src/**/*.test.ts", "src/**/*.test.tsx"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build",
+    "src/_archived",
+    "src/**/_archived/**",
+    "src_backup_*"
+  ],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

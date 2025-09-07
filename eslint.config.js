@@ -32,6 +32,7 @@ export default [
         // Browser globals
         localStorage: 'readonly',
         sessionStorage: 'readonly',
+        StorageEvent: 'readonly',
         URL: 'readonly',
         URLSearchParams: 'readonly',
         Blob: 'readonly',

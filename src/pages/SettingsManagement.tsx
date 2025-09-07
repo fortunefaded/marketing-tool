@@ -1,5 +1,4 @@
 import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import {
   Cog6ToothIcon,
   CloudArrowUpIcon,
@@ -12,7 +11,6 @@ import {
 import { DataManagement } from '../components/settings/DataManagement'
 
 export const SettingsManagement: React.FC = () => {
-  const navigate = useNavigate()
   const [activeSection, setActiveSection] = useState<string>('api')
 
   const sections = [
@@ -74,10 +72,10 @@ export const SettingsManagement: React.FC = () => {
                   <p className="text-sm text-gray-500 mt-1">Meta広告のデータを取得するための設定</p>
                 </div>
                 <button
-                  onClick={() => navigate('/meta-api-setup')}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
+                  disabled
+                  className="px-4 py-2 bg-gray-300 text-gray-500 rounded-md cursor-not-allowed text-sm font-medium"
                 >
-                  設定を開く
+                  設定済み
                 </button>
               </div>
             </div>
@@ -130,10 +128,10 @@ export const SettingsManagement: React.FC = () => {
                   </p>
                 </div>
                 <button
-                  onClick={() => navigate('/ecforce-import')}
-                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm font-medium"
+                  disabled
+                  className="px-4 py-2 bg-gray-300 text-gray-500 rounded-md cursor-not-allowed text-sm font-medium"
                 >
-                  インポート画面へ
+                  準備中
                 </button>
               </div>
             </div>

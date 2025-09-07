@@ -1,0 +1,17 @@
+api.auditLogs
+api.cache
+api.currentDatePreset
+api.error
+api.fetch
+api.fetchInsightsContinuation
+api.getAdCreatives
+api.getInsights
+api.getTimeSeriesInsights
+api.insights
+api.isLoading
+api.lastFetchTime
+api.metaAccounts
+api.metaInsights
+api.progress
+api.syncSettings
+api.ts

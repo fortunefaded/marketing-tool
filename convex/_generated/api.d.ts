@@ -13,27 +13,14 @@ import type {
   FilterApi,
   FunctionReference,
 } from "convex/server";
-import type * as adFatigue from "../adFatigue.js";
-import type * as adFatigueCalculator from "../adFatigueCalculator.js";
-import type * as analytics from "../analytics.js";
-import type * as campaigns from "../campaigns.js";
-import type * as config_fatigueThresholds from "../config/fatigueThresholds.js";
-import type * as config_thresholdRationale from "../config/thresholdRationale.js";
-import type * as creativeAnalytics from "../creativeAnalytics.js";
-import type * as creativeMetrics from "../creativeMetrics.js";
-import type * as creatives from "../creatives.js";
-import type * as dynamicThresholds from "../dynamicThresholds.js";
-import type * as ecforce from "../ecforce.js";
-import type * as functions_metaSync from "../functions/metaSync.js";
-import type * as functions_realtime from "../functions/realtime.js";
-import type * as instagramValueMetrics from "../instagramValueMetrics.js";
+import type * as apiConfig from "../apiConfig.js";
+import type * as cache_cacheEntries from "../cache/cacheEntries.js";
+import type * as cache_dataFreshness from "../cache/dataFreshness.js";
+import type * as cache_differentialUpdates from "../cache/differentialUpdates.js";
+import type * as metaAccounts from "../metaAccounts.js";
 import type * as metaInsights from "../metaInsights.js";
-import type * as metaSync from "../metaSync.js";
-import type * as reporting_fatigueReport from "../reporting/fatigueReport.js";
-import type * as scheduledFatigueAnalysis from "../scheduledFatigueAnalysis.js";
-import type * as scheduledFunctions from "../scheduledFunctions.js";
-import type * as tasks from "../tasks.js";
-import type * as videoAdMetrics from "../videoAdMetrics.js";
+import type * as syncSettings from "../syncSettings.js";
+import type * as tokens from "../tokens.js";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -44,27 +31,14 @@ import type * as videoAdMetrics from "../videoAdMetrics.js";
  * ```
  */
 declare const fullApi: ApiFromModules<{
-  adFatigue: typeof adFatigue;
-  adFatigueCalculator: typeof adFatigueCalculator;
-  analytics: typeof analytics;
-  campaigns: typeof campaigns;
-  "config/fatigueThresholds": typeof config_fatigueThresholds;
-  "config/thresholdRationale": typeof config_thresholdRationale;
-  creativeAnalytics: typeof creativeAnalytics;
-  creativeMetrics: typeof creativeMetrics;
-  creatives: typeof creatives;
-  dynamicThresholds: typeof dynamicThresholds;
-  ecforce: typeof ecforce;
-  "functions/metaSync": typeof functions_metaSync;
-  "functions/realtime": typeof functions_realtime;
-  instagramValueMetrics: typeof instagramValueMetrics;
+  apiConfig: typeof apiConfig;
+  "cache/cacheEntries": typeof cache_cacheEntries;
+  "cache/dataFreshness": typeof cache_dataFreshness;
+  "cache/differentialUpdates": typeof cache_differentialUpdates;
+  metaAccounts: typeof metaAccounts;
   metaInsights: typeof metaInsights;
-  metaSync: typeof metaSync;
-  "reporting/fatigueReport": typeof reporting_fatigueReport;
-  scheduledFatigueAnalysis: typeof scheduledFatigueAnalysis;
-  scheduledFunctions: typeof scheduledFunctions;
-  tasks: typeof tasks;
-  videoAdMetrics: typeof videoAdMetrics;
+  syncSettings: typeof syncSettings;
+  tokens: typeof tokens;
 }>;
 export declare const api: FilterApi<
   typeof fullApi,
