@@ -27,7 +27,7 @@ export default function MainDashboard() {
   const [filteredData] = useState<any>(null)
   const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null)
   const [dailyDataCache, setDailyDataCache] = useState<Record<string, any>>({}) // 日別データのキャッシュ
-  const [cacheAge] = useState<number>(Infinity) // キャッシュの経過時間
+  const [cacheAge, setCacheAge] = useState<number>(Infinity) // キャッシュの経過時間
 
   // Convexからアカウント情報を取得
   const loadAccountsFromConvex = useCallback(async () => {

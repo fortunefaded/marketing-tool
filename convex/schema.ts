@@ -49,8 +49,7 @@ export default defineSchema({
     lastSync: v.optional(v.number()),
     nextSync: v.optional(v.number()),
     settings: v.optional(v.any()),
-  })
-    .index('by_account', ['accountId']),
+  }).index('by_account', ['accountId']),
 
   // === Cache System ===
   cacheEntries: defineTable({
@@ -58,25 +57,53 @@ export default defineSchema({
     cacheKey: v.string(),
     dateRange: v.string(),
     data: v.any(),
+    dataSize: v.number(),
+    recordCount: v.number(),
+    accessCount: v.number(),
+    lastAccessedAt: v.number(),
+    checksum: v.string(),
+    isComplete: v.boolean(),
+    isCompressed: v.boolean(),
+    fetchTimeMs: v.number(),
+    processTimeMs: v.number(),
     metadata: v.optional(v.any()),
     expiresAt: v.number(),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
-    .index('by_account_and_range', ['accountId', 'dateRange'])
+    .index('by_account', ['accountId'])
+    .index('by_account_range', ['accountId', 'dateRange'])
     .index('by_cache_key', ['cacheKey'])
     .index('by_expiry', ['expiresAt']),
 
   dataFreshness: defineTable({
     accountId: v.string(),
     dateRange: v.string(),
+    startDate: v.string(),
+    endDate: v.string(),
+    freshnessStatus: v.union(
+      v.literal('realtime'),
+      v.literal('neartime'),
+      v.literal('stabilizing'),
+      v.literal('finalized')
+    ),
     lastUpdated: v.number(),
-    freshnessScore: v.number(),
-    status: v.string(),
-    apiCallCount: v.optional(v.number()),
+    nextUpdateAt: v.number(),
+    updatePriority: v.number(),
+    updateCount: v.number(),
+    apiCallsToday: v.number(),
+    apiCallsTotal: v.number(),
+    dataCompleteness: v.number(),
+    lastVerifiedAt: v.number(),
+    lastApiCallAt: v.optional(v.number()),
+    missingDates: v.optional(v.array(v.string())),
+    createdAt: v.number(),
+    updatedAt: v.number(),
   })
-    .index('by_account_and_range', ['accountId', 'dateRange'])
-    .index('by_status', ['status']),
+    .index('by_account', ['accountId'])
+    .index('by_account_range', ['accountId', 'dateRange'])
+    .index('by_next_update', ['nextUpdateAt'])
+    .index('by_status', ['freshnessStatus']),
 
   differentialUpdates: defineTable({
     accountId: v.string(),
@@ -86,12 +113,20 @@ export default defineSchema({
     triggeredBy: v.string(),
     targetDates: v.array(v.string()),
     updatedDates: v.array(v.string()),
+    actualUpdatedDates: v.optional(v.array(v.string())),
     apiCallsSaved: v.number(),
+    apiCallsUsed: v.optional(v.number()),
+    recordsAdded: v.optional(v.number()),
+    recordsUpdated: v.optional(v.number()),
+    recordsDeleted: v.optional(v.number()),
+    durationMs: v.optional(v.number()),
+    reductionRate: v.optional(v.number()),
     startedAt: v.number(),
     completedAt: v.optional(v.number()),
     error: v.optional(v.string()),
   })
-    .index('by_account_and_range', ['accountId', 'dateRange'])
+    .index('by_account', ['accountId'])
+    .index('by_account_range', ['accountId', 'dateRange'])
     .index('by_status', ['status'])
     .index('by_update_id', ['updateId']),
 
@@ -113,6 +148,5 @@ export default defineSchema({
     key: v.string(),
     value: v.any(),
     updatedAt: v.number(),
-  })
-    .index('by_key', ['key']),
+  }).index('by_key', ['key']),
 })
