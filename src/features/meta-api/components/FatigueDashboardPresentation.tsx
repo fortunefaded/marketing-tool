@@ -8,7 +8,7 @@ import { Alert } from './Alert'
 import { DataValidationAlert } from './DataValidationAlert'
 import { MetaAccount, FatigueData } from '@/types'
 import { aggregateByLevel } from '../utils/aggregation'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs.tsx'
 import { useRateLimitStatus } from '../hooks/useRateLimitStatus'
 import { DataLoadingProgress } from './DataLoadingProgress'
 import { DateRangeFilter } from './DateRangeFilter'
@@ -113,29 +113,29 @@ export function FatigueDashboardPresentation({
       console.log('📅 Using custom date range:', customDateRange)
       return customDateRange
     }
-    
+
     // プリセットの場合は日付範囲を計算
     if (dateRange) {
       const today = new Date()
       let calculatedRange = null
-      
-      switch(dateRange) {
+
+      switch (dateRange) {
         case 'last_7d':
           calculatedRange = {
             start: new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000),
-            end: today
+            end: today,
           }
           break
         case 'last_14d':
           calculatedRange = {
             start: new Date(today.getTime() - 14 * 24 * 60 * 60 * 1000),
-            end: today
+            end: today,
           }
           break
         case 'last_30d':
           calculatedRange = {
             start: new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000),
-            end: today
+            end: today,
           }
           break
         case 'last_month':
@@ -143,23 +143,23 @@ export function FatigueDashboardPresentation({
           const now = new Date()
           let year = now.getFullYear()
           let month = now.getMonth() - 1 // 先月の月インデックス（0-based）
-          
+
           // 1月の場合は前年の12月
           if (month < 0) {
             month = 11
             year = year - 1
           }
-          
+
           // 先月の1日 0:00:00（ローカルタイムで設定）
           const lastMonthStart = new Date(year, month, 1, 0, 0, 0, 0)
           // 先月の最終日 23:59:59.999（ローカルタイムで設定）
           const lastMonthEnd = new Date(year, month + 1, 0, 23, 59, 59, 999)
-          
+
           calculatedRange = {
             start: lastMonthStart,
-            end: lastMonthEnd
+            end: lastMonthEnd,
           }
-          
+
           console.log('📅 Last month calculation fixed:', {
             currentDate: now.toLocaleDateString('ja-JP'),
             currentMonth: now.getMonth() + 1,
@@ -170,21 +170,21 @@ export function FatigueDashboardPresentation({
             startFull: lastMonthStart.toLocaleDateString('ja-JP'),
             endFull: lastMonthEnd.toLocaleDateString('ja-JP'),
             startISO: lastMonthStart.toISOString(),
-            endISO: lastMonthEnd.toISOString()
+            endISO: lastMonthEnd.toISOString(),
           })
           break
         case 'last_90d':
           calculatedRange = {
             start: new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000),
-            end: today
+            end: today,
           }
           break
       }
-      
+
       console.log('📅 Calculated date range from preset:', dateRange, calculatedRange)
       return calculatedRange
     }
-    
+
     return null
   }, [dateRange, customDateRange])
 
@@ -535,7 +535,7 @@ export function FatigueDashboardPresentation({
                           console.log('📊 Passing to AggregatedFatigueTable:', {
                             effectiveDateRange,
                             hasEffectiveDateRange: !!effectiveDateRange,
-                            type: typeof effectiveDateRange
+                            type: typeof effectiveDateRange,
                           })
                           return null
                         })()}
@@ -611,7 +611,7 @@ export function FatigueDashboardPresentation({
           </div>
         )}
       </div>
-      
+
       {/* エラーログパネル */}
       <ErrorLogPanel />
     </div>
