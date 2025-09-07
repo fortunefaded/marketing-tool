@@ -6,7 +6,7 @@
 
 import { v } from 'convex/values'
 import { mutation, query } from '../_generated/server'
-import { Doc, Id } from '../_generated/dataModel'
+import { Id } from '../_generated/dataModel'
 
 // ============================================================================
 // CREATE
@@ -178,7 +178,7 @@ export const getByAccountWithDateFilter = query({
     // 日付範囲でデータをフィルタリング
     const endDate = args.endDate || new Date().toISOString().split('T')[0]
     const resultEntries = []
-    
+
     for (const entry of filteredEntries) {
       if (entry.data) {
         if (Array.isArray(entry.data)) {
@@ -189,7 +189,7 @@ export const getByAccountWithDateFilter = query({
             }
             return false
           })
-          
+
           if (filteredData.length > 0) {
             resultEntries.push({
               ...entry,
@@ -246,13 +246,9 @@ export const getStats = query({
       totalRecords,
       avgAccessCount: Math.round(avgAccessCount),
       oldestEntry:
-        validEntries.length > 0
-          ? Math.min(...validEntries.map((e) => e.createdAt))
-          : null,
+        validEntries.length > 0 ? Math.min(...validEntries.map((e) => e.createdAt)) : null,
       newestEntry:
-        validEntries.length > 0
-          ? Math.max(...validEntries.map((e) => e.createdAt))
-          : null,
+        validEntries.length > 0 ? Math.max(...validEntries.map((e) => e.createdAt)) : null,
     }
   },
 })
@@ -345,36 +341,38 @@ export const remove = mutation({
  */
 export const bulkInsert = mutation({
   args: {
-    records: v.array(v.object({
-      accountId: v.string(),
-      cacheKey: v.string(),
-      data: v.any(),
-      expiresAt: v.optional(v.number()),
-    }))
+    records: v.array(
+      v.object({
+        accountId: v.string(),
+        cacheKey: v.string(),
+        data: v.any(),
+        expiresAt: v.optional(v.number()),
+      })
+    ),
   },
   handler: async (ctx, args) => {
     const now = Date.now()
     const insertedIds = []
-    
+
     for (const record of args.records) {
       // 既存のエントリをチェック
       const existing = await ctx.db
         .query('cacheEntries')
         .withIndex('by_cache_key', (q) => q.eq('cacheKey', record.cacheKey))
         .first()
-      
+
       if (existing) {
         // 既存エントリがある場合は更新
         const dataStr = JSON.stringify(record.data)
         const dataSize = dataStr.length * 2
         const checksum = generateChecksum(dataStr)
-        
+
         await ctx.db.patch(existing._id, {
           data: record.data,
           dataSize,
           recordCount: Array.isArray(record.data) ? record.data.length : 1,
           updatedAt: now,
-          expiresAt: record.expiresAt || (now + 365 * 24 * 60 * 60 * 1000), // デフォルト1年
+          expiresAt: record.expiresAt || now + 365 * 24 * 60 * 60 * 1000, // デフォルト1年
           checksum,
         })
         insertedIds.push(existing._id)
@@ -383,7 +381,7 @@ export const bulkInsert = mutation({
         const dataStr = JSON.stringify(record.data)
         const dataSize = dataStr.length * 2 // UTF-16として概算
         const checksum = generateChecksum(dataStr)
-        
+
         // 新規作成
         const entryId = await ctx.db.insert('cacheEntries', {
           cacheKey: record.cacheKey,
@@ -394,7 +392,7 @@ export const bulkInsert = mutation({
           recordCount: Array.isArray(record.data) ? record.data.length : 1,
           createdAt: now,
           updatedAt: now,
-          expiresAt: record.expiresAt || (now + 365 * 24 * 60 * 60 * 1000), // デフォルト1年
+          expiresAt: record.expiresAt || now + 365 * 24 * 60 * 60 * 1000, // デフォルト1年
           accessCount: 0,
           lastAccessedAt: now,
           checksum,
@@ -406,7 +404,7 @@ export const bulkInsert = mutation({
         insertedIds.push(entryId)
       }
     }
-    
+
     return {
       insertedCount: insertedIds.length,
       insertedIds,
