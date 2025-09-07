@@ -289,6 +289,266 @@ class MetaAPIIntegrationTester {
 }
 
 // メイン実行
+// Meta API Actions データ取得の詳細テストスクリプト
+import axios from 'axios'
+import dotenv from 'dotenv'
+
+dotenv.config()
+
+// 環境変数から設定を読み込み
+const config = {
+  accessToken: process.env.META_ACCESS_TOKEN || '',
+  accountId: process.env.META_ACCOUNT_ID || '',
+  apiVersion: process.env.META_API_VERSION || 'v23.0'
+}
+
+// Meta API の基本URL
+const BASE_URL = `https://graph.facebook.com/${config.apiVersion}`
+
+// デバッグ用のログを色付きで出力
+const log = {
+  info: (msg: string, data?: any) => {
+    console.log('\x1b[36m%s\x1b[0m', `ℹ️  ${msg}`)
+    if (data) console.log(JSON.stringify(data, null, 2))
+  },
+  success: (msg: string, data?: any) => {
+    console.log('\x1b[32m%s\x1b[0m', `✅ ${msg}`)
+    if (data) console.log(JSON.stringify(data, null, 2))
+  },
+  error: (msg: string, data?: any) => {
+    console.log('\x1b[31m%s\x1b[0m', `❌ ${msg}`)
+    if (data) console.log(JSON.stringify(data, null, 2))
+  },
+  warning: (msg: string, data?: any) => {
+    console.log('\x1b[33m%s\x1b[0m', `⚠️  ${msg}`)
+    if (data) console.log(JSON.stringify(data, null, 2))
+  }
+}
+
+// テスト 1: 最小限のフィールドで actions データを取得
+async function testMinimalActionsRequest() {
+  log.info('===== テスト 1: 最小限のフィールドで actions データを取得 =====')
+  
+  const endpoint = `${BASE_URL}/act_${config.accountId}/insights`
+  const params = {
+    access_token: config.accessToken,
+    fields: 'actions,impressions,spend',
+    date_preset: 'last_7d',
+    level: 'ad',
+    limit: 1
+  }
+  
+  try {
+    const response = await axios.get(endpoint, { params })
+    const data = response.data.data[0]
+    
+    if (data?.actions) {
+      log.success('Actions データが取得できました！', {
+        actions_count: data.actions.length,
+        action_types: data.actions.map((a: any) => a.action_type),
+        sample_action: data.actions[0]
+      })
+    } else {
+      log.warning('Actions フィールドが空です', data)
+    }
+    
+    return data
+  } catch (error: any) {
+    log.error('リクエストが失敗しました', error.response?.data || error.message)
+    return null
+  }
+}
+
+// テスト 2: アトリビューション設定を追加
+async function testWithAttributionSettings() {
+  log.info('===== テスト 2: アトリビューション設定を追加 =====')
+  
+  const endpoint = `${BASE_URL}/act_${config.accountId}/insights`
+  const params = {
+    access_token: config.accessToken,
+    fields: 'actions,action_values,cost_per_action_type,impressions,spend',
+    date_preset: 'last_7d',
+    level: 'ad',
+    limit: 1,
+    use_unified_attribution_setting: true,
+    action_attribution_windows: ['1d_click', '7d_click', '1d_view', '7d_view'].join(','),
+    action_breakdowns: 'action_type'
+  }
+  
+  try {
+    const response = await axios.get(endpoint, { params })
+    const data = response.data.data[0]
+    
+    if (data?.actions) {
+      log.success('アトリビューション設定でActions データが取得できました！', {
+        actions_count: data.actions.length,
+        has_action_values: !!data.action_values,
+        has_cost_per_action: !!data.cost_per_action_type,
+        action_types: data.actions.map((a: any) => a.action_type)
+      })
+    } else {
+      log.warning('アトリビューション設定でもActions フィールドが空です', data)
+    }
+    
+    return data
+  } catch (error: any) {
+    log.error('リクエストが失敗しました', error.response?.data || error.message)
+    return null
+  }
+}
+
+// テスト 3: Instagram 特有のアクションを取得
+async function testInstagramActions() {
+  log.info('===== テスト 3: Instagram 特有のアクションを取得 =====')
+  
+  const endpoint = `${BASE_URL}/act_${config.accountId}/insights`
+  const params = {
+    access_token: config.accessToken,
+    fields: 'actions,impressions,spend,publisher_platform',
+    date_preset: 'last_7d',
+    level: 'ad',
+    limit: 10,
+    breakdowns: 'publisher_platform',
+    use_unified_attribution_setting: true,
+    action_attribution_windows: ['1d_click', '7d_click', '1d_view', '7d_view'].join(','),
+    action_breakdowns: 'action_type'
+  }
+  
+  try {
+    const response = await axios.get(endpoint, { params })
+    const instagramData = response.data.data.filter((d: any) => d.publisher_platform === 'instagram')
+    
+    if (instagramData.length > 0) {
+      const data = instagramData[0]
+      if (data?.actions) {
+        const instagramActions = ['like', 'comment', 'post_save', 'post', 'page_engagement', 'post_engagement']
+        const foundActions = data.actions.filter((a: any) => 
+          instagramActions.includes(a.action_type)
+        )
+        
+        log.success('Instagram Actions が見つかりました！', {
+          instagram_actions: foundActions,
+          all_action_types: data.actions.map((a: any) => a.action_type)
+        })
+      } else {
+        log.warning('Instagram データでもActions フィールドが空です', data)
+      }
+    } else {
+      log.warning('Instagram プラットフォームのデータがありません')
+    }
+    
+    return instagramData
+  } catch (error: any) {
+    log.error('リクエストが失敗しました', error.response?.data || error.message)
+    return null
+  }
+}
+
+// テスト 4: 広告アカウントのアトリビューション設定を確認
+async function checkAccountAttributionSettings() {
+  log.info('===== テスト 4: 広告アカウントのアトリビューション設定を確認 =====')
+  
+  const endpoint = `${BASE_URL}/act_${config.accountId}`
+  const params = {
+    access_token: config.accessToken,
+    fields: 'name,account_status,attribution_spec,promoted_object,is_attribution_spec_system_default'
+  }
+  
+  try {
+    const response = await axios.get(endpoint, { params })
+    log.success('アカウント設定:', response.data)
+    return response.data
+  } catch (error: any) {
+    log.error('アカウント情報の取得に失敗しました', error.response?.data || error.message)
+    return null
+  }
+}
+
+// メイン実行関数
+export async function testMetaActionsData() {
+  console.log('========================================')
+  console.log('Meta API Actions データ取得 デバッグテスト')
+  console.log('========================================\n')
+  
+  // 設定の確認
+  if (!config.accessToken || !config.accountId) {
+    log.error('環境変数が設定されていません。.env ファイルを確認してください。')
+    return
+  }
+  
+  log.info('テスト設定:', {
+    accountId: config.accountId,
+    apiVersion: config.apiVersion
+  })
+  
+  console.log('\n')
+  
+  // 各テストを順番に実行
+  const results: any = {}
+  
+  results.minimal = await testMinimalActionsRequest()
+  console.log('\n')
+  
+  results.attribution = await testWithAttributionSettings()
+  console.log('\n')
+  
+  results.instagram = await testInstagramActions()
+  console.log('\n')
+  
+  results.accountSettings = await checkAccountAttributionSettings()
+  console.log('\n')
+  
+  // サマリー
+  console.log('========================================')
+  console.log('テスト結果サマリー')
+  console.log('========================================\n')
+  
+  const summary = {
+    has_actions_minimal: !!results.minimal?.actions,
+    has_actions_with_attribution: !!results.attribution?.actions,
+    has_instagram_actions: !!results.instagram?.[0]?.actions,
+    account_has_attribution_spec: !!results.accountSettings?.attribution_spec,
+    action_types_found: [
+      ...(results.minimal?.actions?.map((a: any) => a.action_type) || []),
+      ...(results.attribution?.actions?.map((a: any) => a.action_type) || []),
+      ...(results.instagram?.[0]?.actions?.map((a: any) => a.action_type) || [])
+    ].filter((v, i, a) => a.indexOf(v) === i) // unique
+  }
+  
+  log.info('最終サマリー:', summary)
+  
+  // 推奨事項
+  console.log('\n========================================')
+  console.log('推奨される次のステップ')
+  console.log('========================================\n')
+  
+  if (!summary.has_actions_minimal && !summary.has_actions_with_attribution) {
+    log.warning('Actions データが取得できていません。以下を確認してください：')
+    console.log('1. Meta Business Manager でピクセルまたはコンバージョンAPIが正しく設定されているか')
+    console.log('2. 広告が実際にアクションを生成しているか（Ads Manager UIで確認）')
+    console.log('3. アカウントに必要な権限（ads_management）があるか')
+    console.log('4. 選択した期間内にデータが存在するか')
+  } else {
+    log.success('Actions データは取得できています！')
+    console.log('取得できたアクションタイプ:', summary.action_types_found.join(', '))
+  }
+  
+  if (!summary.account_has_attribution_spec) {
+    log.warning('アカウントレベルのアトリビューション設定が未設定の可能性があります')
+    console.log('Meta Business Manager でアトリビューション設定を確認してください')
+  }
+  
+  return summary
+}
+
+// スクリプトとして直接実行された場合
+if (require.main === module) {
+  testMetaActionsData().catch(error => {
+    log.error('テストの実行中にエラーが発生しました:', error)
+    process.exit(1)
+  })
+}
+
 async function main() {
   const config = {
     appId: process.env.VITE_META_APP_ID || '',
@@ -299,6 +559,267 @@ async function main() {
 
   const tester = new MetaAPIIntegrationTester(config)
   await tester.run()
+}
+
+
+// Meta API Actions データ取得の詳細テストスクリプト
+import axios from 'axios'
+import dotenv from 'dotenv'
+
+dotenv.config()
+
+// 環境変数から設定を読み込み
+const config = {
+  accessToken: process.env.META_ACCESS_TOKEN || '',
+  accountId: process.env.META_ACCOUNT_ID || '',
+  apiVersion: process.env.META_API_VERSION || 'v23.0'
+}
+
+// Meta API の基本URL
+const BASE_URL = `https://graph.facebook.com/${config.apiVersion}`
+
+// デバッグ用のログを色付きで出力
+const log = {
+  info: (msg: string, data?: any) => {
+    console.log('\x1b[36m%s\x1b[0m', `ℹ️  ${msg}`)
+    if (data) console.log(JSON.stringify(data, null, 2))
+  },
+  success: (msg: string, data?: any) => {
+    console.log('\x1b[32m%s\x1b[0m', `✅ ${msg}`)
+    if (data) console.log(JSON.stringify(data, null, 2))
+  },
+  error: (msg: string, data?: any) => {
+    console.log('\x1b[31m%s\x1b[0m', `❌ ${msg}`)
+    if (data) console.log(JSON.stringify(data, null, 2))
+  },
+  warning: (msg: string, data?: any) => {
+    console.log('\x1b[33m%s\x1b[0m', `⚠️  ${msg}`)
+    if (data) console.log(JSON.stringify(data, null, 2))
+  }
+}
+
+// テスト 1: 最小限のフィールドで actions データを取得
+async function testMinimalActionsRequest() {
+  log.info('===== テスト 1: 最小限のフィールドで actions データを取得 =====')
+  
+  const endpoint = `${BASE_URL}/act_${config.accountId}/insights`
+  const params = {
+    access_token: config.accessToken,
+    fields: 'actions,impressions,spend',
+    date_preset: 'last_7d',
+    level: 'ad',
+    limit: 1
+  }
+  
+  try {
+    const response = await axios.get(endpoint, { params })
+    const data = response.data.data[0]
+    
+    if (data?.actions) {
+      log.success('Actions データが取得できました！', {
+        actions_count: data.actions.length,
+        action_types: data.actions.map((a: any) => a.action_type),
+        sample_action: data.actions[0]
+      })
+    } else {
+      log.warning('Actions フィールドが空です', data)
+    }
+    
+    return data
+  } catch (error: any) {
+    log.error('リクエストが失敗しました', error.response?.data || error.message)
+    return null
+  }
+}
+
+// テスト 2: アトリビューション設定を追加
+async function testWithAttributionSettings() {
+  log.info('===== テスト 2: アトリビューション設定を追加 =====')
+  
+  const endpoint = `${BASE_URL}/act_${config.accountId}/insights`
+  const params = {
+    access_token: config.accessToken,
+    fields: 'actions,action_values,cost_per_action_type,impressions,spend',
+    date_preset: 'last_7d',
+    level: 'ad',
+    limit: 1,
+    use_unified_attribution_setting: true,
+    action_attribution_windows: ['1d_click', '7d_click', '1d_view', '7d_view'].join(','),
+    action_breakdowns: 'action_type'
+  }
+  
+  try {
+    const response = await axios.get(endpoint, { params })
+    const data = response.data.data[0]
+    
+    if (data?.actions) {
+      log.success('アトリビューション設定でActions データが取得できました！', {
+        actions_count: data.actions.length,
+        has_action_values: !!data.action_values,
+        has_cost_per_action: !!data.cost_per_action_type,
+        action_types: data.actions.map((a: any) => a.action_type)
+      })
+    } else {
+      log.warning('アトリビューション設定でもActions フィールドが空です', data)
+    }
+    
+    return data
+  } catch (error: any) {
+    log.error('リクエストが失敗しました', error.response?.data || error.message)
+    return null
+  }
+}
+
+// テスト 3: Instagram 特有のアクションを取得
+async function testInstagramActions() {
+  log.info('===== テスト 3: Instagram 特有のアクションを取得 =====')
+  
+  const endpoint = `${BASE_URL}/act_${config.accountId}/insights`
+  const params = {
+    access_token: config.accessToken,
+    fields: 'actions,impressions,spend,publisher_platform',
+    date_preset: 'last_7d',
+    level: 'ad',
+    limit: 10,
+    breakdowns: 'publisher_platform',
+    use_unified_attribution_setting: true,
+    action_attribution_windows: ['1d_click', '7d_click', '1d_view', '7d_view'].join(','),
+    action_breakdowns: 'action_type'
+  }
+  
+  try {
+    const response = await axios.get(endpoint, { params })
+    const instagramData = response.data.data.filter((d: any) => d.publisher_platform === 'instagram')
+    
+    if (instagramData.length > 0) {
+      const data = instagramData[0]
+      if (data?.actions) {
+        const instagramActions = ['like', 'comment', 'post_save', 'post', 'page_engagement', 'post_engagement']
+        const foundActions = data.actions.filter((a: any) => 
+          instagramActions.includes(a.action_type)
+        )
+        
+        log.success('Instagram Actions が見つかりました！', {
+          instagram_actions: foundActions,
+          all_action_types: data.actions.map((a: any) => a.action_type)
+        })
+      } else {
+        log.warning('Instagram データでもActions フィールドが空です', data)
+      }
+    } else {
+      log.warning('Instagram プラットフォームのデータがありません')
+    }
+    
+    return instagramData
+  } catch (error: any) {
+    log.error('リクエストが失敗しました', error.response?.data || error.message)
+    return null
+  }
+}
+
+// テスト 4: 広告アカウントのアトリビューション設定を確認
+async function checkAccountAttributionSettings() {
+  log.info('===== テスト 4: 広告アカウントのアトリビューション設定を確認 =====')
+  
+  const endpoint = `${BASE_URL}/act_${config.accountId}`
+  const params = {
+    access_token: config.accessToken,
+    fields: 'name,account_status,attribution_spec,promoted_object,is_attribution_spec_system_default'
+  }
+  
+  try {
+    const response = await axios.get(endpoint, { params })
+    log.success('アカウント設定:', response.data)
+    return response.data
+  } catch (error: any) {
+    log.error('アカウント情報の取得に失敗しました', error.response?.data || error.message)
+    return null
+  }
+}
+
+// メイン実行関数
+export async function testMetaActionsData() {
+  console.log('========================================')
+  console.log('Meta API Actions データ取得 デバッグテスト')
+  console.log('========================================\n')
+  
+  // 設定の確認
+  if (!config.accessToken || !config.accountId) {
+    log.error('環境変数が設定されていません。.env ファイルを確認してください。')
+    return
+  }
+  
+  log.info('テスト設定:', {
+    accountId: config.accountId,
+    apiVersion: config.apiVersion
+  })
+  
+  console.log('\n')
+  
+  // 各テストを順番に実行
+  const results: any = {}
+  
+  results.minimal = await testMinimalActionsRequest()
+  console.log('\n')
+  
+  results.attribution = await testWithAttributionSettings()
+  console.log('\n')
+  
+  results.instagram = await testInstagramActions()
+  console.log('\n')
+  
+  results.accountSettings = await checkAccountAttributionSettings()
+  console.log('\n')
+  
+  // サマリー
+  console.log('========================================')
+  console.log('テスト結果サマリー')
+  console.log('========================================\n')
+  
+  const summary = {
+    has_actions_minimal: !!results.minimal?.actions,
+    has_actions_with_attribution: !!results.attribution?.actions,
+    has_instagram_actions: !!results.instagram?.[0]?.actions,
+    account_has_attribution_spec: !!results.accountSettings?.attribution_spec,
+    action_types_found: [
+      ...(results.minimal?.actions?.map((a: any) => a.action_type) || []),
+      ...(results.attribution?.actions?.map((a: any) => a.action_type) || []),
+      ...(results.instagram?.[0]?.actions?.map((a: any) => a.action_type) || [])
+    ].filter((v, i, a) => a.indexOf(v) === i) // unique
+  }
+  
+  log.info('最終サマリー:', summary)
+  
+  // 推奨事項
+  console.log('\n========================================')
+  console.log('推奨される次のステップ')
+  console.log('========================================\n')
+  
+  if (!summary.has_actions_minimal && !summary.has_actions_with_attribution) {
+    log.warning('Actions データが取得できていません。以下を確認してください：')
+    console.log('1. Meta Business Manager でピクセルまたはコンバージョンAPIが正しく設定されているか')
+    console.log('2. 広告が実際にアクションを生成しているか（Ads Manager UIで確認）')
+    console.log('3. アカウントに必要な権限（ads_management）があるか')
+    console.log('4. 選択した期間内にデータが存在するか')
+  } else {
+    log.success('Actions データは取得できています！')
+    console.log('取得できたアクションタイプ:', summary.action_types_found.join(', '))
+  }
+  
+  if (!summary.account_has_attribution_spec) {
+    log.warning('アカウントレベルのアトリビューション設定が未設定の可能性があります')
+    console.log('Meta Business Manager でアトリビューション設定を確認してください')
+  }
+  
+  return summary
+}
+
+// スクリプトとして直接実行された場合
+if (require.main === module) {
+  testMetaActionsData().catch(error => {
+    log.error('テストの実行中にエラーが発生しました:', error)
+    process.exit(1)
+  })
 }
 
 // エラーハンドリング

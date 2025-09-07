@@ -1,29 +1,13 @@
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom'
 import { ConvexProvider, ConvexReactClient } from 'convex/react'
 import { useEffect } from 'react'
-import { UnifiedDashboard } from './pages/UnifiedDashboard'
-import Campaigns from './routes/Campaigns'
-import Tasks from './routes/Tasks'
-import CategoryAnalysis from './routes/CategoryAnalysis'
-import DetailAnalysis from './routes/DetailAnalysis'
-import PeriodAnalysis from './routes/PeriodAnalysis'
-import { MetaDashboardReal } from './pages/MetaDashboardReal'
-import { MetaApiSetupSteps } from './pages/MetaApiSetupSteps'
-import { ConnectStep } from './pages/meta-setup/ConnectStep'
-import { PermissionsStep } from './pages/meta-setup/PermissionsStep'
-import { TestStep } from './pages/meta-setup/TestStep'
-import { CompleteStep } from './pages/meta-setup/CompleteStep'
-import { ECForceImporter } from './components/ecforce/ECForceImporter'
-import { ECForceContainer } from './pages/ECForceContainer'
-import { IntegratedDashboard } from './pages/IntegratedDashboard'
-import { ReportManagement } from './pages/ReportManagement'
+import { ErrorBoundary } from './components/ErrorBoundary'
+import { ConvexUsageTracker } from './utils/convex-usage-tracker'
+import MainDashboard from './pages/MainDashboard'
 import { SettingsManagement } from './pages/SettingsManagement'
-import { FatigueDashboard } from './components/AdFatigue/FatigueDashboard'
-import { FatigueEducation } from './pages/FatigueEducation'
 import Sidebar from './components/Sidebar'
 import Header from './components/Header'
-import { vibe } from './lib/vibelogger'
-import { setupTestAccount } from './services/testAccountSetup'
+import { vibe } from './utils/vibelogger'
 
 // Convex URLのフォールバック処理を追加
 const convexUrl = import.meta.env.VITE_CONVEX_URL || 'https://temporary-convex-url.convex.cloud'
@@ -34,6 +18,22 @@ vibe.info('アプリケーション初期化', {
   mode: import.meta.env.MODE,
   convexUrl: convexUrl ? '接続先設定済み' : '未設定',
 })
+
+// 開発環境でConvex使用量トラッカーを初期化
+if (import.meta.env.DEV && typeof window !== 'undefined') {
+  const tracker = new ConvexUsageTracker(convex)
+  tracker.start()
+
+  // グローバルに公開（デバッグ用）
+  ;(window as any).convexTracker = tracker
+
+  console.log('💡 Convex使用量トラッカーが有効です')
+  console.log('   コンソールで以下のコマンドが使用可能:')
+  console.log('   - convexTracker.printStats() : 統計を表示')
+  console.log('   - convexTracker.exportLogs() : ログをエクスポート')
+  console.log('   - convexTracker.reset()      : 統計をリセット')
+  console.log('   - convexTracker.stop()       : トラッキング停止')
+}
 
 function RouteLogger() {
   const location = useLocation()
@@ -54,51 +54,8 @@ function AppContent() {
         <main className="flex-1 overflow-auto">
           <RouteLogger />
           <Routes>
-            <Route path="/" element={<UnifiedDashboard />} />
-            <Route path="/meta-dashboard" element={<MetaDashboardReal />} />
-            <Route path="/meta-api-setup" element={<MetaApiSetupSteps />}>
-              <Route index element={<ConnectStep />} />
-              <Route path="connect" element={<ConnectStep />} />
-              <Route path="permissions" element={<PermissionsStep />} />
-              <Route path="test" element={<TestStep />} />
-              <Route path="complete" element={<CompleteStep />} />
-            </Route>
-            <Route path="/ecforce-import" element={<ECForceImporter />} />
-            <Route path="/ecforce" element={<ECForceContainer />} />
-            <Route path="/integrated-dashboard" element={<IntegratedDashboard />} />
-            <Route path="/campaigns" element={<Campaigns />} />
-            <Route path="/tasks" element={<Tasks />} />
-            <Route path="/category-analysis" element={<CategoryAnalysis />} />
-            <Route path="/details" element={<DetailAnalysis />} />
-            <Route path="/period" element={<PeriodAnalysis />} />
-            <Route path="/reports" element={<ReportManagement />} />
+            <Route path="/" element={<MainDashboard />} />
             <Route path="/settings" element={<SettingsManagement />} />
-            <Route path="/ad-fatigue" element={<FatigueDashboard accountId="test-account-001" />} />
-            <Route path="/fatigue-education" element={<FatigueEducation />} />
-            <Route
-              path="/media"
-              element={
-                <div className="p-6">
-                  <h1 className="text-2xl font-bold">メディア</h1>
-                </div>
-              }
-            />
-            <Route
-              path="/conversion"
-              element={
-                <div className="p-6">
-                  <h1 className="text-2xl font-bold">コンバージョン</h1>
-                </div>
-              }
-            />
-            <Route
-              path="/attribution"
-              element={
-                <div className="p-6">
-                  <h1 className="text-2xl font-bold">アトリビューション</h1>
-                </div>
-              }
-            />
             <Route
               path="*"
               element={
@@ -116,23 +73,14 @@ function AppContent() {
 }
 
 function App() {
-  useEffect(() => {
-    // 開発環境でテストアカウントをセットアップ
-    if (import.meta.env.DEV) {
-      setupTestAccount()
-        .then((account) => {
-          console.log('Test account setup completed:', account)
-        })
-        .catch(console.error)
-    }
-  }, [])
-
   return (
-    <ConvexProvider client={convex}>
-      <Router>
-        <AppContent />
-      </Router>
-    </ConvexProvider>
+    <ErrorBoundary>
+      <ConvexProvider client={convex}>
+        <Router>
+          <AppContent />
+        </Router>
+      </ConvexProvider>
+    </ErrorBoundary>
   )
 }
 
