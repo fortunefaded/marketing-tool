@@ -4,40 +4,60 @@ import { mutation, query } from './_generated/server'
 // API設定の取得
 export const getConfig = query({
   args: {
-    provider: v.string(), // 'meta', 'google', etc.
+    key: v.string(), // 設定のキー
   },
   handler: async (ctx, args) => {
-    return await ctx.db
+    const config = await ctx.db
       .query('apiConfig')
-      .withIndex('by_provider', (q) => q.eq('provider', args.provider))
+      .withIndex('by_key', (q) => q.eq('key', args.key))
       .first()
+    
+    return config ? config.value : null
+  },
+})
+
+// 複数のAPI設定を取得
+export const getConfigs = query({
+  args: {
+    keys: v.optional(v.array(v.string())),
+  },
+  handler: async (ctx, args) => {
+    let configs = ctx.db.query('apiConfig')
+    
+    const results = await configs.collect()
+    
+    if (args.keys) {
+      return results.filter(config => args.keys?.includes(config.key))
+    }
+    
+    return results
   },
 })
 
 // API設定の保存
 export const saveConfig = mutation({
   args: {
-    provider: v.string(),
-    config: v.any(),
+    key: v.string(),
+    value: v.any(),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
       .query('apiConfig')
-      .withIndex('by_provider', (q) => q.eq('provider', args.provider))
+      .withIndex('by_key', (q) => q.eq('key', args.key))
       .first()
 
     const data = {
-      provider: args.provider,
-      config: args.config,
-      updatedAt: new Date().toISOString(),
+      key: args.key,
+      value: args.value,
+      updatedAt: Date.now(),
     }
 
     if (existing) {
       await ctx.db.patch(existing._id, data)
-      return { action: 'updated' }
+      return { action: 'updated', key: args.key }
     } else {
       await ctx.db.insert('apiConfig', data)
-      return { action: 'created' }
+      return { action: 'created', key: args.key }
     }
   },
 })
@@ -45,78 +65,83 @@ export const saveConfig = mutation({
 // API設定の削除
 export const deleteConfig = mutation({
   args: {
-    provider: v.string(),
+    key: v.string(),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
       .query('apiConfig')
-      .withIndex('by_provider', (q) => q.eq('provider', args.provider))
+      .withIndex('by_key', (q) => q.eq('key', args.key))
       .first()
 
     if (existing) {
       await ctx.db.delete(existing._id)
-      return { deleted: true }
+      return { action: 'deleted', key: args.key }
     }
 
-    return { deleted: false }
+    return { action: 'not_found', key: args.key }
   },
 })
 
-// すべてのAPI設定を取得
-export const getAllConfigs = query({
-  args: {},
+// すべてのAPI設定をクリア
+export const clearAllConfigs = mutation({
   handler: async (ctx) => {
-    return await ctx.db.query('apiConfig').collect()
-  },
-})
-
-// Meta API設定の取得（便利メソッド）
-export const getMetaConfig = query({
-  args: {},
-  handler: async (ctx) => {
-    const config = await ctx.db
-      .query('apiConfig')
-      .withIndex('by_provider', (q) => q.eq('provider', 'meta'))
-      .first()
+    const configs = await ctx.db.query('apiConfig').collect()
     
-    return config?.config || null
+    for (const config of configs) {
+      await ctx.db.delete(config._id)
+    }
+    
+    return { action: 'cleared', count: configs.length }
   },
 })
 
-// Meta API設定の保存（便利メソッド）
-export const saveMetaConfig = mutation({
+// API設定の存在確認
+export const hasConfig = query({
   args: {
-    appId: v.optional(v.string()),
-    appSecret: v.optional(v.string()),
-    adAccountId: v.optional(v.string()),
-    accessToken: v.optional(v.string()),
-    apiVersion: v.optional(v.string()),
-    debugMode: v.optional(v.boolean()),
+    key: v.string(),
   },
   handler: async (ctx, args) => {
-    const existing = await ctx.db
+    const config = await ctx.db
       .query('apiConfig')
-      .withIndex('by_provider', (q) => q.eq('provider', 'meta'))
+      .withIndex('by_key', (q) => q.eq('key', args.key))
       .first()
+    
+    return config !== null
+  },
+})
 
-    const currentConfig = existing?.config || {}
-    const updatedConfig = {
-      ...currentConfig,
-      ...args,
-    }
+// バッチ保存
+export const batchSaveConfigs = mutation({
+  args: {
+    configs: v.array(v.object({
+      key: v.string(),
+      value: v.any(),
+    })),
+  },
+  handler: async (ctx, args) => {
+    const results = []
+    
+    for (const config of args.configs) {
+      const existing = await ctx.db
+        .query('apiConfig')
+        .withIndex('by_key', (q) => q.eq('key', config.key))
+        .first()
 
-    const data = {
-      provider: 'meta',
-      config: updatedConfig,
-      updatedAt: new Date().toISOString(),
-    }
+      const data = {
+        key: config.key,
+        value: config.value,
+        updatedAt: Date.now(),
+      }
 
-    if (existing) {
-      await ctx.db.patch(existing._id, data)
-      return { action: 'updated' }
-    } else {
-      await ctx.db.insert('apiConfig', data)
-      return { action: 'created' }
+      if (existing) {
+        await ctx.db.patch(existing._id, data)
+        results.push({ action: 'updated', key: config.key })
+      } else {
+        await ctx.db.insert('apiConfig', data)
+        results.push({ action: 'created', key: config.key })
+      }
     }
+    
+    return results
   },
 })
