@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useConvex } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import { FatigueDashboardPresentation } from '../features/meta-api/components/FatigueDashboardPresentation'
@@ -9,8 +9,6 @@ import {
   saveCachedData,
   getCachedData,
   clearCachedData,
-  saveDateRange,
-  getDateRange,
 } from '@/utils/localStorage'
 
 export default function MainDashboard() {
@@ -18,7 +16,7 @@ export default function MainDashboard() {
   const [data, setData] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const fetchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [accounts, setAccounts] = useState<MetaAccount[]>([])
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
   const [isLoadingAccounts, setIsLoadingAccounts] = useState(true)
@@ -26,10 +24,10 @@ export default function MainDashboard() {
     'last_7d' | 'last_14d' | 'last_30d' | 'last_month' | 'last_90d' | 'all' | 'custom'
   >('last_7d')
   const [customDateRange, setCustomDateRange] = useState<{ start: Date; end: Date } | null>(null)
-  const [filteredData, setFilteredData] = useState<any>(null)
+  const [filteredData] = useState<any>(null)
   const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null)
   const [dailyDataCache, setDailyDataCache] = useState<Record<string, any>>({}) // 日別データのキャッシュ
-  const [cacheAge, setCacheAge] = useState<number>(Infinity) // キャッシュの経過時間
+  const [cacheAge] = useState<number>(Infinity) // キャッシュの経過時間
 
   // Convexからアカウント情報を取得
   const loadAccountsFromConvex = useCallback(async () => {
@@ -49,7 +47,7 @@ export default function MainDashboard() {
       // MetaAccount型に変換
       const formattedAccounts: MetaAccount[] = convexAccounts.map((acc: any) => ({
         accountId: acc.accountId,
-        accountName: acc.accountName,
+        name: acc.accountName || acc.name || 'Unknown Account',
         accessToken: acc.accessToken,
         isActive: acc.isActive || false,
       }))
