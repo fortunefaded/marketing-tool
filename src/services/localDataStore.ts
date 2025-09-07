@@ -1,7 +1,29 @@
 import Dexie, { Table } from 'dexie'
-import { EnhancedCreativeData } from './creativeDataAggregator'
 import { MetaInsightsData } from '@/types'
 import { logger } from '../utils/logger'
+
+// EnhancedCreativeDataの型定義をインライン化（creativeDataAggregatorは削除済み）
+interface EnhancedCreativeData {
+  id: string
+  name: string
+  campaignId?: string
+  campaignName?: string
+  adId?: string
+  adName?: string
+  metrics: {
+    impressions: number
+    clicks: number
+    spend: number
+    reach?: number
+    frequency?: number
+    cpm?: number
+    cpc?: number
+    ctr?: number
+    conversions?: number
+    conversionValue?: number
+  }
+  [key: string]: any
+}
 
 interface StoredCreativeData extends EnhancedCreativeData {
   _localId?: string

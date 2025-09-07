@@ -1,6 +1,6 @@
 import { useQuery } from 'convex/react'
 import { api } from '../../../../convex/_generated/api'
-import { vibe } from '@/lib/vibelogger'
+import { vibe } from '@/utils/vibelogger'
 import { useMemo } from 'react'
 
 type QueryStatus = 'idle' | 'loading' | 'success' | 'error'

@@ -1,4 +1,4 @@
-import { vibe } from '@/lib/vibelogger'
+import { vibe } from '@/utils/vibelogger'
 
 /**
  * Convexが利用できない場合のダミー実装

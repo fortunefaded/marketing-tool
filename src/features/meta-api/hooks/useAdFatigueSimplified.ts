@@ -5,7 +5,7 @@ import { useFatigueCalculation } from './useFatigueCalculation'
 import { useCreativeEnrichment } from './useCreativeEnrichment'
 import { useMockData } from './useMockData'
 import { FatigueData } from '@/types'
-import { vibe } from '@/lib/vibelogger'
+import { vibe } from '@/utils/vibelogger'
 // TASK-005: リファクタリング - 日付範囲ヘルパーを追加
 import { getDateRangeInfo, isShortTermRange, DateRangePreset } from '../utils/date-range-helpers'
 

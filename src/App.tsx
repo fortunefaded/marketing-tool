@@ -7,7 +7,7 @@ import MainDashboard from './pages/MainDashboard'
 import { SettingsManagement } from './pages/SettingsManagement'
 import Sidebar from './components/Sidebar'
 import Header from './components/Header'
-import { vibe } from './lib/vibelogger'
+import { vibe } from './utils/vibelogger'
 
 // Convex URLのフォールバック処理を追加
 const convexUrl = import.meta.env.VITE_CONVEX_URL || 'https://temporary-convex-url.convex.cloud'

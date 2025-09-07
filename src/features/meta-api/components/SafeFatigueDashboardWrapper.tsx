@@ -1,6 +1,6 @@
 import { Component, ErrorInfo } from 'react'
 import { FatigueDashboard } from './FatigueDashboard'
-import { vibe } from '@/lib/vibelogger'
+import { vibe } from '@/utils/vibelogger'
 
 interface State {
   hasError: boolean

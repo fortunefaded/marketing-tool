@@ -3,7 +3,7 @@ import { useMutation } from 'convex/react'
 import { api } from '../../../../convex/_generated/api'
 import { useConvexCache } from './useConvexCache'
 import { AdInsight } from '@/types'
-import { vibe } from '@/lib/vibelogger'
+import { vibe } from '@/utils/vibelogger'
 
 interface UseInsightsCacheOptions {
   accountId: string

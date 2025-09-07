@@ -1,5 +1,5 @@
 import { AdInsight } from '@/types'
-import { vibe } from '@/lib/vibelogger'
+import { vibe } from '@/utils/vibelogger'
 
 /**
  * 疲労度計算のための戦略インターフェース
