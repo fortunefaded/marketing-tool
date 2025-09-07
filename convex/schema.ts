@@ -78,6 +78,23 @@ export default defineSchema({
     .index('by_account_and_range', ['accountId', 'dateRange'])
     .index('by_status', ['status']),
 
+  differentialUpdates: defineTable({
+    accountId: v.string(),
+    dateRange: v.string(),
+    updateId: v.string(),
+    status: v.string(),
+    triggeredBy: v.string(),
+    targetDates: v.array(v.string()),
+    updatedDates: v.array(v.string()),
+    apiCallsSaved: v.number(),
+    startedAt: v.number(),
+    completedAt: v.optional(v.number()),
+    error: v.optional(v.string()),
+  })
+    .index('by_account_and_range', ['accountId', 'dateRange'])
+    .index('by_status', ['status'])
+    .index('by_update_id', ['updateId']),
+
   // === Security ===
   tokens: defineTable({
     tokenId: v.string(),
