@@ -1,19 +1,8 @@
 // Meta API関連の型定義を統一
 
-// 統合版 MetaAccount (最も完全な定義を採用)
-export interface MetaAccount {
-  id?: string  // オプショナル（互換性のため）
-  accountId: string  // act_なしのID
-  fullAccountId?: string  // act_付きのID（オプショナル）
-  name: string
-  accessToken: string
-  currency?: string
-  timezone?: string
-  permissions?: string[]
-  isActive?: boolean
-  createdAt?: Date
-  lastUsedAt?: Date
-}
+// MetaAccountはmeta-account.tsから再エクスポート
+import { MetaAccount } from './meta-account'
+export type { MetaAccount }
 
 // AdInsight (features/meta-api/core/types.tsから移動)
 export interface AdInsight {
@@ -23,42 +12,42 @@ export interface AdInsight {
   campaign_name: string
   adset_id?: string
   adset_name?: string
-  
+
   // 基本パフォーマンス
   impressions: number
   reach: number
   frequency: number
   spend: number
-  
+
   // クリック関連
   clicks: number
   unique_clicks: number
   cpc: number
   cost_per_unique_click?: number
-  
-  // CTR関連  
+
+  // CTR関連
   ctr: number
   unique_ctr: number
   unique_link_clicks_ctr?: number
   unique_inline_link_clicks?: number
   unique_inline_link_click_ctr: number
-  
+
   // CPM関連
   cpm: number
   cpp?: number
-  
+
   // コンバージョン
   actions?: any[]
   unique_actions?: any[]
   conversions?: number
   cost_per_conversion?: number
   cost_per_action_type?: any[]
-  
+
   // クリエイティブ情報
   creative_media_type?: string
   ad_creative_id?: string
   publisher_platform?: string
-  
+
   // Instagram特有メトリクス（計算済み）
   instagram_metrics?: {
     profile_views: number
@@ -69,7 +58,7 @@ export interface AdInsight {
     engagement_rate: number
     publisher_platform: string
   }
-  
+
   // プラットフォーム別ブレークダウンデータ
   breakdowns?: {
     publisher_platform?: {
@@ -95,13 +84,13 @@ export interface MetaInsightsData {
   cpm: string
   cpc: string
   ctr: string
-  
+
   // コンバージョン関連
   conversions?: string
   conversion_value?: string
   cost_per_conversion?: string
   roas?: string
-  
+
   // キャンペーン情報
   campaign_id?: string
   campaign_name?: string
@@ -109,7 +98,7 @@ export interface MetaInsightsData {
   adset_name?: string
   ad_id?: string
   ad_name?: string
-  
+
   // クリエイティブ情報
   creative_id?: string
   creative_name?: string
@@ -125,8 +114,8 @@ export interface MetaInsightsData {
     name?: string
     description?: string
   }>
-  
-  [key: string]: any  // 拡張性のため
+
+  [key: string]: any // 拡張性のため
 }
 
 // Fatigue関連
@@ -178,12 +167,15 @@ export class MetaApiError extends Error {
   code?: string | number
   type?: string
   statusCode?: number
-  
-  constructor(message: string, details?: {
-    code?: string | number
-    type?: string
-    statusCode?: number
-  }) {
+
+  constructor(
+    message: string,
+    details?: {
+      code?: string | number
+      type?: string
+      statusCode?: number
+    }
+  ) {
     super(message)
     this.name = 'MetaApiError'
     if (details) {
@@ -230,14 +222,14 @@ export interface MetaAdInsights {
   adsetId: string
   adsetName: string
   accountId: string
-  
+
   // パフォーマンスメトリクス
   adSpend: number
   impressions: number
   clicks: number
   conversions: number
   reach: number
-  
+
   // レートメトリクス
   ctr: number
   uniqueCtr: number
@@ -245,21 +237,21 @@ export interface MetaAdInsights {
   cpc: number
   cpm: number
   frequency: number
-  
+
   // クリエイティブ情報
   adType: AdType
   platform: Platform[]
-  
+
   // 期間情報
   dateStart: string
   dateStop: string
-  
+
   // データ品質
   dataCompleteness: number
-  
+
   // Instagram特有メトリクス（オプション）
   instagramMetrics?: InstagramMetrics
-  
+
   // API情報
   apiVersion: string
   retrievedAt: string
@@ -289,19 +281,19 @@ export interface BaselineMetrics {
   cpm: number
   frequency: number
   engagementRate?: number // Instagram専用
-  
+
   // ベースライン計算期間
   calculationPeriod: {
     start: string
     end: string
     daysIncluded: number
   }
-  
+
   // 品質指標
   dataQuality: CalculationConfidence
   isIndustryAverage: boolean
   confidence: CalculationConfidence
-  
+
   // 計算詳細
   calculatedAt: string
   version: string
