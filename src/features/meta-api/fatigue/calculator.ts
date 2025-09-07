@@ -1,6 +1,6 @@
 import { AdInsight, FatigueData } from '@/types'
 import { CompositeFatigueCalculator } from './strategies'
-import { vibe } from '@/lib/vibelogger'
+import { vibe } from '@/utils/vibelogger'
 
 /**
  * 疲労度計算を行うクラス

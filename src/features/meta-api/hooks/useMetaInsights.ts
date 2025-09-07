@@ -3,7 +3,7 @@ import { useConvex } from 'convex/react'
 import { SimpleTokenStore } from '../core/token'
 import { SimpleMetaApi, PaginatedResult } from '../core/api-client'
 import { AdInsight } from '@/types'
-import { vibe } from '@/lib/vibelogger'
+import { vibe } from '@/utils/vibelogger'
 import { useLocalCache } from './useLocalCache'
 // TASK-005: リファクタリング - 日付範囲ヘルパーとキャッシュを追加
 import { useDateRangeCache } from './useDateRangeCache'

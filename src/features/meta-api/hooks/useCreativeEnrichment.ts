@@ -3,7 +3,7 @@ import { useConvex } from 'convex/react'
 import { SimpleTokenStore } from '../core/token'
 import { SimpleMetaApi } from '../core/api-client'
 import { AdInsight } from '@/types'
-import { vibe } from '@/lib/vibelogger'
+import { vibe } from '@/utils/vibelogger'
 import { normalizeCreativeMediaType } from '../utils/creative-type'
 
 interface UseCreativeEnrichmentResult {

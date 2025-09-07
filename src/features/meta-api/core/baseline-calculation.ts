@@ -7,7 +7,7 @@ import {
   Platform,
   CalculationConfidence 
 } from './types'
-import { vibe } from '@/lib/vibelogger'
+import { vibe } from '@/utils/vibelogger'
 
 export class BaselineCalculationService {
   constructor(

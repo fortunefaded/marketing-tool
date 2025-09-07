@@ -1,4 +1,4 @@
-import { vibe } from '@/lib/vibelogger'
+import { vibe } from '@/utils/vibelogger'
 import { MetaApiError, MetaApiResponse, AdInsight } from '@/types'
 import { SecureTokenManager } from './secure-token-manager'
 import { AccountId, AccessToken } from './branded-types'

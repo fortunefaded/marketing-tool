@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { AdInsight } from '@/types'
-import { vibe } from '@/lib/vibelogger'
+import { vibe } from '@/utils/vibelogger'
 
 const CACHE_PREFIX = 'meta-insights-cache-'
 // キャッシュ有効期限の設定

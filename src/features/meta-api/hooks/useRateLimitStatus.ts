@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { vibe } from '@/lib/vibelogger'
+import { vibe } from '@/utils/vibelogger'
 
 interface RateLimitStatus {
   isRateLimited: boolean

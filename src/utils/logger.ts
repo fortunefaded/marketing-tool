@@ -1,7 +1,7 @@
 /**
  * Simple logger utility that delegates to Vibelogger
  */
-import { vibe } from '@/lib/vibelogger'
+import { vibe } from '@/utils/vibelogger'
 
 export const logger = {
   debug: (...args: any[]) => {

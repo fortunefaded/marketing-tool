@@ -1,4 +1,4 @@
-import { vibe } from '@/lib/vibelogger'
+import { vibe } from '@/utils/vibelogger'
 import { ConvexReactClient } from 'convex/react'
 import { api } from '../../../../convex/_generated/api'
 import { AccountId, AccessToken } from './branded-types'

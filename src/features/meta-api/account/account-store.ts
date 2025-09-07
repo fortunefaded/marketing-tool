@@ -1,7 +1,7 @@
 import { ConvexReactClient } from 'convex/react'
 import { api } from '../../../../convex/_generated/api'
 import { MetaAccount } from '@/types'
-import { vibe } from '@/lib/vibelogger'
+import { vibe } from '@/utils/vibelogger'
 
 export class SimpleAccountStore {
   constructor(private convexClient: ConvexReactClient) {}
