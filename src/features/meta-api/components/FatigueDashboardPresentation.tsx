@@ -291,15 +291,6 @@ export function FatigueDashboardPresentation({
                 </div>
               )}
 
-              {/* 期間フィルター */}
-              <DateRangeFilter
-                value={dateRange}
-                onChange={onDateRangeChange}
-                customDateRange={customDateRange}
-                onCustomDateRange={onCustomDateRange}
-                isLoading={isLoading || isRefreshing}
-              />
-
               {/* 集約トグル削除: 常時集約有効のため不要 */}
 
               {/* レート制限状態の表示 */}
@@ -457,6 +448,26 @@ export function FatigueDashboardPresentation({
                     </SafeFilterWrapper>
                   </>
                 )}
+
+                {/* 日付フィルター（独立配置） */}
+                <div className="mb-6 bg-white rounded-lg shadow-sm border p-4">
+                  <div className="flex items-center justify-between">
+                    <DateRangeFilter
+                      value={dateRange}
+                      onChange={onDateRangeChange}
+                      customDateRange={customDateRange}
+                      onCustomDateRange={onCustomDateRange}
+                      isLoading={isLoading || isRefreshing}
+                    />
+                    <button
+                      onClick={() => onRefresh({ clearCache: true })}
+                      className="px-4 py-2 rounded-lg text-white transition-colors bg-indigo-600 hover:bg-indigo-700 cursor-pointer"
+                      disabled={isLoading || isRefreshing}
+                    >
+                      データ更新
+                    </button>
+                  </div>
+                </div>
 
                 {/* データ表示エリア */}
                 {data.length > 0 ? (
