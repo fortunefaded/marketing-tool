@@ -1017,13 +1017,9 @@ export function CreativeTableTab({
           isOpen={isModalOpen}
           onClose={closeModal}
           item={selectedItem}
-          insight={
-            selectedItem.adIds && selectedItem.adIds.length > 0
-              ? insightsMap.get(selectedItem.adIds[0])
-              : insightsMap.get(selectedItem.adId)
-          }
+          insight={insightsMap.get(selectedItem.adId)}
           accessToken={accessToken}
-          accountId={selectedAccountId}
+          accountId={selectedAccountId || ''}
           dateRange={dateRange} // 日付範囲を渡す
         />
       )}

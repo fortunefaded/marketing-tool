@@ -17,9 +17,9 @@ export class SimpleAccountStore {
       const accounts = await this.convexClient.query(api.metaAccounts.getAccounts, {})
       return accounts.map((acc: any) => ({
         accountId: acc.accountId,
-        name: acc.name,
+        name: acc.accountName || acc.name || 'Unknown',
         accessToken: acc.accessToken
-      }))
+      } as MetaAccount))
     } catch (error) {
       vibe.bad('アカウント取得失敗', { error })
       return []
@@ -39,7 +39,7 @@ export class SimpleAccountStore {
       
       return {
         accountId: account.accountId,
-        name: account.name,
+        name: account.accountName || account.name || 'Unknown',
         accessToken: account.accessToken
       }
     } catch (error) {
