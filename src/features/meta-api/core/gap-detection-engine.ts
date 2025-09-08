@@ -214,7 +214,7 @@ export class GapDetectionEngine {
   /**
    * ギャップのタイプを判定
    */
-  private determineGapType(gap: DeliveryGap, dailyStatuses: DailyDeliveryStatus[]): GapType {
+  private determineGapType(gap: DeliveryGap, _dailyStatuses: DailyDeliveryStatus[]): GapType {
     // 週末ギャップの判定
     if (this.isWeekendGap(gap)) {
       return 'weekend'
@@ -357,7 +357,7 @@ export class GapDetectionEngine {
   private isWeekendGap(gap: DeliveryGap): boolean {
     // 土日のみのギャップかどうかを判定
     const startDay = gap.startDate.getDay() // 0=日曜、6=土曜
-    const endDay = gap.endDate.getDay()
+    // const endDay = gap.endDate.getDay()
     
     // 土曜日開始 または 日曜日開始で、2日以下のギャップ
     if (gap.durationDays <= 2) {
@@ -367,7 +367,7 @@ export class GapDetectionEngine {
     return false
   }
 
-  private isScheduledMaintenance(gap: DeliveryGap): boolean {
+  private isScheduledMaintenance(_gap: DeliveryGap): boolean {
     // 予定メンテナンス時間との照合（実装は簡略化）
     return false // TODO: 実際のメンテナンス時刻との照合ロジック
   }
@@ -382,18 +382,18 @@ export class GapDetectionEngine {
     return gap.beforeGapMetrics?.ctr ? gap.beforeGapMetrics.ctr < 1.0 : false
   }
 
-  private estimateRecoveryTime(gap: DeliveryGap, dailyStatuses: DailyDeliveryStatus[]): number {
+  private estimateRecoveryTime(gap: DeliveryGap, _dailyStatuses: DailyDeliveryStatus[]): number {
     // 回復時間の推定（簡略化実装）
     return Math.min(gap.durationDays, 7) // 最大7日と仮定
   }
 
-  private estimateLostImpressions(gap: DeliveryGap, dailyStatuses: DailyDeliveryStatus[]): number {
+  private estimateLostImpressions(gap: DeliveryGap, _dailyStatuses: DailyDeliveryStatus[]): number {
     // ギャップ前の平均インプレッション × ギャップ日数
     const avgImpressions = gap.beforeGapMetrics?.impressions || 0
     return avgImpressions * gap.durationDays
   }
 
-  private estimateLostRevenue(gap: DeliveryGap, dailyStatuses: DailyDeliveryStatus[]): number {
+  private estimateLostRevenue(gap: DeliveryGap, _dailyStatuses: DailyDeliveryStatus[]): number {
     // 推定損失収益の計算
     const avgSpend = gap.beforeGapMetrics?.spend || 0
     return avgSpend * gap.durationDays * 0.8 // 80%の収益率と仮定
@@ -760,7 +760,7 @@ export class DateRangeGapDetectionEngine {
     return Math.abs((secondAvg - firstAvg) / firstAvg)
   }
 
-  private extractSeasonalPattern(data: AdInsight[]): any {
+  private extractSeasonalPattern(_data: AdInsight[]): any {
     // プレースホルダー実装
     return {
       pattern: 'weekly',
