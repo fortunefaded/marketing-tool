@@ -335,6 +335,10 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
       } else if (dateParams.date_preset) {
         params.append('date_preset', dateParams.date_preset)
       }
+      
+      // breakdownsパラメータを追加（プラットフォーム別データを取得）
+      // 注意: time_incrementとbreakdownsは同時使用不可なので、日別データではコメントアウト
+      // params.append('breakdowns', 'publisher_platform')
 
       const response = await fetch(`${url}?${params}`)
       const data = await response.json()
@@ -367,6 +371,32 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
           purchase: data.data[0].purchase_roas,
           website: data.data[0].website_purchase_roas,
         })
+        
+        // actionsフィールドの詳細ログ
+        if (data.data[0].actions) {
+          console.log('🎯 全てのactions:', data.data[0].actions)
+          console.log('📄 action_type一覧:', 
+            data.data[0].actions.map((a: any) => a.action_type)
+          )
+          
+          // Instagramキーワードを含むアクションを探す
+          const instagramRelated = data.data[0].actions.filter((a: any) => {
+            const type = a.action_type?.toLowerCase() || ''
+            return type.includes('instagram') || 
+                   type.includes('ig_') || 
+                   type.includes('profile') ||
+                   type.includes('follow') ||
+                   type.includes('save')
+          })
+          
+          if (instagramRelated.length > 0) {
+            console.log('✨ Instagram関連アクション発見:', instagramRelated)
+          } else {
+            console.log('⚠️ Instagramキーワードを含むアクションが見つかりません')
+          }
+        } else {
+          console.log('❌ actionsフィールドが存在しません')
+        }
         
         // Instagram関連メトリクスの抽出結果をログ出力
         const instagramMetrics = extractInstagramMetrics(data.data[0])
