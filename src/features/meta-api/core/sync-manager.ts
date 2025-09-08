@@ -1,7 +1,5 @@
 import { vibe } from '@/utils/vibelogger'
 import { ConvexReactClient } from 'convex/react'
-import { api } from '../../../../convex/_generated/api'
-import { MetaInsightsData } from '@/types'
 
 /**
  * Meta APIデータ同期マネージャー
@@ -347,21 +345,21 @@ export class MetaDataSyncManager {
   
   // ヘルパーメソッド
   
-  private async getDataById(dataId: string): Promise<any> {
+  private async getDataById(_dataId: string): Promise<any> {
     // Convexから取得
     return {}
   }
   
-  private async updateLocalData(dataId: string, data: any): Promise<void> {
+  private async updateLocalData(_dataId: string, _data: any): Promise<void> {
     // Convexに保存
   }
   
-  private async fetchChangedData(accountId: string, since?: Date): Promise<any[]> {
+  private async fetchChangedData(_accountId: string, _since?: Date): Promise<any[]> {
     // Meta APIから変更データを取得
     return []
   }
   
-  private async applyChanges(changes: any[]): Promise<void> {
+  private async applyChanges(_changes: any[]): Promise<void> {
     // 変更をローカルに適用
   }
   
@@ -372,15 +370,15 @@ export class MetaDataSyncManager {
     }
   }
   
-  private async syncUpdateToServer(dataId: string, data: any): Promise<void> {
+  private async syncUpdateToServer(_dataId: string, _data: any): Promise<void> {
     // サーバーに更新を送信
   }
   
-  private async syncDeleteToServer(dataId: string): Promise<void> {
+  private async syncDeleteToServer(_dataId: string): Promise<void> {
     // サーバーに削除を送信
   }
   
-  private async syncCreateToServer(data: any): Promise<void> {
+  private async syncCreateToServer(_data: any): Promise<void> {
     // サーバーに作成を送信
   }
   

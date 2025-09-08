@@ -686,7 +686,7 @@ export function AggregatedFatigueTable({
           item={modalProps.item}
           insight={modalProps.insight}
           accessToken={accessToken}
-          accountId={accountId}
+          accountId={accountId || ''}
           dateRange={modalProps.dateRange} // modalPropsから取得
         />
       )}

@@ -15,9 +15,6 @@ import {
   logAPI,
   logState,
   logFilter,
-  logError,
-  logPerformance,
-  debugLogger,
 } from '../utils/debugLogger'
 
 // デバッグコマンドを読み込み（開発環境のみ）
@@ -73,7 +70,7 @@ export default function MainDashboard() {
   const [filteredData] = useState<any>(null)
   const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null)
   const [dailyDataCache, setDailyDataCache] = useState<Record<string, any>>({}) // 日別データのキャッシュ
-  const [cacheAge, setCacheAge] = useState<number>(Infinity) // キャッシュの経過時間
+  const [, setCacheAge] = useState<number>(Infinity) // キャッシュの経過時間
 
   // 期間選択が変更されたらlocalStorageに保存
   useEffect(() => {
@@ -858,7 +855,8 @@ export default function MainDashboard() {
   }, [dateRange, customDateRange, selectedAccountId, fetchDataFromMetaAPI])
 
   // 詳細分析用：特定の広告の日別データを取得
-  const fetchDailyDataForAd = useCallback(
+  // Unused function - commented out for future use
+  /* const fetchDailyDataForAd = useCallback(
     async (adId: string) => {
       // キャッシュチェック
       const cacheKey = `${adId}_${dateRange}`
@@ -985,7 +983,7 @@ export default function MainDashboard() {
       }
     },
     [accounts, selectedAccountId, dateRange, dailyDataCache]
-  )
+  ) */
 
   return (
     <div className="min-h-screen bg-gray-50">
