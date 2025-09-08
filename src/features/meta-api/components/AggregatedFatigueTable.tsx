@@ -10,7 +10,8 @@ interface AggregatedFatigueTableProps {
   insights?: any[] // insightsデータを追加
   accessToken?: string // 認証トークン
   accountId?: string | null // アカウントID
-  dateRange?: { // 日付範囲を追加
+  dateRange?: {
+    // 日付範囲を追加
     start: Date | string
     end: Date | string
   }
@@ -26,7 +27,7 @@ export function AggregatedFatigueTable({
 }: AggregatedFatigueTableProps) {
   // デバッグ：受け取ったdateRangeを確認
   console.log('🔍 AggregatedFatigueTable - received dateRange:', dateRange)
-  
+
   // ソート状態管理
   const [sortField, setSortField] = useState<string>('fatigueScore')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
@@ -44,9 +45,9 @@ export function AggregatedFatigueTable({
     item: null,
     insight: null,
     dateRange: null,
-    isOpen: false
+    isOpen: false,
   })
-  
+
   // modalPropsが更新されたときにログを出力
   useEffect(() => {
     console.log('📊 modalProps updated:', {
@@ -54,7 +55,7 @@ export function AggregatedFatigueTable({
       hasItem: !!modalProps.item,
       hasInsight: !!modalProps.insight,
       dateRange: modalProps.dateRange,
-      dateRangeStringified: modalProps.dateRange ? JSON.stringify(modalProps.dateRange) : 'null'
+      dateRangeStringified: modalProps.dateRange ? JSON.stringify(modalProps.dateRange) : 'null',
     })
   }, [modalProps])
 
@@ -260,7 +261,7 @@ export function AggregatedFatigueTable({
   // 広告詳細モーダルを開く
   const handleAdClick = (insight: any, event: React.MouseEvent) => {
     event.stopPropagation() // アコーディオンの切り替えを防ぐ
-    
+
     // 詳細なデバッグログ
     console.log('🎯 AggregatedFatigueTable - handleAdClick called:', {
       currentDateRange: dateRange,
@@ -270,25 +271,25 @@ export function AggregatedFatigueTable({
       hasEnd: dateRange?.end !== undefined,
       startValue: dateRange?.start,
       endValue: dateRange?.end,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     })
-    
+
     const fatigueData = generateFatigueDataForAd(insight)
     const fullInsight = insightsMap.get(insight.ad_id) || insight
-    
+
     // modalPropsに設定する前の値を確認
     const newModalProps = {
       item: fatigueData,
       insight: fullInsight,
       dateRange: dateRange,
-      isOpen: true
+      isOpen: true,
     }
-    
+
     console.log('📦 Setting modalProps with:', {
       dateRangeInNewProps: newModalProps.dateRange,
-      stringified: JSON.stringify(newModalProps.dateRange)
+      stringified: JSON.stringify(newModalProps.dateRange),
     })
-    
+
     setModalProps(newModalProps)
   }
 
@@ -298,7 +299,7 @@ export function AggregatedFatigueTable({
       item: null,
       insight: null,
       dateRange: null,
-      isOpen: false
+      isOpen: false,
     })
   }
 
@@ -378,11 +379,12 @@ export function AggregatedFatigueTable({
               </div>
             </th>
             <th
-              className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              className="px-4 py-3 text-right text-xs font-medium text-purple-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
               onClick={() => handleSort('conversions')}
             >
               <div className="flex items-center justify-end gap-1">
                 CV
+                <span className="text-[10px] text-purple-500">(ecforce)</span>
                 {sortField === 'conversions' &&
                   (sortDirection === 'asc' ? (
                     <ChevronUpIcon className="h-3 w-3" />
@@ -498,9 +500,7 @@ export function AggregatedFatigueTable({
             <td className="px-4 py-3 text-right text-sm text-blue-900">
               {formatNumber(sortedData.reduce((sum, item) => sum + (item.metrics.clicks || 0), 0))}
             </td>
-            <td className="px-4 py-3 text-right text-sm text-blue-900">
-              {sortedData.reduce((sum, item) => sum + (item.metrics.conversions || 0), 0)}
-            </td>
+            <td className="px-4 py-3 text-right text-sm text-purple-600">N/A</td>
             <td className="px-4 py-3 text-right text-sm text-blue-900">
               {sortedData.reduce((sum, item) => sum + (item.fcv || 0), 0)}
             </td>
@@ -585,37 +585,37 @@ export function AggregatedFatigueTable({
                   <span className="text-sm text-gray-900">{item.adCount}</span>
                 </td>
                 <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                  {formatCurrency(item.metrics.spend)}
+                  {formatCurrency(item.metrics.spend || 0)}
                 </td>
                 <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                  {formatNumber(item.metrics.impressions)}
+                  {formatNumber(item.metrics.impressions || 0)}
                 </td>
                 <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                  {formatNumber(item.metrics.clicks)}
+                  {formatNumber(item.metrics.clicks || 0)}
                 </td>
                 <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                  {formatNumber(item.metrics.conversions)}
+                  {formatNumber(item.metrics.conversions || 0)}
                 </td>
                 <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-500">
-                  N/A
+                  {formatNumber(item.fcv || 0)}
                 </td>
                 <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900">
                   {item.metrics.conversions > 0 ? formatCurrency(item.metrics.cpa) : '-'}
                 </td>
                 <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                  {formatNumber(item.metrics.ctr, 2)}
+                  {formatNumber(item.metrics.ctr || 0, 2)}
                 </td>
                 <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                  {formatCurrency(item.metrics.cpc)}
+                  {formatCurrency(item.metrics.cpc || 0)}
                 </td>
                 <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                  {formatNumber(item.metrics.cvr, 2)}
+                  {formatNumber(item.metrics.cvr || 0, 2)}
                 </td>
                 <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                  {formatCurrency(item.metrics.cpm)}
+                  {formatCurrency(item.metrics.cpm || 0)}
                 </td>
                 <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                  {formatNumber(item.metrics.frequency, 2)}
+                  {formatNumber(item.metrics.frequency || 0, 2)}
                 </td>
               </tr>
 

@@ -3,7 +3,6 @@ import { AccountSelector } from '../account/AccountSelector'
 import { StatCard } from './StatCard'
 import { AggregatedFatigueTable } from './AggregatedFatigueTable'
 import { CreativeTableTab } from './CreativeTableTab'
-import { VirtualizedCreativeTable } from './VirtualizedCreativeTable'
 import { Alert } from './Alert'
 import { MetaAccount, FatigueData } from '@/types'
 import { aggregateByLevel } from '../utils/aggregation'
@@ -325,7 +324,6 @@ export function FatigueDashboardPresentation({
   const sourceData = Array.isArray(rawSourceData) ? rawSourceData : []
 
   // 仮想スクロールの使用状態
-  const [useVirtualScroll, setUseVirtualScroll] = useState(data.length > 100) // 100件以上で自動的に有効化
 
   // フィルターの表示状態
   // デバッグモード設定（初回のみ）
@@ -601,34 +599,32 @@ export function FatigueDashboardPresentation({
                   </>
                 )}
 
-                {/* アカウント選択と日付フィルター（統合配置） */}
-                <div className="mb-6 bg-white rounded-lg shadow-sm border px-4 py-2">
-                  <div className="flex items-center justify-between">
-                    <DateRangeFilter
-                      value={dateRange}
-                      onChange={onDateRangeChange}
-                      customDateRange={customDateRange}
-                      onCustomDateRange={onCustomDateRange}
-                      isLoading={isLoading || isRefreshing}
-                    />
-                    {dataSource && (
-                      <div className="text-sm text-gray-600">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs">
-                            取得件数: <span className="font-medium">{data.length}件</span>
-                          </span>
-                          <span className="text-xs text-gray-400">|</span>
-                          <span className="text-xs">
-                            データソース: {dataSource === 'cache' ? 'キャッシュ' : 'Meta API'}
-                          </span>
-                          <span className="text-xs text-gray-400">|</span>
-                          <span className="text-xs">
-                            最終更新: {formatDateTime(lastUpdateTime)}
-                          </span>
-                        </div>
-                      </div>
-                    )}
+                {/* データ取得情報 */}
+                {dataSource && (
+                  <div className="mb-2 text-sm text-gray-600 px-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs">
+                        取得件数: <span className="font-medium">{data.length}件</span>
+                      </span>
+                      <span className="text-xs text-gray-400">|</span>
+                      <span className="text-xs">
+                        データソース: {dataSource === 'cache' ? 'キャッシュ' : 'Meta API'}
+                      </span>
+                      <span className="text-xs text-gray-400">|</span>
+                      <span className="text-xs">最終更新: {formatDateTime(lastUpdateTime)}</span>
+                    </div>
                   </div>
+                )}
+
+                {/* 日付フィルター */}
+                <div className="mb-4 bg-white rounded-lg shadow-sm border px-4 py-2">
+                  <DateRangeFilter
+                    value={dateRange}
+                    onChange={onDateRangeChange}
+                    customDateRange={customDateRange}
+                    onCustomDateRange={onCustomDateRange}
+                    isLoading={isLoading || isRefreshing}
+                  />
                 </div>
 
                 {/* データ表示エリア */}
@@ -642,44 +638,14 @@ export function FatigueDashboardPresentation({
                       </TabsList>
 
                       <TabsContent value="creative-table">
-                        {/* 仮想スクロールトグル（大量データ時のみ表示） */}
-                        {data.length > 50 && (
-                          <div className="mb-4 flex items-center justify-between">
-                            <div className="text-sm text-gray-600">{data.length}件のデータ</div>
-                            <div className="flex items-center">
-                              <label className="flex items-center cursor-pointer">
-                                <input
-                                  type="checkbox"
-                                  checked={useVirtualScroll}
-                                  onChange={(e) => setUseVirtualScroll(e.target.checked)}
-                                  className="mr-2"
-                                />
-                                <span className="text-sm text-gray-700">
-                                  高速スクロールモード（仮想スクロール）
-                                </span>
-                              </label>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* テーブル表示（条件分岐） */}
-                        {useVirtualScroll ? (
-                          <VirtualizedCreativeTable
-                            data={data}
-                            insights={insights}
-                            selectedAccountId={selectedAccountId}
-                            isLoading={isLoading}
-                          />
-                        ) : (
-                          <CreativeTableTab
-                            data={data}
-                            insights={insights}
-                            selectedAccountId={selectedAccountId}
-                            isLoading={isLoading}
-                            accessToken={accessToken}
-                            dateRange={effectiveDateRange || undefined}
-                          />
-                        )}
+                        <CreativeTableTab
+                          data={data}
+                          insights={insights}
+                          selectedAccountId={selectedAccountId}
+                          isLoading={isLoading}
+                          accessToken={accessToken}
+                          dateRange={effectiveDateRange || undefined}
+                        />
                       </TabsContent>
 
                       <TabsContent value="adset">

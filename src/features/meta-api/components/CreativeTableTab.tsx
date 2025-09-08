@@ -20,7 +20,8 @@ interface CreativeTableTabProps {
   selectedAccountId: string | null
   isLoading: boolean
   accessToken?: string // 追加
-  dateRange?: { // 日付範囲を追加
+  dateRange?: {
+    // 日付範囲を追加
     start: Date | string
     end: Date | string
   }
@@ -45,18 +46,28 @@ export function CreativeTableTab({
     // クリエイティブ名から推測（拡張子やパターンを見る）
     const adName = insight.ad_name || ''
     const namePattern = adName.toLowerCase()
-    
+
     // 名前から判定
-    if (namePattern.includes('動画') || namePattern.includes('video') || namePattern.includes('ver') || namePattern.includes('.mp4')) {
+    if (
+      namePattern.includes('動画') ||
+      namePattern.includes('video') ||
+      namePattern.includes('ver') ||
+      namePattern.includes('.mp4')
+    ) {
       return { type: 'VIDEO', icon: VideoCameraIcon, color: 'text-purple-600' }
     }
-    if (namePattern.includes('画像') || namePattern.includes('image') || namePattern.includes('.jpg') || namePattern.includes('.png')) {
+    if (
+      namePattern.includes('画像') ||
+      namePattern.includes('image') ||
+      namePattern.includes('.jpg') ||
+      namePattern.includes('.png')
+    ) {
       return { type: 'IMAGE', icon: PhotoIcon, color: 'text-blue-600' }
     }
     if (namePattern.includes('カルーセル') || namePattern.includes('carousel')) {
       return { type: 'CAROUSEL', icon: ViewColumnsIcon, color: 'text-green-600' }
     }
-    
+
     // URLベースの判定
     if (insight.video_url || insight.video_id) {
       return { type: 'VIDEO', icon: VideoCameraIcon, color: 'text-purple-600' }
@@ -64,11 +75,11 @@ export function CreativeTableTab({
     if (insight.image_url || insight.thumbnail_url) {
       return { type: 'IMAGE', icon: PhotoIcon, color: 'text-blue-600' }
     }
-    
+
     // Meta APIのobject_typeから判定
     const objectType =
       insight.creative?.object_type || insight.creative_type || insight.creative_media_type
-    
+
     if (objectType) {
       const normalizedType = normalizeCreativeMediaType(objectType)
       switch (normalizedType) {
@@ -554,12 +565,15 @@ export function CreativeTableTab({
                   </div>
                 </th>
                 <th
-                  className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  className="px-2 py-3 text-center text-xs font-medium text-purple-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   style={{ width: '75px' }}
                   onClick={() => handleSort('conversions')}
                 >
                   <div className="flex items-center justify-center gap-1">
-                    CV
+                    <div className="flex flex-col items-center">
+                      <span>CV</span>
+                      <span className="text-[10px] text-purple-500">(ecforce)</span>
+                    </div>
                     {sortField === 'conversions' &&
                       (sortDirection === 'asc' ? (
                         <ChevronUpIcon className="h-3 w-3" />
@@ -708,8 +722,8 @@ export function CreativeTableTab({
                   ¥{formatNumber(sortedData.reduce((sum, item) => sum + (item.spend || 0), 0))}
                 </td>
                 {/* CV */}
-                <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">
-                  {formatNumber(sortedData.reduce((sum, item) => sum + (item.conversions || 0), 0))}
+                <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-purple-600">
+                  N/A
                 </td>
                 {/* F-CV */}
                 <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">
