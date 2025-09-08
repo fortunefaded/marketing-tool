@@ -7,13 +7,13 @@ import type {
   ValidationError,
   ValidationWarning,
   DataValidation
-} from './types/data-validation'
+} from '../types/data-validation'
 import type {
   AdManagerExport,
   ComparisonResult,
   FieldDifference,
   ComparisonConfig
-} from './types/comparison'
+} from '../types/comparison'
 
 export class DataValidator implements DataValidation {
   private static readonly DEFAULT_COMPARISON_CONFIG: ComparisonConfig = {
@@ -35,7 +35,7 @@ export class DataValidator implements DataValidation {
   constructor(
     private normalizationConfig: NumericNormalizationConfig,
     private timeRangeConfig: TimeRangeConfig,
-    private attributionConfig: AttributionConfig
+    private attributionConfig: AttributionConfig // eslint-disable-line @typescript-eslint/no-unused-vars
   ) {}
 
   normalizeNumericValues(value: string | number | undefined | null, precision?: number): number {
@@ -140,7 +140,7 @@ export class DataValidator implements DataValidation {
   }
 
   applyCurrencyConversion(amount: number, currency: string): number {
-    const { accountCurrency, displayCurrency, exchangeRates } = this.normalizationConfig.currency
+    const { displayCurrency, exchangeRates } = this.normalizationConfig.currency // accountCurrency未使用
 
     // No conversion needed if currencies match
     if (currency === displayCurrency) {
@@ -190,7 +190,7 @@ export class DataValidator implements DataValidation {
     }
 
     // Apply timezone offset if provided
-    const tz = timezone || this.timeRangeConfig.timezone
+    // const tz = timezone || this.timeRangeConfig.timezone - 未使用
     const offset = this.timeRangeConfig.timezoneOffset
 
     if (offset !== undefined) {

@@ -5,7 +5,7 @@ import type {
   EnhancedInsightsOptions, 
   EnhancedPaginatedResult 
 } from './types/enhanced-api'
-import type { DebugSession } from '../debug'
+// import type { DebugSession } from '../debug' - 未使用
 
 // ページネーション対応の返り値の型
 export interface PaginatedResult {

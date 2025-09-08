@@ -69,7 +69,7 @@ export default function MainDashboard() {
   })
   const [filteredData] = useState<any>(null)
   const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null)
-  const [dailyDataCache, setDailyDataCache] = useState<Record<string, any>>({}) // 日別データのキャッシュ
+  const [, setDailyDataCache] = useState<Record<string, any>>({}) // dailyDataCache未使用、日別データのキャッシュ
   const [, setCacheAge] = useState<number>(Infinity) // キャッシュの経過時間
 
   // 期間選択が変更されたらlocalStorageに保存

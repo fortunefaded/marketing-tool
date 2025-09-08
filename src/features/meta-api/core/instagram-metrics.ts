@@ -78,15 +78,61 @@ export class InstagramMetricsCalculator {
     data: any,  // Meta API response
     baseMetrics: SafeMetrics
   ): InstagramMetrics {
-    // エンゲージメント関連
-    const likes = data?.likes || 0
-    const comments = data?.comments || 0
-    const saves = data?.saved || data?.saves || 0
-    const shares = data?.shares || 0
+    // actions配列からデータを抽出
+    const actions = data?.actions || []
     
-    // プロフィール関連
-    const profileViews = data?.profile_views || data?.profile_visits || 0
-    const follows = data?.follows || data?.new_followers || 0
+    // アクションタイプから値を取得するヘルパー関数
+    const getActionValue = (actionTypes: string[]): number => {
+      for (const type of actionTypes) {
+        const action = actions.find((a: any) => 
+          a.action_type?.toLowerCase() === type.toLowerCase()
+        )
+        if (action?.value) {
+          return typeof action.value === 'string' ? parseFloat(action.value) : action.value
+        }
+      }
+      return 0
+    }
+    
+    // Instagram関連アクションの抽出
+    const saves = getActionValue([
+      'onsite_conversion.post_save',
+      'post_save',
+      'ig_save',
+      'saves'
+    ])
+    
+    const postEngagement = getActionValue([
+      'post_engagement',
+      'onsite_conversion.post_engagement'
+    ])
+    
+    const postReaction = getActionValue([
+      'post_reaction',
+      'onsite_conversion.post_reaction',
+      'post_like',
+      'likes'
+    ])
+    
+    // エンゲージメント関連（実データがない場合は0）
+    const likes = postReaction
+    const comments = getActionValue(['post_comment', 'comments', 'ig_comment'])
+    const shares = getActionValue(['post_share', 'shares', 'ig_share'])
+    
+    // プロフィール関連（通常はN/A）
+    const profileViews = getActionValue([
+      'onsite_conversion.ig_profile_visit',
+      'ig_profile_visit', 
+      'profile_visits',
+      'profile_views'
+    ])
+    
+    const follows = getActionValue([
+      'onsite_conversion.follow',
+      'ig_follow',
+      'follows',
+      'new_followers'
+    ])
     
     // リーチとインプレッション
     const reach = baseMetrics.reach || 1

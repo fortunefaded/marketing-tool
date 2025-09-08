@@ -86,9 +86,9 @@ export const importInsights = mutation({
         .filter((q) =>
           q.and(
             q.eq(q.field('accountId'), insight.accountId),
-            q.eq(q.field('date_start'), insight.date_start || null),
-            q.eq(q.field('campaign_id'), insight.campaign_id || null),
-            q.eq(q.field('ad_id'), insight.ad_id || null)
+            q.eq(q.field('dateStart'), insight.date_start || null),
+            q.eq(q.field('campaignId'), insight.campaign_id || null),
+            q.eq(q.field('adId'), insight.ad_id || null)
           )
         )
         .first()
@@ -163,25 +163,25 @@ export const getInsights = query({
 
     // 日付フィルタリング
     if (args.startDate) {
-      query = query.filter((q) => q.gte(q.field('date_start'), args.startDate!))
+      query = query.filter((q) => q.gte(q.field('dateStart'), args.startDate!))
     }
     if (args.endDate) {
-      query = query.filter((q) => q.lte(q.field('date_start'), args.endDate!))
+      query = query.filter((q) => q.lte(q.field('dateStart'), args.endDate!))
     }
 
     // キャンペーン/広告フィルタリング
     if (args.campaignId) {
-      query = query.filter((q) => q.eq(q.field('campaign_id'), args.campaignId))
+      query = query.filter((q) => q.eq(q.field('campaignId'), args.campaignId))
     }
     if (args.adId) {
-      query = query.filter((q) => q.eq(q.field('ad_id'), args.adId))
+      query = query.filter((q) => q.eq(q.field('adId'), args.adId))
     }
 
     // カーソルベースのページネーション
     if (args.cursor) {
       const cursorDoc = await ctx.db.get(args.cursor as any)
       if (cursorDoc && 'date_start' in cursorDoc) {
-        query = query.filter((q) => q.lt(q.field('date_start'), (cursorDoc as any).date_start))
+        query = query.filter((q) => q.lt(q.field('dateStart'), (cursorDoc as any).date_start))
       }
     }
 
@@ -213,10 +213,10 @@ export const getInsightsStats = query({
       .filter((q) => q.eq(q.field('accountId'), args.accountId))
 
     if (args.startDate) {
-      query = query.filter((q) => q.gte(q.field('date_start'), args.startDate!))
+      query = query.filter((q) => q.gte(q.field('dateStart'), args.startDate!))
     }
     if (args.endDate) {
-      query = query.filter((q) => q.lte(q.field('date_start'), args.endDate!))
+      query = query.filter((q) => q.lte(q.field('dateStart'), args.endDate!))
     }
 
     const sample = await query.take(sampleSize)
@@ -358,8 +358,8 @@ export const findMissingDateRanges = query({
       .filter((q) =>
         q.and(
           q.eq(q.field('accountId'), args.accountId),
-          q.gte(q.field('date_start'), args.startDate),
-          q.lte(q.field('date_start'), args.endDate)
+          q.gte(q.field('dateStart'), args.startDate),
+          q.lte(q.field('dateStart'), args.endDate)
         )
       )
       .take(1000)

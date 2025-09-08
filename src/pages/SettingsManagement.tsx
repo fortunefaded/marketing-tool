@@ -2,14 +2,14 @@ import React from 'react'
 import { Cog6ToothIcon } from '@heroicons/react/24/outline'
 
 export const SettingsManagement: React.FC = () => {
-  const sections = [
-    {
-      id: 'api',
-      title: 'API連携設定',
-      icon: Cog6ToothIcon,
-      description: '外部サービスとの連携設定を管理します',
-    },
-  ]
+  // const sections = [ - 未使用
+  //   {
+  //     id: 'api',
+  //     title: 'API連携設定',
+  //     icon: Cog6ToothIcon,
+  //     description: '外部サービスとの連携設定を管理します',
+  //   },
+  // ]
 
   const renderContent = () => {
     return (

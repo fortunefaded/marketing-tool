@@ -65,7 +65,7 @@ class DebugLogger {
     try {
       // 循環参照を防ぐためにJSON.stringify/parseを使用
       return JSON.parse(
-        JSON.stringify(data, (key, value) => {
+        JSON.stringify(data, (_key, value) => {
           // 大きすぎるデータは省略
           if (typeof value === 'string' && value.length > 1000) {
             return value.substring(0, 1000) + '... (truncated)'

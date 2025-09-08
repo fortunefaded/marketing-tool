@@ -3,7 +3,7 @@
  * CampaignFilterとPerformanceFilterを統合した折り畳み可能なフィルターセクション
  */
 
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { ChevronDown, ChevronRight, Filter } from 'lucide-react'
 import { CampaignFilter } from './CampaignFilter'
 import { PerformanceFilter } from './PerformanceFilter'

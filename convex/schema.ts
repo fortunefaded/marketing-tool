@@ -16,6 +16,11 @@ export default defineSchema({
     .index('by_account_id', ['accountId'])
     .index('by_active', ['isActive']),
 
+  metaAccountSettings: defineTable({
+    activeAccountId: v.optional(v.string()),
+    updatedAt: v.number(),
+  }),
+
   metaInsights: defineTable({
     accountId: v.string(),
     insightId: v.string(),
@@ -34,6 +39,13 @@ export default defineSchema({
     cpm: v.optional(v.number()),
     cpc: v.optional(v.number()),
     conversions: v.optional(v.number()),
+    // Creative related properties
+    creative_type: v.optional(v.string()),
+    creative_id: v.optional(v.string()),
+    creative_name: v.optional(v.string()),
+    thumbnail_url: v.optional(v.string()),
+    video_url: v.optional(v.string()),
+    carousel_cards: v.optional(v.array(v.any())),
     createdAt: v.number(),
     updatedAt: v.number(),
     rawData: v.optional(v.any()),
@@ -49,6 +61,16 @@ export default defineSchema({
     lastSync: v.optional(v.number()),
     nextSync: v.optional(v.number()),
     settings: v.optional(v.any()),
+  }).index('by_account', ['accountId']),
+
+  metaSyncStatus: defineTable({
+    accountId: v.string(),
+    lastFullSync: v.optional(v.string()),
+    lastIncrementalSync: v.optional(v.string()),
+    totalRecords: v.number(),
+    earliestDate: v.optional(v.string()),
+    latestDate: v.optional(v.string()),
+    updatedAt: v.string(),
   }).index('by_account', ['accountId']),
 
   // === Cache System ===

@@ -3,26 +3,26 @@
  * 7日後の予測を表示するダッシュボードコンポーネント
  */
 
-import React, { useState } from 'react'
+import { useState } from 'react'
 import {
   PredictiveAnalyzer,
-  PredictionResult,
+  // PredictionResult, - 未使用
   TimeSeriesDataPoint,
 } from '../core/predictive-analysis'
 import { FatigueScoreDetail } from '../core/fatigue-calculator-v2'
-import { SafeMetrics } from '../utils/safe-data-access'
+// import { SafeMetrics } from '../utils/safe-data-access' - 未使用
 import {
   TrendingUpIcon,
   TrendingDownIcon,
   ExclamationTriangleIcon,
-  CheckCircleIcon,
+  // CheckCircleIcon, - 未使用
   ClockIcon,
   LightBulbIcon,
   ChartBarIcon,
   FireIcon,
 } from '@heroicons/react/24/outline'
 import {
-  LineChart,
+  // LineChart, - 未使用
   Line,
   Area,
   AreaChart,
