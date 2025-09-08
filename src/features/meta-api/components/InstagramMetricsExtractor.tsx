@@ -3,7 +3,7 @@
  * APIレスポンスからInstagram関連のメトリクスを抽出して表示するコンポーネント
  */
 
-import React from 'react'
+// import React from 'react' - Not needed with new JSX transform
 
 /**
  * APIレスポンスからInstagram関連のメトリクスを抽出

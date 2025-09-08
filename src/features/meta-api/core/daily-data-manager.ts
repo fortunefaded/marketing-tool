@@ -58,15 +58,15 @@ export class DailyDataManager {
   private config: DailyDataConfig
   private cache: Map<string, DailyDataState>
   private updateSchedule: Map<string, NodeJS.Timeout>
-  private differentialEngine: DifferentialUpdateEngine
-  private freshnessManager: DataFreshnessManager
+  // private differentialEngine: DifferentialUpdateEngine
+  // private freshnessManager: DataFreshnessManager
   
   constructor(config?: Partial<DailyDataConfig>) {
     this.config = this.mergeWithDefaults(config)
     this.cache = new Map()
     this.updateSchedule = new Map()
-    this.differentialEngine = new DifferentialUpdateEngine({ strategy: 'smart' })
-    this.freshnessManager = new DataFreshnessManager()
+    // this.differentialEngine = new DifferentialUpdateEngine({ strategy: 'smart' })
+    // this.freshnessManager = new DataFreshnessManager()
   }
   
   /**
@@ -299,9 +299,9 @@ export class DailyDataManager {
    * 履歴データの永続化
    */
   private async persistHistoricalData(
-    accountId: string,
+    _accountId: string,
     date: string,
-    data: AdInsight[]
+    _data: AdInsight[]
   ): Promise<void> {
     // Convexやローカルストレージに保存
     console.log(`💾 履歴データ永続化: ${date}`)
@@ -477,7 +477,7 @@ export class DailyDataManager {
     let yesterdayUpdates = 0
     let historicalCount = 0
     
-    for (const [key, state] of this.cache) {
+    for (const [, state] of this.cache) {
       switch (state.dataAge) {
         case 'today':
           todayUpdates += state.updateCount

@@ -10,6 +10,7 @@ import { calculateAllFatigueScores, FATIGUE_FORMULAS } from '../utils/fatigueCal
 import { InstagramMetricsPanel } from './InstagramMetricsPanel'
 import { getSafeMetrics } from '../utils/safe-data-access'
 import { extractInstagramMetrics, InstagramMetricsDisplay } from './InstagramMetricsExtractor'
+import { extractDetailedMetrics, calculateReliabilityScore } from '../utils/detailed-metrics-extractor'
 
 interface CreativeDetailModalProps {
   isOpen: boolean
@@ -198,10 +199,10 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
         return
       }
 
-      // 日別データ取得のAPIエンドポイント
-      // accountIdがact_で始まらない場合は追加
-      const formattedAccountId = accountId.startsWith('act_') ? accountId : `act_${accountId}`
-      const url = `https://graph.facebook.com/v23.0/${formattedAccountId}/insights`
+      // 広告レベルのインサイトを直接取得（より正確なデータを取得するため）
+      const url = `https://graph.facebook.com/v23.0/${item.adId}/insights`
+      
+      console.log('🎁 APIリクエストURL:', url)
 
       // 日付範囲の処理（effectiveDateRangeを使用）
       let dateParams: any = {}
@@ -235,7 +236,9 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
 
       const params = new URLSearchParams({
         access_token: accessToken,
-        time_increment: '1', // 日別データを取得
+        time_increment: '1',
+        level: 'ad', // 広告レベルを明示的に指定
+        use_unified_attribution_setting: 'true', // 統一アトリビューション設定を有効化 // 日別データを取得
         fields: [
           // === 基本フィールド（必須） ===
           'ad_id',
@@ -253,10 +256,11 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
           'cpc',
           'cpm',
 
-          // === 品質評価指標（API v23.0） ===
-          'quality_ranking',
-          'engagement_rate_ranking',
-          'conversion_rate_ranking',
+          // === 品質評価指標 ===
+          // 注意: これらは特定の条件下でのみ利用可能
+          // 'quality_ranking', // エラーの原因になる可能性
+          // 'engagement_rate_ranking', // エラーの原因になる可能性
+          // 'conversion_rate_ranking', // エラーの原因になる可能性
 
           // === コンバージョン関連（検証済み） ===
           'conversions',
@@ -325,8 +329,7 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
           'date_start',
           'date_stop',
         ].join(','),
-        filtering: `[{"field":"ad.id","operator":"IN","value":["${item.adId}"]}]`,
-        limit: '100',
+        limit: '100', // filtering不要（広告IDを直接指定しているため）
       })
 
       // 日付範囲パラメータを追加
@@ -347,13 +350,50 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
         throw new Error(data.error.message || '日別データの取得に失敗しました')
       }
 
-      // APIレスポンスのデバッグログ
+      // APIレスポンスの詳細デバッグログ
       if (data.data && data.data.length > 0) {
-        console.log('📊 取得したフィールド一覧:', Object.keys(data.data[0]))
-        console.log('🔍 品質評価:', {
-          quality: data.data[0].quality_ranking,
-          engagement: data.data[0].engagement_rate_ranking,
-          conversion: data.data[0].conversion_rate_ranking,
+        const firstResult = data.data[0]
+        
+        // 取得できたフィールドをログ出力
+        console.log('📊 取得したフィールド一覧:', Object.keys(firstResult))
+        
+        // 要求したが取得できなかったフィールドを特定
+        const requestedFieldsString = params.get('fields') || ''
+        const requestedFields = requestedFieldsString.split(',')
+        const receivedFields = Object.keys(firstResult)
+        const missingFields = requestedFields.filter(f => !receivedFields.includes(f))
+        
+        if (missingFields.length > 0) {
+          console.warn('⚠️ 取得できなかったフィールド:', missingFields)
+          
+          // 品質指標が取得できない理由を分析
+          const qualityFields = ['quality_ranking', 'engagement_rate_ranking', 'conversion_rate_ranking']
+          const missingQualityFields = missingFields.filter(f => qualityFields.includes(f))
+          if (missingQualityFields.length > 0) {
+            const impressions = parseInt(firstResult.impressions || '0')
+            console.log('📊 品質指標の状態分析:', {
+              '取得できない品質指標': missingQualityFields,
+              'impressions': impressions,
+              '原因推定': impressions < 500 
+                ? '⚠️ 500インプレッション未満のため品質指標が利用不可' 
+                : '❓ 他の原因（権限不足、APIバージョン不一致など）'
+            })
+          }
+        } else {
+          console.log('✅ すべてのフィールドが正常に取得されました')
+        }
+        // 品質評価指標の状態を確認
+        console.log('🔍 品質評価指標の状態:', {
+          quality_ranking: firstResult.quality_ranking || '未取得',
+          engagement_rate_ranking: firstResult.engagement_rate_ranking || '未取得',
+          conversion_rate_ranking: firstResult.conversion_rate_ranking || '未取得',
+          impressions: firstResult.impressions,
+          reach: firstResult.reach,
+          'ステータス': firstResult.quality_ranking 
+            ? '✅ 品質指標が利用可能'
+            : parseInt(firstResult.impressions || '0') < 500
+              ? '⚠️ 500インプレッション未満のため利用不可'
+              : '❓ 他の理由で利用不可'
         })
         console.log('🎬 動画メトリクス:', {
           play: data.data[0].video_play_actions,
@@ -376,30 +416,48 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
         if (data.data[0].actions) {
           console.log('🎯 全てのactions:', data.data[0].actions)
           console.log('📄 action_type一覧:', 
-            data.data[0].actions.map((a: any) => a.action_type)
+            data.data[0].actions.map((a: any) => `${a.action_type} = ${a.value}`)
           )
           
-          // Instagramキーワードを含むアクションを探す
-          const instagramRelated = data.data[0].actions.filter((a: any) => {
+          // 重要なアクションを抽出
+          const importantActions = data.data[0].actions.filter((a: any) => {
             const type = a.action_type?.toLowerCase() || ''
-            return type.includes('instagram') || 
-                   type.includes('ig_') || 
-                   type.includes('profile') ||
-                   type.includes('follow') ||
-                   type.includes('save')
+            return type.includes('save') || 
+                   type.includes('engagement') ||
+                   type.includes('reaction') ||
+                   type.includes('link_click') ||
+                   type.includes('conversion')
           })
           
-          if (instagramRelated.length > 0) {
-            console.log('✨ Instagram関連アクション発見:', instagramRelated)
-          } else {
-            console.log('⚠️ Instagramキーワードを含むアクションが見つかりません')
+          if (importantActions.length > 0) {
+            console.log('✨ 重要なアクション:', importantActions)
           }
         } else {
           console.log('❌ actionsフィールドが存在しません')
         }
         
+        // 詳細メトリクスを抽出（代替データを含む）
+        const detailedMetrics = extractDetailedMetrics(firstResult)
+        const reliabilityScore = calculateReliabilityScore(detailedMetrics)
+        
+        console.log('🔍 詳細メトリクス抽出結果:', {
+          '信頼性スコア': `${reliabilityScore.score}/100`,
+          '直接データ': reliabilityScore.breakdown.directData,
+          '計算データ': reliabilityScore.breakdown.calculatedData,
+          '缶失データ': reliabilityScore.breakdown.missingData,
+        })
+        
+        // 取得できた代替データを表示
+        const availableAlternatives = Object.entries(detailedMetrics)
+          .filter(([_, metric]) => metric.source === 'actions' || metric.source === 'calculated')
+          .map(([field, metric]) => `${field}: ${metric.value} (${metric.source})`)
+        
+        if (availableAlternatives.length > 0) {
+          console.log('✨ 代替データで補完できたメトリクス:', availableAlternatives)
+        }
+        
         // Instagram関連メトリクスの抽出結果をログ出力
-        const instagramMetrics = extractInstagramMetrics(data.data[0])
+        const instagramMetrics = extractInstagramMetrics(firstResult)
         console.log('📸 Instagram関連メトリクス:', instagramMetrics)
         
         if (instagramMetrics && Object.keys(instagramMetrics.actions).length > 0) {

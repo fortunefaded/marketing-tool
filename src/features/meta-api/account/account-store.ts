@@ -39,7 +39,7 @@ export class SimpleAccountStore {
       
       return {
         accountId: account.accountId,
-        name: account.accountName || account.name || 'Unknown',
+        name: account.accountName || 'Unknown',
         accessToken: account.accessToken
       }
     } catch (error) {

@@ -30,7 +30,7 @@ export const getActiveAccount = query({
     // アクティブなアカウントを取得
     const account = await ctx.db
       .query('metaAccounts')
-      .withIndex('by_accountId')
+      .withIndex('by_account_id')
       .filter((q) => q.eq(q.field('accountId'), settings.activeAccountId))
       .first()
 
@@ -54,7 +54,7 @@ export const addOrUpdateAccount = mutation({
     // 既存のアカウントを確認
     const existing = await ctx.db
       .query('metaAccounts')
-      .withIndex('by_accountId')
+      .withIndex('by_account_id')
       .filter((q) => q.eq(q.field('accountId'), args.accountId))
       .first()
 
@@ -114,7 +114,7 @@ export const removeAccount = mutation({
     // アカウントを取得
     const account = await ctx.db
       .query('metaAccounts')
-      .withIndex('by_accountId')
+      .withIndex('by_account_id')
       .filter((q) => q.eq(q.field('accountId'), args.accountId))
       .first()
 
@@ -163,7 +163,7 @@ export const setActiveAccount = mutation({
     // アカウントが存在するか確認
     const account = await ctx.db
       .query('metaAccounts')
-      .withIndex('by_accountId')
+      .withIndex('by_account_id')
       .filter((q) => q.eq(q.field('accountId'), args.accountId))
       .first()
 
@@ -204,7 +204,7 @@ export const getAccountById = query({
   handler: async (ctx, args) => {
     const account = await ctx.db
       .query('metaAccounts')
-      .withIndex('by_accountId')
+      .withIndex('by_account_id')
       .filter((q) => q.eq(q.field('accountId'), args.accountId))
       .first()
 

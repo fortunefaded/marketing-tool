@@ -76,16 +76,16 @@ export class CacheWarmingEngine {
   private config: CacheWarmingConfig
   private warmingQueue: WarmingTask[]
   private activeWarms: Map<string, WarmingTask>
-  private differentialEngine: DifferentialUpdateEngine
-  private freshnessManager: DataFreshnessManager
+  // private differentialEngine: DifferentialUpdateEngine
+  // private freshnessManager: DataFreshnessManager
   private memoryUsage: number
   
   constructor(config?: Partial<CacheWarmingConfig>) {
     this.config = this.mergeWithDefaults(config)
     this.warmingQueue = []
     this.activeWarms = new Map()
-    this.differentialEngine = new DifferentialUpdateEngine()
-    this.freshnessManager = new DataFreshnessManager()
+    // this.differentialEngine = new DifferentialUpdateEngine()
+    // this.freshnessManager = new DataFreshnessManager()
     this.memoryUsage = 0
   }
   
@@ -265,7 +265,7 @@ export class CacheWarmingEngine {
    * 高パフォーマンス広告の特定
    */
   async identifyHighPerformers(
-    accountId: string,
+    _accountId: string,
     data: AdInsight[]
   ): Promise<string[]> {
     // CTRが高い上位20%の広告
@@ -281,7 +281,7 @@ export class CacheWarmingEngine {
    * 問題のある広告の特定
    */
   async identifyProblematicAds(
-    accountId: string,
+    _accountId: string,
     data: AdInsight[]
   ): Promise<string[]> {
     return data
@@ -297,7 +297,7 @@ export class CacheWarmingEngine {
    * 頻繁にアクセスされるデータの特定
    */
   async identifyFrequentlyAccessed(
-    accountId: string,
+    _accountId: string,
     accessLogs?: Array<{ dateRange: string; accessCount: number }>
   ): Promise<string[]> {
     if (!accessLogs || accessLogs.length === 0) {

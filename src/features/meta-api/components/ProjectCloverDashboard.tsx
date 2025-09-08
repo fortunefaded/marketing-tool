@@ -70,10 +70,10 @@ export function ProjectCloverDashboard() {
   // アカウント管理
   const [accounts, setAccounts] = useState<MetaAccount[]>([])
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
-  const [isLoadingAccounts, setIsLoadingAccounts] = useState(true)
+  const [, setIsLoadingAccounts] = useState(true) // isLoadingAccounts未使用
   
   // データとフィルター
-  const [dateRange, setDateRange] = useState<DateRangeFilter | 'august_2025'>('august_2025') // 8月固定
+  const [dateRange] = useState<DateRangeFilter | 'august_2025'>('august_2025') // 8月固定、setDateRange未使用
   const [apiData, setApiData] = useState<any>(null)
   const [selectedAdForValidation, setSelectedAdForValidation] = useState<any>(null)
   const [showValidationPanel, setShowValidationPanel] = useState(true) // デフォルトで展開
@@ -578,7 +578,7 @@ export function ProjectCloverDashboard() {
         })
         
         // ページング情報を確認
-        if (result.metadata?.hasNextPage) {
+        if ((result.metadata as any)?.hasNextPage) {
           addDebugLog('error', '🚨 警告: 次のページが存在します！', {
             message: '全データを取得できていません。1000件の制限に達している可能性があります。',
             paging: result.metadata.paging
@@ -665,8 +665,8 @@ export function ProjectCloverDashboard() {
     [selectedAccountId, accounts, dateRange, cacheSystem, generateCacheKey, buildExtendedStats, addDebugLog]
   )
 
-  // アカウント選択ハンドラ
-  const handleAccountSelect = async (accountId: string) => {
+  // アカウント選択ハンドラ - 未使用
+  const _handleAccountSelect = async (accountId: string) => {
     setSelectedAccountId(accountId)
     const store = new SimpleAccountStore(convex)
     await store.setActiveAccount(accountId)
@@ -1780,7 +1780,7 @@ export function ProjectCloverDashboard() {
                     if (!apiMatch) {
                       // 広告名だけで検索
                       const possibleMatches = Array.from(aggregated.entries())
-                        .filter(([key, value]) => value.ad_name === adName)
+                        .filter(([_key, value]) => value.ad_name === adName)
                       
                       if (possibleMatches.length > 0) {
                         // 広告名は一致するが、キャンペーン名が異なる
@@ -1789,7 +1789,7 @@ export function ProjectCloverDashboard() {
                       } else {
                         // 部分一致検索（広告名の先頭部分）
                         const partialMatches = Array.from(aggregated.entries())
-                          .filter(([key, value]) => {
+                          .filter(([_key, value]) => {
                             // 250809 のような日付部分で検索
                             const csvAdPrefix = adName.substring(0, 6) // "250809"
                             return value.ad_name.startsWith(csvAdPrefix)

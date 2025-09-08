@@ -22,25 +22,45 @@ interface InstagramMetricsPanelProps {
  */
 const MetricCard: React.FC<{
   label: string
-  value: string | number
+  value: string | number | null | undefined
   unit?: string
   benchmark?: number
   isGood?: boolean
-}> = ({ label, value, unit = '', benchmark, isGood }) => {
-  const displayValue = typeof value === 'number' ? value.toFixed(2) : value
+  isEstimated?: boolean
+}> = ({ label, value, unit = '', benchmark, isGood, isEstimated = false }) => {
+  // 値が存在しない場合はN/A表示
+  const displayValue = 
+    value === null || value === undefined || value === 0 
+      ? 'N/A' 
+      : typeof value === 'number' 
+        ? value.toFixed(2) 
+        : value
 
   return (
     <div className="bg-white rounded-lg p-3 border border-gray-200">
-      <div className="text-xs text-gray-600 mb-1">{label}</div>
+      <div className="text-xs text-gray-600 mb-1">
+        {label}
+        {isEstimated && (
+          <span className="ml-1 text-xs text-amber-600">(推定)</span>
+        )}
+      </div>
       <div className="flex items-baseline gap-1">
         <span
           className={`text-lg font-bold ${
-            isGood ? 'text-green-600' : isGood === false ? 'text-red-600' : 'text-gray-900'
+            displayValue === 'N/A' 
+              ? 'text-gray-400'
+              : isGood 
+                ? 'text-green-600' 
+                : isGood === false 
+                  ? 'text-red-600' 
+                  : 'text-gray-900'
           }`}
         >
           {displayValue}
         </span>
-        {unit && <span className="text-sm text-gray-500">{unit}</span>}
+        {unit && displayValue !== 'N/A' && (
+          <span className="text-sm text-gray-500">{unit}</span>
+        )}
       </div>
       {benchmark !== undefined && (
         <div className="text-xs text-gray-500 mt-1">
@@ -188,64 +208,70 @@ export const InstagramMetricsPanel: React.FC<InstagramMetricsPanelProps> = ({
       {/* 主要メトリクス */}
       <div className="grid grid-cols-2 gap-3">
         <MetricCard
-          label="Profile Visit Rate"
-          value={instagramMetrics.profileVisitRate}
-          unit="%"
-          benchmark={2.0}
-          isGood={instagramMetrics.profileVisitRate > 2.0}
+          label="保存数"
+          value={instagramMetrics.saves}
+          unit="件"
         />
         <MetricCard
-          label="Engagement Rate"
-          value={instagramMetrics.engagementRate}
+          label="エンゲージメント率"
+          value={instagramMetrics.engagementRate > 0 ? instagramMetrics.engagementRate : null}
           unit="%"
           benchmark={instagramMetrics.benchmark.industryAvgEngagementRate}
           isGood={instagramMetrics.benchmark.isAboveAverage}
         />
-        <MetricCard
-          label="Follow Rate"
-          value={instagramMetrics.followRate}
-          unit="%"
-          benchmark={0.5}
-          isGood={instagramMetrics.followRate > 0.5}
-        />
-        <MetricCard
-          label="初回インプレッション比率"
-          value={instagramMetrics.firstTimeImpressionRatio}
-          unit="%"
-          isGood={instagramMetrics.firstTimeImpressionRatio > 50}
-        />
+        {instagramMetrics.profileVisitRate > 0 && (
+          <MetricCard
+            label="プロフィール訪問率"
+            value={instagramMetrics.profileVisitRate}
+            unit="%"
+            benchmark={2.0}
+            isGood={instagramMetrics.profileVisitRate > 2.0}
+          />
+        )}
+        {instagramMetrics.firstTimeImpressionRatio > 0 && (
+          <MetricCard
+            label="初回インプレッション比率"
+            value={instagramMetrics.firstTimeImpressionRatio}
+            unit="%"
+            isGood={instagramMetrics.firstTimeImpressionRatio > 50}
+            isEstimated={true}
+          />
+        )}
       </div>
 
       {/* エンゲージメント詳細 */}
-      <div className="bg-gray-50 rounded-lg p-3">
-        <div className="text-sm font-medium text-gray-700 mb-2">エンゲージメント内訳</div>
-        <div className="grid grid-cols-4 gap-2 text-center">
-          <div>
-            <div className="text-lg font-bold text-gray-900">
-              {instagramMetrics.likes.toLocaleString()}
+      {(instagramMetrics.likes > 0 || instagramMetrics.comments > 0 || 
+        instagramMetrics.saves > 0 || instagramMetrics.shares > 0) && (
+        <div className="bg-gray-50 rounded-lg p-3">
+          <div className="text-sm font-medium text-gray-700 mb-2">エンゲージメント内訳</div>
+          <div className="grid grid-cols-4 gap-2 text-center">
+            <div>
+              <div className="text-lg font-bold text-gray-900">
+                {instagramMetrics.likes > 0 ? instagramMetrics.likes.toLocaleString() : 'N/A'}
+              </div>
+              <div className="text-xs text-gray-600">いいね</div>
             </div>
-            <div className="text-xs text-gray-600">いいね</div>
-          </div>
-          <div>
-            <div className="text-lg font-bold text-gray-900">
-              {instagramMetrics.comments.toLocaleString()}
+            <div>
+              <div className="text-lg font-bold text-gray-900">
+                {instagramMetrics.comments > 0 ? instagramMetrics.comments.toLocaleString() : 'N/A'}
+              </div>
+              <div className="text-xs text-gray-600">コメント</div>
             </div>
-            <div className="text-xs text-gray-600">コメント</div>
-          </div>
-          <div>
-            <div className="text-lg font-bold text-gray-900">
-              {instagramMetrics.saves.toLocaleString()}
+            <div>
+              <div className="text-lg font-bold text-gray-900">
+                {instagramMetrics.saves > 0 ? instagramMetrics.saves.toLocaleString() : 'N/A'}
+              </div>
+              <div className="text-xs text-gray-600">保存</div>
             </div>
-            <div className="text-xs text-gray-600">保存</div>
-          </div>
-          <div>
-            <div className="text-lg font-bold text-gray-900">
-              {instagramMetrics.shares.toLocaleString()}
+            <div>
+              <div className="text-lg font-bold text-gray-900">
+                {instagramMetrics.shares > 0 ? instagramMetrics.shares.toLocaleString() : 'N/A'}
+              </div>
+              <div className="text-xs text-gray-600">シェア</div>
             </div>
-            <div className="text-xs text-gray-600">シェア</div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* パフォーマンススコアの内訳 */}
       <div>

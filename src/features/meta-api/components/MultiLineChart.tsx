@@ -78,13 +78,14 @@ const getAccessibilityLineStyle = (index: number): LineStyleType => {
 /**
  * カスタムツールチップコンポーネント
  */
-const CustomTooltip: React.FC<
-  TooltipProps<any, any> & {
-    unit?: string
-    decimals?: number
-    formatter?: (value: number, platform: string) => [string, string]
-  }
-> = ({ active, payload, label, unit = '', decimals = 2, formatter }) => {
+const CustomTooltip: React.FC<{
+  active?: boolean
+  payload?: any[]
+  label?: string
+  unit?: string
+  decimals?: number
+  formatter?: (value: number, platform: string) => [string, string]
+}> = ({ active, payload, label, unit = '', decimals = 2, formatter }) => {
   if (!active || !payload || !payload.length) {
     return null
   }
