@@ -16,6 +16,7 @@ import { UnifiedFilterSection } from './UnifiedFilterSection'
 import { SafeFilterWrapper } from './SafeFilterWrapper'
 import { ErrorLogPanel } from './ErrorLogPanel'
 import type { DateRangeFilter as DateRangeFilterType } from '../hooks/useAdFatigueSimplified'
+import { logFilter } from '@/utils/debugLogger'
 
 interface FatigueDashboardPresentationProps {
   // アカウント関連
@@ -173,11 +174,135 @@ export function FatigueDashboardPresentation({
             endISO: lastMonthEnd.toISOString(),
           })
           break
+        case 'this_month':
+          // 今月の範囲を計算
+          const thisMonth = new Date()
+          const thisMonthStart = new Date(
+            thisMonth.getFullYear(),
+            thisMonth.getMonth(),
+            1,
+            0,
+            0,
+            0,
+            0
+          )
+          const thisMonthEnd = new Date(
+            thisMonth.getFullYear(),
+            thisMonth.getMonth(),
+            thisMonth.getDate(),
+            23,
+            59,
+            59,
+            999
+          )
+
+          calculatedRange = {
+            start: thisMonthStart,
+            end: thisMonthEnd,
+          }
+
+          logFilter('FatigueDashboardPresentation', '今月の範囲計算', {
+            currentDate: thisMonth.toLocaleDateString('ja-JP'),
+            currentMonth: thisMonth.getMonth() + 1,
+            startDate: thisMonthStart.toLocaleDateString('ja-JP'),
+            endDate: thisMonthEnd.toLocaleDateString('ja-JP'),
+            startISO: thisMonthStart.toISOString(),
+            endISO: thisMonthEnd.toISOString(),
+          })
+          break
         case 'last_90d':
           calculatedRange = {
             start: new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000),
             end: today,
           }
+          break
+
+        case 'today':
+          const todayStart = new Date(today)
+          todayStart.setHours(0, 0, 0, 0)
+          const todayEnd = new Date(today)
+          todayEnd.setHours(23, 59, 59, 999)
+          calculatedRange = {
+            start: todayStart,
+            end: todayEnd,
+          }
+          break
+
+        case 'yesterday':
+          const yesterday = new Date(today)
+          yesterday.setDate(yesterday.getDate() - 1)
+          yesterday.setHours(0, 0, 0, 0)
+          const yesterdayEnd = new Date(yesterday)
+          yesterdayEnd.setHours(23, 59, 59, 999)
+          calculatedRange = {
+            start: yesterday,
+            end: yesterdayEnd,
+          }
+          break
+
+        case 'last_2d':
+          const twoDaysAgo = new Date(today)
+          twoDaysAgo.setDate(twoDaysAgo.getDate() - 1)
+          twoDaysAgo.setHours(0, 0, 0, 0)
+          const twoDaysEnd = new Date(today)
+          twoDaysEnd.setHours(23, 59, 59, 999)
+          calculatedRange = {
+            start: twoDaysAgo,
+            end: twoDaysEnd,
+          }
+          break
+
+        case 'last_28d':
+          calculatedRange = {
+            start: new Date(today.getTime() - 28 * 24 * 60 * 60 * 1000),
+            end: today,
+          }
+          break
+
+        case 'this_week':
+          const weekStart = new Date(today)
+          const dayOfWeek = weekStart.getDay()
+          const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1 // 月曜始まり
+          weekStart.setDate(weekStart.getDate() - diff)
+          weekStart.setHours(0, 0, 0, 0)
+          const weekEnd = new Date(today)
+          weekEnd.setHours(23, 59, 59, 999)
+          calculatedRange = {
+            start: weekStart,
+            end: weekEnd,
+          }
+          break
+
+        case 'last_week':
+          const lastWeekEnd = new Date(today)
+          const lastWeekDay = lastWeekEnd.getDay()
+          const lastWeekDiff = lastWeekDay === 0 ? 7 : lastWeekDay
+          lastWeekEnd.setDate(lastWeekEnd.getDate() - lastWeekDiff)
+          lastWeekEnd.setHours(23, 59, 59, 999)
+          const lastWeekStart = new Date(lastWeekEnd)
+          lastWeekStart.setDate(lastWeekStart.getDate() - 6)
+          lastWeekStart.setHours(0, 0, 0, 0)
+          calculatedRange = {
+            start: lastWeekStart,
+            end: lastWeekEnd,
+          }
+          break
+
+        case 'this_month':
+          const monthStart = new Date(today.getFullYear(), today.getMonth(), 1)
+          monthStart.setHours(0, 0, 0, 0)
+          const monthEnd = new Date(today)
+          monthEnd.setHours(23, 59, 59, 999)
+          calculatedRange = {
+            start: monthStart,
+            end: monthEnd,
+          }
+          console.log('📅 今月の範囲（FatigueDashboard）:', {
+            start: monthStart.toISOString(),
+            end: monthEnd.toISOString(),
+            startFormatted: monthStart.toLocaleDateString('ja-JP'),
+            endFormatted: monthEnd.toLocaleDateString('ja-JP'),
+          })
           break
       }
 
@@ -243,21 +368,103 @@ export function FatigueDashboardPresentation({
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
+      {/* 全画面ローディングオーバーレイ */}
+      {(isLoading || isRefreshing) && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg shadow-2xl p-8 flex flex-col items-center space-y-4 max-w-sm">
+            <div className="relative">
+              <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200"></div>
+              <div className="absolute top-0 left-0 animate-spin rounded-full h-16 w-16 border-4 border-blue-600 border-t-transparent"></div>
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-semibold text-gray-800">データを取得中...</p>
+              {(dateRange === 'last_30d' || dateRange === 'last_28d') && (
+                <p className="text-sm text-gray-600 mt-2">過去1ヶ月分のデータを取得しています。</p>
+              )}
+              {dateRange === 'last_month' && (
+                <p className="text-sm text-gray-600 mt-2">先月のデータを取得しています。</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="w-full max-w-none">
         {/* デバッグログパネル */}
         {typeof window !== 'undefined' && (window as any).DEBUG_FATIGUE && (
           <div className="bg-gray-800 text-gray-100 p-4 rounded-lg mb-4 font-mono text-xs">
             <div className="flex justify-between items-center mb-2">
               <h3 className="text-yellow-400 font-bold">🔧 Debug Logs</h3>
-              <button
-                onClick={() => {
-                  console.log('🔍 現在のデバッグログ:', (window as any).DEBUG_FATIGUE_LOGS)
-                  alert('デバッグログをコンソールに出力しました')
-                }}
-                className="px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded text-xs"
-              >
-                View All Logs
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    // デバッグ情報を整形して収集
+                    const debugInfo = {
+                      timestamp: new Date().toISOString(),
+                      accounts: {
+                        count: accounts.length,
+                        selected: selectedAccountId || 'none',
+                        list: accounts.map((a) => ({ id: a.id, name: a.name })),
+                      },
+                      data: {
+                        count: data.length,
+                        sample: data.slice(0, 3),
+                      },
+                      insights: {
+                        count: insights.length,
+                        sample: insights.slice(0, 3),
+                      },
+                      states: {
+                        isLoading,
+                        isRefreshing,
+                        dataSource: dataSource || 'none',
+                        error: error?.message || 'none',
+                        dateFilter,
+                        customDateRange,
+                      },
+                      logs: (window as any).DEBUG_FATIGUE_LOGS || [],
+                    }
+
+                    const debugText = JSON.stringify(debugInfo, null, 2)
+
+                    // クリップボードにコピー
+                    navigator.clipboard
+                      .writeText(debugText)
+                      .then(() => {
+                        // 成功時のフィードバック（一時的に表示を変更）
+                        const button = document.getElementById('copy-debug-btn')
+                        if (button) {
+                          const originalText = button.textContent
+                          button.textContent = '✅ Copied!'
+                          button.classList.add('bg-green-600')
+                          button.classList.remove('bg-purple-600')
+                          setTimeout(() => {
+                            button.textContent = originalText || ''
+                            button.classList.remove('bg-green-600')
+                            button.classList.add('bg-purple-600')
+                          }, 2000)
+                        }
+                      })
+                      .catch((err) => {
+                        console.error('クリップボードへのコピーに失敗:', err)
+                        alert('クリップボードへのコピーに失敗しました')
+                      })
+                  }}
+                  id="copy-debug-btn"
+                  className="px-2 py-1 bg-purple-600 hover:bg-purple-700 rounded text-xs transition-colors"
+                >
+                  📋 Copy to Clipboard
+                </button>
+                <button
+                  onClick={() => {
+                    console.log('🔍 現在のデバッグログ:', (window as any).DEBUG_FATIGUE_LOGS)
+                    alert('デバッグログをコンソールに出力しました')
+                  }}
+                  className="px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded text-xs"
+                >
+                  View All Logs
+                </button>
+              </div>
             </div>
             <div className="space-y-1">
               <div>
@@ -272,6 +479,12 @@ export function FatigueDashboardPresentation({
               <div>
                 📡 Data Source: {dataSource || 'none'} | Error: {error?.message || 'none'}
               </div>
+              <div>
+                📅 Date Filter: {dateFilter} | Custom Range:{' '}
+                {customDateRange
+                  ? `${customDateRange.start.toLocaleDateString()} - ${customDateRange.end.toLocaleDateString()}`
+                  : 'none'}
+              </div>
               <div className="text-yellow-300">
                 💡 To enable debug mode: window.DEBUG_FATIGUE = true
               </div>
@@ -284,15 +497,6 @@ export function FatigueDashboardPresentation({
 
           {selectedAccountId && (
             <div className="flex items-center gap-4">
-              {dataSource && (
-                <div className="text-sm text-gray-600">
-                  <div>データソース: {dataSource === 'cache' ? 'キャッシュ' : 'Meta API'}</div>
-                  <div className="text-xs">最終更新: {formatDateTime(lastUpdateTime)}</div>
-                </div>
-              )}
-
-              {/* 集約トグル削除: 常時集約有効のため不要 */}
-
               {/* レート制限状態の表示 */}
               {isRateLimited && (
                 <div className="flex items-center gap-2 px-3 py-2 bg-orange-50 border border-orange-200 rounded-lg">
@@ -314,54 +518,6 @@ export function FatigueDashboardPresentation({
                   </span>
                 </div>
               )}
-
-              {/* データ更新ボタン */}
-              <button
-                onClick={() => {
-                  console.log('🔥 データ更新ボタンクリック:', {
-                    isRefreshing,
-                    isRateLimited,
-                    canRefresh,
-                    onRefreshType: typeof onRefresh,
-                    selectedAccountId,
-                    hasOnRefresh: !!onRefresh,
-                    timestamp: new Date().toISOString(),
-                  })
-
-                  if (!onRefresh) {
-                    console.error('❌ onRefresh関数が定義されていません')
-                    return
-                  }
-
-                  if (!selectedAccountId) {
-                    console.warn('⚠️ アカウントが選択されていません')
-                    return
-                  }
-
-                  if (isRateLimited) {
-                    console.warn('⏳ レート制限中のため更新できません')
-                    return
-                  }
-
-                  console.log('📡 onRefresh関数を呼び出します...')
-                  // キャッシュをクリアして最新データを取得
-                  onRefresh({ clearCache: true })
-                  console.log('✅ onRefresh関数の呼び出しが完了しました')
-                }}
-                disabled={!canRefresh}
-                className={`px-4 py-2 rounded-lg text-white transition-colors ${
-                  !canRefresh
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-indigo-600 hover:bg-indigo-700 cursor-pointer'
-                }`}
-                title={isRateLimited ? `あと${rateLimitStatus.timeRemaining}秒お待ちください` : ''}
-              >
-                {isRefreshing
-                  ? '更新中...'
-                  : isRateLimited
-                    ? `再試行まで ${rateLimitStatus.timeRemaining}秒`
-                    : 'データ更新'}
-              </button>
             </div>
           )}
         </div>
@@ -450,7 +606,7 @@ export function FatigueDashboardPresentation({
                 )}
 
                 {/* 日付フィルター（独立配置） */}
-                <div className="mb-6 bg-white rounded-lg shadow-sm border p-4">
+                <div className="mb-6 bg-white rounded-lg shadow-sm border px-4 py-2">
                   <div className="flex items-center justify-between">
                     <DateRangeFilter
                       value={dateRange}
@@ -459,29 +615,25 @@ export function FatigueDashboardPresentation({
                       onCustomDateRange={onCustomDateRange}
                       isLoading={isLoading || isRefreshing}
                     />
-                    <button
-                      onClick={() => onRefresh({ clearCache: true })}
-                      className="px-4 py-2 rounded-lg text-white transition-colors bg-indigo-600 hover:bg-indigo-700 cursor-pointer"
-                      disabled={isLoading || isRefreshing}
-                    >
-                      データ更新
-                    </button>
+                    {dataSource && (
+                      <div className="text-sm text-gray-600 border-l pl-4">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs">
+                            データソース: {dataSource === 'cache' ? 'キャッシュ' : 'Meta API'}
+                          </span>
+                          <span className="text-xs text-gray-400">•</span>
+                          <span className="text-xs">
+                            最終更新: {formatDateTime(lastUpdateTime)}
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
                 {/* データ表示エリア */}
                 {data.length > 0 ? (
                   <div className="relative">
-                    {/* 更新中のオーバーレイ */}
-                    {isRefreshing && (
-                      <div className="absolute inset-0 bg-white bg-opacity-75 z-10 flex items-center justify-center">
-                        <div className="bg-white rounded-lg shadow-lg p-6 flex items-center space-x-4">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-                          <span className="text-gray-700">データを更新中...</span>
-                        </div>
-                      </div>
-                    )}
-
                     <Tabs defaultValue="campaign" className="w-full">
                       <TabsList className="grid w-full grid-cols-3 mb-6">
                         <TabsTrigger value="campaign">キャンペーン</TabsTrigger>
