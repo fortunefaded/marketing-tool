@@ -124,12 +124,13 @@ export function DateRangeFilter({
         monthStart.setHours(0, 0, 0, 0)
         const monthEnd = new Date(today)
         monthEnd.setHours(23, 59, 59, 999)
-        logFilter('DateRangeFilter', '今月の範囲', {
-          start: monthStart.toISOString(),
-          end: monthEnd.toISOString(),
-          startFormatted: formatDate(monthStart),
-          endFormatted: formatDate(monthEnd),
-        })
+        // useEffectで実行するか、削除
+        // logFilter('DateRangeFilter', '今月の範囲', {
+        //   start: monthStart.toISOString(),
+        //   end: monthEnd.toISOString(),
+        //   startFormatted: formatDate(monthStart),
+        //   endFormatted: formatDate(monthEnd),
+        // })
         return { start: monthStart, end: monthEnd }
 
       case 'last_month':
