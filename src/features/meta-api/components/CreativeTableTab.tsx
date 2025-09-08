@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 // CreativeTable import removed - component not used
 import { FatigueData } from '@/types'
-import { getSafeMetrics, calculateMetric, debugDataStructure } from '../utils/safe-data-access'
+import { debugDataStructure } from '../utils/safe-data-access'
 import { aggregateCreativesByName } from '../utils/creative-aggregation'
 import {
   ChevronUpIcon,
@@ -146,7 +146,7 @@ export function CreativeTableTab({
       aggregatedCreatives.slice(0, 5).map((d) => ({
         adName: d.adName,
         score: d.fatigue_score,
-        status: d.status || 'normal',
+        status: 'normal',
         frequency: d.frequency,
         ctr: d.ctr,
         cpm: d.cpm,
@@ -377,7 +377,6 @@ export function CreativeTableTab({
   }
 
   const formatNumber = (num: number) => new Intl.NumberFormat('ja-JP').format(Math.round(num))
-  const formatCurrency = (num: number) => `¥${formatNumber(num)}`
   const formatPercentage = (num: number) => `${num.toFixed(2)}%`
   const formatDecimal = (num: number, decimals: number = 2) => num.toFixed(decimals)
 

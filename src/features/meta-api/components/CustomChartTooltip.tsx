@@ -1,5 +1,3 @@
-import React from 'react'
-
 interface CustomChartTooltipProps {
   active?: boolean
   payload?: any[]
@@ -19,7 +17,7 @@ const METRIC_LABELS: { [key: string]: string } = {
   ctr: 'CTR',
   cpm: 'CPM',
   cpc: 'CPC',
-  engagement: 'エンゲージメント率'
+  engagement: 'エンゲージメント率',
 }
 
 const METRIC_UNITS: { [key: string]: string } = {
@@ -31,16 +29,16 @@ const METRIC_UNITS: { [key: string]: string } = {
   impressions: '',
   clicks: '',
   conversions: '件',
-  engagement: '%'
+  engagement: '%',
 }
 
-export function CustomChartTooltip({ 
-  active, 
-  payload, 
-  label, 
+export function CustomChartTooltip({
+  active,
+  payload,
+  label,
   metricType = '',
   unit,
-  chartData
+  chartData,
 }: CustomChartTooltipProps) {
   if (!active || !payload || payload.length === 0) {
     return null
@@ -71,14 +69,14 @@ export function CustomChartTooltip({
   let deviationPercent = 0
   let deviationLabel = ''
   let averageValue = 0
-  
+
   // チャートデータまたはペイロードから平均を計算
   const allData = chartData || data.payload?.chartData || []
   if (allData.length > 0) {
     const values = allData.map((item: any) => item.value || 0).filter((v: number) => !isNaN(v))
     if (values.length > 0) {
       averageValue = values.reduce((sum: number, v: number) => sum + v, 0) / values.length
-      
+
       if (averageValue !== 0) {
         deviationPercent = ((value - averageValue) / averageValue) * 100
         if (deviationPercent > 0) {
@@ -116,17 +114,17 @@ export function CustomChartTooltip({
         // その他の形式
         date = new Date(dateStr)
       }
-      
+
       // 有効な日付かチェック
       if (isNaN(date.getTime())) {
         return dateStr
       }
-      
-      return date.toLocaleDateString('ja-JP', { 
+
+      return date.toLocaleDateString('ja-JP', {
         year: 'numeric',
         month: 'numeric',
         day: 'numeric',
-        weekday: 'short'
+        weekday: 'short',
       })
     } catch {
       return dateStr
@@ -135,42 +133,26 @@ export function CustomChartTooltip({
 
   return (
     <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200">
-      <p className="text-xs font-medium text-gray-500 mb-1">
-        {formatDate(dateStr || '')}
-      </p>
+      <p className="text-xs font-medium text-gray-500 mb-1">{formatDate(dateStr || '')}</p>
       <div className="flex items-baseline gap-2">
-        <p className="text-sm font-semibold text-gray-900">
-          {metricLabel}
-        </p>
-        <p className="text-sm font-bold text-gray-900">
-          {formatValue(value)}
-        </p>
+        <p className="text-sm font-semibold text-gray-900">{metricLabel}</p>
+        <p className="text-sm font-bold text-gray-900">{formatValue(value)}</p>
       </div>
       {deviationLabel && (
-        <p className={`text-xs mt-1 ${getStatusColor()}`}>
-          期間平均比: {deviationLabel}
-        </p>
+        <p className={`text-xs mt-1 ${getStatusColor()}`}>期間平均比: {deviationLabel}</p>
       )}
       {averageValue > 0 && (
-        <p className="text-xs text-gray-400 mt-0.5">
-          平均: {formatValue(averageValue)}
-        </p>
+        <p className="text-xs text-gray-400 mt-0.5">平均: {formatValue(averageValue)}</p>
       )}
       {/* 危険水準の警告 */}
       {metricType === 'frequency' && value > 3.5 && (
-        <p className="text-xs text-red-600 mt-1">
-          ⚠️ 危険水準超過
-        </p>
+        <p className="text-xs text-red-600 mt-1">⚠️ 危険水準超過</p>
       )}
       {metricType === 'ctr' && deviationPercent < -25 && (
-        <p className="text-xs text-red-600 mt-1">
-          ⚠️ 平均から-25%以下
-        </p>
+        <p className="text-xs text-red-600 mt-1">⚠️ 平均から-25%以下</p>
       )}
       {metricType === 'cpm' && deviationPercent > 20 && (
-        <p className="text-xs text-red-600 mt-1">
-          ⚠️ 平均から+20%以上
-        </p>
+        <p className="text-xs text-red-600 mt-1">⚠️ 平均から+20%以上</p>
       )}
     </div>
   )

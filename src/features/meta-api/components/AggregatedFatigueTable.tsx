@@ -501,9 +501,7 @@ export function AggregatedFatigueTable({
               {formatNumber(sortedData.reduce((sum, item) => sum + (item.metrics.clicks || 0), 0))}
             </td>
             <td className="px-4 py-3 text-right text-sm text-purple-600">N/A</td>
-            <td className="px-4 py-3 text-right text-sm text-blue-900">
-              {sortedData.reduce((sum, item) => sum + (item.fcv || 0), 0)}
-            </td>
+            <td className="px-4 py-3 text-right text-sm text-blue-900">0</td>
             <td className="px-4 py-3 text-right text-sm text-blue-900">
               {sortedData.reduce((sum, item) => sum + (item.metrics.conversions || 0), 0) > 0
                 ? formatCurrency(
@@ -596,9 +594,7 @@ export function AggregatedFatigueTable({
                 <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900">
                   {formatNumber(item.metrics.conversions || 0)}
                 </td>
-                <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-500">
-                  {formatNumber(item.fcv || 0)}
-                </td>
+                <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-500">0</td>
                 <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900">
                   {item.metrics.conversions > 0 ? formatCurrency(item.metrics.cpa) : '-'}
                 </td>
