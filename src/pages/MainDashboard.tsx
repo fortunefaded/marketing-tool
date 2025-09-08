@@ -280,12 +280,7 @@ export default function MainDashboard() {
               startDate.setFullYear(now.getFullYear(), now.getMonth(), 1)
               startDate.setHours(0, 0, 0, 0)
               endDate.setHours(23, 59, 59, 999)
-              logAPI('MainDashboard', '今月の日付範囲設定', {
-                start: startDate.toISOString(),
-                end: endDate.toISOString(),
-                startFormatted: `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}`,
-                endFormatted: `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`,
-              })
+              // logAPI('今月の日付範囲設定') - useEffect内で実行
               break
             }
             case 'today': {
@@ -297,14 +292,7 @@ export default function MainDashboard() {
               startDate.setHours(0, 0, 0, 0)
               endDate = new Date(now) // 現在時刻をそのまま使用
 
-              logAPI('MainDashboard', '今日の日付範囲設定', {
-                start: startDate.toISOString(),
-                end: endDate.toISOString(),
-                startFormatted: formatDate(startDate),
-                endFormatted: formatDate(endDate),
-                note: '終了時刻は現在時刻',
-                currentTime: `${endDate.getHours()}:${endDate.getMinutes()}:${endDate.getSeconds()}`,
-              })
+              // logAPI('今日の日付範囲設定') - useEffect内で実行
               break
             }
             case 'yesterday': {
@@ -316,12 +304,7 @@ export default function MainDashboard() {
               endDate = new Date(now)
               endDate.setDate(endDate.getDate() - 1)
               endDate.setHours(23, 59, 59, 999)
-              logAPI('MainDashboard', '昨日の日付範囲設定', {
-                start: startDate.toISOString(),
-                end: endDate.toISOString(),
-                startFormatted: formatDate(startDate),
-                endFormatted: formatDate(endDate),
-              })
+              // logAPI('昨日の日付範囲設定') - useEffect内で実行
               break
             }
             case 'this_week': {
