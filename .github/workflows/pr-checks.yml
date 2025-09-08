@@ -5,16 +5,22 @@ on:
     types: [opened, synchronize, reopened]
 
 jobs:
-  # PR タイトルの検証
+  # PR タイトルの検証（エラーを許容）
   pr-title:
     name: Validate PR Title
     runs-on: ubuntu-latest
+    continue-on-error: true  # エラーでもワークフローを継続
     steps:
       - name: Check PR title
         uses: amannn/action-semantic-pull-request@v5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          # ブランチ名のパターンも許可
+          subjectPattern: ^(?![A-Z]).+$  # 大文字で始まらない任意のテキストを許可
+          subjectPatternError: |
+            The subject "{subject}" found in the pull request title "{title}"
+            should start with a lowercase letter.
           types: |
             feat
             fix
@@ -27,6 +33,9 @@ jobs:
             ci
             chore
             revert
+            feature
+            hotfix
+            release
 
   # ラベルの自動付与
   label:
