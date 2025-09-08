@@ -10,6 +10,15 @@ import {
   getCachedData,
   clearCachedData,
 } from '@/utils/localStorage'
+import {
+  logData,
+  logAPI,
+  logState,
+  logFilter,
+  logError,
+  logPerformance,
+  debugLogger,
+} from '../utils/debugLogger'
 
 export default function MainDashboard() {
   const convex = useConvex()
@@ -98,14 +107,18 @@ export default function MainDashboard() {
       }
 
       // キャッシュチェック（強制リフレッシュでない場合）
-      if (!forceRefresh) {
+      // デバッグ: キャッシュを一時的に無効化
+      const DISABLE_CACHE = true
+
+      if (!forceRefresh && !DISABLE_CACHE) {
         // 日付範囲を含めたキャッシュキー（カスタムの場合は日付を含める）
         const effectiveRange = customRange || customDateRange
-        const cacheKey =
+        // 日付範囲を含めたキャッシュキーを生成
+        const dateRangeKey =
           dateRange === 'custom' && effectiveRange
-            ? `${targetAccountId}_custom_${effectiveRange.start.toISOString().split('T')[0]}_${effectiveRange.end.toISOString().split('T')[0]}`
-            : `${targetAccountId}_${dateRange}`
-        const { data: cachedData, age } = getCachedData(cacheKey)
+            ? `custom_${effectiveRange.start.toISOString().split('T')[0]}_${effectiveRange.end.toISOString().split('T')[0]}`
+            : dateRange
+        const { data: cachedData, age } = getCachedData(targetAccountId, dateRangeKey)
 
         if (cachedData) {
           // 30分以内ならキャッシュを使用
@@ -203,6 +216,63 @@ export default function MainDashboard() {
               endDate.setFullYear(now.getFullYear(), now.getMonth(), 0)
               break
             }
+            case 'this_month': {
+              // 今月の初日から今日まで
+              const now = new Date()
+              startDate.setFullYear(now.getFullYear(), now.getMonth(), 1)
+              startDate.setHours(0, 0, 0, 0)
+              endDate.setHours(23, 59, 59, 999)
+              logAPI('MainDashboard', '今月の日付範囲設定', {
+                start: startDate.toISOString(),
+                end: endDate.toISOString(),
+                startFormatted: `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}`,
+                endFormatted: `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`,
+              })
+              break
+            }
+            case 'today': {
+              // 今日のみ
+              startDate.setHours(0, 0, 0, 0)
+              endDate.setHours(23, 59, 59, 999)
+              break
+            }
+            case 'yesterday': {
+              // 昨日のみ
+              startDate.setDate(startDate.getDate() - 1)
+              startDate.setHours(0, 0, 0, 0)
+              endDate.setDate(endDate.getDate() - 1)
+              endDate.setHours(23, 59, 59, 999)
+              break
+            }
+            case 'last_2d': {
+              // 今日と昨日
+              startDate.setDate(startDate.getDate() - 1)
+              startDate.setHours(0, 0, 0, 0)
+              endDate.setHours(23, 59, 59, 999)
+              break
+            }
+            case 'this_week': {
+              // 今週（月曜日から今日まで）
+              const now = new Date()
+              const dayOfWeek = now.getDay()
+              const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1 // 月曜始まり
+              startDate.setDate(startDate.getDate() - diff)
+              startDate.setHours(0, 0, 0, 0)
+              endDate.setHours(23, 59, 59, 999)
+              break
+            }
+            case 'last_week': {
+              // 先週（月曜日から日曜日）
+              const now = new Date()
+              const dayOfWeek = now.getDay()
+              const diff = dayOfWeek === 0 ? 7 : dayOfWeek
+              endDate.setDate(endDate.getDate() - diff)
+              endDate.setHours(23, 59, 59, 999)
+              startDate.setTime(endDate.getTime())
+              startDate.setDate(startDate.getDate() - 6)
+              startDate.setHours(0, 0, 0, 0)
+              break
+            }
             case 'last_90d':
               startDate.setDate(startDate.getDate() - 90)
               break
@@ -248,11 +318,42 @@ export default function MainDashboard() {
           url.searchParams.append(key, value)
         })
 
-        console.log('🔗 API URL:', url.toString().replace(account.accessToken, '***'))
+        logAPI('MainDashboard', 'Meta API Request', {
+          url: url.toString().replace(account.accessToken, '***'),
+          dateRange,
+          timeRange: {
+            since: formatDate(startDate),
+            until: formatDate(endDate),
+          },
+          account: cleanAccountId,
+        })
 
         // API呼び出し
         const response = await fetch(url.toString())
         const result = await response.json()
+
+        logAPI('MainDashboard', 'Meta API Response', {
+          dateRange,
+          requestedRange: {
+            since: formatDate(startDate),
+            until: formatDate(endDate),
+          },
+          dataCount: result.data?.length || 0,
+          hasData: !!result.data,
+          hasPaging: !!result.paging,
+          firstItem: result.data?.[0]
+            ? {
+                date_start: result.data[0].date_start,
+                date_stop: result.data[0].date_stop,
+                ad_name: result.data[0].ad_name,
+                spend: result.data[0].spend,
+              }
+            : null,
+          totalSpend: result.data?.reduce(
+            (sum: number, item: any) => sum + parseFloat(item.spend || 0),
+            0
+          ),
+        })
 
         // コンバージョンデータを正しく抽出する関数（重複カウント回避）
         const extractConversionData = (item: any) => {
@@ -465,18 +566,18 @@ export default function MainDashboard() {
 
         // localStorageにキャッシュ（日付範囲を含めたキーで保存）
         const effectiveDateRange = customRange || customDateRange
-        const cacheKey =
+        // 日付範囲を含めたキャッシュキーを生成
+        const dateRangeKey =
           dateRange === 'custom' && effectiveDateRange
-            ? `${targetAccountId}_custom_${effectiveDateRange.start.toISOString().split('T')[0]}_${effectiveDateRange.end.toISOString().split('T')[0]}`
-            : `${targetAccountId}_${dateRange}`
-        saveCachedData(cacheKey, formattedData)
+            ? `custom_${effectiveDateRange.start.toISOString().split('T')[0]}_${effectiveDateRange.end.toISOString().split('T')[0]}`
+            : dateRange
+        saveCachedData(targetAccountId, formattedData, dateRangeKey)
       } catch (err: any) {
         console.error('❌ データ取得エラー:', err)
         setError(err.message)
 
         // エラー時はキャッシュから復元を試みる
-        const fallbackCacheKey = `${targetAccountId}_${dateRange}`
-        const { data: cachedData, age } = getCachedData(fallbackCacheKey)
+        const { data: cachedData, age } = getCachedData(targetAccountId, dateRange)
         if (cachedData) {
           try {
             console.log('💾 エラー時のフォールバック: キャッシュから復元')
@@ -548,8 +649,7 @@ export default function MainDashboard() {
 
     // キャッシュをクリアする場合（日付範囲を含めたキーで削除）
     if (options?.clearCache && selectedAccountId) {
-      const cacheKey = `${selectedAccountId}_${dateRange}`
-      clearCachedData(cacheKey)
+      clearCachedData(selectedAccountId, dateRange)
     }
 
     await fetchDataFromMetaAPI(selectedAccountId, true, customDateRange) // 強制リフレッシュ
@@ -715,7 +815,7 @@ export default function MainDashboard() {
 
       {/* FatigueDashboardPresentationを使用 */}
       {(() => {
-        console.log('🔍 MainDashboard: Passing data to FatigueDashboardPresentation:', {
+        logData('MainDashboard', 'Passing data to FatigueDashboardPresentation', {
           dataLength: data.length,
           sampleData: data.slice(0, 2),
           firstItem: data[0]
@@ -756,7 +856,7 @@ export default function MainDashboard() {
         // 認証情報（追加）
         accessToken={accounts.find((acc) => acc.accountId === selectedAccountId)?.accessToken}
         onCustomDateRange={(start, end) => {
-          console.log('📅 MainDashboard: Custom date range selected', {
+          logFilter('MainDashboard', 'Custom date range selected', {
             start: start.toISOString(),
             end: end.toISOString(),
             selectedAccountId,
