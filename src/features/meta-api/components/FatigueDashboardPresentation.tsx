@@ -1,10 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { AccountSelector } from '../account/AccountSelector'
-import { StatCard } from './StatCard'
 import { AggregatedFatigueTable } from './AggregatedFatigueTable'
 import { CreativeTableTab } from './CreativeTableTab'
 import { Alert } from './Alert'
-import { MetaAccount, FatigueData } from '@/types'
+import { MetaAccount } from '@/types'
 import { aggregateByLevel } from '../utils/aggregation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useRateLimitStatus } from '../hooks/useRateLimitStatus'
@@ -99,11 +98,7 @@ export function FatigueDashboardPresentation({
   accessToken, // 追加
   totalInsights,
   filteredCount,
-  enableAggregation = true, // デフォルトをtrueに変更
   // onToggleAggregation削除済み
-  aggregatedData,
-  aggregationMetrics,
-  isAggregating,
   onFilterChange,
   sourceData: rawSourceData,
 }: FatigueDashboardPresentationProps) {
@@ -350,7 +345,6 @@ export function FatigueDashboardPresentation({
 
   // レート制限中かどうかチェック
   const isRateLimited = rateLimitStatus.isRateLimited
-  const canRefresh = !isRefreshing && rateLimitStatus.canRetry
 
   // 集計データをメモ化（キャンペーン・広告セット別）
   const levelAggregatedData = React.useMemo(() => {
@@ -427,7 +421,7 @@ export function FatigueDashboardPresentation({
                         isRefreshing,
                         dataSource: dataSource || 'none',
                         error: error?.message || 'none',
-                        dateFilter,
+                        dateRange,
                         customDateRange,
                       },
                       logs: (window as any).DEBUG_FATIGUE_LOGS || [],

@@ -9,7 +9,6 @@ import { FatigueDonutChart } from './FatigueDonutChart'
 import { calculateAllFatigueScores, FATIGUE_FORMULAS } from '../utils/fatigueCalculations'
 import { InstagramMetricsPanel } from './InstagramMetricsPanel'
 import { getSafeMetrics } from '../utils/safe-data-access'
-import { MultiLineChart } from './MultiLineChart'
 
 interface CreativeDetailModalProps {
   isOpen: boolean
@@ -18,7 +17,8 @@ interface CreativeDetailModalProps {
   insight: any
   accessToken?: string // アクセストークン
   accountId?: string // アカウントID
-  dateRange?: { // 日付範囲を追加
+  dateRange?: {
+    // 日付範囲を追加
     start: Date | string
     end: Date | string
   }
@@ -132,42 +132,34 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
     hasDateRange: 'dateRange' in props,
     dateRangeValue: props.dateRange,
     dateRangeStringified: JSON.stringify(props.dateRange),
-    propsStringified: JSON.stringify(props)
+    propsStringified: JSON.stringify(props),
   })
-  
-  const {
-    isOpen,
-    onClose,
-    item,
-    insight,
-    accessToken,
-    accountId,
-    dateRange,
-  } = props
-  
+
+  const { isOpen, onClose, item, insight, accessToken, accountId, dateRange } = props
+
   // デストラクチャリング後も確認
   console.log('📅 After destructuring:', {
     dateRange,
     dateRangeType: typeof dateRange,
-    dateRangeValue: dateRange ? JSON.stringify(dateRange) : 'undefined/null'
+    dateRangeValue: dateRange ? JSON.stringify(dateRange) : 'undefined/null',
   })
-  
+
   // デフォルト値を設定（dateRangeがundefinedの場合の対策）
   const effectiveDateRange = useMemo(() => {
     if (dateRange && dateRange.start && dateRange.end) {
       console.log('📅 Using provided dateRange:', dateRange)
       return dateRange
     }
-    
+
     // デフォルト値：過去30日間
     const defaultRange = {
       start: new Date(new Date().getTime() - 30 * 24 * 60 * 60 * 1000),
-      end: new Date()
+      end: new Date(),
     }
     console.log('📅 Using default dateRange (last 30 days):', defaultRange)
     return defaultRange
   }, [dateRange])
-  
+
   // デバッグ：受け取ったpropsと実効値を確認
   console.log('📅 CreativeDetailModal - Received props:', {
     dateRange,
@@ -176,7 +168,7 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
     dateRangeType: typeof dateRange,
     dateRangeValue: dateRange ? JSON.stringify(dateRange) : 'null/undefined',
   })
-  
+
   const [activeTab, setActiveTab] = useState<'metrics' | 'platform' | 'daily' | 'raw'>('metrics')
   const [dailyData, setDailyData] = useState<any[]>([]) // 日別データ
   const [isLoadingDaily, setIsLoadingDaily] = useState(false) // ローディング状態
@@ -189,12 +181,12 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
   const fetchDailyData = useCallback(async () => {
     setIsLoadingDaily(true)
     setDailyDataError(null)
-    
+
     console.log('🎯 CreativeDetailModal - fetchDailyData called with:', {
       effectiveDateRange,
       adId: item.adId,
       accessToken: !!accessToken,
-      accountId
+      accountId,
     })
 
     try {
@@ -221,18 +213,18 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
           const day = String(d.getDate()).padStart(2, '0')
           return `${year}-${month}-${day}`
         }
-        
+
         dateParams.time_range = JSON.stringify({
           since: formatDate(effectiveDateRange.start),
           until: formatDate(effectiveDateRange.end),
         })
-        
+
         console.log('🔍 API call with date range:', {
           since: formatDate(effectiveDateRange.start),
           until: formatDate(effectiveDateRange.end),
           startDate: effectiveDateRange.start.toLocaleDateString('ja-JP'),
           endDate: effectiveDateRange.end.toLocaleDateString('ja-JP'),
-          raw: effectiveDateRange
+          raw: effectiveDateRange,
         })
       } else {
         // デフォルトは過去30日間（これは起こらないはず）
@@ -259,12 +251,12 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
           'ctr',
           'cpc',
           'cpm',
-          
+
           // === 品質評価指標（API v23.0） ===
           'quality_ranking',
           'engagement_rate_ranking',
           'conversion_rate_ranking',
-          
+
           // === コンバージョン関連（検証済み） ===
           'conversions',
           'conversion_values',
@@ -273,7 +265,7 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
           // 'purchases', // 削除（#100エラー回避）
           // 'omni_purchase', // 削除（#100エラー回避）
           // 'website_purchases', // 削除（#100エラー回避）
-          
+
           // === 動画メトリクス（API v23.0） ===
           'video_play_actions',
           'video_p25_watched_actions',
@@ -285,7 +277,7 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
           'video_avg_time_watched_actions',
           'video_continuous_2_sec_watched_actions',
           'video_15_sec_watched_actions',
-          
+
           // === リンククリック詳細（検証済み） ===
           'inline_link_clicks',
           'inline_link_click_ctr',
@@ -298,12 +290,12 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
           // 'link_clicks', // 削除（#100エラー回避）
           // 'unique_link_clicks', // 削除（#100エラー回避）
           'website_ctr',
-          
+
           // === ROAS関連 ===
           'purchase_roas',
           'website_purchase_roas',
           // 'mobile_app_purchase_roas', // 削除（#100エラー回避）
-          
+
           // === アクション関連の詳細 ===
           'actions',
           'action_values',
@@ -312,7 +304,7 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
           'cost_per_unique_action_type',
           'cost_per_thruplay',
           'cost_per_unique_click',
-          
+
           // === その他の有用なフィールド ===
           'unique_clicks',
           'social_spend',
@@ -330,12 +322,12 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
           // 'status', // 削除（insightsエンドポイントでは使用不可）
           // 'effective_status', // 削除（insightsエンドポイントでは使用不可）
           'date_start',
-          'date_stop'
+          'date_stop',
         ].join(','),
         filtering: `[{"field":"ad.id","operator":"IN","value":["${item.adId}"]}]`,
         limit: '100',
       })
-      
+
       // 日付範囲パラメータを追加
       if (dateParams.time_range) {
         params.append('time_range', dateParams.time_range)
@@ -356,23 +348,23 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
         console.log('🔍 品質評価:', {
           quality: data.data[0].quality_ranking,
           engagement: data.data[0].engagement_rate_ranking,
-          conversion: data.data[0].conversion_rate_ranking
+          conversion: data.data[0].conversion_rate_ranking,
         })
         console.log('🎬 動画メトリクス:', {
           play: data.data[0].video_play_actions,
           p25: data.data[0].video_p25_watched_actions,
           p50: data.data[0].video_p50_watched_actions,
           p75: data.data[0].video_p75_watched_actions,
-          p100: data.data[0].video_p100_watched_actions
+          p100: data.data[0].video_p100_watched_actions,
         })
         console.log('🔗 リンククリック:', {
           inline: data.data[0].inline_link_clicks,
           inline_ctr: data.data[0].inline_link_click_ctr,
-          outbound: data.data[0].outbound_clicks
+          outbound: data.data[0].outbound_clicks,
         })
         console.log('💰 ROAS:', {
           purchase: data.data[0].purchase_roas,
-          website: data.data[0].website_purchase_roas
+          website: data.data[0].website_purchase_roas,
         })
       }
 
@@ -380,30 +372,32 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
       const formattedDailyData = (data.data || []).map((day: any) => {
         // コンバージョンを取得（aggregation.tsと同じロジックを使用）
         let conversions = 0
-        
+
         // 1. actionsフィールドから優先順位に従って取得
         if (day.actions && Array.isArray(day.actions)) {
           // 最優先: Facebook Pixelによる購入追跡
           const fbPixelPurchase = day.actions.find(
             (action: any) => action.action_type === 'offsite_conversion.fb_pixel_purchase'
           )
-          
+
           if (fbPixelPurchase) {
             // 1d_click値を優先、なければvalue値を使用
             conversions = parseInt(fbPixelPurchase['1d_click'] || fbPixelPurchase.value || '0')
           }
           // 次の優先: 通常のpurchaseアクション
           else {
-            const purchaseAction = day.actions.find((action: any) => action.action_type === 'purchase')
+            const purchaseAction = day.actions.find(
+              (action: any) => action.action_type === 'purchase'
+            )
             if (purchaseAction) {
               conversions = parseInt(purchaseAction['1d_click'] || purchaseAction.value || '0')
             }
           }
         }
-        
+
         // 2. conversionsフィールドは使用しない（不正確な値の可能性があるため）
         // Note: conversionsフィールドは合計値が含まれている可能性があるため使用しない
-        
+
         return {
           // 基本メトリクス
           date: day.date_start,
@@ -415,32 +409,32 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
           ctr: parseFloat(day.ctr || '0'),
           cpc: parseFloat(day.cpc || '0'),
           cpm: parseFloat(day.cpm || '0'),
-          
+
           // 品質評価（新規追加）
           quality_ranking: day.quality_ranking || 'unknown',
           engagement_rate_ranking: day.engagement_rate_ranking || 'unknown',
           conversion_rate_ranking: day.conversion_rate_ranking || 'unknown',
-          
+
           // コンバージョン（新規追加）
           conversions,
           conversion_values: day.conversion_values || 0,
-          
+
           // リンククリック（新規追加）
           inline_link_clicks: day.inline_link_clicks || 0,
           inline_link_click_ctr: parseFloat(day.inline_link_click_ctr || '0'),
           outbound_clicks: day.outbound_clicks?.[0]?.value || 0,
-          
+
           // 動画メトリクス（新規追加）
           video_play_actions: day.video_play_actions?.[0]?.value || null,
           video_p25_watched: day.video_p25_watched_actions?.[0]?.value || null,
           video_p50_watched: day.video_p50_watched_actions?.[0]?.value || null,
           video_p75_watched: day.video_p75_watched_actions?.[0]?.value || null,
           video_p100_watched: day.video_p100_watched_actions?.[0]?.value || null,
-          
+
           // ROAS（新規追加）
           purchase_roas: day.purchase_roas?.[0]?.value || null,
           website_purchase_roas: day.website_purchase_roas?.[0]?.value || null,
-          
+
           // 疲労度スコア
           fatigue_score: calculateFatigueScore(day),
         }
@@ -459,7 +453,10 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
   // モーダルが開かれた時に日別データを取得
   useEffect(() => {
     if (isOpen && item.adId && accessToken && accountId) {
-      console.log('📍 useEffect calling fetchDailyData with effectiveDateRange:', effectiveDateRange)
+      console.log(
+        '📍 useEffect calling fetchDailyData with effectiveDateRange:',
+        effectiveDateRange
+      )
       fetchDailyData()
     }
   }, [isOpen, fetchDailyData]) // fetchDailyDataを依存配列に
@@ -530,7 +527,7 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
   }, [insight])
 
   // プラットフォーム別データを処理（レガシー）
-  const platformData = React.useMemo(() => {
+  React.useMemo(() => {
     console.log('[CreativeDetailModal] Processing platform data:', { item, insight })
 
     // insightがない場合はサンプルデータを返す
@@ -612,13 +609,6 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
     const increase = ((cpm - baseline) / baseline) * 100
     if (increase >= 20) return 'danger'
     if (increase >= 10) return 'warning'
-    return 'safe'
-  }
-
-  const getEngagementStatus = (engagementRate: number, isReel: boolean = false) => {
-    const benchmark = isReel ? 1.23 : 0.7
-    if (engagementRate < benchmark * 0.7) return 'danger'
-    if (engagementRate < benchmark * 0.9) return 'warning'
     return 'safe'
   }
 
@@ -782,7 +772,8 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                         </p>
                         {effectiveDateRange && (
                           <p className="text-xs text-gray-500 mt-1">
-                            指定期間: {effectiveDateRange.start.toLocaleDateString('ja-JP')} 〜 {effectiveDateRange.end.toLocaleDateString('ja-JP')}
+                            指定期間: {effectiveDateRange.start.toLocaleDateString('ja-JP')} 〜{' '}
+                            {effectiveDateRange.end.toLocaleDateString('ja-JP')}
                           </p>
                         )}
                       </div>
@@ -827,7 +818,10 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                             </td>
                             <td className="px-3 py-4 whitespace-nowrap text-sm text-right text-gray-900">
                               {(dailyData.length > 0 ? dailyData : item.dailyData || [])
-                                .reduce((sum: number, day: any) => sum + Number(day.impressions || 0), 0)
+                                .reduce(
+                                  (sum: number, day: any) => sum + Number(day.impressions || 0),
+                                  0
+                                )
                                 .toLocaleString()}
                             </td>
                             <td className="px-3 py-4 whitespace-nowrap text-sm text-right text-gray-900">
@@ -838,41 +832,69 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                             <td className="px-3 py-4 whitespace-nowrap text-sm text-right text-gray-900">
                               {(() => {
                                 const data = dailyData.length > 0 ? dailyData : item.dailyData || []
-                                const totalClicks = data.reduce((sum: number, day: any) => sum + Number(day.clicks || 0), 0)
-                                const totalImpressions = data.reduce((sum: number, day: any) => sum + Number(day.impressions || 0), 0)
-                                return totalImpressions > 0 ? ((totalClicks / totalImpressions) * 100).toFixed(2) : '0.00'
-                              })()}%
+                                const totalClicks = data.reduce(
+                                  (sum: number, day: any) => sum + Number(day.clicks || 0),
+                                  0
+                                )
+                                const totalImpressions = data.reduce(
+                                  (sum: number, day: any) => sum + Number(day.impressions || 0),
+                                  0
+                                )
+                                return totalImpressions > 0
+                                  ? ((totalClicks / totalImpressions) * 100).toFixed(2)
+                                  : '0.00'
+                              })()}
+                              %
                             </td>
                             <td className="px-3 py-4 whitespace-nowrap text-sm text-right text-gray-900">
-                              ¥{(() => {
+                              ¥
+                              {(() => {
                                 const data = dailyData.length > 0 ? dailyData : item.dailyData || []
-                                const totalSpend = data.reduce((sum: number, day: any) => sum + Number(day.spend || 0), 0)
-                                const totalImpressions = data.reduce((sum: number, day: any) => sum + Number(day.impressions || 0), 0)
-                                return totalImpressions > 0 ? Math.round((totalSpend / totalImpressions) * 1000) : 0
+                                const totalSpend = data.reduce(
+                                  (sum: number, day: any) => sum + Number(day.spend || 0),
+                                  0
+                                )
+                                const totalImpressions = data.reduce(
+                                  (sum: number, day: any) => sum + Number(day.impressions || 0),
+                                  0
+                                )
+                                return totalImpressions > 0
+                                  ? Math.round((totalSpend / totalImpressions) * 1000)
+                                  : 0
                               })()}
                             </td>
                             <td className="px-3 py-4 whitespace-nowrap text-sm text-right text-gray-900">
-                              ¥{(() => {
+                              ¥
+                              {(() => {
                                 const data = dailyData.length > 0 ? dailyData : item.dailyData || []
-                                const totalSpend = data.reduce((sum: number, day: any) => sum + Number(day.spend || 0), 0)
-                                const totalClicks = data.reduce((sum: number, day: any) => sum + Number(day.clicks || 0), 0)
+                                const totalSpend = data.reduce(
+                                  (sum: number, day: any) => sum + Number(day.spend || 0),
+                                  0
+                                )
+                                const totalClicks = data.reduce(
+                                  (sum: number, day: any) => sum + Number(day.clicks || 0),
+                                  0
+                                )
                                 return totalClicks > 0 ? Math.round(totalSpend / totalClicks) : 0
                               })()}
                             </td>
                             <td className="px-3 py-4 whitespace-nowrap text-sm text-right text-gray-900">
-                              ¥{(dailyData.length > 0 ? dailyData : item.dailyData || [])
+                              ¥
+                              {(dailyData.length > 0 ? dailyData : item.dailyData || [])
                                 .reduce((sum: number, day: any) => sum + Number(day.spend || 0), 0)
                                 .toLocaleString()}
                             </td>
                             <td className="px-3 py-4 whitespace-nowrap text-sm text-right text-gray-900">
-                              {(dailyData.length > 0 ? dailyData : item.dailyData || [])
-                                .reduce((sum: number, day: any) => sum + Number(day.conversions || 0), 0)}
+                              {(dailyData.length > 0 ? dailyData : item.dailyData || []).reduce(
+                                (sum: number, day: any) => sum + Number(day.conversions || 0),
+                                0
+                              )}
                             </td>
                             <td className="px-3 py-4 whitespace-nowrap text-sm text-right text-gray-900">
                               -
                             </td>
                           </tr>
-                          
+
                           {/* 各日付の行 */}
                           {(dailyData.length > 0 ? dailyData : item.dailyData || []).map(
                             (day: any, index: number) => (
@@ -919,7 +941,6 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                           )}
                         </tbody>
                       </table>
-
                     </div>
                   ) : (
                     // データがない場合の表示
@@ -1075,7 +1096,10 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                           if (data && data.length > 0) {
                             console.log('🎯 Conversion MetricRow - First day data:', data[0])
                             console.log('🎯 Conversion MetricRow - Total days:', data.length)
-                            console.log('🎯 Conversion MetricRow - Current value:', item.metrics.conversions)
+                            console.log(
+                              '🎯 Conversion MetricRow - Current value:',
+                              item.metrics.conversions
+                            )
                           }
                           return data
                         })()}
@@ -2657,15 +2681,17 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                                   </td>
                                   <td className="px-4 py-2 text-sm text-gray-500">string</td>
                                   <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    <span className={`inline-flex px-2 py-1 text-xs rounded-full ${
-                                      insight?.quality_ranking === 'above_average'
-                                        ? 'bg-green-100 text-green-800'
-                                        : insight?.quality_ranking === 'average'
-                                        ? 'bg-yellow-100 text-yellow-800'
-                                        : insight?.quality_ranking === 'below_average'
-                                        ? 'bg-red-100 text-red-800'
-                                        : 'bg-gray-100 text-gray-800'
-                                    }`}>
+                                    <span
+                                      className={`inline-flex px-2 py-1 text-xs rounded-full ${
+                                        insight?.quality_ranking === 'above_average'
+                                          ? 'bg-green-100 text-green-800'
+                                          : insight?.quality_ranking === 'average'
+                                            ? 'bg-yellow-100 text-yellow-800'
+                                            : insight?.quality_ranking === 'below_average'
+                                              ? 'bg-red-100 text-red-800'
+                                              : 'bg-gray-100 text-gray-800'
+                                      }`}
+                                    >
                                       {insight?.quality_ranking || 'N/A'}
                                     </span>
                                   </td>
@@ -2679,15 +2705,17 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                                   </td>
                                   <td className="px-4 py-2 text-sm text-gray-500">string</td>
                                   <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    <span className={`inline-flex px-2 py-1 text-xs rounded-full ${
-                                      insight?.engagement_rate_ranking === 'above_average'
-                                        ? 'bg-green-100 text-green-800'
-                                        : insight?.engagement_rate_ranking === 'average'
-                                        ? 'bg-yellow-100 text-yellow-800'
-                                        : insight?.engagement_rate_ranking === 'below_average'
-                                        ? 'bg-red-100 text-red-800'
-                                        : 'bg-gray-100 text-gray-800'
-                                    }`}>
+                                    <span
+                                      className={`inline-flex px-2 py-1 text-xs rounded-full ${
+                                        insight?.engagement_rate_ranking === 'above_average'
+                                          ? 'bg-green-100 text-green-800'
+                                          : insight?.engagement_rate_ranking === 'average'
+                                            ? 'bg-yellow-100 text-yellow-800'
+                                            : insight?.engagement_rate_ranking === 'below_average'
+                                              ? 'bg-red-100 text-red-800'
+                                              : 'bg-gray-100 text-gray-800'
+                                      }`}
+                                    >
                                       {insight?.engagement_rate_ranking || 'N/A'}
                                     </span>
                                   </td>
@@ -2701,15 +2729,17 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                                   </td>
                                   <td className="px-4 py-2 text-sm text-gray-500">string</td>
                                   <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    <span className={`inline-flex px-2 py-1 text-xs rounded-full ${
-                                      insight?.conversion_rate_ranking === 'above_average'
-                                        ? 'bg-green-100 text-green-800'
-                                        : insight?.conversion_rate_ranking === 'average'
-                                        ? 'bg-yellow-100 text-yellow-800'
-                                        : insight?.conversion_rate_ranking === 'below_average'
-                                        ? 'bg-red-100 text-red-800'
-                                        : 'bg-gray-100 text-gray-800'
-                                    }`}>
+                                    <span
+                                      className={`inline-flex px-2 py-1 text-xs rounded-full ${
+                                        insight?.conversion_rate_ranking === 'above_average'
+                                          ? 'bg-green-100 text-green-800'
+                                          : insight?.conversion_rate_ranking === 'average'
+                                            ? 'bg-yellow-100 text-yellow-800'
+                                            : insight?.conversion_rate_ranking === 'below_average'
+                                              ? 'bg-red-100 text-red-800'
+                                              : 'bg-gray-100 text-gray-800'
+                                      }`}
+                                    >
                                       {insight?.conversion_rate_ranking || 'N/A'}
                                     </span>
                                   </td>
@@ -2874,8 +2904,9 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                                     relevance_score
                                   </td>
                                   <td className="px-4 py-2 text-sm text-gray-600">
-                                    <span className="text-red-600">【廃止】</span> 2019年4月30日に廃止。
-                                    quality_ranking, engagement_rate_ranking, conversion_rate_ranking に置き換え
+                                    <span className="text-red-600">【廃止】</span>{' '}
+                                    2019年4月30日に廃止。 quality_ranking, engagement_rate_ranking,
+                                    conversion_rate_ranking に置き換え
                                   </td>
                                   <td className="px-4 py-2 text-sm text-gray-500">-</td>
                                   <td className="px-4 py-2 font-mono text-sm text-gray-500">
@@ -2892,16 +2923,23 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                               </h5>
                               <ul className="text-xs text-yellow-700 space-y-1">
                                 <li>
-                                  • <span className="font-mono">video_play_actions, video_p25_watched_actions等</span>:
-                                  動画広告の詳細な視聴データ（個別フィールドとして提供）
+                                  •{' '}
+                                  <span className="font-mono">
+                                    video_play_actions, video_p25_watched_actions等
+                                  </span>
+                                  : 動画広告の詳細な視聴データ（個別フィールドとして提供）
                                 </li>
                                 <li>
                                   • <span className="font-mono">cost_per_action_type</span>:
                                   アクション毎のコスト分析が可能
                                 </li>
                                 <li>
-                                  • <span className="font-mono">quality_ranking, engagement_rate_ranking, conversion_rate_ranking</span>:
-                                  品質評価指標（relevance_scoreの後継）
+                                  •{' '}
+                                  <span className="font-mono">
+                                    quality_ranking, engagement_rate_ranking,
+                                    conversion_rate_ranking
+                                  </span>
+                                  : 品質評価指標（relevance_scoreの後継）
                                 </li>
                                 <li>
                                   • <span className="font-mono">website_purchase_roas</span>:

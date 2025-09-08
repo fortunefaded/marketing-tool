@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react'
-import { Copy, ChevronDown, ChevronUp, X, Filter, Download, Bug } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Copy, ChevronDown, ChevronUp, X, Download, Bug } from 'lucide-react'
 import { debugLogger, type LogCategory } from '../utils/debugLogger'
 
 export function DebugLogPanel() {

@@ -41,26 +41,26 @@ export function convertToCSV(data: FatigueData[]): string {
   const rows = data.map((item) => {
     return [
       item.adName || '',
-      item.fatigueScore?.toFixed(1) || '0',
-      item.type || '',
+      item.score?.toFixed(1) || '0',
+      '', // typeフィールドは存在しないため空文字
       item.metrics?.frequency?.toFixed(2) || '0',
       item.metrics?.ctr?.toFixed(2) || '0',
-      item.metrics?.uniqueCtr?.toFixed(2) || '0',
+      item.metrics?.unique_ctr?.toFixed(2) || '0',
       item.metrics?.cpm?.toFixed(0) || '0',
       item.metrics?.cpc?.toFixed(0) || '0',
-      item.impressions || '0',
-      item.clicks || '0',
-      item.spend?.toFixed(0) || '0',
-      item.conversions || '0',
-      item.fcv || '0',
-      item.metrics?.cpa?.toFixed(0) || '0',
-      item.metrics?.cvr?.toFixed(2) || '0',
-      item.roas?.toFixed(2) || '0',
+      item.metrics?.impressions || '0',
+      item.metrics?.clicks || '0',
+      item.metrics?.spend?.toFixed(0) || '0',
+      item.metrics?.conversions || '0',
+      '', // fcvフィールドは存在しないため空文字
+      '', // cpaフィールドは存在しないため空文字
+      '', // cvrフィールドは存在しないため空文字
+      '', // roasフィールドは存在しないため空文字
       item.status || '',
-      item.campaignName || '',
-      item.adsetName || '',
-      item.createdTime ? new Date(item.createdTime).toLocaleDateString('ja-JP') : '',
-      item.updatedTime ? new Date(item.updatedTime).toLocaleDateString('ja-JP') : '',
+      item.campaign_name || '',
+      item.adset_name || '',
+      '', // createdTimeフィールドは存在しないため空文字
+      '', // updatedTimeフィールドは存在しないため空文字
     ]
   })
 

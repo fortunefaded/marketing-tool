@@ -1,5 +1,4 @@
-import React, { useState } from 'react'
-import { Calendar } from 'lucide-react'
+import { useState } from 'react'
 import type { DateRangeFilter } from '../hooks/useAdFatigueSimplified'
 import { DateRangePicker } from '@/components/DateRangePicker'
 import { logFilter, logUI } from '@/utils/debugLogger'
@@ -151,8 +150,6 @@ export function DateRangeFilter({
         return null
     }
   }
-
-  const currentDateRange = getDateRangeForValue(value)
 
   const presetOptions = [
     { label: '今日', value: 'today' as DateRangeFilter },
