@@ -36,6 +36,7 @@ export default function MainDashboard() {
   const [accounts, setAccounts] = useState<MetaAccount[]>([])
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
   const [isLoadingAccounts, setIsLoadingAccounts] = useState(true)
+  // localStorageから保存された期間選択を復元
   const [dateRange, setDateRange] = useState<
     | 'last_7d'
     | 'last_14d'
@@ -50,12 +51,49 @@ export default function MainDashboard() {
     | 'this_week'
     | 'last_week'
     | 'this_month'
-  >('last_7d')
-  const [customDateRange, setCustomDateRange] = useState<{ start: Date; end: Date } | null>(null)
+  >(() => {
+    const savedDateRange = localStorage.getItem('selectedDateRange')
+    return (savedDateRange as any) || 'last_7d'
+  })
+  const [customDateRange, setCustomDateRange] = useState<{ start: Date; end: Date } | null>(() => {
+    const savedCustomRange = localStorage.getItem('customDateRange')
+    if (savedCustomRange) {
+      try {
+        const parsed = JSON.parse(savedCustomRange)
+        return {
+          start: new Date(parsed.start),
+          end: new Date(parsed.end),
+        }
+      } catch (e) {
+        return null
+      }
+    }
+    return null
+  })
   const [filteredData] = useState<any>(null)
   const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null)
   const [dailyDataCache, setDailyDataCache] = useState<Record<string, any>>({}) // 日別データのキャッシュ
   const [cacheAge, setCacheAge] = useState<number>(Infinity) // キャッシュの経過時間
+
+  // 期間選択が変更されたらlocalStorageに保存
+  useEffect(() => {
+    localStorage.setItem('selectedDateRange', dateRange)
+    logState('MainDashboard', '期間選択を保存', { dateRange })
+  }, [dateRange])
+
+  // カスタム期間が変更されたらlocalStorageに保存
+  useEffect(() => {
+    if (customDateRange) {
+      localStorage.setItem(
+        'customDateRange',
+        JSON.stringify({
+          start: customDateRange.start.toISOString(),
+          end: customDateRange.end.toISOString(),
+        })
+      )
+      logState('MainDashboard', 'カスタム期間を保存', customDateRange)
+    }
+  }, [customDateRange])
 
   // Convexからアカウント情報を取得
   const loadAccountsFromConvex = useCallback(async () => {
