@@ -20,6 +20,13 @@ import {
   debugLogger,
 } from '../utils/debugLogger'
 
+// デバッグコマンドを読み込み（開発環境のみ）
+if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
+  import('../utils/debug-commands.js').catch(() => {
+    // エラーを無視
+  })
+}
+
 export default function MainDashboard() {
   const convex = useConvex()
   const [data, setData] = useState<any[]>([])
@@ -30,7 +37,19 @@ export default function MainDashboard() {
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
   const [isLoadingAccounts, setIsLoadingAccounts] = useState(true)
   const [dateRange, setDateRange] = useState<
-    'last_7d' | 'last_14d' | 'last_30d' | 'last_month' | 'last_90d' | 'all' | 'custom'
+    | 'last_7d'
+    | 'last_14d'
+    | 'last_28d'
+    | 'last_30d'
+    | 'last_month'
+    | 'last_90d'
+    | 'all'
+    | 'custom'
+    | 'today'
+    | 'yesterday'
+    | 'this_week'
+    | 'last_week'
+    | 'this_month'
   >('last_7d')
   const [customDateRange, setCustomDateRange] = useState<{ start: Date; end: Date } | null>(null)
   const [filteredData] = useState<any>(null)
@@ -164,9 +183,17 @@ export default function MainDashboard() {
           throw new Error('アクセストークンが見つかりません')
         }
 
-        // 日付範囲を計算
-        const endDate = new Date()
-        const startDate = new Date()
+        // 日付フォーマット関数
+        const formatDate = (date: Date) => {
+          const year = date.getFullYear()
+          const month = String(date.getMonth() + 1).padStart(2, '0')
+          const day = String(date.getDate()).padStart(2, '0')
+          return `${year}-${month}-${day}`
+        }
+
+        // 日付範囲を計算（独立したDateオブジェクトを作成）
+        let startDate = new Date()
+        let endDate = new Date()
 
         // dateRangeに応じて期間を設定
         console.log('📅 fetchDataFromMetaAPI: Setting date range', {
@@ -200,15 +227,46 @@ export default function MainDashboard() {
         } else {
           // プリセット範囲を使用
           switch (dateRange) {
-            case 'last_7d':
+            case 'last_7d': {
+              const now = new Date()
+              startDate = new Date(now)
               startDate.setDate(startDate.getDate() - 7)
+              startDate.setHours(0, 0, 0, 0)
+              endDate = new Date(now)
+              endDate.setDate(endDate.getDate() - 1)
+              endDate.setHours(23, 59, 59, 999)
               break
-            case 'last_14d':
+            }
+            case 'last_14d': {
+              const now = new Date()
+              startDate = new Date(now)
               startDate.setDate(startDate.getDate() - 14)
+              startDate.setHours(0, 0, 0, 0)
+              endDate = new Date(now)
+              endDate.setDate(endDate.getDate() - 1)
+              endDate.setHours(23, 59, 59, 999)
               break
-            case 'last_30d':
+            }
+            case 'last_28d': {
+              const now = new Date()
+              startDate = new Date(now)
+              startDate.setDate(startDate.getDate() - 28)
+              startDate.setHours(0, 0, 0, 0)
+              endDate = new Date(now)
+              endDate.setDate(endDate.getDate() - 1)
+              endDate.setHours(23, 59, 59, 999)
+              break
+            }
+            case 'last_30d': {
+              const now = new Date()
+              startDate = new Date(now)
               startDate.setDate(startDate.getDate() - 30)
+              startDate.setHours(0, 0, 0, 0)
+              endDate = new Date(now)
+              endDate.setDate(endDate.getDate() - 1)
+              endDate.setHours(23, 59, 59, 999)
               break
+            }
             case 'last_month': {
               // 先月の初日から最終日
               const now = new Date()
@@ -232,61 +290,86 @@ export default function MainDashboard() {
             }
             case 'today': {
               // 今日のみ
+              // Meta APIは現在時刻までのデータしか返さないため、
+              // 終了時刻を現在時刻に設定する
+              const now = new Date()
+              startDate = new Date(now)
               startDate.setHours(0, 0, 0, 0)
-              endDate.setHours(23, 59, 59, 999)
+              endDate = new Date(now) // 現在時刻をそのまま使用
+
+              logAPI('MainDashboard', '今日の日付範囲設定', {
+                start: startDate.toISOString(),
+                end: endDate.toISOString(),
+                startFormatted: formatDate(startDate),
+                endFormatted: formatDate(endDate),
+                note: '終了時刻は現在時刻',
+                currentTime: `${endDate.getHours()}:${endDate.getMinutes()}:${endDate.getSeconds()}`,
+              })
               break
             }
             case 'yesterday': {
               // 昨日のみ
+              const now = new Date()
+              startDate = new Date(now)
               startDate.setDate(startDate.getDate() - 1)
               startDate.setHours(0, 0, 0, 0)
+              endDate = new Date(now)
+              endDate.setDate(endDate.getDate() - 1)
+              endDate.setHours(23, 59, 59, 999)
+              logAPI('MainDashboard', '昨日の日付範囲設定', {
+                start: startDate.toISOString(),
+                end: endDate.toISOString(),
+                startFormatted: formatDate(startDate),
+                endFormatted: formatDate(endDate),
+              })
+              break
+            }
+            case 'this_week': {
+              // 今週（日曜始まり）
+              const now = new Date()
+              const dayOfWeek = now.getDay() // 0=日曜, 1=月曜, ..., 6=土曜
+              // 今週の日曜日を計算（今日から dayOfWeek 日前）
+              startDate.setDate(now.getDate() - dayOfWeek)
+              startDate.setHours(0, 0, 0, 0)
+              // 今週の土曜日（今週の日曜日から6日後）
+              const weekEnd = new Date(startDate)
+              weekEnd.setDate(startDate.getDate() + 6)
+              weekEnd.setHours(23, 59, 59, 999)
+              // 今日が土曜日より後の場合は今日を終了日とする
+              if (weekEnd > now) {
+                endDate.setHours(23, 59, 59, 999)
+              } else {
+                endDate.setTime(weekEnd.getTime())
+              }
+              break
+            }
+            case 'last_week': {
+              // 先週（日曜始まり）
+              const now = new Date()
+              const currentDay = now.getDay() // 0=日曜, 1=月曜, ..., 6=土曜
+              // 先週の土曜日を計算（今日から currentDay + 1 日前）
+              endDate.setDate(now.getDate() - currentDay - 1)
+              endDate.setHours(23, 59, 59, 999)
+              // 先週の日曜日を計算（先週の土曜日から6日前）
+              startDate.setTime(endDate.getTime())
+              startDate.setDate(endDate.getDate() - 6)
+              startDate.setHours(0, 0, 0, 0)
+              break
+            }
+            case 'last_90d': {
+              const now = new Date()
+              startDate = new Date(now)
+              startDate.setDate(startDate.getDate() - 90)
+              startDate.setHours(0, 0, 0, 0)
+              endDate = new Date(now)
               endDate.setDate(endDate.getDate() - 1)
               endDate.setHours(23, 59, 59, 999)
               break
             }
-            case 'last_2d': {
-              // 今日と昨日
-              startDate.setDate(startDate.getDate() - 1)
-              startDate.setHours(0, 0, 0, 0)
-              endDate.setHours(23, 59, 59, 999)
-              break
-            }
-            case 'this_week': {
-              // 今週（月曜日から今日まで）
-              const now = new Date()
-              const dayOfWeek = now.getDay()
-              const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1 // 月曜始まり
-              startDate.setDate(startDate.getDate() - diff)
-              startDate.setHours(0, 0, 0, 0)
-              endDate.setHours(23, 59, 59, 999)
-              break
-            }
-            case 'last_week': {
-              // 先週（月曜日から日曜日）
-              const now = new Date()
-              const dayOfWeek = now.getDay()
-              const diff = dayOfWeek === 0 ? 7 : dayOfWeek
-              endDate.setDate(endDate.getDate() - diff)
-              endDate.setHours(23, 59, 59, 999)
-              startDate.setTime(endDate.getTime())
-              startDate.setDate(startDate.getDate() - 6)
-              startDate.setHours(0, 0, 0, 0)
-              break
-            }
-            case 'last_90d':
-              startDate.setDate(startDate.getDate() - 90)
-              break
             case 'all':
               startDate.setDate(startDate.getDate() - 365)
               break
           }
-        }
-
-        const formatDate = (date: Date) => {
-          const year = date.getFullYear()
-          const month = String(date.getMonth() + 1).padStart(2, '0')
-          const day = String(date.getDate()).padStart(2, '0')
-          return `${year}-${month}-${day}`
         }
 
         // Meta API URL構築
@@ -318,21 +401,67 @@ export default function MainDashboard() {
           url.searchParams.append(key, value)
         })
 
-        logAPI('MainDashboard', 'Meta API Request', {
+        // グローバルにデバッグ情報を保存
+        const requestDebugInfo = {
           url: url.toString().replace(account.accessToken, '***'),
           dateRange,
           timeRange: {
             since: formatDate(startDate),
             until: formatDate(endDate),
           },
+          debugDateInfo: {
+            startDate: {
+              iso: startDate.toISOString(),
+              formatted: formatDate(startDate),
+              time: `${startDate.getHours()}:${startDate.getMinutes()}:${startDate.getSeconds()}.${startDate.getMilliseconds()}`,
+            },
+            endDate: {
+              iso: endDate.toISOString(),
+              formatted: formatDate(endDate),
+              time: `${endDate.getHours()}:${endDate.getMinutes()}:${endDate.getSeconds()}.${endDate.getMilliseconds()}`,
+            },
+          },
           account: cleanAccountId,
-        })
+        }
+
+        // グローバル変数に保存
+        if (typeof window !== 'undefined') {
+          ;(window as any).LAST_API_REQUEST = requestDebugInfo
+          console.log('🌐 APIリクエスト情報をwindow.LAST_API_REQUESTに保存しました')
+        }
+
+        logAPI('MainDashboard', 'Meta API Request', requestDebugInfo)
 
         // API呼び出し
         const response = await fetch(url.toString())
         const result = await response.json()
 
-        logAPI('MainDashboard', 'Meta API Response', {
+        // 最大インプレッションを持つ広告を找す
+        let maxImpressionsItem = null
+        let maxImpressions = 0
+        const top5Items = []
+
+        if (result.data && Array.isArray(result.data)) {
+          // インプレッションでソート
+          const sortedByImpressions = [...result.data].sort(
+            (a, b) => parseInt(b.impressions || '0') - parseInt(a.impressions || '0')
+          )
+
+          maxImpressionsItem = sortedByImpressions[0]
+          maxImpressions = parseInt(maxImpressionsItem?.impressions || '0')
+
+          // 上位5件を取得
+          for (let i = 0; i < Math.min(5, sortedByImpressions.length); i++) {
+            top5Items.push({
+              ad_name: sortedByImpressions[i].ad_name,
+              impressions: parseInt(sortedByImpressions[i].impressions || '0'),
+              spend: parseFloat(sortedByImpressions[i].spend || '0'),
+            })
+          }
+        }
+
+        // レスポンス情報をグローバルに保存
+        const responseDebugInfo = {
           dateRange,
           requestedRange: {
             since: formatDate(startDate),
@@ -341,19 +470,42 @@ export default function MainDashboard() {
           dataCount: result.data?.length || 0,
           hasData: !!result.data,
           hasPaging: !!result.paging,
-          firstItem: result.data?.[0]
-            ? {
-                date_start: result.data[0].date_start,
-                date_stop: result.data[0].date_stop,
-                ad_name: result.data[0].ad_name,
-                spend: result.data[0].spend,
-              }
-            : null,
+          maxImpressions: {
+            value: maxImpressions,
+            ad_name: maxImpressionsItem?.ad_name || 'N/A',
+            spend: maxImpressionsItem?.spend || 0,
+          },
+          top5ByImpressions: top5Items,
           totalSpend: result.data?.reduce(
             (sum: number, item: any) => sum + parseFloat(item.spend || 0),
             0
           ),
-        })
+        }
+
+        // グローバル変数に保存
+        if (typeof window !== 'undefined') {
+          ;(window as any).LAST_API_RESPONSE = responseDebugInfo
+          console.log('🌐 APIレスポンス情報をwindow.LAST_API_RESPONSEに保存しました')
+
+          // 簡単なデバッグ情報を表示
+          console.log('🔍 === デバッグ情報 ===')
+          console.log('フィルター:', responseDebugInfo.dateRange)
+          console.log('日付範囲:', responseDebugInfo.requestedRange)
+          console.log('データ件数:', responseDebugInfo.dataCount)
+          console.log('合計広告費:', '¥' + responseDebugInfo.totalSpend.toLocaleString())
+          console.log(
+            '最大インプレッション:',
+            responseDebugInfo.maxImpressions.value.toLocaleString()
+          )
+          console.log('最大インプレッション広告:', responseDebugInfo.maxImpressions.ad_name)
+
+          if (responseDebugInfo.maxImpressions.value < 80594) {
+            console.warn('⚠️ 最大インプレッションが実際の値(80,594)より小さいです')
+            console.warn('差分:', (80594 - responseDebugInfo.maxImpressions.value).toLocaleString())
+          }
+        }
+
+        logAPI('MainDashboard', 'Meta API Response', responseDebugInfo)
 
         // コンバージョンデータを正しく抽出する関数（重複カウント回避）
         const extractConversionData = (item: any) => {
@@ -710,12 +862,23 @@ export default function MainDashboard() {
         switch (dateRange) {
           case 'last_7d':
             startDate.setDate(startDate.getDate() - 7)
+            endDate.setDate(endDate.getDate() - 1)
+            endDate.setHours(23, 59, 59, 999)
             break
           case 'last_14d':
             startDate.setDate(startDate.getDate() - 14)
+            endDate.setDate(endDate.getDate() - 1)
+            endDate.setHours(23, 59, 59, 999)
+            break
+          case 'last_28d':
+            startDate.setDate(startDate.getDate() - 28)
+            endDate.setDate(endDate.getDate() - 1)
+            endDate.setHours(23, 59, 59, 999)
             break
           case 'last_30d':
             startDate.setDate(startDate.getDate() - 30)
+            endDate.setDate(endDate.getDate() - 1)
+            endDate.setHours(23, 59, 59, 999)
             break
           case 'last_month': {
             // 先月の初日から最終日
@@ -726,6 +889,8 @@ export default function MainDashboard() {
           }
           case 'last_90d':
             startDate.setDate(startDate.getDate() - 90)
+            endDate.setDate(endDate.getDate() - 1)
+            endDate.setHours(23, 59, 59, 999)
             break
           case 'all':
             startDate.setDate(startDate.getDate() - 365)

@@ -55,54 +55,69 @@ export function DateRangeFilter({
         yesterdayEnd.setHours(23, 59, 59, 999)
         return { start: yesterday, end: yesterdayEnd }
 
-      case 'last_2d':
-        const twoDaysAgo = new Date(today)
-        twoDaysAgo.setDate(twoDaysAgo.getDate() - 1)
-        twoDaysAgo.setHours(0, 0, 0, 0)
-        return { start: twoDaysAgo, end: today }
-
       case 'last_7d':
         const sevenDaysAgo = new Date(today)
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6)
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
         sevenDaysAgo.setHours(0, 0, 0, 0)
-        return { start: sevenDaysAgo, end: today }
+        const yesterday7d = new Date(today)
+        yesterday7d.setDate(yesterday7d.getDate() - 1)
+        yesterday7d.setHours(23, 59, 59, 999)
+        return { start: sevenDaysAgo, end: yesterday7d }
 
       case 'last_14d':
         const fourteenDaysAgo = new Date(today)
-        fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 13)
+        fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14)
         fourteenDaysAgo.setHours(0, 0, 0, 0)
-        return { start: fourteenDaysAgo, end: today }
+        const yesterday14d = new Date(today)
+        yesterday14d.setDate(yesterday14d.getDate() - 1)
+        yesterday14d.setHours(23, 59, 59, 999)
+        return { start: fourteenDaysAgo, end: yesterday14d }
 
       case 'last_28d':
         const twentyEightDaysAgo = new Date(today)
-        twentyEightDaysAgo.setDate(twentyEightDaysAgo.getDate() - 27)
+        twentyEightDaysAgo.setDate(twentyEightDaysAgo.getDate() - 28)
         twentyEightDaysAgo.setHours(0, 0, 0, 0)
-        return { start: twentyEightDaysAgo, end: today }
+        const yesterday28d = new Date(today)
+        yesterday28d.setDate(yesterday28d.getDate() - 1)
+        yesterday28d.setHours(23, 59, 59, 999)
+        return { start: twentyEightDaysAgo, end: yesterday28d }
 
       case 'last_30d':
         const thirtyDaysAgo = new Date(today)
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29)
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
         thirtyDaysAgo.setHours(0, 0, 0, 0)
-        return { start: thirtyDaysAgo, end: today }
+        const yesterday30d = new Date(today)
+        yesterday30d.setDate(yesterday30d.getDate() - 1)
+        yesterday30d.setHours(23, 59, 59, 999)
+        return { start: thirtyDaysAgo, end: yesterday30d }
 
       case 'this_week':
+        // 今週（日曜始まり）
         const weekStart = new Date(today)
-        const dayOfWeek = weekStart.getDay()
-        const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1 // 月曜始まり
-        weekStart.setDate(weekStart.getDate() - diff)
+        const dayOfWeek = weekStart.getDay() // 0=日曜, 1=月曜, ..., 6=土曜
+        // 今週の日曜日を計算（今日から dayOfWeek 日前）
+        weekStart.setDate(weekStart.getDate() - dayOfWeek)
         weekStart.setHours(0, 0, 0, 0)
-        return { start: weekStart, end: today }
+        // 今週の土曜日（今日または未来の土曜日）
+        const weekEnd = new Date(weekStart)
+        weekEnd.setDate(weekStart.getDate() + 6)
+        weekEnd.setHours(23, 59, 59, 999)
+        // 今日が土曜日より後の場合は今日を終了日とする
+        const actualEnd = weekEnd > today ? today : weekEnd
+        return { start: weekStart, end: actualEnd }
 
       case 'last_week':
-        const lastWeekEnd = new Date(today)
-        const lastWeekDay = lastWeekEnd.getDay()
-        const lastWeekDiff = lastWeekDay === 0 ? 7 : lastWeekDay
-        lastWeekEnd.setDate(lastWeekEnd.getDate() - lastWeekDiff)
-        lastWeekEnd.setHours(23, 59, 59, 999)
-        const lastWeekStart = new Date(lastWeekEnd)
-        lastWeekStart.setDate(lastWeekStart.getDate() - 6)
-        lastWeekStart.setHours(0, 0, 0, 0)
-        return { start: lastWeekStart, end: lastWeekEnd }
+        // 先週（日曜始まり）
+        const currentDay = today.getDay() // 0=日曜, 1=月曜, ..., 6=土曜
+        // 先週の土曜日を計算（今日から currentDay + 1 日前）
+        const lastSaturday = new Date(today)
+        lastSaturday.setDate(today.getDate() - currentDay - 1)
+        lastSaturday.setHours(23, 59, 59, 999)
+        // 先週の日曜日を計算（先週の土曜日から6日前）
+        const lastSunday = new Date(lastSaturday)
+        lastSunday.setDate(lastSaturday.getDate() - 6)
+        lastSunday.setHours(0, 0, 0, 0)
+        return { start: lastSunday, end: lastSaturday }
 
       case 'this_month':
         const monthStart = new Date(today.getFullYear(), today.getMonth(), 1)
@@ -141,7 +156,6 @@ export function DateRangeFilter({
   const presetOptions = [
     { label: '今日', value: 'today' as DateRangeFilter },
     { label: '昨日', value: 'yesterday' as DateRangeFilter },
-    { label: '今日と昨日', value: 'last_2d' as DateRangeFilter },
     { label: '過去7日間', value: 'last_7d' as DateRangeFilter },
     { label: '過去14日間', value: 'last_14d' as DateRangeFilter },
     { label: '過去28日間', value: 'last_28d' as DateRangeFilter },
@@ -155,37 +169,46 @@ export function DateRangeFilter({
   return (
     <div className="flex items-center gap-2">
       {/* プリセット期間ボタン */}
-      {presetOptions.map((option) => (
-        <button
-          key={option.value}
-          onClick={() => onChange(option.value)}
-          className={`px-3 py-1.5 text-sm rounded-md transition-colors whitespace-nowrap ${
-            value === option.value
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          }`}
-          title={(() => {
-            const range = getDateRangeForValue(option.value)
-            if (range) {
-              return `${formatDate(range.start)} ~ ${formatDate(range.end)}`
-            }
-            return option.label
-          })()}
-        >
-          {option.label}
-        </button>
-      ))}
+      {presetOptions.map((option) => {
+        const range = getDateRangeForValue(option.value)
+        const isSelected = value === option.value
+
+        return (
+          <button
+            key={option.value}
+            onClick={() => onChange(option.value)}
+            className={`px-3 py-1.5 h-[32px] text-xs rounded-md transition-colors whitespace-nowrap flex items-center justify-center ${
+              isSelected ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+            title={range ? `${formatDate(range.start)} ~ ${formatDate(range.end)}` : option.label}
+          >
+            {isSelected && range ? (
+              <span>
+                {option.label} ({formatDate(range.start)}~{formatDate(range.end)})
+              </span>
+            ) : (
+              <span>{option.label}</span>
+            )}
+          </button>
+        )
+      })}
 
       {/* カスタム期間トグルボタン */}
       <button
         onClick={() => setShowCustomDatePicker(!showCustomDatePicker)}
-        className={`px-3 py-1.5 text-sm rounded-md transition-colors whitespace-nowrap flex items-center gap-1 ${
+        className={`px-3 py-1.5 h-[32px] text-xs rounded-md transition-colors whitespace-nowrap flex items-center justify-center gap-1 ${
           value === 'custom'
             ? 'bg-blue-600 text-white'
             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
         }`}
       >
-        <span>カスタム</span>
+        {value === 'custom' && customDateRange ? (
+          <span>
+            カスタム ({formatDate(customDateRange.start)}~{formatDate(customDateRange.end)})
+          </span>
+        ) : (
+          <span>カスタム</span>
+        )}
         <svg
           className={`w-4 h-4 transition-transform ${showCustomDatePicker ? 'rotate-180' : ''}`}
           fill="none"
@@ -195,21 +218,6 @@ export function DateRangeFilter({
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </button>
-
-      {/* 区切り線 */}
-      <div className="h-6 w-px bg-gray-300"></div>
-
-      {/* 選択された期間の表示 */}
-      {currentDateRange && (
-        <div className="text-sm text-gray-600 px-2">
-          <span className="font-medium">
-            {presetOptions.find((opt) => opt.value === value)?.label || 'カスタム'}
-          </span>
-          <span className="text-gray-500 ml-1">
-            : {formatDate(currentDateRange.start)} ~ {formatDate(currentDateRange.end)}
-          </span>
-        </div>
-      )}
 
       {/* カスタム期間選択（折りたたみ） */}
       {showCustomDatePicker && (

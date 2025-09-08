@@ -5,7 +5,6 @@ import { AggregatedFatigueTable } from './AggregatedFatigueTable'
 import { CreativeTableTab } from './CreativeTableTab'
 import { VirtualizedCreativeTable } from './VirtualizedCreativeTable'
 import { Alert } from './Alert'
-import { DataValidationAlert } from './DataValidationAlert'
 import { MetaAccount, FatigueData } from '@/types'
 import { aggregateByLevel } from '../utils/aggregation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -15,6 +14,7 @@ import { DateRangeFilter } from './DateRangeFilter'
 import { UnifiedFilterSection } from './UnifiedFilterSection'
 import { SafeFilterWrapper } from './SafeFilterWrapper'
 import { ErrorLogPanel } from './ErrorLogPanel'
+import { DateRangeDebugPanel } from '@/components/DateRangeDebugPanel'
 import type { DateRangeFilter as DateRangeFilterType } from '../hooks/useAdFatigueSimplified'
 import { logFilter } from '@/utils/debugLogger'
 
@@ -122,21 +122,27 @@ export function FatigueDashboardPresentation({
 
       switch (dateRange) {
         case 'last_7d':
+          const yesterday7d = new Date(today.getTime() - 24 * 60 * 60 * 1000)
+          yesterday7d.setHours(23, 59, 59, 999)
           calculatedRange = {
-            start: new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000),
-            end: today,
+            start: new Date(yesterday7d.getTime() - 6 * 24 * 60 * 60 * 1000),
+            end: yesterday7d,
           }
           break
         case 'last_14d':
+          const yesterday14d = new Date(today.getTime() - 24 * 60 * 60 * 1000)
+          yesterday14d.setHours(23, 59, 59, 999)
           calculatedRange = {
-            start: new Date(today.getTime() - 14 * 24 * 60 * 60 * 1000),
-            end: today,
+            start: new Date(yesterday14d.getTime() - 13 * 24 * 60 * 60 * 1000),
+            end: yesterday14d,
           }
           break
         case 'last_30d':
+          const yesterday30d = new Date(today.getTime() - 24 * 60 * 60 * 1000)
+          yesterday30d.setHours(23, 59, 59, 999)
           calculatedRange = {
-            start: new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000),
-            end: today,
+            start: new Date(yesterday30d.getTime() - 29 * 24 * 60 * 60 * 1000),
+            end: yesterday30d,
           }
           break
         case 'last_month':
@@ -211,9 +217,11 @@ export function FatigueDashboardPresentation({
           })
           break
         case 'last_90d':
+          const yesterday90d = new Date(today.getTime() - 24 * 60 * 60 * 1000)
+          yesterday90d.setHours(23, 59, 59, 999)
           calculatedRange = {
-            start: new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000),
-            end: today,
+            start: new Date(yesterday90d.getTime() - 89 * 24 * 60 * 60 * 1000),
+            end: yesterday90d,
           }
           break
 
@@ -240,51 +248,49 @@ export function FatigueDashboardPresentation({
           }
           break
 
-        case 'last_2d':
-          const twoDaysAgo = new Date(today)
-          twoDaysAgo.setDate(twoDaysAgo.getDate() - 1)
-          twoDaysAgo.setHours(0, 0, 0, 0)
-          const twoDaysEnd = new Date(today)
-          twoDaysEnd.setHours(23, 59, 59, 999)
-          calculatedRange = {
-            start: twoDaysAgo,
-            end: twoDaysEnd,
-          }
-          break
-
         case 'last_28d':
+          const yesterday28d = new Date(today.getTime() - 24 * 60 * 60 * 1000)
+          yesterday28d.setHours(23, 59, 59, 999)
           calculatedRange = {
-            start: new Date(today.getTime() - 28 * 24 * 60 * 60 * 1000),
-            end: today,
+            start: new Date(yesterday28d.getTime() - 27 * 24 * 60 * 60 * 1000),
+            end: yesterday28d,
           }
           break
 
         case 'this_week':
+          // 今週（日曜始まり）
           const weekStart = new Date(today)
-          const dayOfWeek = weekStart.getDay()
-          const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1 // 月曜始まり
-          weekStart.setDate(weekStart.getDate() - diff)
+          const dayOfWeek = weekStart.getDay() // 0=日曜, 1=月曜, ..., 6=土曜
+          // 今週の日曜日を計算（今日から dayOfWeek 日前）
+          weekStart.setDate(weekStart.getDate() - dayOfWeek)
           weekStart.setHours(0, 0, 0, 0)
-          const weekEnd = new Date(today)
+          // 今週の土曜日（今日または未来の土曜日）
+          const weekEnd = new Date(weekStart)
+          weekEnd.setDate(weekStart.getDate() + 6)
           weekEnd.setHours(23, 59, 59, 999)
+          // 今日が土曜日より後の場合は今日を終了日とする
+          const actualEnd = weekEnd > today ? today : weekEnd
+          actualEnd.setHours(23, 59, 59, 999)
           calculatedRange = {
             start: weekStart,
-            end: weekEnd,
+            end: actualEnd,
           }
           break
 
         case 'last_week':
-          const lastWeekEnd = new Date(today)
-          const lastWeekDay = lastWeekEnd.getDay()
-          const lastWeekDiff = lastWeekDay === 0 ? 7 : lastWeekDay
-          lastWeekEnd.setDate(lastWeekEnd.getDate() - lastWeekDiff)
-          lastWeekEnd.setHours(23, 59, 59, 999)
-          const lastWeekStart = new Date(lastWeekEnd)
-          lastWeekStart.setDate(lastWeekStart.getDate() - 6)
-          lastWeekStart.setHours(0, 0, 0, 0)
+          // 先週（日曜始まり）
+          const currentDay = today.getDay() // 0=日曜, 1=月曜, ..., 6=土曜
+          // 先週の土曜日を計算（今日から currentDay + 1 日前）
+          const lastSaturday = new Date(today)
+          lastSaturday.setDate(today.getDate() - currentDay - 1)
+          lastSaturday.setHours(23, 59, 59, 999)
+          // 先週の日曜日を計算（先週の土曜日から6日前）
+          const lastSunday = new Date(lastSaturday)
+          lastSunday.setDate(lastSaturday.getDate() - 6)
+          lastSunday.setHours(0, 0, 0, 0)
           calculatedRange = {
-            start: lastWeekStart,
-            end: lastWeekEnd,
+            start: lastSunday,
+            end: lastSaturday,
           }
           break
 
@@ -495,39 +501,38 @@ export function FatigueDashboardPresentation({
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
 
-          {selectedAccountId && (
-            <div className="flex items-center gap-4">
-              {/* レート制限状態の表示 */}
-              {isRateLimited && (
-                <div className="flex items-center gap-2 px-3 py-2 bg-orange-50 border border-orange-200 rounded-lg">
-                  <svg
-                    className="w-5 h-5 text-orange-600 animate-pulse"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                  <span className="text-sm text-orange-700">
-                    レート制限中: {rateLimitStatus.timeRemaining}秒後に再試行可能
-                  </span>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+          <div className="flex items-center gap-4">
+            {/* アカウント選択 */}
+            <AccountSelector
+              accounts={accounts}
+              selectedAccountId={selectedAccountId}
+              onSelect={onAccountSelect}
+              isLoading={isLoadingAccounts}
+            />
 
-        <AccountSelector
-          accounts={accounts}
-          selectedAccountId={selectedAccountId}
-          onSelect={onAccountSelect}
-          isLoading={isLoadingAccounts}
-        />
+            {/* レート制限状態の表示 */}
+            {selectedAccountId && isRateLimited && (
+              <div className="flex items-center gap-2 px-3 py-2 bg-orange-50 border border-orange-200 rounded-lg">
+                <svg
+                  className="w-5 h-5 text-orange-600 animate-pulse"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <span className="text-sm text-orange-700">
+                  レート制限中: {rateLimitStatus.timeRemaining}秒後に再試行可能
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
 
         {error && (
           <Alert
@@ -579,15 +584,6 @@ export function FatigueDashboardPresentation({
               </div>
             ) : (
               <>
-                {/* データ検証アラート - データがある場合のみ */}
-                {data.length > 0 && (
-                  <DataValidationAlert
-                    data={data}
-                    onRevalidate={() => onRefresh()}
-                    isValidating={isLoading}
-                  />
-                )}
-
                 {/* フィルターセクション */}
                 {onFilterChange && sourceData && (
                   <>
@@ -605,7 +601,7 @@ export function FatigueDashboardPresentation({
                   </>
                 )}
 
-                {/* 日付フィルター（独立配置） */}
+                {/* アカウント選択と日付フィルター（統合配置） */}
                 <div className="mb-6 bg-white rounded-lg shadow-sm border px-4 py-2">
                   <div className="flex items-center justify-between">
                     <DateRangeFilter
@@ -616,12 +612,16 @@ export function FatigueDashboardPresentation({
                       isLoading={isLoading || isRefreshing}
                     />
                     {dataSource && (
-                      <div className="text-sm text-gray-600 border-l pl-4">
+                      <div className="text-sm text-gray-600">
                         <div className="flex items-center gap-2">
+                          <span className="text-xs">
+                            取得件数: <span className="font-medium">{data.length}件</span>
+                          </span>
+                          <span className="text-xs text-gray-400">|</span>
                           <span className="text-xs">
                             データソース: {dataSource === 'cache' ? 'キャッシュ' : 'Meta API'}
                           </span>
-                          <span className="text-xs text-gray-400">•</span>
+                          <span className="text-xs text-gray-400">|</span>
                           <span className="text-xs">
                             最終更新: {formatDateTime(lastUpdateTime)}
                           </span>
@@ -777,6 +777,9 @@ export function FatigueDashboardPresentation({
 
       {/* エラーログパネル */}
       <ErrorLogPanel />
+
+      {/* デバッグ情報パネル */}
+      <DateRangeDebugPanel />
     </div>
   )
 }

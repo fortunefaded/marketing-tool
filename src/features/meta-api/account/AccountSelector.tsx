@@ -11,7 +11,7 @@ export function AccountSelector({ accounts, selectedAccountId, onSelect, isLoadi
   if (isLoading) {
     return <div className="text-gray-500">Loading accounts...</div>
   }
-  
+
   if (accounts.length === 0) {
     return (
       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
@@ -22,14 +22,14 @@ export function AccountSelector({ accounts, selectedAccountId, onSelect, isLoadi
       </div>
     )
   }
-  
+
   return (
-    <div className="flex items-center gap-4 mb-6">
-      <label className="text-sm font-medium text-gray-700">Account:</label>
+    <div className="flex items-center gap-2">
+      <label className="text-xs font-medium text-gray-600">Account:</label>
       <select
         value={selectedAccountId || ''}
         onChange={(e) => onSelect(e.target.value)}
-        className="block w-64 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+        className="block w-48 px-2 py-1 text-sm border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
       >
         <option value="">Select an account</option>
         {accounts.map((account) => (
