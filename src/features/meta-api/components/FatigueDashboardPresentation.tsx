@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { AccountSelector } from '../account/AccountSelector'
 import { StatCard } from './StatCard'
 import { AggregatedFatigueTable } from './AggregatedFatigueTable'
@@ -8,6 +8,7 @@ import { MetaAccount, FatigueData } from '@/types'
 import { aggregateByLevel } from '../utils/aggregation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useRateLimitStatus } from '../hooks/useRateLimitStatus'
+import { downloadCSV, downloadAggregatedCSV } from '@/utils/csv-export'
 import { DataLoadingProgress } from './DataLoadingProgress'
 import { DateRangeFilter } from './DateRangeFilter'
 import { UnifiedFilterSection } from './UnifiedFilterSection'
@@ -106,6 +107,9 @@ export function FatigueDashboardPresentation({
   onFilterChange,
   sourceData: rawSourceData,
 }: FatigueDashboardPresentationProps) {
+  const [activeTab, setActiveTab] = useState<string>('campaign')
+  const tabsRef = useRef<any>(null)
+
   // 実効的な日付範囲を計算（一度だけ計算して保持）
   const effectiveDateRange = React.useMemo(() => {
     // カスタム日付範囲が設定されている場合はそれを優先
@@ -628,9 +632,18 @@ export function FatigueDashboardPresentation({
                     />
                     <button
                       onClick={() => {
-                        // TODO: エクスポート機能の実装
-                        console.log('エクスポート機能は準備中です')
-                        alert('エクスポート機能は準備中です')
+                        // 現在のタブに応じてエクスポート
+                        if (activeTab === 'creative-table') {
+                          // クリエイティブタブの場合は生データをエクスポート
+                          downloadCSV(data)
+                        } else {
+                          // キャンペーンまたは広告セットタブの場合は集計データをエクスポート
+                          const aggregatedData =
+                            activeTab === 'campaign'
+                              ? levelAggregatedData.campaign
+                              : levelAggregatedData.adset
+                          downloadAggregatedCSV(aggregatedData, activeTab as 'campaign' | 'adset')
+                        }
                       }}
                       className="px-3 py-1.5 h-[32px] bg-green-600 text-white text-xs rounded-md hover:bg-green-700 transition-colors flex items-center justify-center gap-1"
                     >
@@ -655,7 +668,12 @@ export function FatigueDashboardPresentation({
                 {/* データ表示エリア */}
                 {data.length > 0 ? (
                   <div className="relative">
-                    <Tabs defaultValue="campaign" className="w-full">
+                    <Tabs
+                      defaultValue="campaign"
+                      className="w-full"
+                      ref={tabsRef}
+                      onValueChange={(value) => setActiveTab(value)}
+                    >
                       <TabsList className="grid w-full grid-cols-3 mb-6">
                         <TabsTrigger value="campaign">キャンペーン</TabsTrigger>
                         <TabsTrigger value="adset">広告セット</TabsTrigger>
