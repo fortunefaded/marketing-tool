@@ -47,31 +47,10 @@ export function SimplePhoneMockup({
         
         {/* スクリーン */}
         <div className="relative bg-white rounded-[1.5rem] overflow-hidden" style={{ width: '254px', height: '520px' }}>
-          {/* ステータスバー */}
-          <div className="absolute top-0 left-0 right-0 h-8 bg-white z-10 flex items-center justify-between px-4 pt-1">
-            <span className="text-xs font-semibold">9:41</span>
-            <div className="flex items-center space-x-1">
-              <div className="w-3 h-2 bg-gray-800 rounded-sm"></div>
-              <div className="w-3 h-2 bg-gray-800 rounded-sm"></div>
-              <div className="w-4 h-2 bg-gray-800 rounded-sm"></div>
-            </div>
-          </div>
-
-          {/* アプリヘッダー */}
-          <div className="absolute top-8 left-0 right-0 h-12 bg-white border-b border-gray-200 flex items-center px-3 z-10">
-            <div className="flex items-center space-x-2">
-              <div className="w-7 h-7 bg-gradient-to-br from-purple-600 to-pink-500 rounded-full"></div>
-              <div>
-                <div className="text-xs font-semibold">広告アカウント</div>
-                <div className="text-xs text-gray-500">スポンサー</div>
-              </div>
-            </div>
-          </div>
-
           {/* コンテンツエリア */}
-          <div className="pt-20 h-full bg-gray-50">
-            {/* メディア表示 */}
-            <div className="relative bg-black" style={{ height: '254px' }}>
+          <div className="h-full bg-gray-50">
+            {/* メディア表示 - 高さを拡大 */}
+            <div className="relative bg-black" style={{ height: '320px' }}>
               {showVideoPlayer && (videoUrl || videoId) ? (
                 // VideoPlayerコンポーネントを使用
                 <VideoPlayer
@@ -118,8 +97,8 @@ export function SimplePhoneMockup({
               )}
             </div>
 
-            {/* 広告テキストエリア */}
-            <div className="bg-white p-3">
+            {/* 広告テキストエリア - 上部マージンを調整 */}
+            <div className="bg-white p-4">
               {title ? (
                 <h3 className="text-sm font-semibold text-gray-900 mb-1 line-clamp-2">{title}</h3>
               ) : (
