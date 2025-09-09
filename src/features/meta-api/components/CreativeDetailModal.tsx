@@ -527,7 +527,7 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
       // fieldsを拡張してobject_story_specとeffective_object_story_idを含める
       const params = new URLSearchParams({
         access_token: accessToken,
-        fields: 'creative{id,name,title,body,image_url,video_id,thumbnail_url,object_type,link_url,effective_object_story_id,object_story_spec{video_data{video_id,image_url,title},link_data{link,message,picture,call_to_action}},instagram_permalink_url}'
+        fields: 'creative{id,name,title,body,image_url,video_id,thumbnail_url,object_type,link_url,effective_object_story_id,object_story_spec{video_data{video_id,image_url,title},link_data{link,message,picture,call_to_action}}}'
       })
 
       const response = await fetch(`${apiUrl}?${params.toString()}`)

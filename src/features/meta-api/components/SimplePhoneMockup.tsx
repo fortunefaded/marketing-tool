@@ -69,6 +69,26 @@ export function SimplePhoneMockup({
     return null
   })()
   
+  // 動画再生ハンドラー
+  const handlePlayClick = () => {
+    console.log('🎬 Play button clicked:', {
+      videoUrl,
+      videoId: videoId || extractedVideoId,
+      willPlayVideo: !!(videoUrl || videoId || extractedVideoId)
+    })
+    
+    // Facebook動画ページを開く
+    if (videoId || extractedVideoId) {
+      const fbVideoId = videoId || extractedVideoId
+      const facebookVideoUrl = `https://www.facebook.com/watch/?v=${fbVideoId}`
+      window.open(facebookVideoUrl, '_blank', 'noopener,noreferrer')
+    } else if (videoUrl) {
+      window.open(videoUrl, '_blank', 'noopener,noreferrer')
+    } else {
+      console.warn('動画URL/IDが見つかりません')
+    }
+  }
+
   // デバッグログ: 動画検出情報
   console.log('📹 Video detection in SimplePhoneMockup:', {
     mediaType,
@@ -141,16 +161,19 @@ export function SimplePhoneMockup({
                         )
                       } catch (error) {
                         console.error('VideoPlayer rendering error:', error)
-                        // VideoPlayerエラー時のフォールバック
+                        // VideoPlayerエラー時のフォールバック（クリック可能）
                         return (
-                          <div className="relative w-full h-full">
+                          <div 
+                            className="relative w-full h-full cursor-pointer hover:opacity-90 transition-opacity"
+                            onClick={handlePlayClick}
+                          >
                             <img 
                               src={displayImage} 
                               alt="Video thumbnail" 
                               className="w-full h-full object-cover"
                             />
                             <div className="absolute inset-0 flex items-center justify-center">
-                              <div className="w-12 h-12 bg-white bg-opacity-80 rounded-full flex items-center justify-center">
+                              <div className="w-12 h-12 bg-white bg-opacity-80 rounded-full flex items-center justify-center hover:bg-opacity-100 transition-all">
                                 <PlayIcon className="h-6 w-6 text-gray-900 ml-0.5" />
                               </div>
                             </div>
@@ -163,15 +186,18 @@ export function SimplePhoneMockup({
                     })()}
                   </div>
                 ) : (
-                  // 動画URLがない場合のフォールバック
-                  <div className="relative w-full h-full">
+                  // 動画URLがない場合のフォールバック（クリック可能）
+                  <div 
+                    className="relative w-full h-full cursor-pointer hover:opacity-90 transition-opacity"
+                    onClick={handlePlayClick}
+                  >
                     <img 
                       src={displayImage} 
                       alt="Video thumbnail" 
                       className="w-full h-full object-cover"
                     />
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="w-12 h-12 bg-white bg-opacity-80 rounded-full flex items-center justify-center">
+                      <div className="w-12 h-12 bg-white bg-opacity-80 rounded-full flex items-center justify-center hover:bg-opacity-100 transition-all">
                         <PlayIcon className="h-6 w-6 text-gray-900 ml-0.5" />
                       </div>
                     </div>
