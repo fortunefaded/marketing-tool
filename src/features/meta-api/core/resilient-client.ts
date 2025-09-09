@@ -4,6 +4,7 @@ import { SecureTokenManager } from './secure-token-manager'
 import { AccountId, AccessToken } from './branded-types'
 import { Result } from './result'
 import { toError, toMetaApiError } from './type-guards'
+import { META_API_BASE_URL } from './constants'
 
 /**
  * レジリエントなMeta APIクライアント
@@ -14,7 +15,7 @@ import { toError, toMetaApiError } from './type-guards'
  */
 export class ResilientMetaApiClient {
   private static instance: ResilientMetaApiClient
-  private baseUrl = 'https://graph.facebook.com/v23.0'
+  private baseUrl = META_API_BASE_URL
   
   // サーキットブレーカー状態
   private circuitState: 'closed' | 'open' | 'half-open' = 'closed'
