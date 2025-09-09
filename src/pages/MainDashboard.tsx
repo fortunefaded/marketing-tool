@@ -11,7 +11,6 @@ import {
   clearCachedData,
 } from '@/utils/localStorage'
 import {
-  logData,
   logAPI,
   logState,
   logFilter,
