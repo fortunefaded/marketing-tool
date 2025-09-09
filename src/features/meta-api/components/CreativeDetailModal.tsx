@@ -524,10 +524,10 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
     try {
       const apiUrl = `https://graph.facebook.com/v23.0/${item.adId}`
       
-      // fieldsを拡張してobject_story_specとeffective_object_story_idを含める
+      // fieldsを修正（権限エラー回避のためpage_idを追加）
       const params = new URLSearchParams({
         access_token: accessToken,
-        fields: 'creative{id,name,title,body,image_url,video_id,thumbnail_url,object_type,link_url,effective_object_story_id,object_story_spec{video_data{video_id,image_url,title},link_data{link,message,picture,call_to_action}}}'
+        fields: 'creative{id,name,title,body,image_url,video_id,thumbnail_url,object_type,link_url,effective_object_story_id,object_story_spec{page_id,instagram_actor_id,video_data{video_id,image_url,title,call_to_action},link_data{link,message,picture,call_to_action}}}'
       })
 
       const response = await fetch(`${apiUrl}?${params.toString()}`)
@@ -544,47 +544,35 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
         let videoUrl = null
         let actualObjectType = data.creative.object_type
         
-        // STATUSタイプの場合、object_story_specから動画情報を取得
-        if (data.creative.object_type === 'STATUS' && data.creative.object_story_spec?.video_data) {
-          extractedVideoId = data.creative.object_story_spec.video_data.video_id
-          // STATUSでも動画があればVIDEO扱いにする
-          if (extractedVideoId) {
-            actualObjectType = 'VIDEO'
+        // object_story_specから動画情報を取得
+        if (data.creative.object_story_spec) {
+          // video_dataがある場合
+          if (data.creative.object_story_spec.video_data) {
+            extractedVideoId = data.creative.object_story_spec.video_data.video_id || extractedVideoId
+            // STATUSでも動画があればVIDEO扱いにする
+            if (extractedVideoId) {
+              actualObjectType = 'VIDEO'
+            }
+          }
+          
+          // page_idとvideo_idから動画URLを構築
+          if (extractedVideoId && data.creative.object_story_spec.page_id) {
+            // Facebook動画の標準URLフォーマット
+            videoUrl = `https://www.facebook.com/${data.creative.object_story_spec.page_id}/videos/${extractedVideoId}/`
+            console.log('📹 Constructed video URL:', videoUrl)
           }
         }
         
-        // effective_object_story_idがある場合、追加APIコールで投稿詳細を取得
-        if (!extractedVideoId && data.creative.effective_object_story_id) {
-          try {
-            const storyUrl = `https://graph.facebook.com/v23.0/${data.creative.effective_object_story_id}`
-            const storyParams = new URLSearchParams({
-              access_token: accessToken,
-              fields: 'attachments{media{source,image{src}},type,subattachments}'
-            })
-            
-            const storyResponse = await fetch(`${storyUrl}?${storyParams.toString()}`)
-            const storyData = await storyResponse.json()
-            
-            console.log('📺 Story data fetched:', storyData)
-            
-            // attachmentsから動画URLを探す
-            if (storyData.attachments?.data?.[0]?.media?.source) {
-              videoUrl = storyData.attachments.data[0].media.source
-              actualObjectType = 'VIDEO'
-            }
-            
-            // subattachmentsもチェック（カルーセルの場合）
-            if (storyData.attachments?.data?.[0]?.subattachments?.data) {
-              const videoAttachment = storyData.attachments.data[0].subattachments.data.find(
-                (att: any) => att.type === 'video' || att.media?.source
-              )
-              if (videoAttachment?.media?.source) {
-                videoUrl = videoAttachment.media.source
-                actualObjectType = 'VIDEO'
-              }
-            }
-          } catch (storyError) {
-            console.error('Failed to fetch story data:', storyError)
+        // effective_object_story_idがある場合でも、権限エラーを避けるため追加取得はしない
+        if (data.creative.effective_object_story_id && !extractedVideoId) {
+          console.log('⚠️ effective_object_story_id exists but skipping due to permissions:', 
+            data.creative.effective_object_story_id)
+          // IDから動画IDを推測（最後の数字部分）
+          const match = data.creative.effective_object_story_id.match(/_(\d+)$/)
+          if (match) {
+            extractedVideoId = match[1]
+            actualObjectType = 'VIDEO'
+            console.log('📹 Extracted video ID from story ID:', extractedVideoId)
           }
         }
         
@@ -603,6 +591,7 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
           enriched_type: actualObjectType,
           video_id: extractedVideoId,
           video_url: videoUrl,
+          thumbnail_url: data.creative.thumbnail_url,
           has_video: !!(extractedVideoId || videoUrl)
         })
         
