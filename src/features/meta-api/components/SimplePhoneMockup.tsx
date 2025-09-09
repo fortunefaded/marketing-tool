@@ -51,8 +51,8 @@ export function SimplePhoneMockup({
         <div className="relative bg-white rounded-[1.5rem] overflow-hidden" style={{ width: '254px', height: '520px' }}>
           {/* コンテンツエリア */}
           <div className="h-full bg-gray-50">
-            {/* メディア表示 - 高さを拡大 */}
-            <div className="relative bg-black" style={{ height: '320px' }}>
+            {/* メディア表示 - 高さを縮小してテキストエリアを確保 */}
+            <div className="relative bg-black" style={{ height: '240px' }}>
               {showVideoPlayer && (videoUrl || videoId) ? (
                 // VideoPlayerコンポーネントを使用
                 <VideoPlayer
@@ -99,15 +99,15 @@ export function SimplePhoneMockup({
               )}
             </div>
 
-            {/* 広告テキストエリア - 上部マージンを調整 */}
-            <div className="bg-white p-4">
+            {/* 広告テキストエリア - スクロール可能に */}
+            <div className="bg-white p-4 overflow-y-auto" style={{ maxHeight: '280px' }}>
               {title ? (
-                <h3 className="text-sm font-semibold text-gray-900 mb-1 line-clamp-2">{title}</h3>
+                <h3 className="text-sm font-semibold text-gray-900 mb-2">{title}</h3>
               ) : (
                 <div className="h-2 bg-gray-300 rounded w-3/4 mb-2"></div>
               )}
               {body ? (
-                <p className="text-xs text-gray-600 line-clamp-3">{body}</p>
+                <p className="text-xs text-gray-600 whitespace-pre-wrap">{body}</p>
               ) : (
                 <>
                   <div className="h-2 bg-gray-300 rounded w-full mb-2"></div>
