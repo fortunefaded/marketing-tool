@@ -513,53 +513,107 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
 
   // クリエイティブ情報を取得する関数
   const fetchCreativeInfo = useCallback(async () => {
-    if (!item.adId || !accessToken) {
-      console.warn('広告IDまたはアクセストークンが不足しています')
+    if (!accessToken || !item.adId) {
+      console.warn('クリエイティブ取得に必要な情報がありません')
       return
     }
 
     setIsLoadingCreative(true)
+    console.log('🎨 Fetching creative info for ad:', item.adId)
+
     try {
-      const url = `https://graph.facebook.com/v23.0/${item.adId}`
+      const apiUrl = `https://graph.facebook.com/v23.0/${item.adId}`
+      
+      // fieldsを拡張してobject_story_specとeffective_object_story_idを含める
       const params = new URLSearchParams({
         access_token: accessToken,
-        fields: 'creative{id,name,title,body,image_url,video_id,thumbnail_url,object_type,effective_object_story_id,object_story_spec,instagram_permalink_url}'
+        fields: 'creative{id,name,title,body,image_url,video_id,thumbnail_url,object_type,link_url,effective_object_story_id,object_story_spec{video_data{video_id,image_url,description,title},link_data{link,message,picture,call_to_action}},instagram_permalink_url}'
       })
 
-      console.log('🎨 クリエイティブ情報を取得中:', { adId: item.adId })
-      
-      const response = await fetch(`${url}?${params}`)
+      const response = await fetch(`${apiUrl}?${params.toString()}`)
       const data = await response.json()
-      
+
       if (data.error) {
-        console.error('❌ クリエイティブ情報取得エラー:', data.error)
+        console.error('Creative fetch error:', data.error)
         return
       }
-      
+
       if (data.creative) {
-        console.log('✅ クリエイティブ情報取得成功:', {
-          creative_id: data.creative.id,
-          has_thumbnail: !!data.creative.thumbnail_url,
-          has_video: !!data.creative.video_id,
-          has_image: !!data.creative.image_url,
-          object_type: data.creative.object_type
+        // 動画IDを様々な場所から探す
+        let extractedVideoId = data.creative.video_id
+        let videoUrl = null
+        let actualObjectType = data.creative.object_type
+        
+        // STATUSタイプの場合、object_story_specから動画情報を取得
+        if (data.creative.object_type === 'STATUS' && data.creative.object_story_spec?.video_data) {
+          extractedVideoId = data.creative.object_story_spec.video_data.video_id
+          // STATUSでも動画があればVIDEO扱いにする
+          if (extractedVideoId) {
+            actualObjectType = 'VIDEO'
+          }
+        }
+        
+        // effective_object_story_idがある場合、追加APIコールで投稿詳細を取得
+        if (!extractedVideoId && data.creative.effective_object_story_id) {
+          try {
+            const storyUrl = `https://graph.facebook.com/v23.0/${data.creative.effective_object_story_id}`
+            const storyParams = new URLSearchParams({
+              access_token: accessToken,
+              fields: 'attachments{media{source,image{src}},type,subattachments}'
+            })
+            
+            const storyResponse = await fetch(`${storyUrl}?${storyParams.toString()}`)
+            const storyData = await storyResponse.json()
+            
+            console.log('📺 Story data fetched:', storyData)
+            
+            // attachmentsから動画URLを探す
+            if (storyData.attachments?.data?.[0]?.media?.source) {
+              videoUrl = storyData.attachments.data[0].media.source
+              actualObjectType = 'VIDEO'
+            }
+            
+            // subattachmentsもチェック（カルーセルの場合）
+            if (storyData.attachments?.data?.[0]?.subattachments?.data) {
+              const videoAttachment = storyData.attachments.data[0].subattachments.data.find(
+                (att: any) => att.type === 'video' || att.media?.source
+              )
+              if (videoAttachment?.media?.source) {
+                videoUrl = videoAttachment.media.source
+                actualObjectType = 'VIDEO'
+              }
+            }
+          } catch (storyError) {
+            console.error('Failed to fetch story data:', storyError)
+          }
+        }
+        
+        // クリエイティブ情報を保存（object_typeを上書き）
+        const enrichedCreative = {
+          ...data.creative,
+          video_id: extractedVideoId,
+          video_url: videoUrl,
+          object_type: actualObjectType,
+          // デバッグ用の元のタイプも保存
+          original_object_type: data.creative.object_type
+        }
+        
+        console.log('✅ Creative info enriched:', {
+          original_type: data.creative.object_type,
+          enriched_type: actualObjectType,
+          video_id: extractedVideoId,
+          video_url: videoUrl,
+          has_video: !!(extractedVideoId || videoUrl)
         })
         
-        console.log('🎬 Creative info for video detection:', {
-          object_type: data.creative?.object_type,
-          video_id: data.creative?.video_id,
-          thumbnail_url: data.creative?.thumbnail_url,
-          image_url: data.creative?.image_url,
-          has_video: data.creative?.object_type === 'VIDEO' || !!data.creative?.video_id
-        })
-        setCreativeInfo(data.creative)
+        setCreativeInfo(enrichedCreative)
       }
     } catch (error) {
-      console.error('🚨 クリエイティブ情報取得エラー:', error)
+      console.error('Failed to fetch creative info:', error)
     } finally {
       setIsLoadingCreative(false)
     }
-  }, [item.adId, accessToken])
+  }, [accessToken, item.adId])
 
   // モーダルが開かれた時に日別データとクリエイティブ情報を取得
   useEffect(() => {
@@ -1175,7 +1229,7 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                         <SimplePhoneMockup
                           mediaType={creativeInfo?.object_type || currentInsight?.creative_media_type || insight?.creative_media_type}
                           thumbnailUrl={creativeInfo?.thumbnail_url || currentInsight?.thumbnail_url || insight?.thumbnail_url}
-                          videoUrl={undefined}
+                          videoUrl={creativeInfo?.video_url}
                           videoId={creativeInfo?.video_id || currentInsight?.video_id || insight?.video_id}
                           imageUrl={creativeInfo?.image_url || currentInsight?.image_url || insight?.image_url}
                           objectType={creativeInfo?.object_type}
