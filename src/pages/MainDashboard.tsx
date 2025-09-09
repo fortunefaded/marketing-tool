@@ -18,9 +18,9 @@ import {
 } from '../utils/debugLogger'
 
 // デバッグコマンドを読み込み（開発環境のみ）
-if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
-  import('../utils/debug-commands.js').catch(() => {
-    // エラーを無視
+if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'development' && typeof window !== 'undefined') {
+  import('../utils/debug-commands.js' as any).catch(() => {
+    // エラーを無視（ファイルが存在しない場合）
   })
 }
 
@@ -69,7 +69,7 @@ export default function MainDashboard() {
   })
   const [filteredData] = useState<any>(null)
   const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null)
-  const [, setDailyDataCache] = useState<Record<string, any>>({}) // dailyDataCache未使用、日別データのキャッシュ
+  // const [, setDailyDataCache] = useState<Record<string, any>>({}) // 未使用のためコメント化
   const [, setCacheAge] = useState<number>(Infinity) // キャッシュの経過時間
 
   // 期間選択が変更されたらlocalStorageに保存
@@ -109,10 +109,17 @@ export default function MainDashboard() {
 
       // MetaAccount型に変換
       const formattedAccounts: MetaAccount[] = convexAccounts.map((acc: any) => ({
+        id: acc._id || acc.accountId,
         accountId: acc.accountId,
+        fullAccountId: acc.accountId.startsWith('act_') ? acc.accountId : `act_${acc.accountId}`,
         name: acc.accountName || acc.name || 'Unknown Account',
-        accessToken: acc.accessToken,
+        accessToken: acc.accessToken || '',
         isActive: acc.isActive || false,
+        createdAt: new Date(acc.createdAt || Date.now()),
+        currency: acc.currency,
+        timezone: acc.timezone,
+        permissions: acc.permissions,
+        lastUsedAt: acc.lastSyncAt ? new Date(acc.lastSyncAt) : undefined,
       }))
 
       setAccounts(formattedAccounts)
@@ -172,7 +179,7 @@ export default function MainDashboard() {
           dateRange === 'custom' && effectiveRange
             ? `custom_${effectiveRange.start.toISOString().split('T')[0]}_${effectiveRange.end.toISOString().split('T')[0]}`
             : dateRange
-        const { data: cachedData, age } = getCachedData(targetAccountId, dateRangeKey)
+        const { data: cachedData, age } = getCachedData(targetAccountId!, dateRangeKey)
 
         if (cachedData) {
           // 30分以内ならキャッシュを使用
@@ -408,9 +415,9 @@ export default function MainDashboard() {
           fields:
             'ad_id,ad_name,campaign_id,campaign_name,adset_id,adset_name,impressions,clicks,spend,ctr,cpm,cpc,frequency,reach,date_start,date_stop,conversions,actions,action_values,unique_actions,cost_per_action_type,cost_per_unique_action_type,website_purchase_roas,purchase_roas',
           // F-CV調査用: 複数のアトリビューション期間を取得して比較
-          action_attribution_windows: JSON.stringify(['1d_click', '7d_click']),
-          action_breakdowns: JSON.stringify(['action_type']),
-          use_unified_attribution_setting: true,
+          action_attribution_windows: ['1d_click', '7d_click'],
+          action_breakdowns: ['action_type'],
+          use_unified_attribution_setting: 'true',
           // time_increment: '1' を削除 - 期間全体の集約データを取得
           limit: '500',
         }
@@ -563,7 +570,7 @@ export default function MainDashboard() {
               original_conversions_field: item.conversions, // デバッグ用
               calculated_cv: cv,
               action_type_used: action_type_used,
-              all_actions: item.actions?.map((a: any) => ({
+              all_actions: (item as any).actions?.map((a: any) => ({
                 type: a.action_type,
                 value: a.value,
                 '1d_click': a['1d_click'],
@@ -741,13 +748,13 @@ export default function MainDashboard() {
           dateRange === 'custom' && effectiveDateRange
             ? `custom_${effectiveDateRange.start.toISOString().split('T')[0]}_${effectiveDateRange.end.toISOString().split('T')[0]}`
             : dateRange
-        saveCachedData(targetAccountId, formattedData, dateRangeKey)
+        saveCachedData(targetAccountId!, formattedData, dateRangeKey)
       } catch (err: any) {
         console.error('❌ データ取得エラー:', err)
         setError(err.message)
 
         // エラー時はキャッシュから復元を試みる
-        const { data: cachedData, age } = getCachedData(targetAccountId, dateRange)
+        const { data: cachedData, age } = getCachedData(targetAccountId!, dateRange)
         if (cachedData) {
           try {
             console.log('💾 エラー時のフォールバック: キャッシュから復元')

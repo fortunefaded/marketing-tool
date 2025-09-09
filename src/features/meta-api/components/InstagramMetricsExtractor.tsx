@@ -309,6 +309,64 @@ export function InstagramMetricsDisplay({ insight }: { insight: any }) {
     )
   }
 
+  // アクションタイプの日本語ラベルマッピング
+  const actionLabels: { [key: string]: string } = {
+    // 基本エンゲージメント
+    'saves': '投稿の保存',
+    'post_save': '投稿の保存',
+    'onsite_conversion.post_save': '投稿の保存',
+    'ig_save': '投稿の保存',
+    'likes': 'いいね',
+    'post_like': 'いいね',
+    'ig_like': 'いいね',
+    'comments': 'コメント',
+    'post_comment': 'コメント', 
+    'ig_comment': 'コメント',
+    'shares': 'シェア',
+    'post_share': 'シェア',
+    'ig_share': 'シェア',
+    
+    // プロフィール・フォロー
+    'profile_visits': 'プロフィール訪問',
+    'profile_visit': 'プロフィール訪問',
+    'ig_profile_visit': 'プロフィール訪問',
+    'onsite_conversion.ig_profile_visit': 'プロフィール訪問',
+    'follows': 'フォロー',
+    'follow': 'フォロー',
+    'ig_follow': 'フォロー',
+    'onsite_conversion.follow': 'フォロー',
+    
+    // ストーリーズ
+    'story_view': 'ストーリー視聴',
+    'ig_story_view': 'ストーリー視聴',
+    'story_reply': 'ストーリー返信',
+    'ig_story_reply': 'ストーリー返信',
+    
+    // Reels
+    'reel_play': 'リール再生',
+    'ig_reel_play': 'リール再生',
+    'reel_save': 'リール保存',
+    'ig_reel_save': 'リール保存',
+    
+    // ショッピング
+    'product_tag_click': '商品タグクリック',
+    'ig_product_tag_click': '商品タグクリック',
+    'shopping_tag_click': 'ショッピングタグクリック',
+    
+    // DM
+    'direct_message': 'ダイレクトメッセージ',
+    'ig_direct_message': 'ダイレクトメッセージ',
+    'message_send': 'メッセージ送信',
+    
+    // その他
+    'ig_app_install': 'アプリインストール',
+    'instagram_app_install': 'アプリインストール',
+    'ig_video_view': '動画視聴',
+    'instagram_video_view': '動画視聴',
+    'ig_reach': 'リーチ',
+    'instagram_reach': 'リーチ'
+  }
+
   return (
     <div className="space-y-6">
       {/* サマリーセクション */}
@@ -320,9 +378,9 @@ export function InstagramMetricsDisplay({ insight }: { insight: any }) {
             </svg>
             Instagram パフォーマンスサマリー
           </h3>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {metrics.calculated.profileVisitRate && (
-              <div className="bg-white p-3 rounded">
+              <div className="bg-white p-3 rounded shadow-sm">
                 <p className="text-sm text-gray-600">プロフィール訪問率</p>
                 <p className="text-2xl font-bold text-purple-600">
                   {metrics.calculated.profileVisitRate}%
@@ -330,7 +388,7 @@ export function InstagramMetricsDisplay({ insight }: { insight: any }) {
               </div>
             )}
             {metrics.calculated.followRate && (
-              <div className="bg-white p-3 rounded">
+              <div className="bg-white p-3 rounded shadow-sm">
                 <p className="text-sm text-gray-600">フォロー率</p>
                 <p className="text-2xl font-bold text-pink-600">
                   {metrics.calculated.followRate}%
@@ -338,10 +396,18 @@ export function InstagramMetricsDisplay({ insight }: { insight: any }) {
               </div>
             )}
             {metrics.calculated.engagementRate && (
-              <div className="bg-white p-3 rounded">
+              <div className="bg-white p-3 rounded shadow-sm">
                 <p className="text-sm text-gray-600">エンゲージメント率</p>
                 <p className="text-2xl font-bold text-indigo-600">
                   {metrics.calculated.engagementRate}%
+                </p>
+              </div>
+            )}
+            {metrics.calculated.saves && (
+              <div className="bg-white p-3 rounded shadow-sm">
+                <p className="text-sm text-gray-600">投稿の保存数</p>
+                <p className="text-2xl font-bold text-green-600">
+                  {metrics.calculated.saves.toLocaleString()}
                 </p>
               </div>
             )}
@@ -393,79 +459,115 @@ export function InstagramMetricsDisplay({ insight }: { insight: any }) {
         <div className="bg-white p-6 rounded-lg border border-gray-200">
           <h3 className="text-lg font-semibold text-gray-800 mb-4">
             Instagram アクション詳細
+            <span className="ml-2 text-sm text-gray-500">
+              ({Object.keys(metrics.actions).length} 種類のアクション検出)
+            </span>
           </h3>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    アクションタイプ
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    値
-                  </th>
-                  {Object.keys(metrics.costPerAction).length > 0 && (
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      コスト単価
-                    </th>
-                  )}
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {Object.entries(metrics.actions).map(([key, value]) => {
-                  // アクションタイプを読みやすく変換
-                  let displayName = key
-                  
-                  // onsite_conversion.を削除
-                  if (displayName.toLowerCase().startsWith('onsite_conversion.')) {
-                    displayName = displayName.substring(18)
-                  }
-                  
-                  // 特定のアクションタイプをわかりやすい名前に変換
-                  const nameMap: { [key: string]: string } = {
-                    'post_save': '投稿の保存',
-                    'ig_save': '保存',
-                    'saves': '保存数',
-                    'profile_visits': 'プロフィール訪問',
-                    'ig_profile_visit': 'プロフィール訪問',
-                    'follows': 'フォロー',
-                    'ig_follow': 'フォロー',
-                    'likes': 'いいね',
-                    'post_like': 'いいね',
-                    'comments': 'コメント',
-                    'post_comment': 'コメント',
-                    'shares': 'シェア',
-                    'post_share': 'シェア',
-                    'story_view': 'ストーリーズ表示',
-                    'reel_play': 'Reels再生',
-                  }
-                  
-                  const friendlyName = nameMap[displayName.toLowerCase()] || 
-                                      displayName.replace(/_/g, ' ').replace(/\./g, ' ')
+          
+          {/* アクションのカテゴリ分け */}
+          {(() => {
+            // アクションをカテゴリごとに分類
+            const categorizedActions: { [category: string]: { [key: string]: any } } = {
+              'エンゲージメント': {},
+              'プロフィール・フォロー': {},
+              'ストーリーズ': {},
+              'Reels': {},
+              'ショッピング': {},
+              'メッセージ': {},
+              'その他': {}
+            }
+            
+            Object.entries(metrics.actions).forEach(([key, value]) => {
+              const lowerKey = key.toLowerCase()
+              
+              if (lowerKey.includes('save') || lowerKey.includes('like') || 
+                  lowerKey.includes('comment') || lowerKey.includes('share')) {
+                categorizedActions['エンゲージメント'][key] = value
+              } else if (lowerKey.includes('profile') || lowerKey.includes('follow')) {
+                categorizedActions['プロフィール・フォロー'][key] = value
+              } else if (lowerKey.includes('story')) {
+                categorizedActions['ストーリーズ'][key] = value
+              } else if (lowerKey.includes('reel')) {
+                categorizedActions['Reels'][key] = value
+              } else if (lowerKey.includes('product') || lowerKey.includes('shopping')) {
+                categorizedActions['ショッピング'][key] = value
+              } else if (lowerKey.includes('message') || lowerKey.includes('direct')) {
+                categorizedActions['メッセージ'][key] = value
+              } else {
+                categorizedActions['その他'][key] = value
+              }
+            })
+            
+            return (
+              <div className="space-y-4">
+                {Object.entries(categorizedActions).map(([category, actions]) => {
+                  if (Object.keys(actions).length === 0) return null
                   
                   return (
-                    <tr key={key}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        <div>
-                          <div className="font-medium">{friendlyName}</div>
-                          <div className="text-xs text-gray-500">{key}</div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {typeof value === 'number' ? value.toLocaleString() : value}
-                      </td>
-                      {Object.keys(metrics.costPerAction).length > 0 && (
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {metrics.costPerAction[key] 
-                            ? `¥${parseFloat(metrics.costPerAction[key]).toFixed(2)}`
-                            : '-'}
-                        </td>
-                      )}
-                    </tr>
+                    <div key={category}>
+                      <h4 className="font-medium text-gray-700 mb-2 text-sm uppercase tracking-wider">
+                        {category}
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {Object.entries(actions).map(([key, value]) => {
+                          const label = actionLabels[key] || key.replace(/_/g, ' ')
+                          const displayValue = typeof value === 'number' ? value.toLocaleString() : value
+                          
+                          // アイコンをカテゴリに応じて選択
+                          let iconColor = 'text-gray-400'
+                          if (category === 'エンゲージメント') iconColor = 'text-pink-500'
+                          else if (category === 'プロフィール・フォロー') iconColor = 'text-purple-500'
+                          else if (category === 'ストーリーズ') iconColor = 'text-orange-500'
+                          else if (category === 'Reels') iconColor = 'text-red-500'
+                          else if (category === 'ショッピング') iconColor = 'text-green-500'
+                          else if (category === 'メッセージ') iconColor = 'text-blue-500'
+                          
+                          return (
+                            <div key={key} className="bg-gray-50 p-3 rounded-lg flex items-center justify-between hover:bg-gray-100 transition-colors">
+                              <div className="flex-1">
+                                <p className="text-sm font-medium text-gray-900">{label}</p>
+                                <p className="text-xs text-gray-500 truncate" title={key}>{key}</p>
+                              </div>
+                              <div className="text-right ml-3">
+                                <p className={`text-lg font-bold ${iconColor}`}>
+                                  {displayValue}
+                                </p>
+                                {metrics.costPerAction && metrics.costPerAction[key] && (
+                                  <p className="text-xs text-gray-500">
+                                    ¥{parseFloat(metrics.costPerAction[key]).toFixed(0)}/件
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
                   )
                 })}
-              </tbody>
-            </table>
+              </div>
+            )
+          })()}
+          
+          {/* 取得可能だが値が0の指標を表示 */}
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <p className="text-xs text-gray-500 mb-2">
+              ※ 以下の指標は取得可能ですが、現在データがありません：
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {['story_reply', 'ig_story_reply', 'reel_save', 'ig_reel_save', 
+                'product_tag_click', 'ig_product_tag_click', 'shopping_tag_click',
+                'direct_message', 'ig_direct_message', 'message_send'].map(type => {
+                if (!metrics.actions[type]) {
+                  return (
+                    <span key={type} className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                      {actionLabels[type] || type}
+                    </span>
+                  )
+                }
+                return null
+              })}
+            </div>
           </div>
         </div>
       )}

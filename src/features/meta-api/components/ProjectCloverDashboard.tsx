@@ -666,11 +666,11 @@ export function ProjectCloverDashboard() {
   )
 
   // アカウント選択ハンドラ - 未使用
-  const _handleAccountSelect = async (accountId: string) => {
-    setSelectedAccountId(accountId)
-    const store = new SimpleAccountStore(convex)
-    await store.setActiveAccount(accountId)
-  }
+  // const _handleAccountSelect = async (accountId: string) => {
+  //   setSelectedAccountId(accountId)
+  //   const store = new SimpleAccountStore(convex)
+  //   await store.setActiveAccount(accountId)
+  // }
   
   // エクスポート機能
   const exportComparisonData = () => {

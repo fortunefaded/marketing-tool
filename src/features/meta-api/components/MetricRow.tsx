@@ -181,7 +181,7 @@ export const DataQualitySummary: React.FC<DataQualitySummaryProps> = ({
   reliabilityScore
 }) => {
   const { score, breakdown } = reliabilityScore
-  const total = breakdown.directData + breakdown.calculatedData + breakdown.missingData
+  // const total = breakdown.directData + breakdown.calculatedData + breakdown.missingData // 未使用
 
   return (
     <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-200">

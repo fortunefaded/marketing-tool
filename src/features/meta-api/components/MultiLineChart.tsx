@@ -14,7 +14,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  TooltipProps,
+  // TooltipProps, - 未使用
 } from 'recharts'
 
 /**
@@ -155,7 +155,7 @@ export const MultiLineChart: React.FC<MultiLineChartProps> = ({
   accessibilityMode = false,
   showTooltip = true,
   tooltipFormatter,
-  enableZoom = false,
+  // enableZoom = false, - 未使用
   responsive = true,
 }) => {
   // データ検証と詳細エラーハンドリング
