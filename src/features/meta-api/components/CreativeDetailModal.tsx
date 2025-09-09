@@ -16,6 +16,7 @@ import {
 } from '../utils/detailed-metrics-extractor'
 import { InsightFetcher } from '../utils/insight-fetcher'
 import { ComprehensiveDataTabs } from './ComprehensiveDataTabs'
+import { ActionMetricsDisplay } from './ActionMetricsExtractor'
 
 interface CreativeDetailModalProps {
   isOpen: boolean
@@ -43,6 +44,9 @@ interface MetricRowProps {
   metricType?: MetricType
   chartType?: 'line' | 'area'
   dailyData?: Array<any> // 日別データ配列
+  ranking?: 'above_average' | 'average' | 'below_average' | 'unknown'
+  tooltip?: string
+  dataSource?: 'api' | 'calculated' | 'estimated'
 }
 
 function MetricRow({
@@ -57,6 +61,9 @@ function MetricRow({
   metricType,
   chartType,
   dailyData,
+  ranking,
+  tooltip,
+  dataSource,
 }: MetricRowProps) {
   const formatValue = (val: number | string) => {
     if (typeof val === 'number') {
@@ -103,6 +110,21 @@ function MetricRow({
               </span>
               {thresholdStatus === 'danger' && <p className="text-xs text-red-500">危険水準</p>}
               {thresholdStatus === 'warning' && <p className="text-xs text-yellow-600">注意水準</p>}
+              
+              {/* ランキングバッジの表示 */}
+              {ranking && (
+                <span className={`ml-2 px-2 py-1 text-xs rounded ${
+                  ranking === 'above_average' ? 'bg-green-100 text-green-800' :
+                  ranking === 'average' ? 'bg-yellow-100 text-yellow-800' :
+                  ranking === 'below_average' ? 'bg-red-100 text-red-800' :
+                  'bg-gray-100 text-gray-600'
+                }`}>
+                  {ranking === 'above_average' ? '↑ 平均以上' :
+                   ranking === 'average' ? '→ 平均' :
+                   ranking === 'below_average' ? '↓ 平均以下' :
+                   'データ不足'}
+                </span>
+              )}
             </>
           )}
           {showChart && typeof value === 'number' && (
@@ -375,6 +397,13 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
         if (availableAlternatives.length > 0) {
           console.log('✨ 代替データで補完できたメトリクス:', availableAlternatives)
         }
+
+        // 品質指標の取得確認
+        console.log('📊 品質指標:', {
+          quality: firstResult.quality_ranking || 'N/A - 500インプレッション以上で利用可能',
+          engagement: firstResult.engagement_rate_ranking || 'N/A',
+          conversion: firstResult.conversion_rate_ranking || 'N/A'
+        });
 
         // Instagram関連メトリクスの抽出結果をログ出力
         const instagramMetrics = extractInstagramMetrics(firstResult)
@@ -1202,7 +1231,40 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                         description="1件あたりの獲得コスト"
                       />
                     </div>
+
+                    {/* 品質指標 */}
+                    <div className="bg-white rounded-lg p-4 shadow-sm">
+                      <h3 className="font-semibold text-gray-900 mb-3">品質評価</h3>
+                      <div className="space-y-2">
+                        <MetricRow
+                          label="品質ランキング"
+                          value={insight?.quality_ranking || 'N/A'}
+                          ranking={insight?.quality_ranking}
+                          tooltip="他の広告と比較した広告の品質"
+                        />
+                        <MetricRow
+                          label="エンゲージメント率"
+                          value={insight?.engagement_rate_ranking || 'N/A'}
+                          ranking={insight?.engagement_rate_ranking}
+                        />
+                        <MetricRow
+                          label="コンバージョン率"
+                          value={insight?.conversion_rate_ranking || 'N/A'}
+                          ranking={insight?.conversion_rate_ranking}
+                        />
+                      </div>
+                    </div>
                   </div>
+
+                  {/* アクション分析 - 3カラム幅で表示 */}
+                  {insight?.actions && (
+                    <div className="col-span-3 mt-4">
+                      <ActionMetricsDisplay 
+                        actions={insight.actions}
+                        costPerAction={insight.cost_per_action_type}
+                      />
+                    </div>
+                  )}
                 ) : activeTab === 'raw' ? (
                   /* Raw Data Tab - 生データの完全表示 */
                   <div className="space-y-6">
