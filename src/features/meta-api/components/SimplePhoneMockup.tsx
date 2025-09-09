@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { PlayIcon } from '@heroicons/react/24/solid'
+import { VideoPlayer } from '../../../components/creatives/VideoPlayer'
 
 interface SimplePhoneMockupProps {
   mediaType?: string
@@ -49,26 +50,16 @@ export function SimplePhoneMockup({
   
   const displayImage = thumbnailUrl || imageUrl || placeholderImage
   
-  // 動画の埋め込みURLを生成
-  const getVideoEmbedUrl = () => {
-    if (videoId) {
-      // Facebook/Instagram動画の埋め込みURL
-      return `https://www.facebook.com/plugins/video.php?href=https://www.facebook.com/facebook/videos/${videoId}/&show_text=false&width=254`
-    } else if (videoUrl) {
-      // 直接の動画URLがある場合
-      if (videoUrl.includes('instagram.com')) {
-        // Instagram動画の場合
-        const postId = videoUrl.match(/\/p\/([^/?]+)/)?.[1]
-        if (postId) {
-          return `https://www.instagram.com/p/${postId}/embed`
-        }
-      }
-      return videoUrl
-    }
-    return null
-  }
-  
-  const videoEmbedUrl = getVideoEmbedUrl()
+  // デバッグログ: 動画検出情報
+  console.log('📹 Video detection in SimplePhoneMockup:', {
+    mediaType,
+    videoUrl,
+    videoId,
+    objectType,
+    isVideo,
+    displayImage,
+    willUseVideoPlayer: isVideo && (videoUrl || videoId)
+  })
   
   return (
     <div className="w-full">
@@ -104,20 +95,18 @@ export function SimplePhoneMockup({
           <div className="h-full bg-gray-50">
             {/* メディア表示 - 高さを縮小してテキストエリアを確保 */}
             <div className="relative bg-black" style={{ height: '240px' }}>
-              {isVideo && videoEmbedUrl ? (
-                // 動画のiframe埋め込み（自動再生）
-                <div className="relative w-full h-full bg-black">
-                  <iframe
-                    src={videoEmbedUrl}
-                    width="254"
-                    height="240"
-                    frameBorder="0"
-                    allow="autoplay; encrypted-media; picture-in-picture"
-                    allowFullScreen
-                    className="w-full h-full"
-                    title="動画広告"
+              {isVideo && (videoUrl || videoId) ? (
+                // VideoPlayerを使用した動画表示
+                <div className="relative w-full h-full">
+                  <VideoPlayer
+                    videoUrl={videoUrl}
+                    videoId={videoId}
+                    thumbnailUrl={thumbnailUrl}
+                    creativeName={creativeName || 'Ad Creative'}
+                    mobileOptimized={true}
+                    onClose={() => {}} // インライン再生なのでcloseは不要
                   />
-                  <div className="absolute bottom-2 left-2 bg-black bg-opacity-60 px-2 py-1 rounded pointer-events-none">
+                  <div className="absolute bottom-2 left-2 bg-black bg-opacity-60 px-2 py-1 rounded pointer-events-none z-10">
                     <span className="text-white text-xs">動画広告</span>
                   </div>
                 </div>
