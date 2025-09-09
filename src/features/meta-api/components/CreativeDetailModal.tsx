@@ -7,7 +7,6 @@ import { MiniFrequencyChart } from './MiniFrequencyChart'
 import { MiniMetricChart, MetricType } from './MiniMetricChart'
 import { FatigueDonutChart } from './FatigueDonutChart'
 import { calculateAllFatigueScores, FATIGUE_FORMULAS } from '../utils/fatigueCalculations'
-import { InstagramMetricsPanel } from './InstagramMetricsPanel'
 import { getSafeMetrics } from '../utils/safe-data-access'
 import { extractInstagramMetrics, InstagramMetricsDisplay } from './InstagramMetricsExtractor'
 import {
@@ -216,7 +215,7 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
 
   // 統一されたデータソース（最新の日別データまたはinsight）
   const [currentInsight, setCurrentInsight] = useState<any>(null)
-  
+
   // クリエイティブ情報のstate
   const [creativeInfo, setCreativeInfo] = useState<any>(null)
   const [isLoadingCreative, setIsLoadingCreative] = useState(false)
@@ -523,11 +522,12 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
 
     try {
       const apiUrl = `https://graph.facebook.com/v23.0/${item.adId}`
-      
-      // fieldsを修正（権限エラー回避のためpage_idを追加）
+
+      // fieldsを修正（権限エラー回避のためpage_idを追加、preview_shareable_linkも追加）
       const params = new URLSearchParams({
         access_token: accessToken,
-        fields: 'creative{id,name,title,body,image_url,video_id,thumbnail_url,object_type,link_url,effective_object_story_id,object_story_spec{page_id,instagram_actor_id,video_data{video_id,image_url,title,call_to_action},link_data{link,message,picture,call_to_action}}}'
+        fields:
+          'preview_shareable_link,creative{id,name,title,body,image_url,video_id,thumbnail_url,object_type,link_url,effective_object_story_id,object_story_spec{page_id,video_data{video_id,image_url,title,call_to_action},link_data{link,message,picture,call_to_action}}}',
       })
 
       const response = await fetch(`${apiUrl}?${params.toString()}`)
@@ -543,18 +543,19 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
         let extractedVideoId = data.creative.video_id
         let videoUrl = null
         let actualObjectType = data.creative.object_type
-        
+
         // object_story_specから動画情報を取得
         if (data.creative.object_story_spec) {
           // video_dataがある場合
           if (data.creative.object_story_spec.video_data) {
-            extractedVideoId = data.creative.object_story_spec.video_data.video_id || extractedVideoId
+            extractedVideoId =
+              data.creative.object_story_spec.video_data.video_id || extractedVideoId
             // STATUSでも動画があればVIDEO扱いにする
             if (extractedVideoId) {
               actualObjectType = 'VIDEO'
             }
           }
-          
+
           // page_idとvideo_idから動画URLを構築
           if (extractedVideoId && data.creative.object_story_spec.page_id) {
             // Facebook動画の標準URLフォーマット
@@ -562,11 +563,13 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
             console.log('📹 Constructed video URL:', videoUrl)
           }
         }
-        
+
         // effective_object_story_idがある場合でも、権限エラーを避けるため追加取得はしない
         if (data.creative.effective_object_story_id && !extractedVideoId) {
-          console.log('⚠️ effective_object_story_id exists but skipping due to permissions:', 
-            data.creative.effective_object_story_id)
+          console.log(
+            '⚠️ effective_object_story_id exists but skipping due to permissions:',
+            data.creative.effective_object_story_id
+          )
           // IDから動画IDを推測（最後の数字部分）
           const match = data.creative.effective_object_story_id.match(/_(\d+)$/)
           if (match) {
@@ -575,26 +578,26 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
             console.log('📹 Extracted video ID from story ID:', extractedVideoId)
           }
         }
-        
+
         // クリエイティブ情報を保存（object_typeを上書き）
         const enrichedCreative = {
           ...data.creative,
           video_id: extractedVideoId,
-          video_url: videoUrl,
           object_type: actualObjectType,
+          preview_shareable_link: data.preview_shareable_link, // プレビューリンクを追加
           // デバッグ用の元のタイプも保存
-          original_object_type: data.creative.object_type
+          original_object_type: data.creative.object_type,
         }
-        
+
         console.log('✅ Creative info enriched:', {
           original_type: data.creative.object_type,
           enriched_type: actualObjectType,
           video_id: extractedVideoId,
-          video_url: videoUrl,
           thumbnail_url: data.creative.thumbnail_url,
-          has_video: !!(extractedVideoId || videoUrl)
+          preview_shareable_link: data.preview_shareable_link,
+          has_video: !!extractedVideoId,
         })
-        
+
         setCreativeInfo(enrichedCreative)
       }
     } catch (error) {
@@ -1209,42 +1212,7 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                       </div>
                     </div>
 
-                    {/* Middle Column - Smartphone Mockup & Instagram Metrics */}
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <h6 className="text-lg font-semibold text-gray-900 mb-4 border-b pb-2">
-                        広告プレビュー（モックアップ）
-                      </h6>
-                      <div className="flex justify-center">
-                        <SimplePhoneMockup
-                          mediaType={creativeInfo?.object_type || currentInsight?.creative_media_type || insight?.creative_media_type}
-                          thumbnailUrl={creativeInfo?.thumbnail_url || currentInsight?.thumbnail_url || insight?.thumbnail_url}
-                          videoUrl={creativeInfo?.video_url}
-                          videoId={creativeInfo?.video_id || currentInsight?.video_id || insight?.video_id}
-                          imageUrl={creativeInfo?.image_url || currentInsight?.image_url || insight?.image_url}
-                          objectType={creativeInfo?.object_type}
-                          title={creativeInfo?.title || currentInsight?.title || insight?.title}
-                          body={creativeInfo?.body || currentInsight?.body || insight?.body}
-                          instagramPermalinkUrl={creativeInfo?.instagram_permalink_url || currentInsight?.instagram_permalink_url || insight?.instagram_permalink_url}
-                          platform={item.metrics.instagram_metrics?.publisher_platform}
-                          creativeName={item.adName}
-                          adId={item.adId}
-                          accountId={accountId}
-                          creativeId={creativeInfo?.id}
-                          creativeNameFull={creativeInfo?.name}
-                        />
-                      </div>
-
-                      {/* Instagram Metrics - モックアップの下に移動 */}
-                      <div className="mt-6 pt-4 border-t border-gray-300">
-                        <InstagramMetricsPanel
-                          data={insight}
-                          metrics={getSafeMetrics(item.metrics)}
-                          isLoading={false}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Right Column - Basic Metrics */}
+                    {/* Middle Column - Basic Metrics */}
                     <div className="bg-gray-50 rounded-lg p-4">
                       <h5 className="text-lg font-semibold text-gray-900 mb-4 border-b pb-2">
                         基本指標
@@ -1365,6 +1333,51 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                         unit="¥"
                         description="1件あたりの獲得コスト"
                       />
+                    </div>
+
+                    {/* Right Column - Smartphone Mockup */}
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <h6 className="text-lg font-semibold text-gray-900 mb-4 border-b pb-2">
+                        広告プレビュー（モックアップ）
+                      </h6>
+                      <div className="flex justify-center">
+                        <SimplePhoneMockup
+                          mediaType={
+                            creativeInfo?.object_type ||
+                            currentInsight?.creative_media_type ||
+                            insight?.creative_media_type
+                          }
+                          thumbnailUrl={
+                            creativeInfo?.thumbnail_url ||
+                            currentInsight?.thumbnail_url ||
+                            insight?.thumbnail_url
+                          }
+                          videoUrl={undefined}
+                          videoId={
+                            creativeInfo?.video_id || currentInsight?.video_id || insight?.video_id
+                          }
+                          imageUrl={
+                            creativeInfo?.image_url ||
+                            currentInsight?.image_url ||
+                            insight?.image_url
+                          }
+                          objectType={creativeInfo?.object_type}
+                          title={creativeInfo?.title || currentInsight?.title || insight?.title}
+                          body={creativeInfo?.body || currentInsight?.body || insight?.body}
+                          instagramPermalinkUrl={
+                            creativeInfo?.instagram_permalink_url ||
+                            currentInsight?.instagram_permalink_url ||
+                            insight?.instagram_permalink_url
+                          }
+                          platform={item.metrics.instagram_metrics?.publisher_platform}
+                          creativeName={item.adName}
+                          adId={item.adId}
+                          accountId={accountId}
+                          creativeId={creativeInfo?.id}
+                          creativeNameFull={creativeInfo?.name}
+                          previewShareableLink={creativeInfo?.preview_shareable_link}
+                        />
+                      </div>
                     </div>
 
                     {/* 品質指標 */}
@@ -2507,35 +2520,83 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                           </div>
                         )}
 
-                        {/* actionsフィールドの詳細表示 */}
+                        {/* actionsフィールドの詳細表示（拡張版） */}
                         {(item.actions || insight?.actions) && (
-                          <div>
-                            <h4 className="font-medium text-gray-700 mb-2">Actions配列詳細</h4>
-                            <div className="bg-blue-50 rounded-lg p-4 max-h-64 overflow-y-auto">
+                          <div className="mb-6 p-4 bg-yellow-50 rounded-lg">
+                            <h4 className="font-semibold text-gray-900 mb-3">
+                              📊 Actions配列詳細（{(item.actions || insight?.actions || []).length}
+                              個のアクション）
+                            </h4>
+
+                            {/* 検索フィルター */}
+                            <div className="mb-3">
+                              <input
+                                type="text"
+                                placeholder="アクションタイプで検索..."
+                                className="px-3 py-2 border rounded-lg text-sm w-full"
+                                onChange={(e) => {
+                                  const searchTerm = e.target.value.toLowerCase()
+                                  const table =
+                                    e.target.parentElement?.nextElementSibling?.querySelector(
+                                      'tbody'
+                                    )
+                                  if (table) {
+                                    const rows = table.querySelectorAll('tr')
+                                    rows.forEach((row: any) => {
+                                      const actionType =
+                                        row.querySelector('td')?.textContent?.toLowerCase() || ''
+                                      row.style.display = actionType.includes(searchTerm)
+                                        ? ''
+                                        : 'none'
+                                    })
+                                  }
+                                }}
+                              />
+                            </div>
+
+                            <div className="bg-white rounded border border-yellow-200 p-3 max-h-96 overflow-y-auto">
                               <table className="min-w-full divide-y divide-gray-200 text-xs">
-                                <thead>
+                                <thead className="bg-yellow-100 sticky top-0">
                                   <tr>
-                                    <th className="px-2 py-1 text-left">action_type</th>
-                                    <th className="px-2 py-1 text-right">value</th>
-                                    <th className="px-2 py-1 text-right">1d_click</th>
-                                    <th className="px-2 py-1 text-right">7d_click</th>
+                                    <th className="px-2 py-2 text-left font-semibold">
+                                      Action Type
+                                    </th>
+                                    <th className="px-2 py-2 text-right font-semibold">
+                                      Total Value
+                                    </th>
+                                    <th className="px-2 py-2 text-right font-semibold">1d Click</th>
+                                    <th className="px-2 py-2 text-right font-semibold">7d Click</th>
+                                    <th className="px-2 py-2 text-right font-semibold">
+                                      28d Click
+                                    </th>
+                                    <th className="px-2 py-2 text-right font-semibold">1d View</th>
+                                    <th className="px-2 py-2 text-right font-semibold">7d View</th>
                                   </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200">
                                   {(item.actions || insight?.actions || []).map(
                                     (action: any, idx: number) => (
-                                      <tr key={idx}>
-                                        <td className="px-2 py-1 font-mono">
+                                      <tr key={idx} className="hover:bg-yellow-50">
+                                        <td className="px-2 py-2 font-mono text-gray-900">
                                           {action.action_type}
                                         </td>
-                                        <td className="px-2 py-1 text-right font-mono">
-                                          {action.value}
+                                        <td className="px-2 py-2 text-right font-mono font-semibold">
+                                          {action.value || 0}
                                         </td>
-                                        <td className="px-2 py-1 text-right font-mono">
+                                        <td className="px-2 py-2 text-right font-mono text-gray-600">
                                           {action['1d_click'] || '-'}
                                         </td>
-                                        <td className="px-2 py-1 text-right font-mono">
+                                        <td className="px-2 py-2 text-right font-mono text-gray-600">
                                           {action['7d_click'] || '-'}
+                                        </td>
+                                        <td className="px-2 py-2 text-right font-mono text-gray-600">
+                                          {action['28d_click'] || '-'}
+                                        </td>
+                                        <td className="px-2 py-2 text-right font-mono text-gray-600">
+                                          {action['1d_view'] || '-'}
+                                        </td>
+                                        <td className="px-2 py-2 text-right font-mono text-gray-600">
+                                          {action['7d_view'] || '-'}
                                         </td>
                                       </tr>
                                     )
@@ -2543,6 +2604,193 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                                 </tbody>
                               </table>
                             </div>
+
+                            {/* エンゲージメント系アクションの抽出結果 */}
+                            <div className="mt-4 p-3 bg-blue-50 rounded">
+                              <h5 className="text-sm font-semibold mb-2">
+                                🔍 抽出されたエンゲージメント指標：
+                              </h5>
+                              <div className="grid grid-cols-2 gap-2 text-sm">
+                                <div>
+                                  👍 Likes:{' '}
+                                  <span className="font-semibold">
+                                    {(item.actions || insight?.actions || []).find(
+                                      (a: any) => a.action_type === 'like'
+                                    )?.value || 'なし'}
+                                  </span>
+                                </div>
+                                <div>
+                                  💬 Comments:{' '}
+                                  <span className="font-semibold">
+                                    {(item.actions || insight?.actions || []).find(
+                                      (a: any) => a.action_type === 'comment'
+                                    )?.value || 'なし'}
+                                  </span>
+                                </div>
+                                <div>
+                                  🔄 Shares:{' '}
+                                  <span className="font-semibold">
+                                    {(item.actions || insight?.actions || []).find(
+                                      (a: any) => a.action_type === 'post'
+                                    )?.value || 'なし'}
+                                  </span>
+                                </div>
+                                <div>
+                                  💾 Saves:{' '}
+                                  <span className="font-semibold">
+                                    {(item.actions || insight?.actions || []).find(
+                                      (a: any) => a.action_type === 'post_save'
+                                    )?.value || 'なし'}
+                                  </span>
+                                </div>
+                                <div>
+                                  🔗 Link Clicks:{' '}
+                                  <span className="font-semibold">
+                                    {(item.actions || insight?.actions || []).find(
+                                      (a: any) => a.action_type === 'link_click'
+                                    )?.value || 'なし'}
+                                  </span>
+                                </div>
+                                <div>
+                                  🛒 Purchases:{' '}
+                                  <span className="font-semibold">
+                                    {(item.actions || insight?.actions || []).find(
+                                      (a: any) => a.action_type === 'purchase'
+                                    )?.value || 'なし'}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* 全アクションタイプの生データ表示 */}
+                            <details className="mt-3">
+                              <summary className="cursor-pointer text-sm text-blue-600 hover:text-blue-800">
+                                🔧 Actions配列の生JSONデータを表示
+                              </summary>
+                              <pre className="mt-2 text-xs bg-gray-100 p-3 rounded overflow-x-auto">
+                                {JSON.stringify(item.actions || insight?.actions || [], null, 2)}
+                              </pre>
+                            </details>
+                          </div>
+                        )}
+
+                        {/* 動画メトリクスの専用表示セクション */}
+                        {(insight?.video_play_actions ||
+                          insight?.video_p25_watched_actions ||
+                          insight?.video_p50_watched_actions ||
+                          insight?.video_p75_watched_actions ||
+                          insight?.video_p100_watched_actions) && (
+                          <div className="mb-6 p-4 bg-green-50 rounded-lg">
+                            <h4 className="font-semibold text-gray-900 mb-3">
+                              🎥 動画メトリクス詳細
+                            </h4>
+
+                            {/* 動画視聴ファネル */}
+                            <div className="bg-white rounded border border-green-200 p-4">
+                              <h5 className="text-sm font-semibold mb-3">視聴ファネル分析</h5>
+                              <div className="space-y-2">
+                                <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                                  <span className="text-sm">▶️ 再生開始</span>
+                                  <span className="font-mono font-semibold">
+                                    {insight?.video_play_actions?.[0]?.value || 0}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                                  <span className="text-sm">📊 25%視聴</span>
+                                  <span className="font-mono font-semibold">
+                                    {insight?.video_p25_watched_actions?.[0]?.value || 0}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                                  <span className="text-sm">📊 50%視聴</span>
+                                  <span className="font-mono font-semibold">
+                                    {insight?.video_p50_watched_actions?.[0]?.value || 0}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                                  <span className="text-sm">📊 75%視聴</span>
+                                  <span className="font-mono font-semibold">
+                                    {insight?.video_p75_watched_actions?.[0]?.value || 0}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                                  <span className="text-sm">📊 95%視聴</span>
+                                  <span className="font-mono font-semibold">
+                                    {insight?.video_p95_watched_actions?.[0]?.value || 0}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between p-2 bg-green-100 rounded">
+                                  <span className="text-sm font-semibold">✅ 完全視聴</span>
+                                  <span className="font-mono font-semibold">
+                                    {insight?.video_p100_watched_actions?.[0]?.value || 0}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* 視聴完了率 */}
+                              <div className="mt-4 p-3 bg-blue-50 rounded">
+                                <h5 className="text-sm font-semibold mb-2">視聴完了率</h5>
+                                <div className="grid grid-cols-2 gap-2 text-sm">
+                                  <div>
+                                    25%到達率:
+                                    <span className="ml-2 font-semibold">
+                                      {insight?.video_play_actions?.[0]?.value > 0
+                                        ? `${(((insight?.video_p25_watched_actions?.[0]?.value || 0) / insight.video_play_actions[0].value) * 100).toFixed(1)}%`
+                                        : 'N/A'}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    50%到達率:
+                                    <span className="ml-2 font-semibold">
+                                      {insight?.video_play_actions?.[0]?.value > 0
+                                        ? `${(((insight?.video_p50_watched_actions?.[0]?.value || 0) / insight.video_play_actions[0].value) * 100).toFixed(1)}%`
+                                        : 'N/A'}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    75%到達率:
+                                    <span className="ml-2 font-semibold">
+                                      {insight?.video_play_actions?.[0]?.value > 0
+                                        ? `${(((insight?.video_p75_watched_actions?.[0]?.value || 0) / insight.video_play_actions[0].value) * 100).toFixed(1)}%`
+                                        : 'N/A'}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    完全視聴率:
+                                    <span className="ml-2 font-semibold">
+                                      {insight?.video_play_actions?.[0]?.value > 0
+                                        ? `${(((insight?.video_p100_watched_actions?.[0]?.value || 0) / insight.video_play_actions[0].value) * 100).toFixed(1)}%`
+                                        : 'N/A'}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* 生データ表示 */}
+                            <details className="mt-3">
+                              <summary className="cursor-pointer text-sm text-blue-600 hover:text-blue-800">
+                                🔧 動画メトリクスの生JSONデータを表示
+                              </summary>
+                              <pre className="mt-2 text-xs bg-gray-100 p-3 rounded overflow-x-auto">
+                                {JSON.stringify(
+                                  {
+                                    video_play_actions: insight?.video_play_actions,
+                                    video_p25_watched_actions: insight?.video_p25_watched_actions,
+                                    video_p50_watched_actions: insight?.video_p50_watched_actions,
+                                    video_p75_watched_actions: insight?.video_p75_watched_actions,
+                                    video_p95_watched_actions: insight?.video_p95_watched_actions,
+                                    video_p100_watched_actions: insight?.video_p100_watched_actions,
+                                    video_avg_time_watched_actions:
+                                      insight?.video_avg_time_watched_actions,
+                                    video_thruplay_watched_actions:
+                                      insight?.video_thruplay_watched_actions,
+                                  },
+                                  null,
+                                  2
+                                )}
+                              </pre>
+                            </details>
                           </div>
                         )}
 

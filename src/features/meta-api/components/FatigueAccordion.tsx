@@ -155,6 +155,10 @@ export function FatigueAccordion({ data, insights }: FatigueAccordionProps) {
         const uniqueKey = `${item.adId}-${index}`
         const isExpanded = expandedItems.has(uniqueKey)
         
+        // Instagram Reelかどうかを判定
+        const isInstagramReel = item.metrics.instagram_metrics?.publisher_platform?.toLowerCase().includes('reel') || 
+                                insights?.find(i => i.ad_id === item.adId)?.creative_media_type?.toLowerCase().includes('reel')
+        
         return (
           <div key={uniqueKey} className="border-b border-gray-200 last:border-b-0">
             {/* Header Row */}
@@ -280,164 +284,7 @@ export function FatigueAccordion({ data, insights }: FatigueAccordionProps) {
                         item.metrics.frequency > 1.5 ? 'warning' : 
                         'safe'
                       }
-                      description="初回インプレッションの推定比率（Frequency から算出）"
-                    />
-                    
-                    <MetricRow 
-                      label="CVR（コンバージョン率）" 
-                      value={item.metrics.clicks > 0 ? ((item.metrics.conversions || 0) / item.metrics.clicks * 100) : 0}
-                      unit="%"
-                      description="クリックからのCV率"
-                    />
-                    
-                    <MetricRow 
-                      label="CPA（獲得単価）" 
-                      value={(item.metrics.conversions || 0) > 0 ? Math.ceil(item.metrics.spend / (item.metrics.conversions || 1)) : 0}
-                      unit="¥"
-                      description="1件あたりの獲得コスト"
-                    />
-                    
-                    <MetricRow 
-                      label="CTR（クリック率）" 
-                      value={item.metrics.ctr}
-                      unit="%"
-                      thresholdStatus={getCtrStatus(item.metrics.ctr)}
-                      description="ベースラインから25%以上低下で危険水準"
-                      showChart={true}
-                      metricType="ctr"
-                      chartType="line"
-                    />
-                    
-                    <MetricRow 
-                      label="Unique CTR" 
-                      value={item.metrics.unique_ctr}
-                      unit="%"
-                      thresholdStatus={getCtrStatus(item.metrics.unique_ctr)}
-                      description="ユニークユーザーのCTR"
-                    />
-                    
-                    <MetricRow 
-                      label="CPC（クリック単価）" 
-                      value={item.metrics.cpc}
-                      unit="¥"
-                      description="Meta APIから取得"
-                    />
-                    
-                    <MetricRow 
-                      label="CPM（1000インプレッション単価）" 
-                      value={Math.ceil(item.metrics.cpm)}
-                      unit="¥"
-                      thresholdStatus={getCpmStatus(item.metrics.cpm)}
-                      description="20%以上上昇かつCTR低下で危険水準"
-                      showChart={true}
-                      metricType="cpm"
-                      chartType="line"
-                    />
-                  </div>
-                  
-                  {/* Instagram Metrics */}
-                  <div className="bg-white rounded-lg p-4">
-                    <h5 className="text-lg font-semibold text-gray-900 mb-4 border-b pb-2">Instagram特有のメトリクス</h5>
-                    
-                    {item.metrics.instagram_metrics ? (
-                      <>
-                        <MetricRow 
-                          label="Profile Visits" 
-                          value={item.metrics.instagram_metrics.profile_views}
-                          description="プロフィール訪問数（actionsフィールドから取得）"
-                        />
-                        
-                        <MetricRow 
-                          label="いいね数" 
-                          value={item.metrics.instagram_metrics.likes}
-                          description="投稿へのいいね数"
-                        />
-                        
-                        <MetricRow 
-                          label="コメント数" 
-                          value={item.metrics.instagram_metrics.comments}
-                          description="投稿へのコメント数"
-                        />
-                        
-                        <MetricRow 
-                          label="シェア数" 
-                          value={item.metrics.instagram_metrics.shares}
-                          description="投稿のシェア数"
-                        />
-                        
-                        <MetricRow 
-                          label="保存数" 
-                          value={item.metrics.instagram_metrics.saves}
-                          description="投稿の保存数"
-                        />
-                        
-                        <MetricRow 
-                          label="Engagement Rate" 
-                          value={item.metrics.instagram_metrics.engagement_rate}
-                          unit="%"
-                          thresholdStatus={getEngagementStatus(item.metrics.instagram_metrics.engagement_rate)}
-                          description="（いいね＋コメント＋保存＋シェア）÷リーチ×100 業界平均0.7%、Reelsでは1.23%"
-                          showChart={true}
-                          metricType="engagement"
-                          chartType="area"
-                        />
-                        
-                        <MetricRow 
-                          label="プラットフォーム" 
-                          value={item.metrics.instagram_metrics.publisher_platform}
-                          description="広告が表示されたプラットフォーム"
-                        />
-                      </>
-                    ) : (
-                      <>
-                        <MetricRow 
-                          label="Profile Visit Rate" 
-                          value="データなし"
-                          description="Instagram広告でない、またはデータが不足"
-                        />
-                        
-                        <MetricRow 
-                          label="Engagement Rate" 
-                          value="データなし"
-                          description="Instagram広告でない、またはデータが不足"
-                        />
-                      </>
-                    )}
-                    
-                    <div className="mt-4 p-3 bg-green-50 rounded-lg">
-                      <p className="text-sm text-green-800">
-                        <strong>✓ 改善完了:</strong> Instagram特有のメトリクスは
-                        Meta API の actions フィールドから取得しています。
-                      </p>
-                    </div>
-                    
-                    {/* スマートフォンモックアップ */}
-                    <div className="mt-6 border-t pt-4">
-                      <h6 className="text-sm font-semibold text-gray-700 mb-3">広告プレビュー（モックアップ）</h6>
-                      <div className="flex justify-center">
-                        <SimplePhoneMockup 
-                          mediaType={insights?.find(i => i.ad_id === item.adId)?.creative_media_type}
-                          thumbnailUrl={insights?.find(i => i.ad_id === item.adId)?.thumbnail_url}
-                          videoUrl={insights?.find(i => i.ad_id === item.adId)?.video_url}
-                          videoId={insights?.find(i => i.ad_id === item.adId)?.video_id}
-                          platform={item.metrics.instagram_metrics?.publisher_platform}
-                          creativeName={item.adName}
-                        />
-                      </div>
-                      <p className="text-xs text-gray-500 text-center mt-2">
-                        ※ 実際のクリエイティブデータが利用できない場合は、プレースホルダーが表示されます
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Fatigue Analysis */}
-                <div className="bg-white rounded-lg p-4 mt-4">
-                  <h5 className="text-lg font-semibold text-gray-900 mb-4 border-b pb-2">広告疲労度分析</h5>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="text-center p-3 bg-gray-50 rounded">
-                      <h6 className="text-sm font-medium text-gray-700 mb-2">クリエイティブの疲労</h6>
-                      <div className={`text-2xl font-bold ${getCtrStatus(item.metrics.ctr) === 'danger' ? 'text-red-600' : 'text-gray-600'}`}>
+                      description="初回インプレッションの推定比>
                         {getCtrStatus(item.metrics.ctr) === 'danger' ? '高' : '低'}
                       </div>
                       <p className="text-xs text-gray-500 mt-1">CTR低下率ベース</p>
