@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react'
 import { PlayIcon } from '@heroicons/react/24/solid'
-import { VideoPlayer } from '../../../components/creatives/VideoPlayer'
 
 interface SimplePhoneMockupProps {
   mediaType?: string
@@ -140,72 +139,47 @@ export function SimplePhoneMockup({
             {/* メディア表示 - 高さを縮小してテキストエリアを確保 */}
             <div className="relative bg-black" style={{ height: '240px' }}>
               {isVideo ? (
-                (videoUrl || videoId || extractedVideoId) ? (
-                  // VideoPlayerを使用した動画表示（エラーハンドリング付き）
-                  <div className="relative w-full h-full">
-                    {(() => {
-                      try {
-                        return (
-                          <>
-                            <VideoPlayer
-                              videoUrl={videoUrl || undefined}
-                              videoId={videoId || extractedVideoId || undefined}
-                              thumbnailUrl={thumbnailUrl || displayImage}
-                              creativeName={creativeName || 'Ad Creative'}
-                              mobileOptimized={true}
-                            />
-                            <div className="absolute bottom-2 left-2 bg-black bg-opacity-60 px-2 py-1 rounded pointer-events-none z-10">
-                              <span className="text-white text-xs">動画広告</span>
-                            </div>
-                          </>
-                        )
-                      } catch (error) {
-                        console.error('VideoPlayer rendering error:', error)
-                        // VideoPlayerエラー時のフォールバック（クリック可能）
-                        return (
-                          <div 
-                            className="relative w-full h-full cursor-pointer hover:opacity-90 transition-opacity"
-                            onClick={handlePlayClick}
-                          >
-                            <img 
-                              src={displayImage} 
-                              alt="Video thumbnail" 
-                              className="w-full h-full object-cover"
-                            />
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <div className="w-12 h-12 bg-white bg-opacity-80 rounded-full flex items-center justify-center hover:bg-opacity-100 transition-all">
-                                <PlayIcon className="h-6 w-6 text-gray-900 ml-0.5" />
-                              </div>
-                            </div>
-                            <div className="absolute bottom-2 left-2 bg-black bg-opacity-60 px-2 py-1 rounded">
-                              <span className="text-white text-xs">動画広告</span>
-                            </div>
-                          </div>
-                        )
-                      }
-                    })()}
-                  </div>
-                ) : (
-                  // 動画URLがない場合のフォールバック（クリック可能）
-                  <div 
-                    className="relative w-full h-full cursor-pointer hover:opacity-90 transition-opacity"
-                    onClick={handlePlayClick}
-                  >
-                    <img 
-                      src={displayImage} 
-                      alt="Video thumbnail" 
-                      className="w-full h-full object-cover"
+                <div className="relative w-full h-full bg-black">
+                  {/* Facebook動画の埋め込み */}
+                  {(videoUrl || videoId || extractedVideoId) ? (
+                    <iframe
+                      src={`https://www.facebook.com/plugins/video.php?href=${
+                        encodeURIComponent(videoUrl || `https://www.facebook.com/facebook/videos/${videoId || extractedVideoId}/`)
+                      }&show_text=false&width=254&height=240`}
+                      width="254"
+                      height="240"
+                      style={{ border: 'none', overflow: 'hidden' }}
+                      scrolling="no"
+                      frameBorder="0"
+                      allowFullScreen={true}
+                      allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+                      title="動画広告"
                     />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="w-12 h-12 bg-white bg-opacity-80 rounded-full flex items-center justify-center hover:bg-opacity-100 transition-all">
-                        <PlayIcon className="h-6 w-6 text-gray-900 ml-0.5" />
+                  ) : (
+                    // 動画URLがない場合のフォールバック（クリック可能）
+                    <div 
+                      className="relative w-full h-full cursor-pointer hover:opacity-90 transition-opacity"
+                      onClick={handlePlayClick}
+                    >
+                      <img 
+                        src={displayImage} 
+                        alt="Video thumbnail" 
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-12 h-12 bg-white bg-opacity-80 rounded-full flex items-center justify-center hover:bg-opacity-100 transition-all">
+                          <PlayIcon className="h-6 w-6 text-gray-900 ml-0.5" />
+                        </div>
+                      </div>
+                      <div className="absolute bottom-2 left-2 bg-black bg-opacity-60 px-2 py-1 rounded">
+                        <span className="text-white text-xs">動画広告</span>
                       </div>
                     </div>
-                    <div className="absolute bottom-2 left-2 bg-black bg-opacity-60 px-2 py-1 rounded">
-                      <span className="text-white text-xs">動画広告</span>
-                    </div>
+                  )}
+                  <div className="absolute bottom-2 left-2 bg-black bg-opacity-60 px-2 py-1 rounded pointer-events-none z-10">
+                    <span className="text-white text-xs">動画広告</span>
                   </div>
-                )
+                </div>
               ) : (
                 // 画像広告の表示
                 <div className="relative w-full h-full">
