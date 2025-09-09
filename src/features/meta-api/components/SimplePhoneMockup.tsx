@@ -45,7 +45,6 @@ export function SimplePhoneMockup({
     objectType === 'VIDEO' || 
     mediaType?.toLowerCase().includes('video') ||
     objectType?.toLowerCase().includes('video') ||
-    !!videoUrl || 
     !!videoId
   
   const displayImage = thumbnailUrl || imageUrl || placeholderImage
@@ -53,10 +52,6 @@ export function SimplePhoneMockup({
   // thumbnailUrlからvideo_idを抽出する試み
   const extractedVideoId = (() => {
     if (videoId) return videoId
-    if (videoUrl && videoUrl.includes('/videos/')) {
-      const match = videoUrl.match(/\/videos\/(\d+)/)
-      return match ? match[1] : null
-    }
     if (thumbnailUrl && thumbnailUrl.includes('facebook.com')) {
       // Facebook thumbnailURLからvideo_idを抽出
       const match = thumbnailUrl.match(/\/(\d{15,})_/)
@@ -68,7 +63,6 @@ export function SimplePhoneMockup({
   // デバッグログ: 動画検出情報
   console.log('📹 Video detection in SimplePhoneMockup:', {
     mediaType,
-    videoUrl,
     videoId,
     objectType,
     thumbnailUrl,
@@ -76,8 +70,8 @@ export function SimplePhoneMockup({
     isVideo,
     displayImage,
     extractedVideoId,
-    willUseVideoPlayer: isVideo && (videoUrl || videoId || extractedVideoId),
-    hasVideoData: !!(videoUrl || videoId || extractedVideoId),
+    willUseVideoPlayer: isVideo && (videoId || extractedVideoId),
+    hasVideoData: !!(videoId || extractedVideoId),
     creativeName: creativeName || 'Ad Creative'
   })
   
@@ -116,11 +110,11 @@ export function SimplePhoneMockup({
             {/* メディア表示 - 高さを縮小してテキストエリアを確保 */}
             <div className="relative bg-black" style={{ height: '240px' }}>
               {isVideo ? (
-                (videoUrl || videoId || extractedVideoId) ? (
+                (videoId || extractedVideoId) ? (
                   // VideoPlayerを使用した動画表示
                   <div className="relative w-full h-full">
                     <VideoPlayer
-                      videoUrl={videoUrl || undefined}
+                      videoUrl={undefined}
                       videoId={videoId || extractedVideoId || undefined}
                       thumbnailUrl={thumbnailUrl || displayImage}
                       creativeName={creativeName || 'Ad Creative'}
