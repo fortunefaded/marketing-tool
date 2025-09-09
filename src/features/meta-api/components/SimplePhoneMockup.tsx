@@ -15,6 +15,7 @@ interface SimplePhoneMockupProps {
   body?: string
   imageUrl?: string
   objectType?: string
+  instagramPermalinkUrl?: string
 }
 
 export function SimplePhoneMockup({ 
@@ -28,7 +29,8 @@ export function SimplePhoneMockup({
   title,
   body,
   imageUrl,
-  objectType
+  objectType,
+  instagramPermalinkUrl
 }: SimplePhoneMockupProps) {
   const [showVideoPlayer, setShowVideoPlayer] = useState(false)
   
@@ -112,10 +114,15 @@ export function SimplePhoneMockup({
                   <div className="h-2 bg-gray-300 rounded w-5/6"></div>
                 </>
               )}
-              {(title || body) && (
-                <button className="mt-2 text-xs font-medium text-blue-600 hover:text-blue-700">
-                  詳しくはこちら
-                </button>
+              {(title || body) && instagramPermalinkUrl && (
+                <a 
+                  href={instagramPermalinkUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block mt-2 text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline"
+                >
+                  詳しくはこちら →
+                </a>
               )}
             </div>
 
