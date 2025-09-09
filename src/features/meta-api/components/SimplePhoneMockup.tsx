@@ -70,10 +70,10 @@ export function SimplePhoneMockup({
   const videoEmbedUrl = getVideoEmbedUrl()
   
   return (
-    <div className="inline-block">
+    <div className="w-full">
       {/* クリエイティブ情報 */}
       {(creativeId || creativeNameFull) && (
-        <div className="mb-3 p-3 bg-white rounded-lg border border-gray-200" style={{ width: '280px' }}>
+        <div className="mb-3 p-3 bg-white rounded-lg border border-gray-200 w-full">
           <div className="space-y-2">
             {creativeId && (
               <div className="flex items-start">
@@ -91,8 +91,9 @@ export function SimplePhoneMockup({
         </div>
       )}
       
-      {/* スマートフォンフレーム（簡略版） */}
-      <div className="relative bg-gray-900 rounded-[2rem] p-3 shadow-xl" style={{ width: '280px' }}>
+      {/* スマートフォンフレーム（簡略版） - 中央配置 */}
+      <div className="flex justify-center">
+        <div className="relative bg-gray-900 rounded-[2rem] p-3 shadow-xl" style={{ width: '280px' }}>
         {/* ノッチ */}
         <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-24 h-5 bg-gray-900 rounded-b-2xl"></div>
         
@@ -213,6 +214,7 @@ export function SimplePhoneMockup({
               </div>
             )}
           </div>
+        </div>
         </div>
       </div>
     </div>
