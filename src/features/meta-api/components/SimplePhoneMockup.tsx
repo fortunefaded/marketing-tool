@@ -11,6 +11,10 @@ interface SimplePhoneMockupProps {
   creativeName?: string
   adId?: string
   accountId?: string
+  title?: string
+  body?: string
+  imageUrl?: string
+  objectType?: string
 }
 
 export function SimplePhoneMockup({ 
@@ -20,14 +24,19 @@ export function SimplePhoneMockup({
   videoId,
   creativeName = 'Ad Creative',
   adId,
-  accountId
+  accountId,
+  title,
+  body,
+  imageUrl,
+  objectType
 }: SimplePhoneMockupProps) {
   const [showVideoPlayer, setShowVideoPlayer] = useState(false)
   
   // プレースホルダー画像
   const placeholderImage = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzc1IiBoZWlnaHQ9IjM3NSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMzc1IiBoZWlnaHQ9IjM3NSIgZmlsbD0iI2UyZThmMCIvPjx0ZXh0IHRleHQtYW5jaG9yPSJtaWRkbGUiIHg9IjE4Ny41IiB5PSIxODcuNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmm9udC1zaXplPSIyNCIgZmlsbD0iIzljYTNhZiI+Tm8gSW1hZ2U8L3RleHQ+PC9zdmc+'
   
-  const isVideo = mediaType === 'VIDEO' || !!videoUrl || !!videoId
+  const isVideo = mediaType === 'VIDEO' || objectType === 'VIDEO' || !!videoUrl || !!videoId
+  const displayImage = thumbnailUrl || imageUrl || placeholderImage
   
   return (
     <div className="inline-block">
@@ -80,7 +89,7 @@ export function SimplePhoneMockup({
                   onClick={() => setShowVideoPlayer(true)}
                 >
                   <img 
-                    src={thumbnailUrl || placeholderImage} 
+                    src={displayImage} 
                     alt="Video thumbnail" 
                     className="w-full h-full object-cover"
                   />
@@ -98,7 +107,7 @@ export function SimplePhoneMockup({
                 // 画像広告の表示
                 <div className="relative w-full h-full">
                   <img 
-                    src={thumbnailUrl || placeholderImage} 
+                    src={displayImage} 
                     alt="Ad creative" 
                     className="w-full h-full object-cover"
                   />
@@ -111,9 +120,24 @@ export function SimplePhoneMockup({
 
             {/* 広告テキストエリア */}
             <div className="bg-white p-3">
-              <div className="h-2 bg-gray-300 rounded w-3/4 mb-2"></div>
-              <div className="h-2 bg-gray-300 rounded w-full mb-2"></div>
-              <div className="h-2 bg-gray-300 rounded w-5/6"></div>
+              {title ? (
+                <h3 className="text-sm font-semibold text-gray-900 mb-1 line-clamp-2">{title}</h3>
+              ) : (
+                <div className="h-2 bg-gray-300 rounded w-3/4 mb-2"></div>
+              )}
+              {body ? (
+                <p className="text-xs text-gray-600 line-clamp-3">{body}</p>
+              ) : (
+                <>
+                  <div className="h-2 bg-gray-300 rounded w-full mb-2"></div>
+                  <div className="h-2 bg-gray-300 rounded w-5/6"></div>
+                </>
+              )}
+              {(title || body) && (
+                <button className="mt-2 text-xs font-medium text-blue-600 hover:text-blue-700">
+                  詳しくはこちら
+                </button>
+              )}
             </div>
 
             {/* エンゲージメントバー */}

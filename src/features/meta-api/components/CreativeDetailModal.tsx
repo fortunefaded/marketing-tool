@@ -1169,6 +1169,10 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                           thumbnailUrl={creativeInfo?.thumbnail_url || currentInsight?.thumbnail_url || insight?.thumbnail_url}
                           videoUrl={creativeInfo?.video_url || currentInsight?.video_url || insight?.video_url}
                           videoId={creativeInfo?.video_id || currentInsight?.video_id || insight?.video_id}
+                          imageUrl={creativeInfo?.image_url || currentInsight?.image_url || insight?.image_url}
+                          objectType={creativeInfo?.object_type}
+                          title={creativeInfo?.title || currentInsight?.title || insight?.title}
+                          body={creativeInfo?.body || currentInsight?.body || insight?.body}
                           platform={item.metrics.instagram_metrics?.publisher_platform}
                           creativeName={item.adName}
                           adId={item.adId}
