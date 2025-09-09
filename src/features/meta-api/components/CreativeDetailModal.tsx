@@ -110,19 +110,27 @@ function MetricRow({
               </span>
               {thresholdStatus === 'danger' && <p className="text-xs text-red-500">危険水準</p>}
               {thresholdStatus === 'warning' && <p className="text-xs text-yellow-600">注意水準</p>}
-              
+
               {/* ランキングバッジの表示 */}
               {ranking && (
-                <span className={`ml-2 px-2 py-1 text-xs rounded ${
-                  ranking === 'above_average' ? 'bg-green-100 text-green-800' :
-                  ranking === 'average' ? 'bg-yellow-100 text-yellow-800' :
-                  ranking === 'below_average' ? 'bg-red-100 text-red-800' :
-                  'bg-gray-100 text-gray-600'
-                }`}>
-                  {ranking === 'above_average' ? '↑ 平均以上' :
-                   ranking === 'average' ? '→ 平均' :
-                   ranking === 'below_average' ? '↓ 平均以下' :
-                   'データ不足'}
+                <span
+                  className={`ml-2 px-2 py-1 text-xs rounded ${
+                    ranking === 'above_average'
+                      ? 'bg-green-100 text-green-800'
+                      : ranking === 'average'
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : ranking === 'below_average'
+                          ? 'bg-red-100 text-red-800'
+                          : 'bg-gray-100 text-gray-600'
+                  }`}
+                >
+                  {ranking === 'above_average'
+                    ? '↑ 平均以上'
+                    : ranking === 'average'
+                      ? '→ 平均'
+                      : ranking === 'below_average'
+                        ? '↓ 平均以下'
+                        : 'データ不足'}
                 </span>
               )}
             </>
@@ -402,8 +410,8 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
         console.log('📊 品質指標:', {
           quality: firstResult.quality_ranking || 'N/A - 500インプレッション以上で利用可能',
           engagement: firstResult.engagement_rate_ranking || 'N/A',
-          conversion: firstResult.conversion_rate_ranking || 'N/A'
-        });
+          conversion: firstResult.conversion_rate_ranking || 'N/A',
+        })
 
         // Instagram関連メトリクスの抽出結果をログ出力
         const instagramMetrics = extractInstagramMetrics(firstResult)
@@ -1254,17 +1262,17 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                         />
                       </div>
                     </div>
-                  </div>
 
-                  {/* アクション分析 - 3カラム幅で表示 */}
-                  {insight?.actions && (
-                    <div className="col-span-3 mt-4">
-                      <ActionMetricsDisplay 
-                        actions={insight.actions}
-                        costPerAction={insight.cost_per_action_type}
-                      />
-                    </div>
-                  )}
+                    {/* アクション分析 - 3カラム幅で表示 */}
+                    {insight?.actions && (
+                      <div className="col-span-3 mt-4">
+                        <ActionMetricsDisplay
+                          actions={insight.actions}
+                          costPerAction={insight.cost_per_action_type}
+                        />
+                      </div>
+                    )}
+                  </div>
                 ) : activeTab === 'raw' ? (
                   /* Raw Data Tab - 生データの完全表示 */
                   <div className="space-y-6">
