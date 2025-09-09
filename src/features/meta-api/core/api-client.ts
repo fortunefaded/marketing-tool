@@ -1,6 +1,7 @@
 import { AdInsight } from '../../../types'
 import { vibe } from '../../../lib/vibelogger'
 import { AccountId, AccessToken } from './branded-types'
+import { META_API_BASE_URL, META_API_ENDPOINTS, META_API_FIELDS, META_API_LIMITS } from './constants'
 import type { 
   EnhancedInsightsOptions, 
   EnhancedPaginatedResult 
@@ -16,7 +17,7 @@ export interface PaginatedResult {
 }
 
 export class SimpleMetaApi {
-  private baseUrl = 'https://graph.facebook.com/v23.0'
+  private baseUrl = META_API_BASE_URL
   private accountId: AccountId
   private token: AccessToken
   
