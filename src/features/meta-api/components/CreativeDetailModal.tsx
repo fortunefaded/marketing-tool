@@ -523,7 +523,7 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
       const url = `https://graph.facebook.com/v23.0/${item.adId}`
       const params = new URLSearchParams({
         access_token: accessToken,
-        fields: 'creative{id,name,title,body,image_url,video_id,thumbnail_url,object_type,effective_object_story_id,object_story_spec}'
+        fields: 'creative{id,name,title,body,image_url,video_id,thumbnail_url,object_type,effective_object_story_id,object_story_spec,instagram_permalink_url}'
       })
 
       console.log('🎨 クリエイティブ情報を取得中:', { adId: item.adId })
@@ -1173,6 +1173,7 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                           objectType={creativeInfo?.object_type}
                           title={creativeInfo?.title || currentInsight?.title || insight?.title}
                           body={creativeInfo?.body || currentInsight?.body || insight?.body}
+                          instagramPermalinkUrl={creativeInfo?.instagram_permalink_url || currentInsight?.instagram_permalink_url || insight?.instagram_permalink_url}
                           platform={item.metrics.instagram_metrics?.publisher_platform}
                           creativeName={item.adName}
                           adId={item.adId}
