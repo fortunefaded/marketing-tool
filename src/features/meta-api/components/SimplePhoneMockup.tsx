@@ -1,6 +1,4 @@
-import { useState } from 'react'
 import { PlayIcon } from '@heroicons/react/24/solid'
-import { VideoPlayer } from '@/components/creatives/VideoPlayer'
 
 interface SimplePhoneMockupProps {
   mediaType?: string
@@ -32,13 +30,40 @@ export function SimplePhoneMockup({
   objectType,
   instagramPermalinkUrl
 }: SimplePhoneMockupProps) {
-  const [showVideoPlayer, setShowVideoPlayer] = useState(false)
-  
   // プレースホルダー画像
   const placeholderImage = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzc1IiBoZWlnaHQ9IjM3NSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMzc1IiBoZWlnaHQ9IjM3NSIgZmlsbD0iI2UyZThmMCIvPjx0ZXh0IHRleHQtYW5jaG9yPSJtaWRkbGUiIHg9IjE4Ny41IiB5PSIxODcuNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmm9udC1zaXplPSIyNCIgZmlsbD0iIzljYTNhZiI+Tm8gSW1hZ2U8L3RleHQ+PC9zdmc+'
   
-  const isVideo = mediaType === 'VIDEO' || objectType === 'VIDEO' || !!videoUrl || !!videoId
+  // 動画判定ロジックを改善
+  const isVideo = 
+    mediaType === 'VIDEO' || 
+    objectType === 'VIDEO' || 
+    mediaType?.toLowerCase().includes('video') ||
+    objectType?.toLowerCase().includes('video') ||
+    !!videoUrl || 
+    !!videoId
+  
   const displayImage = thumbnailUrl || imageUrl || placeholderImage
+  
+  // 動画の埋め込みURLを生成
+  const getVideoEmbedUrl = () => {
+    if (videoId) {
+      // Facebook/Instagram動画の埋め込みURL
+      return `https://www.facebook.com/plugins/video.php?href=https://www.facebook.com/facebook/videos/${videoId}/&show_text=false&width=254`
+    } else if (videoUrl) {
+      // 直接の動画URLがある場合
+      if (videoUrl.includes('instagram.com')) {
+        // Instagram動画の場合
+        const postId = videoUrl.match(/\/p\/([^/?]+)/)?.[1]
+        if (postId) {
+          return `https://www.instagram.com/p/${postId}/embed`
+        }
+      }
+      return videoUrl
+    }
+    return null
+  }
+  
+  const videoEmbedUrl = getVideoEmbedUrl()
   
   return (
     <div className="inline-block">
@@ -53,30 +78,33 @@ export function SimplePhoneMockup({
           <div className="h-full bg-gray-50">
             {/* メディア表示 - 高さを縮小してテキストエリアを確保 */}
             <div className="relative bg-black" style={{ height: '240px' }}>
-              {showVideoPlayer && (videoUrl || videoId) ? (
-                // VideoPlayerコンポーネントを使用
-                <VideoPlayer
-                  videoUrl={videoUrl}
-                  videoId={videoId}
-                  thumbnailUrl={thumbnailUrl}
-                  creativeName={creativeName}
-                  mobileOptimized={true}
-                  onClose={() => setShowVideoPlayer(false)}
-                />
+              {isVideo && videoEmbedUrl ? (
+                // 動画のiframe埋め込み（自動再生）
+                <div className="relative w-full h-full bg-black">
+                  <iframe
+                    src={videoEmbedUrl}
+                    width="254"
+                    height="240"
+                    frameBorder="0"
+                    allow="autoplay; encrypted-media; picture-in-picture"
+                    allowFullScreen
+                    className="w-full h-full"
+                    title="動画広告"
+                  />
+                  <div className="absolute bottom-2 left-2 bg-black bg-opacity-60 px-2 py-1 rounded pointer-events-none">
+                    <span className="text-white text-xs">動画広告</span>
+                  </div>
+                </div>
               ) : isVideo ? (
-                // 動画のサムネイル表示（クリックで再生）
-                <div 
-                  className="relative w-full h-full cursor-pointer"
-                  onClick={() => setShowVideoPlayer(true)}
-                >
+                // 動画URLがない場合のフォールバック
+                <div className="relative w-full h-full">
                   <img 
                     src={displayImage} 
                     alt="Video thumbnail" 
                     className="w-full h-full object-cover"
                   />
-                  {/* 再生ボタンオーバーレイ */}
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-12 h-12 bg-white bg-opacity-80 rounded-full flex items-center justify-center hover:bg-opacity-100 transition-opacity">
+                    <div className="w-12 h-12 bg-white bg-opacity-80 rounded-full flex items-center justify-center">
                       <PlayIcon className="h-6 w-6 text-gray-900 ml-0.5" />
                     </div>
                   </div>
