@@ -121,18 +121,46 @@ export function SimplePhoneMockup({
             <div className="relative bg-black" style={{ height: '240px' }}>
               {isVideo ? (
                 (videoUrl || videoId || extractedVideoId) ? (
-                  // VideoPlayerを使用した動画表示
+                  // VideoPlayerを使用した動画表示（エラーハンドリング付き）
                   <div className="relative w-full h-full">
-                    <VideoPlayer
-                      videoUrl={videoUrl || undefined}
-                      videoId={videoId || extractedVideoId || undefined}
-                      thumbnailUrl={thumbnailUrl || displayImage}
-                      creativeName={creativeName || 'Ad Creative'}
-                      mobileOptimized={true}
-                    />
-                    <div className="absolute bottom-2 left-2 bg-black bg-opacity-60 px-2 py-1 rounded pointer-events-none z-10">
-                      <span className="text-white text-xs">動画広告</span>
-                    </div>
+                    {(() => {
+                      try {
+                        return (
+                          <>
+                            <VideoPlayer
+                              videoUrl={videoUrl || undefined}
+                              videoId={videoId || extractedVideoId || undefined}
+                              thumbnailUrl={thumbnailUrl || displayImage}
+                              creativeName={creativeName || 'Ad Creative'}
+                              mobileOptimized={true}
+                            />
+                            <div className="absolute bottom-2 left-2 bg-black bg-opacity-60 px-2 py-1 rounded pointer-events-none z-10">
+                              <span className="text-white text-xs">動画広告</span>
+                            </div>
+                          </>
+                        )
+                      } catch (error) {
+                        console.error('VideoPlayer rendering error:', error)
+                        // VideoPlayerエラー時のフォールバック
+                        return (
+                          <div className="relative w-full h-full">
+                            <img 
+                              src={displayImage} 
+                              alt="Video thumbnail" 
+                              className="w-full h-full object-cover"
+                            />
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <div className="w-12 h-12 bg-white bg-opacity-80 rounded-full flex items-center justify-center">
+                                <PlayIcon className="h-6 w-6 text-gray-900 ml-0.5" />
+                              </div>
+                            </div>
+                            <div className="absolute bottom-2 left-2 bg-black bg-opacity-60 px-2 py-1 rounded">
+                              <span className="text-white text-xs">動画広告</span>
+                            </div>
+                          </div>
+                        )
+                      }
+                    })()}
                   </div>
                 ) : (
                   // 動画URLがない場合のフォールバック
