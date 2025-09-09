@@ -14,6 +14,8 @@ interface SimplePhoneMockupProps {
   imageUrl?: string
   objectType?: string
   instagramPermalinkUrl?: string
+  creativeId?: string
+  creativeNameFull?: string
 }
 
 export function SimplePhoneMockup({ 
@@ -28,7 +30,9 @@ export function SimplePhoneMockup({
   body,
   imageUrl,
   objectType,
-  instagramPermalinkUrl
+  instagramPermalinkUrl,
+  creativeId,
+  creativeNameFull
 }: SimplePhoneMockupProps) {
   // プレースホルダー画像
   const placeholderImage = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzc1IiBoZWlnaHQ9IjM3NSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMzc1IiBoZWlnaHQ9IjM3NSIgZmlsbD0iI2UyZThmMCIvPjx0ZXh0IHRleHQtYW5jaG9yPSJtaWRkbGUiIHg9IjE4Ny41IiB5PSIxODcuNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmm9udC1zaXplPSIyNCIgZmlsbD0iIzljYTNhZiI+Tm8gSW1hZ2U8L3RleHQ+PC9zdmc+'
@@ -67,6 +71,26 @@ export function SimplePhoneMockup({
   
   return (
     <div className="inline-block">
+      {/* クリエイティブ情報 */}
+      {(creativeId || creativeNameFull) && (
+        <div className="mb-3 p-3 bg-white rounded-lg border border-gray-200" style={{ width: '280px' }}>
+          <div className="space-y-2">
+            {creativeId && (
+              <div className="flex items-start">
+                <span className="text-xs font-medium text-gray-500 w-16">ID:</span>
+                <span className="text-xs text-gray-700 font-mono">{creativeId}</span>
+              </div>
+            )}
+            {creativeNameFull && (
+              <div className="flex items-start">
+                <span className="text-xs font-medium text-gray-500 w-16">Name:</span>
+                <span className="text-xs text-gray-700 break-all">{creativeNameFull}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      
       {/* スマートフォンフレーム（簡略版） */}
       <div className="relative bg-gray-900 rounded-[2rem] p-3 shadow-xl" style={{ width: '280px' }}>
         {/* ノッチ */}

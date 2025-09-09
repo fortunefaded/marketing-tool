@@ -1178,32 +1178,10 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                           creativeName={item.adName}
                           adId={item.adId}
                           accountId={accountId}
+                          creativeId={creativeInfo?.id}
+                          creativeNameFull={creativeInfo?.name}
                         />
                       </div>
-                      {/* クリエイティブ情報 */}
-                      {creativeInfo && (
-                        <div className="mt-4 p-3 bg-white rounded-lg border border-gray-200">
-                          <div className="space-y-2">
-                            {creativeInfo.id && (
-                              <div className="flex items-start">
-                                <span className="text-xs font-medium text-gray-500 w-16">ID:</span>
-                                <span className="text-xs text-gray-700 font-mono">{creativeInfo.id}</span>
-                              </div>
-                            )}
-                            {creativeInfo.name && (
-                              <div className="flex items-start">
-                                <span className="text-xs font-medium text-gray-500 w-16">Name:</span>
-                                <span className="text-xs text-gray-700">{creativeInfo.name}</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                      {!creativeInfo && (
-                        <p className="text-xs text-gray-500 text-center mt-4">
-                          ※ クリエイティブデータを取得中...
-                        </p>
-                      )}
 
                       {/* Instagram Metrics - モックアップの下に移動 */}
                       <div className="mt-6 pt-4 border-t border-gray-300">
