@@ -1005,24 +1005,6 @@ export default function MainDashboard() {
       )}
 
       {/* FatigueDashboardPresentationを使用 */}
-      {(() => {
-        logData('MainDashboard', 'Passing data to FatigueDashboardPresentation', {
-          dataLength: data.length,
-          sampleData: data.slice(0, 2),
-          firstItem: data[0]
-            ? {
-                ad_name: data[0].ad_name,
-                impressions: data[0].impressions,
-                clicks: data[0].clicks,
-                spend: data[0].spend,
-                type_impressions: typeof data[0].impressions,
-                type_clicks: typeof data[0].clicks,
-                type_spend: typeof data[0].spend,
-              }
-            : null,
-        })
-        return null
-      })()}
       <FatigueDashboardPresentation
         // アカウント関連
         accounts={accounts}

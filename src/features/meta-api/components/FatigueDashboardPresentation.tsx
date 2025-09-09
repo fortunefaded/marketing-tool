@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react'
+import React, { useEffect, useState } from 'react'
 import { AccountSelector } from '../account/AccountSelector'
 import { AggregatedFatigueTable } from './AggregatedFatigueTable'
 import { CreativeTableTab } from './CreativeTableTab'
@@ -103,7 +103,6 @@ export function FatigueDashboardPresentation({
   sourceData: rawSourceData,
 }: FatigueDashboardPresentationProps) {
   const [activeTab, setActiveTab] = useState<string>('campaign')
-  const tabsRef = useRef<any>(null)
 
   // 実効的な日付範囲を計算（一度だけ計算して保持）
   const effectiveDateRange = React.useMemo(() => {
@@ -665,7 +664,6 @@ export function FatigueDashboardPresentation({
                     <Tabs
                       defaultValue="campaign"
                       className="w-full"
-                      ref={tabsRef}
                       onValueChange={(value) => setActiveTab(value)}
                     >
                       <TabsList className="grid w-full grid-cols-3 mb-6">
