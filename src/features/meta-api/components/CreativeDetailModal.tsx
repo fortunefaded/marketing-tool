@@ -213,6 +213,9 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
   const [dailyData, setDailyData] = useState<any[]>([]) // 日別データ
   const [isLoadingDaily, setIsLoadingDaily] = useState(false) // ローディング状態
   const [dailyDataError, setDailyDataError] = useState<string | null>(null) // エラー状態
+  
+  // 統一されたデータソース（最新の日別データまたはinsight）
+  const [currentInsight, setCurrentInsight] = useState<any>(null)
 
   // 日別データがあるかチェック（既存データまたは取得したデータ）
   const hasDailyData = (item.dailyData && item.dailyData.length > 0) || dailyData.length > 0
@@ -514,6 +517,29 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
       fetchDailyData()
     }
   }, [isOpen, fetchDailyData]) // fetchDailyDataを依存配列に
+
+  // dailyDataが更新されたらcurrentInsightを更新
+  useEffect(() => {
+    if (dailyData.length > 0) {
+      // 最新のデータ（最後の日のデータ）を使用
+      const latestData = dailyData[dailyData.length - 1]
+      setCurrentInsight(latestData)
+      console.log('📊 currentInsight updated from dailyData:', {
+        quality_ranking: latestData.quality_ranking,
+        engagement_rate_ranking: latestData.engagement_rate_ranking,
+        conversion_rate_ranking: latestData.conversion_rate_ranking,
+        actions: latestData.actions,
+        hasActions: !!latestData.actions && latestData.actions.length > 0
+      })
+    } else if (insight) {
+      // dailyDataがない場合はinsightを使用
+      setCurrentInsight(insight)
+      console.log('📊 currentInsight updated from insight prop:', {
+        quality_ranking: insight.quality_ranking,
+        hasActions: !!insight.actions
+      })
+    }
+  }, [dailyData, insight])
 
   // 疲労度スコアを計算する関数
   const calculateFatigueScore = (day: any) => {
@@ -1246,33 +1272,89 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                       <div className="space-y-2">
                         <MetricRow
                           label="品質ランキング"
-                          value={insight?.quality_ranking || 'N/A'}
-                          ranking={insight?.quality_ranking}
+                          value={currentInsight?.quality_ranking || 'N/A'}
+                          ranking={currentInsight?.quality_ranking}
                           tooltip="他の広告と比較した広告の品質"
+                          dataSource={currentInsight?.quality_ranking ? 'api' : 'estimated'}
                         />
                         <MetricRow
                           label="エンゲージメント率"
-                          value={insight?.engagement_rate_ranking || 'N/A'}
-                          ranking={insight?.engagement_rate_ranking}
+                          value={currentInsight?.engagement_rate_ranking || 'N/A'}
+                          ranking={currentInsight?.engagement_rate_ranking}
+                          dataSource={currentInsight?.engagement_rate_ranking ? 'api' : 'estimated'}
                         />
                         <MetricRow
                           label="コンバージョン率"
-                          value={insight?.conversion_rate_ranking || 'N/A'}
-                          ranking={insight?.conversion_rate_ranking}
+                          value={currentInsight?.conversion_rate_ranking || 'N/A'}
+                          ranking={currentInsight?.conversion_rate_ranking}
+                          dataSource={currentInsight?.conversion_rate_ranking ? 'api' : 'estimated'}
                         />
                       </div>
+                      {/* 品質指標が取得できない場合の説明 */}
+                      {(!currentInsight?.quality_ranking || currentInsight?.quality_ranking === 'unknown') && (
+                        <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs">
+                          <p className="text-yellow-800">
+                            ⚠️ 品質指標はインプレッションが500以上で利用可能になります
+                          </p>
+                        </div>
+                      )}
                     </div>
-
-                    {/* アクション分析 - 3カラム幅で表示 */}
-                    {insight?.actions && (
-                      <div className="col-span-3 mt-4">
-                        <ActionMetricsDisplay
-                          actions={insight.actions}
-                          costPerAction={insight.cost_per_action_type}
-                        />
-                      </div>
-                    )}
                   </div>
+
+                  {/* デバッグ情報（開発環境のみ） */}
+                  {process.env.NODE_ENV === 'development' && (
+                    <div className="col-span-3 bg-gray-100 rounded-lg p-3 text-xs mt-4">
+                      <h4 className="font-semibold mb-2">🔍 デバッグ情報</h4>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div>
+                          <span className="text-gray-600">insight exists:</span>
+                          <span className="ml-2 font-mono">{String(!!insight)}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">currentInsight exists:</span>
+                          <span className="ml-2 font-mono">{String(!!currentInsight)}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">dailyData length:</span>
+                          <span className="ml-2 font-mono">{dailyData.length}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">quality_ranking:</span>
+                          <span className="ml-2 font-mono">{currentInsight?.quality_ranking || 'N/A'}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">has actions:</span>
+                          <span className="ml-2 font-mono">
+                            {String(!!(currentInsight?.actions || item.actions))}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">impressions:</span>
+                          <span className="ml-2 font-mono">
+                            {currentInsight?.impressions || item.metrics?.impressions || 'N/A'}
+                          </span>
+                        </div>
+                      </div>
+                      {currentInsight?.quality_ranking === 'unknown' && (
+                        <div className="mt-2 p-2 bg-yellow-100 border border-yellow-300 rounded">
+                          <p className="text-yellow-800">
+                            品質指標が「unknown」です。インプレッション数が{currentInsight?.impressions || 0}で、
+                            500未満の可能性があります。
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* アクション分析 - 3カラム幅で表示 */}
+                  {(currentInsight?.actions || item.actions) && (
+                    <div className="col-span-3 mt-4">
+                      <ActionMetricsDisplay
+                        actions={currentInsight?.actions || item.actions}
+                        costPerAction={currentInsight?.cost_per_action_type || item.cost_per_action_type}
+                      />
+                    </div>
+                  )}
                 ) : activeTab === 'raw' ? (
                   /* Raw Data Tab - 生データの完全表示 */
                   <div className="space-y-6">
