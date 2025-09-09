@@ -6,7 +6,7 @@
 import React from 'react'
 import {
   InstagramMetricsCalculator,
-  InstagramMetrics,
+  // InstagramMetrics, - 未使用
   InstagramPerformanceScore,
 } from '../core/instagram-metrics'
 import { SafeMetrics } from '../utils/safe-data-access'

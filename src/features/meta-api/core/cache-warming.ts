@@ -7,8 +7,8 @@
 
 import * as React from 'react'
 import type { AdInsight } from '../types'
-import { DifferentialUpdateEngine } from './differential-update-engine'
-import { DataFreshnessManager } from './data-freshness-manager'
+// import { DifferentialUpdateEngine } from './differential-update-engine' - 未使用
+// import { DataFreshnessManager } from './data-freshness-manager' - 未使用
 
 // ============================================================================
 // 型定義
