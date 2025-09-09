@@ -216,6 +216,10 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
 
   // 統一されたデータソース（最新の日別データまたはinsight）
   const [currentInsight, setCurrentInsight] = useState<any>(null)
+  
+  // クリエイティブ情報のstate
+  const [creativeInfo, setCreativeInfo] = useState<any>(null)
+  const [isLoadingCreative, setIsLoadingCreative] = useState(false)
 
   // 日別データがあるかチェック（既存データまたは取得したデータ）
   const hasDailyData = (item.dailyData && item.dailyData.length > 0) || dailyData.length > 0
@@ -507,7 +511,49 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
     }
   }, [effectiveDateRange, item.adId, accessToken, accountId]) // 依存配列に含める
 
-  // モーダルが開かれた時に日別データを取得
+  // クリエイティブ情報を取得する関数
+  const fetchCreativeInfo = useCallback(async () => {
+    if (!item.adId || !accessToken) {
+      console.warn('広告IDまたはアクセストークンが不足しています')
+      return
+    }
+
+    setIsLoadingCreative(true)
+    try {
+      const url = `https://graph.facebook.com/v23.0/${item.adId}`
+      const params = new URLSearchParams({
+        access_token: accessToken,
+        fields: 'creative{id,name,title,body,image_url,video_id,thumbnail_url,object_type,effective_object_story_id,object_story_spec}'
+      })
+
+      console.log('🎨 クリエイティブ情報を取得中:', { adId: item.adId })
+      
+      const response = await fetch(`${url}?${params}`)
+      const data = await response.json()
+      
+      if (data.error) {
+        console.error('❌ クリエイティブ情報取得エラー:', data.error)
+        return
+      }
+      
+      if (data.creative) {
+        console.log('✅ クリエイティブ情報取得成功:', {
+          creative_id: data.creative.id,
+          has_thumbnail: !!data.creative.thumbnail_url,
+          has_video: !!data.creative.video_id,
+          has_image: !!data.creative.image_url,
+          object_type: data.creative.object_type
+        })
+        setCreativeInfo(data.creative)
+      }
+    } catch (error) {
+      console.error('🚨 クリエイティブ情報取得エラー:', error)
+    } finally {
+      setIsLoadingCreative(false)
+    }
+  }, [item.adId, accessToken])
+
+  // モーダルが開かれた時に日別データとクリエイティブ情報を取得
   useEffect(() => {
     if (isOpen && item.adId && accessToken && accountId) {
       console.log(
@@ -515,8 +561,9 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
         effectiveDateRange
       )
       fetchDailyData()
+      fetchCreativeInfo()
     }
-  }, [isOpen, fetchDailyData]) // fetchDailyDataを依存配列に
+  }, [isOpen, fetchDailyData, fetchCreativeInfo]) // fetchDailyData, fetchCreativeInfoを依存配列に
 
   // dailyDataが更新されたらcurrentInsightを更新
   useEffect(() => {
@@ -1118,10 +1165,10 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                       </h6>
                       <div className="flex justify-center">
                         <SimplePhoneMockup
-                          mediaType={insight?.creative_media_type}
-                          thumbnailUrl={insight?.thumbnail_url}
-                          videoUrl={insight?.video_url}
-                          videoId={insight?.video_id}
+                          mediaType={creativeInfo?.object_type || currentInsight?.creative_media_type || insight?.creative_media_type}
+                          thumbnailUrl={creativeInfo?.thumbnail_url || currentInsight?.thumbnail_url || insight?.thumbnail_url}
+                          videoUrl={creativeInfo?.video_url || currentInsight?.video_url || insight?.video_url}
+                          videoId={creativeInfo?.video_id || currentInsight?.video_id || insight?.video_id}
                           platform={item.metrics.instagram_metrics?.publisher_platform}
                           creativeName={item.adName}
                           adId={item.adId}
