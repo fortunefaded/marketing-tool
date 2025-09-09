@@ -101,18 +101,11 @@ export function SimplePhoneMockup({
 
             {/* 広告テキストエリア - スクロール可能に */}
             <div className="bg-white p-4 overflow-y-auto" style={{ maxHeight: '280px' }}>
-              {title ? (
+              {title && (
                 <h3 className="text-sm font-semibold text-gray-900 mb-2">{title}</h3>
-              ) : (
-                <div className="h-2 bg-gray-300 rounded w-3/4 mb-2"></div>
               )}
-              {body ? (
+              {body && (
                 <p className="text-xs text-gray-600 whitespace-pre-wrap">{body}</p>
-              ) : (
-                <>
-                  <div className="h-2 bg-gray-300 rounded w-full mb-2"></div>
-                  <div className="h-2 bg-gray-300 rounded w-5/6"></div>
-                </>
               )}
               {(title || body) && instagramPermalinkUrl && (
                 <a 
