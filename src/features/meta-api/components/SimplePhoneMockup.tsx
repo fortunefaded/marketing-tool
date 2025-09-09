@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { PlayIcon } from '@heroicons/react/24/solid'
 import { VideoPlayer } from '../../../components/creatives/VideoPlayer'
 
@@ -39,13 +39,22 @@ export function SimplePhoneMockup({
   // プレースホルダー画像
   const placeholderImage = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzc1IiBoZWlnaHQ9IjM3NSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMzc1IiBoZWlnaHQ9IjM3NSIgZmlsbD0iI2UyZThmMCIvPjx0ZXh0IHRleHQtYW5jaG9yPSJtaWRkbGUiIHg9IjE4Ny41IiB5PSIxODcuNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmm9udC1zaXplPSIyNCIgZmlsbD0iIzljYTNhZiI+Tm8gSW1hZ2U8L3RleHQ+PC9zdmc+'
   
-  // 動画判定ロジックを改善
-  const isVideo = 
-    mediaType === 'VIDEO' || 
-    objectType === 'VIDEO' || 
-    mediaType?.toLowerCase().includes('video') ||
-    objectType?.toLowerCase().includes('video') ||
-    !!videoId
+  // 動画判定ロジックを強化
+  const isVideo = useMemo(() => {
+    // object_typeがVIDEOの場合
+    if (mediaType === 'VIDEO' || objectType === 'VIDEO') return true
+    
+    // STATUSでも動画URLや動画IDがあれば動画として扱う
+    if ((mediaType === 'STATUS' || objectType === 'STATUS') && (videoUrl || videoId)) return true
+    
+    // 動画URLまたは動画IDが存在する場合
+    if (videoUrl || videoId) return true
+    
+    // サムネイルURLにvideo関連の文字列が含まれる場合（フォールバック）
+    if (thumbnailUrl && thumbnailUrl.includes('/v/t15.')) return true
+    
+    return false
+  }, [mediaType, objectType, videoUrl, videoId, thumbnailUrl])
   
   const displayImage = thumbnailUrl || imageUrl || placeholderImage
   
@@ -63,15 +72,16 @@ export function SimplePhoneMockup({
   // デバッグログ: 動画検出情報
   console.log('📹 Video detection in SimplePhoneMockup:', {
     mediaType,
-    videoId,
     objectType,
+    videoUrl,
+    videoId,
     thumbnailUrl,
     imageUrl,
     isVideo,
     displayImage,
     extractedVideoId,
-    willUseVideoPlayer: isVideo && (videoId || extractedVideoId),
-    hasVideoData: !!(videoId || extractedVideoId),
+    willUseVideoPlayer: isVideo && (videoUrl || videoId || extractedVideoId),
+    hasVideoData: !!(videoUrl || videoId || extractedVideoId),
     creativeName: creativeName || 'Ad Creative'
   })
   
@@ -110,11 +120,11 @@ export function SimplePhoneMockup({
             {/* メディア表示 - 高さを縮小してテキストエリアを確保 */}
             <div className="relative bg-black" style={{ height: '240px' }}>
               {isVideo ? (
-                (videoId || extractedVideoId) ? (
+                (videoUrl || videoId || extractedVideoId) ? (
                   // VideoPlayerを使用した動画表示
                   <div className="relative w-full h-full">
                     <VideoPlayer
-                      videoUrl={undefined}
+                      videoUrl={videoUrl || undefined}
                       videoId={videoId || extractedVideoId || undefined}
                       thumbnailUrl={thumbnailUrl || displayImage}
                       creativeName={creativeName || 'Ad Creative'}
