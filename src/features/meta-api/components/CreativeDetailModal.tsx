@@ -523,7 +523,7 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
       const url = `https://graph.facebook.com/v23.0/${item.adId}`
       const params = new URLSearchParams({
         access_token: accessToken,
-        fields: 'creative{id,name,title,body,image_url,video_id,thumbnail_url,object_type,effective_object_story_id,object_story_spec,instagram_permalink_url}'
+        fields: 'creative{id,name,title,body,image_url,video_id,video_url,thumbnail_url,object_type,effective_object_story_id,object_story_spec,instagram_permalink_url}'
       })
 
       console.log('🎨 クリエイティブ情報を取得中:', { adId: item.adId })
@@ -541,8 +541,18 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
           creative_id: data.creative.id,
           has_thumbnail: !!data.creative.thumbnail_url,
           has_video: !!data.creative.video_id,
+          has_video_url: !!data.creative.video_url,
           has_image: !!data.creative.image_url,
           object_type: data.creative.object_type
+        })
+        
+        console.log('🎬 Creative info for video detection:', {
+          object_type: data.creative?.object_type,
+          video_id: data.creative?.video_id,
+          video_url: data.creative?.video_url,
+          thumbnail_url: data.creative?.thumbnail_url,
+          image_url: data.creative?.image_url,
+          has_video: data.creative?.object_type === 'VIDEO' || !!data.creative?.video_id || !!data.creative?.video_url
         })
         setCreativeInfo(data.creative)
       }
