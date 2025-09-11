@@ -38,6 +38,24 @@ export const getActiveAccount = query({
   },
 })
 
+// 既存アカウントのaccountNameフィールドを修正
+export const fixAccountNames = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const accounts = await ctx.db.query('metaAccounts').collect()
+
+    for (const account of accounts) {
+      if (!account.accountName && account.name) {
+        await ctx.db.patch(account._id, {
+          accountName: account.name,
+        })
+      }
+    }
+
+    return { updated: accounts.length }
+  },
+})
+
 // アカウントを追加または更新
 export const addOrUpdateAccount = mutation({
   args: {
@@ -62,6 +80,7 @@ export const addOrUpdateAccount = mutation({
       // 既存のアカウントを更新
       await ctx.db.patch(existing._id, {
         name: args.name,
+        accountName: args.name, // accountNameも更新
         accessToken: args.accessToken,
         permissions: args.permissions,
         currency: args.currency,
@@ -73,6 +92,7 @@ export const addOrUpdateAccount = mutation({
       // 新規アカウントを作成
       await ctx.db.insert('metaAccounts', {
         accountId: args.accountId,
+        accountName: args.name, // accountNameも設定
         fullAccountId: `act_${args.accountId}`,
         name: args.name,
         accessToken: args.accessToken,

@@ -276,4 +276,15 @@ export default defineSchema({
     }),
     updatedAt: v.number(),
   }),
+
+  // ECForce広告主とMetaアカウントのマッピング
+  advertiserMappings: defineTable({
+    metaAccountId: v.string(), // Meta広告アカウントID (act_xxxxx)
+    ecforceAdvertiser: v.string(), // ECForce側の広告主名（インハウス等）
+    isActive: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index('by_meta_account', ['metaAccountId'])
+    .index('by_advertiser', ['ecforceAdvertiser']),
 })

@@ -6,12 +6,14 @@ import {
   ClockIcon,
   ChartBarIcon,
   TableCellsIcon,
+  LinkIcon,
 } from '@heroicons/react/24/outline'
 
 const navigation = [
   { name: 'ダッシュボード', href: '/settings/ecforce', icon: ChartBarIcon },
   { name: 'データアップロード', href: '/settings/ecforce/upload', icon: CloudArrowUpIcon },
   { name: 'データ一覧', href: '/settings/ecforce/data', icon: TableCellsIcon },
+  { name: '広告主マッピング', href: '/settings/ecforce/mapping', icon: LinkIcon },
   { name: '自動同期設定', href: '/settings/ecforce/sync', icon: ArrowPathIcon },
   { name: 'インポート履歴', href: '/settings/ecforce/history', icon: ClockIcon },
 ]
@@ -24,10 +26,7 @@ export const ECForceNav: React.FC = () => {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 justify-between">
           <div className="flex">
-            <div className="flex flex-shrink-0 items-center">
-              <h2 className="text-xl font-semibold text-gray-900">ECForce データ連携</h2>
-            </div>
-            <div className="hidden sm:ml-8 sm:flex sm:space-x-8">
+            <div className="hidden sm:flex sm:space-x-8">
               {navigation.map((item) => {
                 const isActive = location.pathname === item.href
                 return (
