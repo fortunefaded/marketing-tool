@@ -16,6 +16,7 @@ export const savePerformanceData = mutation({
         advertiser: v.string(),
         advertiserNormalized: v.string(),
         dataDate: v.string(),
+        date: v.optional(v.string()),
         orderAmount: v.number(),
         salesAmount: v.number(),
         cost: v.number(),
@@ -24,12 +25,8 @@ export const savePerformanceData = mutation({
         cvrOrder: v.number(),
         cvPayment: v.number(),
         cvrPayment: v.number(),
-        cvUpsell: v.number(),
         cvThanksUpsell: v.number(),
-        cvThanksCrossSell: v.number(),
-        offerRateUpsell: v.number(),
         offerRateThanksUpsell: v.number(),
-        offerRateThanksCrossSell: v.number(),
         paymentRate: v.optional(v.number()),
         realCPA: v.optional(v.number()),
         roas: v.optional(v.number()),
@@ -107,7 +104,8 @@ export const getPerformanceData = query({
 
     // 日付フィルタリング
     if (args.dataDate) {
-      query = query.withIndex('by_date', (q) => q.eq('dataDate', args.dataDate))
+      const dataDate = args.dataDate
+      query = query.withIndex('by_date', (q) => q.eq('dataDate', dataDate))
     } else if (args.startDate && args.endDate) {
       // 範囲検索の場合は全件取得してフィルタリング
       const allData = await query.collect()
@@ -266,20 +264,34 @@ export const updateImportStatus = mutation({
 // 重複チェック
 export const checkDuplicates = query({
   args: {
-    dataDate: v.string(),
+    dateRange: v.object({
+      startDate: v.string(),
+      endDate: v.string(),
+      uniqueDates: v.array(v.string()),
+    }),
     advertisers: v.array(v.string()),
   },
   handler: async (ctx, args) => {
     const duplicates: string[] = []
 
+    // 各広告主について、複数日付での重複をチェック
     for (const advertiser of args.advertisers) {
-      const hash = generateHash(args.dataDate, advertiser)
-      const existing = await ctx.db
-        .query('ecforcePerformance')
-        .withIndex('by_hash', (q) => q.eq('hash', hash))
-        .first()
+      let hasAnyDuplicate = false
 
-      if (existing) {
+      // 各日付での重複をチェック
+      for (const date of args.dateRange.uniqueDates) {
+        const hash = generateHash(date, advertiser)
+        const existing = await ctx.db
+          .query('ecforcePerformance')
+          .withIndex('by_hash', (q) => q.eq('hash', hash))
+          .first()
+        if (existing) {
+          hasAnyDuplicate = true
+          break // 1つでも重複があれば十分
+        }
+      }
+
+      if (hasAnyDuplicate) {
         duplicates.push(advertiser)
       }
     }
@@ -421,3 +433,107 @@ function calculateNextRun(schedule: { frequency: string; time: string; timezone:
 
   return next.getTime()
 }
+
+// パフォーマンスデータを日付ごとに取得
+export const getPerformanceDataByDate = query({
+  args: {
+    startDate: v.optional(v.string()),
+    endDate: v.optional(v.string()),
+    advertiser: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    // 全データを取得してフィルタリング
+    const allData = await ctx.db.query('ecforcePerformance').collect()
+
+    let filteredData = allData
+
+    // 日付範囲でフィルタ
+    if (args.startDate || args.endDate) {
+      filteredData = allData.filter((record) => {
+        const recordDate = record.dataDate
+        if (args.startDate && recordDate < args.startDate) return false
+        if (args.endDate && recordDate > args.endDate) return false
+        return true
+      })
+    }
+
+    // 広告主でフィルタ
+    if (args.advertiser) {
+      filteredData = filteredData.filter((record) => record.advertiser === args.advertiser)
+    }
+
+    // 日付ごとにグループ化
+    const groupedByDate = filteredData.reduce(
+      (acc, record) => {
+        const date = record.dataDate
+        if (!acc[date]) {
+          acc[date] = []
+        }
+        acc[date].push(record)
+        return acc
+      },
+      {} as Record<string, typeof filteredData>
+    )
+
+    // 日付の降順でソート
+    const uniqueDates = Object.keys(groupedByDate).sort().reverse()
+
+    return {
+      data: filteredData,
+      groupedByDate,
+      totalRecords: filteredData.length,
+      uniqueDates,
+    }
+  },
+})
+
+// 広告主一覧を取得
+export const getAdvertisers = query({
+  handler: async (ctx) => {
+    const data = await ctx.db.query('ecforcePerformance').collect()
+    const advertisers = [...new Set(data.map((record) => record.advertiser))]
+    return advertisers.sort()
+  },
+})
+
+// データ修正用: CVRの異常値を修正
+export const fixCvrValues = mutation({
+  handler: async (ctx) => {
+    const allRecords = await ctx.db.query('ecforcePerformance').collect()
+    let fixedCount = 0
+
+    for (const record of allRecords) {
+      let needsUpdate = false
+      const updates: any = {}
+
+      // CVR（受注）が1以上の場合は100で割る
+      if (record.cvrOrder > 1) {
+        updates.cvrOrder = record.cvrOrder / 100
+        needsUpdate = true
+      }
+
+      // CVR（決済）が1以上の場合は100で割る
+      if (record.cvrPayment > 1) {
+        updates.cvrPayment = record.cvrPayment / 100
+        needsUpdate = true
+      }
+
+      // オファー成功率が1以上の場合は100で割る
+      if (record.offerRateThanksUpsell > 1) {
+        updates.offerRateThanksUpsell = record.offerRateThanksUpsell / 100
+        needsUpdate = true
+      }
+
+      if (needsUpdate) {
+        await ctx.db.patch(record._id, updates)
+        fixedCount++
+      }
+    }
+
+    return {
+      message: `${fixedCount}件のレコードを修正しました`,
+      totalRecords: allRecords.length,
+      fixedRecords: fixedCount,
+    }
+  },
+})

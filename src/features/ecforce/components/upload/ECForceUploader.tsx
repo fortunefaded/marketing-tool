@@ -1,74 +1,88 @@
-import React, { useState, useCallback } from 'react'
-import { useMutation } from 'convex/react'
+import React, { useState, useCallback, useEffect } from 'react'
+import { useMutation, useQuery } from 'convex/react'
 import { api } from '../../../../../convex/_generated/api'
 import { CSVDropzone } from './CSVDropzone'
 import { CSVPreview } from './CSVPreview'
 import { UploadProgress } from './UploadProgress'
 import { parseECForceCSV, previewECForceCSV, extractAdvertisers } from '../../utils/csvParser'
-import { format } from 'date-fns'
 
 export const ECForceUploader: React.FC = () => {
   const [file, setFile] = useState<File | null>(null)
-  const [dataDate, setDataDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'))
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [skipDuplicates, setSkipDuplicates] = useState(true)
   const [previewData, setPreviewData] = useState<{
     headers: string[]
     rows: any[]
+    dateRange?: { startDate: string; endDate: string; uniqueDates: string[] }
+    totalRows?: number
+    filteredRows?: number
   } | null>(null)
   const [duplicates, setDuplicates] = useState<string[]>([])
   const [uploadResult, setUploadResult] = useState<any>(null)
   const [errors, setErrors] = useState<string[]>([])
+  const [duplicateCheckParams, setDuplicateCheckParams] = useState<{
+    dateRange: { startDate: string; endDate: string; uniqueDates: string[] }
+    advertisers: string[]
+  } | null>(null)
 
   const createImport = useMutation(api.ecforce.createImport)
   const savePerformanceData = useMutation(api.ecforce.savePerformanceData)
   const updateImportStatus = useMutation(api.ecforce.updateImportStatus)
-  const checkDuplicates = useMutation(api.ecforce.checkDuplicates)
+
+  // 重複チェック用のquery
+  const duplicateCheck = useQuery(
+    api.ecforce.checkDuplicates,
+    duplicateCheckParams ? duplicateCheckParams : 'skip'
+  )
+
+  // 重複チェック結果を反映
+  useEffect(() => {
+    if (duplicateCheck) {
+      setDuplicates(duplicateCheck.duplicates || [])
+    }
+  }, [duplicateCheck])
 
   // ファイル選択時の処理
-  const handleFileSelect = useCallback(
-    async (selectedFile: File) => {
-      setFile(selectedFile)
-      setErrors([])
-      setUploadResult(null)
+  const handleFileSelect = useCallback(async (selectedFile: File) => {
+    setFile(selectedFile)
+    setErrors([])
+    setUploadResult(null)
 
-      // プレビュー生成
-      const preview = await previewECForceCSV(selectedFile, 10)
-      if (preview.error) {
-        setErrors([preview.error])
-        return
+    // プレビュー生成
+    const preview = await previewECForceCSV(selectedFile)
+    if (preview.error) {
+      setErrors([preview.error])
+      return
+    }
+
+    setPreviewData(preview)
+
+    // 重複チェック（複数日付対応）
+    if (preview.rows.length > 0 && preview.dateRange) {
+      const advertisers = preview.rows
+        .filter((row) => row['デバイス'] === '合計')
+        .map((row) => row['広告主別'])
+        .filter(Boolean)
+
+      if (advertisers.length > 0) {
+        setDuplicateCheckParams({
+          dateRange: preview.dateRange,
+          advertisers,
+        })
       }
-
-      setPreviewData(preview)
-
-      // 重複チェック
-      if (preview.rows.length > 0) {
-        const advertisers = preview.rows
-          .filter((row) => row['デバイス'] === '合計')
-          .map((row) => row['広告主別'])
-          .filter(Boolean)
-
-        if (advertisers.length > 0) {
-          try {
-            const duplicateCheck = await checkDuplicates({
-              dataDate,
-              advertisers,
-            })
-            setDuplicates(duplicateCheck.duplicates || [])
-          } catch (error) {
-            console.error('重複チェックエラー:', error)
-          }
-        }
-      }
-    },
-    [dataDate, checkDuplicates]
-  )
+    }
+  }, [])
 
   // アップロード処理
   const handleUpload = useCallback(async () => {
-    if (!file || !dataDate) {
-      setErrors(['ファイルとデータ対象日を選択してください'])
+    if (!file) {
+      setErrors(['ファイルを選択してください'])
+      return
+    }
+
+    if (!previewData?.dateRange) {
+      setErrors(['CSV内に有効な日付データが見つかりません'])
       return
     }
 
@@ -77,9 +91,9 @@ export const ECForceUploader: React.FC = () => {
     setErrors([])
 
     try {
-      // CSVパース
+      // CSVパース（複数日付対応）
       setUploadProgress(10)
-      const parseResult = await parseECForceCSV(file, dataDate)
+      const parseResult = await parseECForceCSV(file)
 
       if (parseResult.errors.length > 0 && parseResult.data.length === 0) {
         setErrors(parseResult.errors.map((e) => `行${e.row}: ${e.message}`))
@@ -92,7 +106,7 @@ export const ECForceUploader: React.FC = () => {
       const importSession = await createImport({
         fileName: file.name,
         fileSize: file.size,
-        dataDate,
+        dataDate: parseResult.dateRange?.startDate || 'unknown',
         source: 'manual',
         totalRows: parseResult.totalRows,
         filteredRows: parseResult.filteredRows,
@@ -197,26 +211,10 @@ export const ECForceUploader: React.FC = () => {
     } finally {
       setIsUploading(false)
     }
-  }, [file, dataDate, skipDuplicates, createImport, savePerformanceData, updateImportStatus])
+  }, [file, skipDuplicates, createImport, savePerformanceData, updateImportStatus, previewData])
 
   return (
     <div className="space-y-6">
-      {/* データ対象日選択 */}
-      <div className="rounded-lg bg-white p-6 shadow">
-        <label htmlFor="dataDate" className="block text-sm font-medium text-gray-700">
-          データ対象日 <span className="text-red-500">*</span>
-        </label>
-        <input
-          type="date"
-          id="dataDate"
-          value={dataDate}
-          onChange={(e) => setDataDate(e.target.value)}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-          disabled={isUploading}
-        />
-        <p className="mt-2 text-sm text-gray-500">CSVデータが対象とする日付を選択してください</p>
-      </div>
-
       {/* ファイルアップロード */}
       <div className="rounded-lg bg-white p-6 shadow">
         <CSVDropzone
@@ -232,8 +230,10 @@ export const ECForceUploader: React.FC = () => {
           <CSVPreview
             headers={previewData.headers}
             rows={previewData.rows}
-            dataDate={dataDate}
+            dateRange={previewData.dateRange}
             duplicates={duplicates}
+            totalRows={previewData.totalRows}
+            filteredRows={previewData.filteredRows}
           />
         </div>
       )}
@@ -298,7 +298,11 @@ export const ECForceUploader: React.FC = () => {
         <UploadProgress
           progress={uploadProgress}
           processedRows={uploadResult.processedRows || 0}
-          totalRows={previewData?.rows.filter((r: any) => r['デバイス'] === '合計').length || 0}
+          totalRows={
+            previewData?.filteredRows ||
+            previewData?.rows.filter((r: any) => r['デバイス'] === '合計').length ||
+            0
+          }
           successRows={uploadResult.successRows || 0}
           errorRows={uploadResult.errorRows || 0}
           duplicateRows={uploadResult.duplicateRows || 0}

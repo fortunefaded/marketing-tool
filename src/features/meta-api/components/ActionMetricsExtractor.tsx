@@ -179,7 +179,8 @@ export function extractActionMetrics(
   const costMap: Record<string, number> = {}
   if (costPerAction) {
     costPerAction.forEach((item) => {
-      costMap[item.action_type] = parseFloat(String(item.value))
+      const value = parseFloat(String(item.value))
+      costMap[item.action_type] = isNaN(value) ? 0 : value
     })
   }
 
@@ -191,7 +192,8 @@ export function extractActionMetrics(
   // 各アクションをカテゴリに分類
   actions.forEach((action) => {
     const actionValue = parseInt(String(action.value))
-    totalActions += actionValue
+    const validActionValue = isNaN(actionValue) ? 0 : actionValue
+    totalActions += validActionValue
 
     // どのカテゴリに属するか確認
     for (const [categoryKey, category] of Object.entries(ACTION_CATEGORIES)) {
@@ -208,17 +210,17 @@ export function extractActionMetrics(
         }
 
         const actionCost = costMap[action.action_type] || 0
-        const totalActionCost = actionCost * actionValue
+        const totalActionCost = actionCost * validActionValue
 
         categorized[categoryKey].actions.push({
           type: action.action_type,
           label: category.labels[action.action_type] || action.action_type,
-          value: actionValue,
+          value: validActionValue,
           costPerAction: actionCost,
           totalCost: totalActionCost,
         })
 
-        categorized[categoryKey].totalValue += actionValue
+        categorized[categoryKey].totalValue += validActionValue
         categorized[categoryKey].totalCost += totalActionCost
         totalCost += totalActionCost
       }
@@ -226,11 +228,14 @@ export function extractActionMetrics(
   })
 
   // トップアクションを計算
-  const allActions = actions.map((action) => ({
-    type: action.action_type,
-    value: parseInt(String(action.value)),
-    cost: costMap[action.action_type] || 0,
-  }))
+  const allActions = actions.map((action) => {
+    const value = parseInt(String(action.value))
+    return {
+      type: action.action_type,
+      value: isNaN(value) ? 0 : value,
+      cost: costMap[action.action_type] || 0,
+    }
+  })
   const topActions = allActions.sort((a, b) => b.value - a.value).slice(0, 5)
 
   // コンバージョンファネルを計算
@@ -243,17 +248,18 @@ export function extractActionMetrics(
 
   actions.forEach((action) => {
     const value = parseInt(String(action.value))
+    const validValue = isNaN(value) ? 0 : value
     if (action.action_type === 'view_content' || action.action_type === 'omni_view_content') {
-      conversionFunnel.views += value
+      conversionFunnel.views += validValue
     } else if (action.action_type === 'add_to_cart' || action.action_type === 'omni_add_to_cart') {
-      conversionFunnel.addToCart += value
+      conversionFunnel.addToCart += validValue
     } else if (
       action.action_type === 'initiate_checkout' ||
       action.action_type === 'omni_initiated_checkout'
     ) {
-      conversionFunnel.checkout += value
+      conversionFunnel.checkout += validValue
     } else if (action.action_type === 'purchase' || action.action_type === 'omni_purchase') {
-      conversionFunnel.purchase += value
+      conversionFunnel.purchase += validValue
     }
   })
 
@@ -319,20 +325,22 @@ export function ActionMetricsDisplay({
           <div className="bg-white p-3 rounded shadow-sm">
             <p className="text-xs text-gray-600">総アクション数</p>
             <p className="text-xl font-bold text-gray-900">
-              {metrics.summary.totalActions.toLocaleString()}
+              {(metrics.summary.totalActions || 0).toLocaleString()}
             </p>
           </div>
           <div className="bg-white p-3 rounded shadow-sm">
             <p className="text-xs text-gray-600">総コスト</p>
             <p className="text-xl font-bold text-gray-900">
-              {formatCurrency(metrics.summary.totalCost)}
+              {formatCurrency(metrics.summary.totalCost || 0)}
             </p>
           </div>
           {metrics.summary.totalActions > 0 && (
             <div className="bg-white p-3 rounded shadow-sm">
               <p className="text-xs text-gray-600">平均CPA</p>
               <p className="text-xl font-bold text-gray-900">
-                {formatCurrency(metrics.summary.totalCost / metrics.summary.totalActions)}
+                {formatCurrency(
+                  (metrics.summary.totalCost || 0) / (metrics.summary.totalActions || 1)
+                )}
               </p>
             </div>
           )}
@@ -341,8 +349,8 @@ export function ActionMetricsDisplay({
               <p className="text-xs text-gray-600">購入率</p>
               <p className="text-xl font-bold text-green-600">
                 {(
-                  (metrics.summary.conversionFunnel.purchase /
-                    metrics.summary.conversionFunnel.views) *
+                  ((metrics.summary.conversionFunnel.purchase || 0) /
+                    (metrics.summary.conversionFunnel.views || 1)) *
                   100
                 ).toFixed(2)}
                 %
@@ -392,7 +400,7 @@ export function ActionMetricsDisplay({
                       style={{ width: `${percentage}%` }}
                     />
                     <div className="absolute inset-0 flex items-center justify-center text-xs font-semibold">
-                      {step.value} ({percentage.toFixed(1)}%)
+                      {step.value || 0} ({(percentage || 0).toFixed(1)}%)
                     </div>
                   </div>
                 </div>
@@ -459,7 +467,7 @@ export function ActionMetricsDisplay({
                 <span className="text-sm ml-2">{action.type}</span>
               </div>
               <div className="text-right">
-                <span className="font-semibold">{action.value.toLocaleString()}</span>
+                <span className="font-semibold">{(action.value || 0).toLocaleString()}</span>
                 {action.cost > 0 && (
                   <span className="text-xs text-gray-500 ml-2">
                     CPA: {formatCurrency(action.cost)}
