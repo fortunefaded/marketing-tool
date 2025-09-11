@@ -39,9 +39,11 @@ export function SimplePhoneMockup({
 }: SimplePhoneMockupProps) {
   const [embedError, setEmbedError] = useState(false)
   const [embedMethod, setEmbedMethod] = useState<'preview_link' | 'video_id' | 'video_url' | 'external'>('preview_link')
+  const [isIframeLoaded, setIsIframeLoaded] = useState(false)
+  
   // プレースホルダー画像
   const placeholderImage =
-    'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzc1IiBoZWlnaHQ9IjM3NSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMzc1IiBoZWlnaHQ9IjM3NSIgZmlsbD0iI2UyZThmMCIvPjx0ZXh0IHRleHQtYW5jaG9yPSJtaWRkbGUiIHg9IjE4Ny41IiB5PSIxODcuNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmm9udC1zaXplPSIyNCIgZmlsbD0iIzljYTNhZiI+Tm8gSW1hZ2U8L3RleHQ+PC9zdmc+'
+    'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzc1IiBoZWlnaHQ9IjM3NSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMzc1IiBoZWlnaHQ9IjM3NSIgZmlsbD0iI2UyZThmMCIvPjx0ZXh0IHRleHQtYW5jaG9yPSJtaWRkbGUiIHg9IjE4Ny41IiB5PSIxODcuNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjOWNhM2FmIj5ObyBJbWFnZTwvdGV4dD48L3N2Zz4='
 
   // 動画判定ロジックを強化
   const isVideo = useMemo(() => {
@@ -73,50 +75,93 @@ export function SimplePhoneMockup({
     return null
   })()
 
-  // 動画埋め込みURLの生成ロジック（エラーハンドリング付き）
+  // 動画埋め込みURLの生成ロジック（改善版）
   const getVideoEmbedUrl = useCallback(() => {
     try {
+      // デバッグ情報
+      console.log('🎬 getVideoEmbedUrl called:', {
+        embedMethod,
+        previewShareableLink,
+        videoId,
+        extractedVideoId,
+        videoUrl
+      })
+
       // フォールバック戦略に基づいてURLを生成
       if (embedMethod === 'preview_link' && previewShareableLink) {
-        console.log('🎬 Using preview_shareable_link for embed:', previewShareableLink)
+        console.log('🎬 Using preview_shareable_link for embed')
+        
+        // preview_shareable_linkが既に埋め込み用URLの場合
+        if (previewShareableLink.includes('facebook.com/plugins/')) {
+          return previewShareableLink
+        }
+        
+        // preview_shareable_linkが相対URLの場合
+        if (previewShareableLink.startsWith('/')) {
+          return `https://www.facebook.com${previewShareableLink}`
+        }
+        
+        // 通常のFacebook URLの場合
         const encodedUrl = encodeURIComponent(previewShareableLink)
-        return `https://www.facebook.com/plugins/video.php?href=${encodedUrl}&show_text=false&width=254&height=240`
+        return `https://www.facebook.com/plugins/video.php?href=${encodedUrl}&show_text=false&width=254&height=240&appId=`
       }
       
       if (embedMethod === 'video_id' && (videoId || extractedVideoId)) {
         const id = videoId || extractedVideoId
         const videoPageUrl = `https://www.facebook.com/facebook/videos/${id}/`
         console.log('🎬 Using video ID for embed:', id)
-        return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(videoPageUrl)}&show_text=false&width=254&height=240`
+        return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(videoPageUrl)}&show_text=false&width=254&height=240&appId=`
       }
       
       if (embedMethod === 'video_url' && videoUrl) {
-        console.log('🎬 Using video URL for embed:', videoUrl)
-        return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(videoUrl)}&show_text=false&width=254&height=240`
+        console.log('🎬 Using video URL for embed')
+        
+        // 相対URLの場合
+        if (videoUrl.startsWith('/')) {
+          const fullUrl = `https://www.facebook.com${videoUrl}`
+          return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(fullUrl)}&show_text=false&width=254&height=240&appId=`
+        }
+        
+        return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(videoUrl)}&show_text=false&width=254&height=240&appId=`
       }
       
       // 初回試行時のデフォルト優先順位
       if (!embedError) {
         if (previewShareableLink) {
-          console.log('🎬 Default: Using preview_shareable_link for embed')
+          console.log('🎬 Default: Using preview_shareable_link')
+          
+          if (previewShareableLink.includes('facebook.com/plugins/')) {
+            return previewShareableLink
+          }
+          
+          if (previewShareableLink.startsWith('/')) {
+            return `https://www.facebook.com${previewShareableLink}`
+          }
+          
           const encodedUrl = encodeURIComponent(previewShareableLink)
-          return `https://www.facebook.com/plugins/video.php?href=${encodedUrl}&show_text=false&width=254&height=240`
+          return `https://www.facebook.com/plugins/video.php?href=${encodedUrl}&show_text=false&width=254&height=240&appId=`
         }
         
         if (videoId || extractedVideoId) {
           const id = videoId || extractedVideoId
           const videoPageUrl = `https://www.facebook.com/facebook/videos/${id}/`
-          console.log('🎬 Default: Using video ID for embed:', id)
-          return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(videoPageUrl)}&show_text=false&width=254&height=240`
+          console.log('🎬 Default: Using video ID:', id)
+          return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(videoPageUrl)}&show_text=false&width=254&height=240&appId=`
         }
         
         if (videoUrl) {
-          console.log('🎬 Default: Using video URL for embed')
-          return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(videoUrl)}&show_text=false&width=254&height=240`
+          console.log('🎬 Default: Using video URL')
+          
+          if (videoUrl.startsWith('/')) {
+            const fullUrl = `https://www.facebook.com${videoUrl}`
+            return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(fullUrl)}&show_text=false&width=254&height=240&appId=`
+          }
+          
+          return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(videoUrl)}&show_text=false&width=254&height=240&appId=`
         }
       }
     } catch (error) {
-      console.error('Error generating embed URL:', error)
+      console.error('❌ Error generating embed URL:', error)
     }
     
     return null
@@ -126,7 +171,6 @@ export function SimplePhoneMockup({
   const effectiveVideoUrl = useMemo(() => {
     if (videoUrl) return videoUrl
     if (videoId) {
-      // FacebookのデフォルトページIDを使用、または実際のページIDを使用
       return `https://www.facebook.com/facebook/videos/${videoId}/`
     }
     if (extractedVideoId) {
@@ -137,7 +181,7 @@ export function SimplePhoneMockup({
 
   // エラーハンドリング
   const handleEmbedError = useCallback(() => {
-    console.error('Current embed method failed:', embedMethod)
+    console.error('❌ Current embed method failed:', embedMethod)
     
     // フォールバック戦略
     switch(embedMethod) {
@@ -158,46 +202,52 @@ export function SimplePhoneMockup({
     }
   }, [embedMethod])
 
-  // 動画再生ハンドラー
+  // 動画再生ハンドラー（外部リンク用）
   const handlePlayClick = () => {
-    console.log('🎬 Play button clicked:', {
+    console.log('🎬 Play button clicked (external):', {
       videoUrl,
       videoId: videoId || extractedVideoId,
-      willPlayVideo: !!(videoUrl || videoId || extractedVideoId),
+      previewShareableLink
     })
 
-    // Facebook動画ページを開く
-    if (videoId || extractedVideoId) {
+    // preview_shareable_linkを優先
+    if (previewShareableLink && !previewShareableLink.includes('/plugins/')) {
+      window.open(previewShareableLink, '_blank', 'noopener,noreferrer')
+    } else if (videoId || extractedVideoId) {
       const fbVideoId = videoId || extractedVideoId
       const facebookVideoUrl = `https://www.facebook.com/watch/?v=${fbVideoId}`
       window.open(facebookVideoUrl, '_blank', 'noopener,noreferrer')
     } else if (videoUrl) {
-      window.open(videoUrl, '_blank', 'noopener,noreferrer')
+      const finalUrl = videoUrl.startsWith('/') ? `https://www.facebook.com${videoUrl}` : videoUrl
+      window.open(finalUrl, '_blank', 'noopener,noreferrer')
     } else {
-      console.warn('動画URL/IDが見つかりません')
+      console.warn('⚠️ 動画URL/IDが見つかりません')
     }
   }
 
   // デバッグログ: 動画検出情報
-  console.log('🎬 Video Embed Debug:', {
-    mediaType,
-    objectType,
-    previewShareableLink,
-    videoUrl,
-    videoId,
-    thumbnailUrl,
-    imageUrl,
-    isVideo,
-    displayImage,
-    extractedVideoId,
-    embedMethod,
-    embedUrl: getVideoEmbedUrl(),
-    embedError,
-    sdkLoaded: typeof (window as any).FB !== 'undefined',
-    willUseVideoPlayer: isVideo && getVideoEmbedUrl(),
-    hasVideoData: !!(videoUrl || videoId || extractedVideoId || previewShareableLink),
-    creativeName: creativeName || 'Ad Creative',
-  })
+  useEffect(() => {
+    const embedUrl = getVideoEmbedUrl()
+    console.log('🎬 Video Embed Debug:', {
+      mediaType,
+      objectType,
+      previewShareableLink,
+      videoUrl,
+      videoId,
+      thumbnailUrl,
+      imageUrl,
+      isVideo,
+      displayImage,
+      extractedVideoId,
+      embedMethod,
+      embedUrl,
+      embedError,
+      isIframeLoaded,
+      willUseVideoPlayer: isVideo && embedUrl,
+      hasVideoData: !!(videoUrl || videoId || extractedVideoId || previewShareableLink),
+      creativeName: creativeName || 'Ad Creative',
+    })
+  }, [mediaType, objectType, previewShareableLink, videoUrl, videoId, thumbnailUrl, imageUrl, isVideo, displayImage, extractedVideoId, embedMethod, embedError, isIframeLoaded, creativeName, getVideoEmbedUrl])
 
   return (
     <div className="w-full">
@@ -206,6 +256,122 @@ export function SimplePhoneMockup({
         <div
           className="relative bg-gray-900 rounded-[2rem] p-3 shadow-xl"
           style={{ width: '280px' }}
+        >
+          {/* スクリーン */}
+          <div className="bg-white rounded-[1.5rem] overflow-hidden">
+            {/* ステータスバー */}
+            <div className="bg-white h-6 flex items-center justify-between px-6 text-xs">
+              <span className="font-medium">9:41</span>
+              <div className="flex items-center gap-1">
+                <div className="w-4 h-3 border border-gray-900 rounded-sm">
+                  <div className="w-2 h-2 bg-gray-900 rounded-sm m-0.5"></div>
+                </div>
+              </div>
+            </div>
+
+            {/* コンテンツエリア */}
+            <div className="bg-gray-100" style={{ height: '400px' }}>
+              {/* Facebook/Instagramヘッダー */}
+              <div className="bg-white border-b px-4 py-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-blue-600">facebook</span>
+                  <div className="flex gap-2">
+                    <div className="w-6 h-6 bg-gray-200 rounded-full"></div>
+                    <div className="w-6 h-6 bg-gray-200 rounded-full"></div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 広告コンテンツ */}
+              <div className="bg-white mt-2">
+                {/* 広告主情報 */}
+                <div className="flex items-center p-3">
+                  <div className="w-10 h-10 bg-gray-300 rounded-full mr-3"></div>
+                  <div>
+                    <div className="font-semibold text-sm">広告主名</div>
+                    <div className="text-xs text-gray-500">広告</div>
+                  </div>
+                </div>
+
+                {/* メディアコンテンツ */}
+                <div className="relative" style={{ height: '254px' }}>
+                  {isVideo && getVideoEmbedUrl() && embedMethod !== 'external' ? (
+                    <div className="relative w-full h-full bg-black">
+                      <iframe
+                        src={getVideoEmbedUrl()}
+                        width="254"
+                        height="240"
+                        style={{ 
+                          border: 'none', 
+                          overflow: 'hidden',
+                          display: 'block',
+                          margin: '0 auto'
+                        }}
+                        scrolling="no"
+                        frameBorder="0"
+                        allowFullScreen={true}
+                        allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+                        sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-popups-to-escape-sandbox"
+                        title="動画広告"
+                        onError={(e) => {
+                          console.error('❌ iframe error:', e)
+                          handleEmbedError()
+                        }}
+                        onLoad={() => {
+                          setIsIframeLoaded(true)
+                          console.log('✅ Video iframe loaded successfully with method:', embedMethod)
+                        }}
+                      />
+                      {!isIframeLoaded && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
+                          <div className="text-white text-sm">読み込み中...</div>
+                        </div>
+                      )}
+                      <div className="absolute bottom-2 left-2 bg-black bg-opacity-60 px-2 py-1 rounded pointer-events-none z-10">
+                        <span className="text-white text-xs">動画広告</span>
+                      </div>
+                    </div>
+                  ) : isVideo && embedMethod === 'external' ? (
+                    // 外部リンクフォールバック
+                    <div className="relative w-full h-full bg-gray-900 flex flex-col items-center justify-center">
+                      <img
+                        src={displayImage}
+                        alt="Video thumbnail"
+                        className="absolute inset-0 w-full h-full object-cover opacity-50"
+                      />
+                      <button
+                        onClick={handlePlayClick}
+                        className="relative z-10 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2"
+                      >
+                        <PlayIcon className="w-5 h-5" />
+                        <span>Facebookで視聴</span>
+                      </button>
+                      <div className="absolute bottom-2 left-2 bg-black bg-opacity-60 px-2 py-1 rounded z-10">
+                        <span className="text-white text-xs">動画広告（外部再生）</span>
+                      </div>
+                    </div>
+                  ) : (
+                    // 画像広告の表示
+                    <div className="relative w-full h-full">
+                      <img
+                        src={displayImage}
+                        alt={creativeName || 'Ad creative'}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          console.warn('⚠️ Image load error, using placeholder')
+                          e.currentTarget.src = placeholderImage
+                        }}
+                      />
+                      <div className="absolute bottom-2 left-2 bg-black bg-opacity-60 px-2 py-1 rounded">
+                        <span className="text-white text-xs">画像広告</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div
         >
           {/* ノッチ */}
           <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-24 h-5 bg-gray-900 rounded-b-2xl"></div>
@@ -224,17 +390,26 @@ export function SimplePhoneMockup({
                     {/* Facebook動画の埋め込み - preview_shareable_link優先 */}
                     <iframe
                       src={getVideoEmbedUrl()}
-                      width="254"
-                      height="240"
-                      style={{ border: 'none', overflow: 'hidden' }}
+                      width="100%"
+                      height="100%"
+                      style={{ 
+                        border: 'none', 
+                        overflow: 'hidden',
+                        minHeight: '240px',
+                        aspectRatio: '9/16', // 縦型動画用のアスペクト比
+                        objectFit: 'contain'
+                      }}
                       scrolling="no"
                       frameBorder="0"
                       allowFullScreen={true}
                       allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
                       title="動画広告"
-                      onError={handleEmbedError}
+                      onError={(e) => {
+                        console.error('❌ iframe load error:', e)
+                        handleEmbedError()
+                      }}
                       onLoad={() => {
-                        console.log('✅ Video embed loaded successfully with method:', embedMethod)
+                        console.log('✅ Video embed loaded successfully with method:', embedMethod, 'URL:', getVideoEmbedUrl())
                       }}
                     />
                     <div className="absolute bottom-2 left-2 bg-black bg-opacity-60 px-2 py-1 rounded pointer-events-none z-10">
