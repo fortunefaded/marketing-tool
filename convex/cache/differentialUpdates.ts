@@ -168,11 +168,11 @@ export const getApiReductionStats = query({
       }
     }
 
-    const totalApiCalls = recentEntries.reduce((sum, e) => sum + e.apiCallsUsed, 0)
+    const totalApiCalls = recentEntries.reduce((sum, e) => sum + (e.apiCallsUsed ?? 0), 0)
     const totalApiCallsSaved = recentEntries.reduce((sum, e) => sum + e.apiCallsSaved, 0)
-    const totalDurationMs = recentEntries.reduce((sum, e) => sum + e.durationMs, 0)
+    const totalDurationMs = recentEntries.reduce((sum, e) => sum + (e.durationMs ?? 0), 0)
     const avgReductionRate =
-      recentEntries.reduce((sum, e) => sum + e.reductionRate, 0) / recentEntries.length
+      recentEntries.reduce((sum, e) => sum + (e.reductionRate ?? 0), 0) / recentEntries.length
 
     return {
       totalUpdates: recentEntries.length,
@@ -217,16 +217,16 @@ export const updateProgress = mutation({
       updates.actualUpdatedDates = args.actualUpdatedDates
     }
     if (args.apiCallsUsed !== undefined) {
-      updates.apiCallsUsed = entry.apiCallsUsed + args.apiCallsUsed
+      updates.apiCallsUsed = (entry.apiCallsUsed ?? 0) + args.apiCallsUsed
     }
     if (args.recordsAdded !== undefined) {
-      updates.recordsAdded = entry.recordsAdded + args.recordsAdded
+      updates.recordsAdded = (entry.recordsAdded ?? 0) + args.recordsAdded
     }
     if (args.recordsUpdated !== undefined) {
-      updates.recordsUpdated = entry.recordsUpdated + args.recordsUpdated
+      updates.recordsUpdated = (entry.recordsUpdated ?? 0) + args.recordsUpdated
     }
     if (args.recordsDeleted !== undefined) {
-      updates.recordsDeleted = entry.recordsDeleted + args.recordsDeleted
+      updates.recordsDeleted = (entry.recordsDeleted ?? 0) + args.recordsDeleted
     }
 
     await ctx.db.patch(entry._id, updates)
@@ -256,12 +256,12 @@ export const completeUpdate = mutation({
 
     // API削減率を計算
     const expectedApiCalls = entry.targetDates.length * 10 // 仮定: 1日あたり10API呼び出し
-    const apiCallsSaved = Math.max(0, expectedApiCalls - entry.apiCallsUsed)
+    const apiCallsSaved = Math.max(0, expectedApiCalls - (entry.apiCallsUsed ?? 0))
     const reductionRate = expectedApiCalls > 0 ? (apiCallsSaved / expectedApiCalls) * 100 : 0
 
     const status = args.error
       ? 'failed'
-      : entry.actualUpdatedDates.length === entry.targetDates.length
+      : (entry.actualUpdatedDates?.length ?? 0) === entry.targetDates.length
         ? 'completed'
         : 'partial'
 
@@ -295,7 +295,7 @@ export const removeOldUpdates = mutation({
 
     const entries = await ctx.db.query('differentialUpdates').collect()
 
-    const oldEntries = entries.filter((e) => e.completedAt < cutoffTime)
+    const oldEntries = entries.filter((e) => (e.completedAt ?? 0) < cutoffTime)
 
     const deletedIds = []
     for (const entry of oldEntries) {

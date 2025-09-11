@@ -100,14 +100,25 @@ export const getPerformanceData = query({
     offset: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    let query = ctx.db.query('ecforcePerformance')
-
     // 日付フィルタリング
     if (args.dataDate) {
       const dataDate = args.dataDate
-      query = query.withIndex('by_date', (q) => q.eq('dataDate', dataDate))
+      const query = ctx.db
+        .query('ecforcePerformance')
+        .withIndex('by_date', (q) => q.eq('dataDate', dataDate))
+
+      const allData = await query.collect()
+      const offset = args.offset || 0
+      const limit = args.limit || 50
+
+      return {
+        data: allData.slice(offset, offset + limit),
+        total: allData.length,
+        hasMore: offset + limit < allData.length,
+      }
     } else if (args.startDate && args.endDate) {
       // 範囲検索の場合は全件取得してフィルタリング
+      const query = ctx.db.query('ecforcePerformance')
       const allData = await query.collect()
       const filtered = allData.filter(
         (item) => item.dataDate >= args.startDate! && item.dataDate <= args.endDate!
@@ -121,16 +132,26 @@ export const getPerformanceData = query({
         total: filtered.length,
         hasMore: offset + limit < filtered.length,
       }
-    }
-
-    // 広告主フィルタリング
-    if (args.advertiser) {
+    } else if (args.advertiser) {
+      // 広告主フィルタリング
       const normalizedAdvertiser = args.advertiser.toLowerCase().replace(/\s+/g, '')
-      query = query.withIndex('by_advertiser', (q) =>
-        q.eq('advertiserNormalized', normalizedAdvertiser)
-      )
+      const query = ctx.db
+        .query('ecforcePerformance')
+        .withIndex('by_advertiser', (q) => q.eq('advertiserNormalized', normalizedAdvertiser))
+
+      const allData = await query.collect()
+      const offset = args.offset || 0
+      const limit = args.limit || 50
+
+      return {
+        data: allData.slice(offset, offset + limit),
+        total: allData.length,
+        hasMore: offset + limit < allData.length,
+      }
     }
 
+    // フィルターなしの場合
+    const query = ctx.db.query('ecforcePerformance')
     const allData = await query.collect()
     const offset = args.offset || 0
     const limit = args.limit || 50

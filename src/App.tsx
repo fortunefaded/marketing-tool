@@ -16,6 +16,7 @@ import { UnifiedDebugPanel } from './components/UnifiedDebugPanel'
 import { ECForceMain } from './features/ecforce/pages/ECForceMain'
 import { ECForceUpload } from './features/ecforce/pages/ECForceUpload'
 import { ECForceDataPage } from './features/ecforce/pages/ECForceDataPage'
+import { ECForceMappingPage } from './features/ecforce/pages/ECForceMappingPage'
 import { ECForceSync } from './features/ecforce/pages/ECForceSync'
 import { ECForceHistory } from './features/ecforce/pages/ECForceHistory'
 
@@ -77,6 +78,7 @@ function AppContent() {
             <Route path="/settings/ecforce" element={<ECForceMain />} />
             <Route path="/settings/ecforce/upload" element={<ECForceUpload />} />
             <Route path="/settings/ecforce/data" element={<ECForceDataPage />} />
+            <Route path="/settings/ecforce/mapping" element={<ECForceMappingPage />} />
             <Route path="/settings/ecforce/sync" element={<ECForceSync />} />
             <Route path="/settings/ecforce/history" element={<ECForceHistory />} />
             <Route

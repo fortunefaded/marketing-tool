@@ -13,6 +13,7 @@ import type {
   FilterApi,
   FunctionReference,
 } from "convex/server";
+import type * as advertiserMappings from "../advertiserMappings.js";
 import type * as apiConfig from "../apiConfig.js";
 import type * as cache_cacheEntries from "../cache/cacheEntries.js";
 import type * as cache_dataFreshness from "../cache/dataFreshness.js";
@@ -32,6 +33,7 @@ import type * as tokens from "../tokens.js";
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  advertiserMappings: typeof advertiserMappings;
   apiConfig: typeof apiConfig;
   "cache/cacheEntries": typeof cache_cacheEntries;
   "cache/dataFreshness": typeof cache_dataFreshness;

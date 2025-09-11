@@ -72,7 +72,7 @@ export const importInsights = mutation({
     strategy: v.union(v.literal('replace'), v.literal('merge')),
   },
   handler: async (ctx, args) => {
-    const now = new Date().toISOString()
+    const now = Date.now()
     let imported = 0
     let updated = 0
     let skipped = 0
@@ -96,15 +96,30 @@ export const importInsights = mutation({
       if (existing) {
         if (args.strategy === 'replace') {
           // 既存データを更新
-          await ctx.db.patch(existing._id, {
+          const updateData = {
             ...insight,
+            // フィールド名を正規化
+            dateStart: insight.date_start,
+            dateStop: insight.date_stop,
+            campaignId: insight.campaign_id,
+            campaignName: insight.campaign_name,
+            adId: insight.ad_id,
+            adName: insight.ad_name,
             updatedAt: now,
-          })
+          }
+          await ctx.db.patch(existing._id, updateData)
           updated++
         } else if (args.strategy === 'merge') {
           // クリエイティブ情報を保持しながらマージ
           const merged = {
             ...insight,
+            // フィールド名を正規化
+            dateStart: insight.date_start,
+            dateStop: insight.date_stop,
+            campaignId: insight.campaign_id,
+            campaignName: insight.campaign_name,
+            adId: insight.ad_id,
+            adName: insight.ad_name,
             updatedAt: now,
           }
 
@@ -125,11 +140,22 @@ export const importInsights = mutation({
         }
       } else {
         // 新規データを挿入
-        await ctx.db.insert('metaInsights', {
+        const insertData = {
           ...insight,
-          importedAt: now,
+          // insightIdを生成
+          insightId: `${insight.accountId}_${insight.date_start}_${insight.ad_id || 'campaign'}`,
+          // フィールド名を正規化
+          dateStart: insight.date_start,
+          dateStop: insight.date_stop,
+          campaignId: insight.campaign_id,
+          campaignName: insight.campaign_name,
+          adId: insight.ad_id,
+          adName: insight.ad_name,
+          impressions: insight.impressions || 0,
+          createdAt: now,
           updatedAt: now,
-        })
+        }
+        await ctx.db.insert('metaInsights', insertData)
         imported++
       }
     }
@@ -180,8 +206,8 @@ export const getInsights = query({
     // カーソルベースのページネーション
     if (args.cursor) {
       const cursorDoc = await ctx.db.get(args.cursor as any)
-      if (cursorDoc && 'date_start' in cursorDoc) {
-        query = query.filter((q) => q.lt(q.field('dateStart'), (cursorDoc as any).date_start))
+      if (cursorDoc && 'dateStart' in cursorDoc) {
+        query = query.filter((q) => q.lt(q.field('dateStart'), (cursorDoc as any).dateStart))
       }
     }
 
@@ -235,8 +261,8 @@ export const getInsightsStats = query({
       totalClicks += item.clicks || 0
       totalConversions += item.conversions || 0
 
-      if (item.campaign_id) campaigns.add(item.campaign_id)
-      if (item.ad_id) ads.add(item.ad_id)
+      if (item.campaignId) campaigns.add(item.campaignId)
+      if (item.adId) ads.add(item.adId)
     }
 
     // 全体数の推定
@@ -255,8 +281,8 @@ export const getInsightsStats = query({
       uniqueCampaigns: campaigns.size,
       uniqueAds: ads.size,
       dateRange: {
-        start: args.startDate || sample[0]?.date_start,
-        end: args.endDate || sample[sample.length - 1]?.date_start,
+        start: args.startDate || sample[0]?.dateStart,
+        end: args.endDate || sample[sample.length - 1]?.dateStart,
       },
       isEstimate: sample.length >= sampleSize,
     }
@@ -364,7 +390,7 @@ export const findMissingDateRanges = query({
       )
       .take(1000)
 
-    const existingDates = new Set(existingData.map((d) => d.date_start))
+    const existingDates = new Set(existingData.map((d) => d.dateStart))
 
     // 月単位で欠損をチェック
     const missing: Array<{ start: string; end: string }> = []
