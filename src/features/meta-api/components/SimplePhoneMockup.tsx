@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { PlayIcon } from '@heroicons/react/24/solid'
 
 interface SimplePhoneMockupProps {
@@ -37,6 +37,8 @@ export function SimplePhoneMockup({
   creativeNameFull,
   previewShareableLink,
 }: SimplePhoneMockupProps) {
+  const [embedError, setEmbedError] = useState(false)
+  const [embedMethod, setEmbedMethod] = useState<'preview_link' | 'video_id' | 'video_url' | 'external'>('preview_link')
   // プレースホルダー画像
   const placeholderImage =
     'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzc1IiBoZWlnaHQ9IjM3NSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMzc1IiBoZWlnaHQ9IjM3NSIgZmlsbD0iI2UyZThmMCIvPjx0ZXh0IHRleHQtYW5jaG9yPSJtaWRkbGUiIHg9IjE4Ny41IiB5PSIxODcuNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmm9udC1zaXplPSIyNCIgZmlsbD0iIzljYTNhZiI+Tm8gSW1hZ2U8L3RleHQ+PC9zdmc+'
@@ -71,7 +73,56 @@ export function SimplePhoneMockup({
     return null
   })()
 
-  // videoUrlが無い場合、videoIdから生成
+  // 動画埋め込みURLの生成ロジック（エラーハンドリング付き）
+  const getVideoEmbedUrl = useCallback(() => {
+    try {
+      // フォールバック戦略に基づいてURLを生成
+      if (embedMethod === 'preview_link' && previewShareableLink) {
+        console.log('🎬 Using preview_shareable_link for embed:', previewShareableLink)
+        const encodedUrl = encodeURIComponent(previewShareableLink)
+        return `https://www.facebook.com/plugins/video.php?href=${encodedUrl}&show_text=false&width=254&height=240`
+      }
+      
+      if (embedMethod === 'video_id' && (videoId || extractedVideoId)) {
+        const id = videoId || extractedVideoId
+        const videoPageUrl = `https://www.facebook.com/facebook/videos/${id}/`
+        console.log('🎬 Using video ID for embed:', id)
+        return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(videoPageUrl)}&show_text=false&width=254&height=240`
+      }
+      
+      if (embedMethod === 'video_url' && videoUrl) {
+        console.log('🎬 Using video URL for embed:', videoUrl)
+        return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(videoUrl)}&show_text=false&width=254&height=240`
+      }
+      
+      // 初回試行時のデフォルト優先順位
+      if (!embedError) {
+        if (previewShareableLink) {
+          console.log('🎬 Default: Using preview_shareable_link for embed')
+          const encodedUrl = encodeURIComponent(previewShareableLink)
+          return `https://www.facebook.com/plugins/video.php?href=${encodedUrl}&show_text=false&width=254&height=240`
+        }
+        
+        if (videoId || extractedVideoId) {
+          const id = videoId || extractedVideoId
+          const videoPageUrl = `https://www.facebook.com/facebook/videos/${id}/`
+          console.log('🎬 Default: Using video ID for embed:', id)
+          return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(videoPageUrl)}&show_text=false&width=254&height=240`
+        }
+        
+        if (videoUrl) {
+          console.log('🎬 Default: Using video URL for embed')
+          return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(videoUrl)}&show_text=false&width=254&height=240`
+        }
+      }
+    } catch (error) {
+      console.error('Error generating embed URL:', error)
+    }
+    
+    return null
+  }, [embedMethod, previewShareableLink, videoId, extractedVideoId, videoUrl, embedError])
+
+  // videoUrlが無い場合、videoIdから生成（レガシー用）
   const effectiveVideoUrl = useMemo(() => {
     if (videoUrl) return videoUrl
     if (videoId) {
@@ -83,6 +134,29 @@ export function SimplePhoneMockup({
     }
     return null
   }, [videoUrl, videoId, extractedVideoId])
+
+  // エラーハンドリング
+  const handleEmbedError = useCallback(() => {
+    console.error('Current embed method failed:', embedMethod)
+    
+    // フォールバック戦略
+    switch(embedMethod) {
+      case 'preview_link':
+        setEmbedMethod('video_id')
+        setEmbedError(false)
+        break
+      case 'video_id':
+        setEmbedMethod('video_url')
+        setEmbedError(false)
+        break
+      case 'video_url':
+        setEmbedMethod('external')
+        setEmbedError(false)
+        break
+      default:
+        setEmbedError(true)
+    }
+  }, [embedMethod])
 
   // 動画再生ハンドラー
   const handlePlayClick = () => {
@@ -105,9 +179,10 @@ export function SimplePhoneMockup({
   }
 
   // デバッグログ: 動画検出情報
-  console.log('📹 Video detection in SimplePhoneMockup:', {
+  console.log('🎬 Video Embed Debug:', {
     mediaType,
     objectType,
+    previewShareableLink,
     videoUrl,
     videoId,
     thumbnailUrl,
@@ -115,8 +190,12 @@ export function SimplePhoneMockup({
     isVideo,
     displayImage,
     extractedVideoId,
-    willUseVideoPlayer: isVideo && (videoUrl || videoId || extractedVideoId),
-    hasVideoData: !!(videoUrl || videoId || extractedVideoId),
+    embedMethod,
+    embedUrl: getVideoEmbedUrl(),
+    embedError,
+    sdkLoaded: typeof (window as any).FB !== 'undefined',
+    willUseVideoPlayer: isVideo && getVideoEmbedUrl(),
+    hasVideoData: !!(videoUrl || videoId || extractedVideoId || previewShareableLink),
     creativeName: creativeName || 'Ad Creative',
   })
 
@@ -140,24 +219,45 @@ export function SimplePhoneMockup({
             <div className="h-full bg-gray-50">
               {/* メディア表示 - 高さを縮小してテキストエリアを確保 */}
               <div className="relative bg-black" style={{ height: '240px' }}>
-                {isVideo && (videoId || effectiveVideoUrl) ? (
+                {isVideo && getVideoEmbedUrl() && embedMethod !== 'external' ? (
                   <div className="relative w-full h-full bg-black">
-                    {/* Facebook動画の埋め込み */}
+                    {/* Facebook動画の埋め込み - preview_shareable_link優先 */}
                     <iframe
-                      src={`https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(
-                        effectiveVideoUrl || `https://www.facebook.com/facebook/videos/${videoId}/`
-                      )}&show_text=false&width=254&height=254`}
+                      src={getVideoEmbedUrl()}
                       width="254"
-                      height="254"
+                      height="240"
                       style={{ border: 'none', overflow: 'hidden' }}
                       scrolling="no"
                       frameBorder="0"
                       allowFullScreen={true}
                       allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
                       title="動画広告"
+                      onError={handleEmbedError}
+                      onLoad={() => {
+                        console.log('✅ Video embed loaded successfully with method:', embedMethod)
+                      }}
                     />
                     <div className="absolute bottom-2 left-2 bg-black bg-opacity-60 px-2 py-1 rounded pointer-events-none z-10">
                       <span className="text-white text-xs">動画広告</span>
+                    </div>
+                  </div>
+                ) : isVideo && embedMethod === 'external' ? (
+                  // 外部リンクフォールバック
+                  <div className="relative w-full h-full bg-gray-900 flex flex-col items-center justify-center">
+                    <img
+                      src={displayImage}
+                      alt="Video thumbnail"
+                      className="absolute inset-0 w-full h-full object-cover opacity-50"
+                    />
+                    <button
+                      onClick={handlePlayClick}
+                      className="relative z-10 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2"
+                    >
+                      <PlayIcon className="w-5 h-5" />
+                      <span>Facebookで視聴</span>
+                    </button>
+                    <div className="absolute bottom-2 left-2 bg-black bg-opacity-60 px-2 py-1 rounded z-10">
+                      <span className="text-white text-xs">動画広告（外部再生）</span>
                     </div>
                   </div>
                 ) : (
@@ -194,53 +294,6 @@ export function SimplePhoneMockup({
                 )}
               </div>
 
-              {/* Facebookで見るボタン */}
-              {adId && (
-                <div className="bg-white border-t border-gray-200 p-3">
-                  <a
-                    href={(() => {
-                      // preview_shareable_linkがある場合は優先的に使用
-                      if (previewShareableLink) {
-                        console.log('🔗 Using preview_shareable_link:', previewShareableLink)
-                        return previewShareableLink
-                      }
-
-                      // Facebook Ads ManagerのURL形式（フォールバック）
-                      if (accountId) {
-                        // アカウントIDからact_プレフィックスと数字を抽出
-                        const accountIdMatch = accountId.match(/(\d+)/)
-                        if (accountIdMatch) {
-                          const numericAccountId = accountIdMatch[1]
-                          // Facebook Ads Managerの広告詳細ページURL
-                          return `https://business.facebook.com/adsmanager/manage/ads?act=${numericAccountId}&selected_ad_ids=${adId}`
-                        }
-                      }
-                      // フォールバック: 広告プレビューページ
-                      return `https://www.facebook.com/ads/manager/`
-                    })()}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block w-full text-center bg-blue-600 text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
-                    title={`広告を Facebook Ads Manager で確認`}
-                    onClick={(e) => {
-                      // デバッグ用ログ
-                      console.log('Facebook link clicked:', {
-                        adId,
-                        accountId,
-                        previewShareableLink,
-                        url: e.currentTarget.href,
-                      })
-                    }}
-                  >
-                    <div className="flex items-center justify-center gap-2">
-                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                      </svg>
-                      <span>Facebookで見る</span>
-                    </div>
-                  </a>
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -260,6 +313,54 @@ export function SimplePhoneMockup({
               <div className="flex items-start">
                 <span className="text-xs font-medium text-gray-500 w-16">Name:</span>
                 <span className="text-xs text-gray-700 break-all">{creativeNameFull}</span>
+              </div>
+            )}
+            
+            {/* Facebookで見るボタン - クリエイティブ情報の下に移動 */}
+            {adId && (
+              <div className="pt-3 mt-3 border-t border-gray-200">
+                <a
+                  href={(() => {
+                    // preview_shareable_linkがある場合は優先的に使用
+                    if (previewShareableLink) {
+                      console.log('🔗 Using preview_shareable_link:', previewShareableLink)
+                      return previewShareableLink
+                    }
+
+                    // Facebook Ads ManagerのURL形式（フォールバック）
+                    if (accountId) {
+                      // アカウントIDからact_プレフィックスと数字を抽出
+                      const accountIdMatch = accountId.match(/(\d+)/)
+                      if (accountIdMatch) {
+                        const numericAccountId = accountIdMatch[1]
+                        // Facebook Ads Managerの広告詳細ページURL
+                        return `https://business.facebook.com/adsmanager/manage/ads?act=${numericAccountId}&selected_ad_ids=${adId}`
+                      }
+                    }
+                    // フォールバック: 広告プレビューページ
+                    return `https://www.facebook.com/ads/manager/`
+                  })()}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block w-full text-center bg-blue-600 text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
+                  title={`広告を Facebook Ads Manager で確認`}
+                  onClick={(e) => {
+                    // デバッグ用ログ
+                    console.log('Facebook link clicked:', {
+                      adId,
+                      accountId,
+                      previewShareableLink,
+                      url: e.currentTarget.href,
+                    })
+                  }}
+                >
+                  <div className="flex items-center justify-center gap-2">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+                    </svg>
+                    <span>Facebookで見る</span>
+                  </div>
+                </a>
               </div>
             )}
           </div>
