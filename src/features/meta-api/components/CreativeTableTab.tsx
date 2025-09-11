@@ -205,6 +205,13 @@ export function CreativeTableTab({
         conversions_1d_click: item.conversions_1d_click,
         fcv_debug: item.fcv_debug,
 
+        // ECForceデータを追加
+        ecforce_cv: item.ecforce_cv || 0,
+        ecforce_fcv: item.ecforce_fcv || 0,
+        ecforce_cpa: item.ecforce_cpa,
+        ecforce_cv_total: item.ecforce_cv_total || 0, // 合計値を保持
+        ecforce_fcv_total: item.ecforce_fcv_total || 0, // 合計値を保持
+
         // 計算メトリクス（集約データから）
         cpa: item.cpa,
         roas: item.roas,
@@ -722,7 +729,10 @@ export function CreativeTableTab({
                 </td>
                 {/* CV */}
                 <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-purple-600">
-                  N/A
+                  {/* ECForceの合計値を表示（最初のアイテムから取得） */}
+                  {sortedData.length > 0 && sortedData[0].ecforce_cv_total !== undefined
+                    ? formatNumber(sortedData[0].ecforce_cv_total)
+                    : 'N/A'}
                 </td>
                 {/* F-CV */}
                 <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">

@@ -10,14 +10,14 @@ import {
   getCachedData,
   clearCachedData,
 } from '@/utils/localStorage'
-import {
-  logAPI,
-  logState,
-  logFilter,
-} from '../utils/debugLogger'
+import { logAPI, logState, logFilter } from '../utils/debugLogger'
 
 // デバッグコマンドを読み込み（開発環境のみ）
-if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'development' && typeof window !== 'undefined') {
+if (
+  typeof process !== 'undefined' &&
+  process.env?.NODE_ENV === 'development' &&
+  typeof window !== 'undefined'
+) {
   import('../utils/debug-commands.js' as any).catch(() => {
     // エラーを無視（ファイルが存在しない場合）
   })
@@ -32,6 +32,7 @@ export default function MainDashboard() {
   const [accounts, setAccounts] = useState<MetaAccount[]>([])
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
   const [isLoadingAccounts, setIsLoadingAccounts] = useState(true)
+  const [ecforceData, setEcforceData] = useState<any[]>([]) // ECForceデータ用state追加
   // localStorageから保存された期間選択を復元
   const [dateRange, setDateRange] = useState<
     | 'last_7d'
@@ -735,8 +736,63 @@ export default function MainDashboard() {
         }))
         console.table(debugSummary)
 
-        // データをセット
-        setData(formattedData)
+        // ECForceデータを取得して統合
+        try {
+          console.log('📊 ECForceデータを取得開始')
+          const ecforceResponse = await convex.query(
+            api.advertiserMappings.getECForceDataForMetaAccount,
+            {
+              metaAccountId: targetAccountId!,
+              startDate: formatDate(startDate),
+              endDate: formatDate(endDate),
+            }
+          )
+
+          console.log('ECForceデータ取得完了:', ecforceResponse.length + '件')
+
+          // 日付をキーにしたECForceデータのマップを作成
+          const ecforceMap = new Map()
+          ecforceResponse.forEach((ec: any) => {
+            if (ec.date) {
+              ecforceMap.set(ec.date, ec)
+            }
+          })
+
+          console.log('ECForce日別データマップ:', ecforceMap.size + '件の日付データ')
+
+          // 期間全体の合計を計算（合計行用）
+          const ecforceTotals = ecforceResponse.reduce((acc: any, ec: any) => {
+            return {
+              totalCvOrder: (acc.totalCvOrder || 0) + (ec.cvOrder || 0),
+              totalCvPayment: (acc.totalCvPayment || 0) + (ec.cvPayment || 0),
+            }
+          }, {})
+
+          console.log('ECForce合計:', ecforceTotals)
+
+          // MetaデータにECForceデータを統合
+          // 全てのアイテムに合計値を追加（合計行で使用するため）
+          const dataWithEcforce = formattedData.map((item: any) => {
+            return {
+              ...item,
+              // ECForce合計値を全アイテムに保存（合計行で参照するため）
+              ecforce_cv_total: ecforceTotals.totalCvOrder || 0,
+              ecforce_fcv_total: ecforceTotals.totalCvPayment || 0,
+              // 個別のクリエイティブ用（Metaのconversionsを使用）
+              ecforce_cv: item.conversions || 0,
+              ecforce_fcv: item.conversions_1d_click || 0,
+              ecforce_cpa: null,
+            }
+          })
+
+          setData(dataWithEcforce)
+          setEcforceData(ecforceResponse)
+        } catch (ecError) {
+          console.error('ECForceデータ取得エラー:', ecError)
+          // ECForceデータが取得できなくてもMetaデータは表示
+          setData(formattedData)
+        }
+
         setLastUpdateTime(new Date())
         setCacheAge(0) // 新規取得なので経過時間はゼロ
 
