@@ -589,6 +589,16 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
           original_object_type: data.creative.object_type,
         }
 
+        // 詳細なAPIレスポンスデバッグ
+        console.log('📡 API Response Debug:', {
+          hasPreviewLink: !!data.preview_shareable_link,
+          previewLink: data.preview_shareable_link,
+          previewLinkType: typeof data.preview_shareable_link,
+          hasCreative: !!data.creative,
+          creativeData: data.creative,
+          rawResponse: data,
+        })
+        
         console.log('✅ Creative info enriched:', {
           original_type: data.creative.object_type,
           enriched_type: actualObjectType,
