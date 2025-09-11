@@ -136,6 +136,57 @@ export const getAvailableMetaAccounts = query({
   },
 })
 
+// MetaアカウントIDから対応するECForceデータを取得
+export const getECForceDataForMetaAccount = query({
+  args: {
+    metaAccountId: v.string(),
+    startDate: v.string(),
+    endDate: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // MetaアカウントIDから広告主を取得
+    const mapping = await ctx.db
+      .query('advertiserMappings')
+      .withIndex('by_meta_account', (q) => q.eq('metaAccountId', args.metaAccountId))
+      .filter((q) => q.eq(q.field('isActive'), true))
+      .first()
+
+    if (!mapping) {
+      console.log(`マッピングが見つかりません: ${args.metaAccountId}`)
+      return []
+    }
+
+    // 広告主名でECForceデータを取得
+    const advertiserNormalized = mapping.ecforceAdvertiser.toLowerCase().replace(/\s+/g, '')
+    const ecforceData = await ctx.db
+      .query('ecforcePerformance')
+      .withIndex('by_advertiser', (q) => q.eq('advertiserNormalized', advertiserNormalized))
+      .collect()
+
+    // 日付範囲でフィルタリング
+    const filtered = ecforceData.filter((record) => {
+      const recordDate = record.dataDate || record.date
+      if (!recordDate) return false
+      return recordDate >= args.startDate && recordDate <= args.endDate
+    })
+
+    console.log(`ECForceデータ取得: ${mapping.ecforceAdvertiser} - ${filtered.length}件`)
+
+    return filtered.map((record) => ({
+      date: record.dataDate || record.date,
+      cvOrder: record.cvOrder, // CV（受注）
+      cvPayment: record.cvPayment, // CV（決済）
+      cvrOrder: record.cvrOrder, // CVR（受注）
+      cvrPayment: record.cvrPayment, // CVR（決済）
+      orderAmount: record.orderAmount, // 受注金額
+      salesAmount: record.salesAmount, // 売上金額
+      cost: record.cost, // コスト
+      realCPA: record.realCPA, // 実質CPA
+      roas: record.roas, // ROAS
+    }))
+  },
+})
+
 // ECForce広告主一覧を取得（マッピング状態付き）
 export const getAdvertisersWithMapping = query({
   handler: async (ctx) => {

@@ -20,6 +20,13 @@ export interface AggregatedCreative {
   conversion_values: number
   fcv_debug?: any // F-CVデバッグ情報
 
+  // ECForceデータ
+  ecforce_cv: number
+  ecforce_fcv: number
+  ecforce_cpa: number | null
+  ecforce_cv_total?: number // 合計行用
+  ecforce_fcv_total?: number // 合計行用
+
   // 計算メトリクス
   ctr: number
   unique_ctr: number
@@ -118,6 +125,10 @@ export function aggregateCreativesByName(data: any[]): AggregatedCreative[] {
     let totalFrequency = 0
     let frequencyCount = 0
 
+    // ECForceデータの集計
+    let totalEcforceCv = 0
+    let totalEcforceFcv = 0
+
     const adIds: string[] = []
     const dailyData: any[] = []
 
@@ -149,6 +160,14 @@ export function aggregateCreativesByName(data: any[]): AggregatedCreative[] {
       totalConversions += conversions
       totalConversions1dClick += conversions1dClick
       totalConversionValues += conversionValues
+
+      // ECForceデータの集計
+      const ecforceCv =
+        typeof item.ecforce_cv === 'number' ? item.ecforce_cv : parseFloat(item.ecforce_cv) || 0
+      const ecforceFcv =
+        typeof item.ecforce_fcv === 'number' ? item.ecforce_fcv : parseFloat(item.ecforce_fcv) || 0
+      totalEcforceCv += ecforceCv
+      totalEcforceFcv += ecforceFcv
 
       if (frequency > 0) {
         totalFrequency += frequency
@@ -198,6 +217,9 @@ export function aggregateCreativesByName(data: any[]): AggregatedCreative[] {
     const firstDate = dates.length > 0 ? dates[0] : ''
     const lastDate = dates.length > 0 ? dates[dates.length - 1] : ''
 
+    // ECForce合計値を計算（最初のアイテムから取得）
+    const ecforceCpa = totalEcforceFcv > 0 ? totalSpend / totalEcforceFcv : null
+
     aggregated.push({
       adName,
       adIds,
@@ -212,6 +234,11 @@ export function aggregateCreativesByName(data: any[]): AggregatedCreative[] {
       conversions_1d_click: totalConversions1dClick,
       conversion_values: totalConversionValues,
       fcv_debug: first.fcv_debug, // 最初のアイテムのデバッグ情報を使用
+      ecforce_cv: totalEcforceCv,
+      ecforce_fcv: totalEcforceFcv,
+      ecforce_cpa: ecforceCpa,
+      ecforce_cv_total: first.ecforce_cv_total || 0, // 合計値を保持
+      ecforce_fcv_total: first.ecforce_fcv_total || 0, // 合計値を保持
       ctr,
       unique_ctr,
       cpm,
