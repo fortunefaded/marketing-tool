@@ -5,20 +5,25 @@ export default defineSchema({
   // === Meta API Core ===
   metaAccounts: defineTable({
     accountId: v.string(),
-    accountName: v.string(),
+    accountName: v.optional(v.string()),
+    name: v.optional(v.string()),
     accessToken: v.optional(v.string()),
     isActive: v.boolean(),
-    createdAt: v.number(),
-    updatedAt: v.number(),
+    createdAt: v.union(v.number(), v.string()),
+    updatedAt: v.union(v.number(), v.string()),
     lastSyncAt: v.optional(v.number()),
+    lastUsedAt: v.optional(v.string()),
     permissions: v.optional(v.array(v.string())),
+    currency: v.optional(v.string()),
+    timezone: v.optional(v.string()),
+    fullAccountId: v.optional(v.string()),
   })
     .index('by_account_id', ['accountId'])
     .index('by_active', ['isActive']),
 
   metaAccountSettings: defineTable({
     activeAccountId: v.optional(v.string()),
-    updatedAt: v.number(),
+    updatedAt: v.union(v.number(), v.string()),
   }),
 
   metaInsights: defineTable({
@@ -56,11 +61,20 @@ export default defineSchema({
   // === Sync Settings ===
   syncSettings: defineTable({
     accountId: v.string(),
-    enabled: v.boolean(),
-    frequency: v.string(),
+    enabled: v.optional(v.boolean()),
+    autoSync: v.optional(v.boolean()),
+    frequency: v.optional(v.string()),
+    syncInterval: v.optional(v.string()),
     lastSync: v.optional(v.number()),
     nextSync: v.optional(v.number()),
     settings: v.optional(v.any()),
+    debugMode: v.optional(v.boolean()),
+    excludeTestCampaigns: v.optional(v.boolean()),
+    limitPerRequest: v.optional(v.number()),
+    maxMonths: v.optional(v.number()),
+    retentionDays: v.optional(v.number()),
+    skipCreatives: v.optional(v.boolean()),
+    updatedAt: v.optional(v.string()),
   }).index('by_account', ['accountId']),
 
   metaSyncStatus: defineTable({
@@ -134,13 +148,14 @@ export default defineSchema({
     status: v.string(),
     triggeredBy: v.string(),
     targetDates: v.array(v.string()),
-    updatedDates: v.array(v.string()),
+    updatedDates: v.optional(v.array(v.string())),
     actualUpdatedDates: v.optional(v.array(v.string())),
     apiCallsSaved: v.number(),
     apiCallsUsed: v.optional(v.number()),
     recordsAdded: v.optional(v.number()),
     recordsUpdated: v.optional(v.number()),
     recordsDeleted: v.optional(v.number()),
+    totalRecordsAfter: v.optional(v.number()),
     durationMs: v.optional(v.number()),
     reductionRate: v.optional(v.number()),
     startedAt: v.number(),
@@ -171,4 +186,94 @@ export default defineSchema({
     value: v.any(),
     updatedAt: v.number(),
   }).index('by_key', ['key']),
+
+  // === ECForce Integration ===
+  // ECForce広告パフォーマンスデータ
+  ecforcePerformance: defineTable({
+    // 識別子
+    importId: v.string(),
+    hash: v.string(), // 重複チェック用（dataDate+advertiser）
+
+    // 基本データ
+    advertiser: v.string(), // 広告主別
+    advertiserNormalized: v.string(), // 正規化された広告主名（スペース除去、小文字化）
+    dataDate: v.string(), // データ対象日（YYYY-MM-DD）
+    date: v.optional(v.string()), // 日付フィールド（YYYY-MM-DD）
+
+    // 金額データ（整数：円単位）
+    orderAmount: v.number(), // 受注金額
+    salesAmount: v.number(), // 売上金額
+    cost: v.number(), // コスト
+
+    // トラフィック・CV
+    accessCount: v.number(), // アクセス数
+    cvOrder: v.number(), // CV（受注）
+    cvrOrder: v.number(), // CVR（受注）- 小数で保存（10.5% → 0.105）
+    cvPayment: v.number(), // CV（決済）
+    cvrPayment: v.number(), // CVR（決済）- 小数で保存
+
+    // アップセル・クロスセル
+    cvThanksUpsell: v.number(), // CV（サンクスアップセル）
+    offerRateThanksUpsell: v.number(), // オファー成功率（サンクスアップセル）- 小数で保存
+
+    // 計算フィールド
+    paymentRate: v.optional(v.number()), // 決済率（CV決済/CV受注）
+    realCPA: v.optional(v.number()), // 実質CPA（コスト/CV決済）
+    roas: v.optional(v.number()), // ROAS（売上金額/コスト）
+
+    // メタデータ
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index('by_date', ['dataDate'])
+    .index('by_advertiser', ['advertiserNormalized'])
+    .index('by_date_advertiser', ['dataDate', 'advertiserNormalized'])
+    .index('by_hash', ['hash'])
+    .index('by_import', ['importId']),
+
+  // インポート履歴
+  ecforceImports: defineTable({
+    importId: v.string(),
+    fileName: v.optional(v.string()),
+    fileSize: v.optional(v.number()),
+    dataDate: v.string(), // データ対象日
+    source: v.string(), // 'manual' | 'scheduled'
+    status: v.string(), // 'processing' | 'success' | 'partial' | 'failed'
+
+    totalRows: v.number(), // CSVの全行数
+    filteredRows: v.number(), // デバイス=合計の行数
+    processedRows: v.number(), // 処理済み行数
+    successRows: v.number(), // 成功行数
+    errorRows: v.number(), // エラー行数
+    duplicateRows: v.number(), // 重複行数
+
+    errors: v.optional(
+      v.array(
+        v.object({
+          row: v.number(),
+          advertiser: v.optional(v.string()),
+          message: v.string(),
+        })
+      )
+    ),
+
+    startedAt: v.number(),
+    completedAt: v.optional(v.number()),
+    createdBy: v.optional(v.string()),
+  })
+    .index('by_date', ['startedAt'])
+    .index('by_status', ['status']),
+
+  // 同期設定
+  ecforceSyncConfig: defineTable({
+    enabled: v.boolean(),
+    schedule: v.object({
+      frequency: v.string(), // 'daily' | 'weekly' | 'monthly'
+      time: v.string(), // 'HH:MM'
+      timezone: v.string(), // 'Asia/Tokyo'
+      lastRun: v.optional(v.number()),
+      nextRun: v.optional(v.number()),
+    }),
+    updatedAt: v.number(),
+  }),
 })

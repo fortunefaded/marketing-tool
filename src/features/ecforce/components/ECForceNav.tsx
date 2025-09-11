@@ -5,11 +5,13 @@ import {
   ArrowPathIcon,
   ClockIcon,
   ChartBarIcon,
+  TableCellsIcon,
 } from '@heroicons/react/24/outline'
 
 const navigation = [
   { name: 'ダッシュボード', href: '/settings/ecforce', icon: ChartBarIcon },
   { name: 'データアップロード', href: '/settings/ecforce/upload', icon: CloudArrowUpIcon },
+  { name: 'データ一覧', href: '/settings/ecforce/data', icon: TableCellsIcon },
   { name: '自動同期設定', href: '/settings/ecforce/sync', icon: ArrowPathIcon },
   { name: 'インポート履歴', href: '/settings/ecforce/history', icon: ClockIcon },
 ]

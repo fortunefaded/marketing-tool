@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Cog6ToothIcon } from '@heroicons/react/24/outline'
 import { useConvex } from 'convex/react'
 import { api } from '../../convex/_generated/api'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 
 export const SettingsManagement: React.FC = () => {
   const convex = useConvex()
@@ -50,8 +50,8 @@ export const SettingsManagement: React.FC = () => {
                 isLoadingAccounts
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   : hasMetaAccounts
-                  ? 'bg-green-600 text-white hover:bg-green-700'
-                  : 'bg-blue-600 text-white hover:bg-blue-700'
+                    ? 'bg-green-600 text-white hover:bg-green-700'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
               }`}
             >
               {isLoadingAccounts ? '確認中...' : hasMetaAccounts ? '設定を変更' : '設定する'}
@@ -62,18 +62,17 @@ export const SettingsManagement: React.FC = () => {
         <div className="bg-white border border-gray-200 rounded-lg p-6">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h4 className="text-base font-medium text-gray-900">ecforce</h4>
-              <p className="text-sm text-gray-500 mt-1">ECシステムのデータを取得するための設定</p>
+              <h4 className="text-base font-medium text-gray-900">ECForce データ連携</h4>
+              <p className="text-sm text-gray-500 mt-1">
+                ECForceの広告パフォーマンスデータをインポート・管理
+              </p>
             </div>
-            <button
+            <Link
+              to="/settings/ecforce"
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium transition-colors"
-              onClick={() => {
-                // TODO: ecforce設定モーダルを開く
-                alert('ecforce設定機能は準備中です')
-              }}
             >
-              設定する
-            </button>
+              設定を開く
+            </Link>
           </div>
         </div>
       </div>

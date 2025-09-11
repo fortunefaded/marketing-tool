@@ -3,6 +3,8 @@ import { parse as papaParse, ParseResult } from 'papaparse'
 // CSVヘッダーマッピング
 const HEADER_MAPPING: Record<string, string> = {
   期間: 'period',
+  日付: 'date',
+  日付: 'date',
   広告主別: 'advertiser',
   デバイス: 'device',
   受注金額: 'orderAmount',
@@ -13,12 +15,8 @@ const HEADER_MAPPING: Record<string, string> = {
   'CV（決済）': 'cvPayment',
   'CVR（決済）': 'cvrPayment',
   コスト: 'cost',
-  'CV（アップセル）': 'cvUpsell',
   'CV（サンクスアップセル）': 'cvThanksUpsell',
-  'CV（サンクスクロスセル）': 'cvThanksCrossSell',
-  'オファー成功率（アップセル）': 'offerRateUpsell',
   'オファー成功率（サンクスアップセル）': 'offerRateThanksUpsell',
-  'オファー成功率（サンクスクロスセル）': 'offerRateThanksCrossSell',
 }
 
 // パース結果の型定義
@@ -26,6 +24,7 @@ export interface ECForceRecord {
   advertiser: string
   advertiserNormalized: string
   dataDate: string
+  date?: string
   orderAmount: number
   salesAmount: number
   cost: number
@@ -34,12 +33,8 @@ export interface ECForceRecord {
   cvrOrder: number
   cvPayment: number
   cvrPayment: number
-  cvUpsell: number
   cvThanksUpsell: number
-  cvThanksCrossSell: number
-  offerRateUpsell: number
   offerRateThanksUpsell: number
-  offerRateThanksCrossSell: number
   paymentRate?: number
   realCPA?: number
   roas?: number
@@ -50,10 +45,15 @@ export interface ECForceParseResult {
   totalRows: number
   filteredRows: number
   errors: Array<{ row: number; message: string }>
+  dateRange?: {
+    startDate: string
+    endDate: string
+    uniqueDates: string[]
+  } // CSVから抽出された日付範囲
 }
 
 // Shift-JIS対応CSVパーサー
-export async function parseECForceCSV(file: File, dataDate: string): Promise<ECForceParseResult> {
+export async function parseECForceCSV(file: File): Promise<ECForceParseResult> {
   const errors: Array<{ row: number; message: string }> = []
 
   try {
@@ -82,10 +82,28 @@ export async function parseECForceCSV(file: File, dataDate: string): Promise<ECF
 
     // データ変換
     const transformedData: ECForceRecord[] = []
+    const dateSet = new Set<string>() // 日付の種類を収集
 
     filteredData.forEach((row: any, index: number) => {
       try {
-        const transformed: any = { dataDate }
+        // 各行から日付を取得（「日付」フィールドを優先、なければ「期間」フィールドから抽出）
+        const dateField = row['日付'] || row['期間']
+        if (!dateField) {
+          throw new Error('日付または期間フィールドが設定されていません')
+        }
+
+        // 日付フォーマットを正規化
+        let rowDataDate = String(dateField).replace(/\//g, '-')
+        if (row['日付']) {
+          // 日付フィールドの場合はそのまま使用: "2025/08/01" → "2025-08-01"
+          rowDataDate = rowDataDate.split(' ')[0] // 念のため時刻部分があれば除去
+        } else {
+          // 期間フィールドの場合は時刻部分を除去: "2025-09-09 00:00:00 - 2025-09-09 23:59:59" → "2025-09-09"
+          rowDataDate = rowDataDate.split(' ')[0]
+        }
+        dateSet.add(rowDataDate)
+
+        const transformed: any = { dataDate: rowDataDate }
 
         // 各フィールドをマッピング
         Object.entries(row).forEach(([key, value]) => {
@@ -93,23 +111,47 @@ export async function parseECForceCSV(file: File, dataDate: string): Promise<ECF
           if (mappedKey && key !== '期間' && key !== 'デバイス') {
             const strValue = String(value || '').trim()
 
+            // デバッグ: CVR関連の値を確認
+            if (key.includes('CVR')) {
+              console.log(`処理中: ${key} = "${value}" → mappedKey: ${mappedKey}`)
+            }
+
             // 数値変換
             if (mappedKey === 'advertiser') {
               transformed[mappedKey] = strValue
+            } else if (mappedKey === 'date') {
+              // 日付フィールドをフォーマット（例: "2025/08/01" → "2025-08-01"）
+              let formattedDate = strValue.replace(/\//g, '-')
+              // 時刻情報が含まれている場合は日付部分のみ抽出
+              formattedDate = formattedDate.split(' ')[0]
+              transformed[mappedKey] = formattedDate
             } else if (
               mappedKey.includes('Amount') ||
               mappedKey.includes('cost') ||
-              mappedKey.includes('cv') ||
+              (mappedKey.includes('cv') && !mappedKey.includes('cvr')) || // cvrは除外
               mappedKey === 'accessCount'
             ) {
               // カンマを除去して数値に変換
               const numValue = strValue.replace(/,/g, '').replace(/[^\d.-]/g, '')
               transformed[mappedKey] = parseInt(numValue) || 0
+
+              // デバッグ: CV系の処理を確認
+              if (mappedKey.includes('cv')) {
+                console.log(`  → 整数処理: ${mappedKey} = ${transformed[mappedKey]}`)
+              }
             }
             // パーセンテージ変換（％を小数に）
             else if (mappedKey.includes('cvr') || mappedKey.includes('Rate')) {
+              // CSVの値は既にパーセント値（例：7.46）なので、100で割って小数に変換
               const percentValue = strValue.replace('%', '').replace(/[^\d.-]/g, '')
-              transformed[mappedKey] = parseFloat(percentValue) / 100 || 0
+              const finalValue = parseFloat(percentValue) / 100 || 0
+
+              // デバッグログ
+              console.log(
+                `  → パーセント処理: ${mappedKey}: "${strValue}" → ${percentValue} → ${finalValue}`
+              )
+
+              transformed[mappedKey] = finalValue
             } else {
               transformed[mappedKey] = strValue
             }
@@ -139,6 +181,19 @@ export async function parseECForceCSV(file: File, dataDate: string): Promise<ECF
           transformed.roas = transformed.salesAmount / transformed.cost
         }
 
+        // デバッグ: 変換後の値を確認
+        if (index === 0) {
+          // 最初のレコードのみ
+          console.log('=== 変換後の最初のレコード ===')
+          console.log('cvrOrder:', transformed.cvrOrder, typeof transformed.cvrOrder)
+          console.log('cvrPayment:', transformed.cvrPayment, typeof transformed.cvrPayment)
+          console.log(
+            'offerRateThanksUpsell:',
+            transformed.offerRateThanksUpsell,
+            typeof transformed.offerRateThanksUpsell
+          )
+        }
+
         transformedData.push(transformed as ECForceRecord)
       } catch (error) {
         errors.push({
@@ -148,11 +203,23 @@ export async function parseECForceCSV(file: File, dataDate: string): Promise<ECF
       }
     })
 
+    // 日付範囲を計算
+    let dateRange: { startDate: string; endDate: string; uniqueDates: string[] } | undefined
+    if (dateSet.size > 0) {
+      const sortedDates = Array.from(dateSet).sort()
+      dateRange = {
+        startDate: sortedDates[0],
+        endDate: sortedDates[sortedDates.length - 1],
+        uniqueDates: sortedDates,
+      }
+    }
+
     return {
       data: transformedData,
       totalRows: result.data.length,
       filteredRows: filteredData.length,
       errors,
+      dateRange,
     }
   } catch (error) {
     return {
@@ -165,6 +232,7 @@ export async function parseECForceCSV(file: File, dataDate: string): Promise<ECF
           message: error instanceof Error ? error.message : 'ファイル読み込みエラー',
         },
       ],
+      dateRange: undefined,
     }
   }
 }
@@ -172,22 +240,29 @@ export async function parseECForceCSV(file: File, dataDate: string): Promise<ECF
 // CSVプレビュー用（最初のN件のみ）
 export async function previewECForceCSV(
   file: File,
-  limit: number = 5
-): Promise<{ headers: string[]; rows: any[]; error?: string }> {
+  limit: number = 1000
+): Promise<{
+  headers: string[]
+  rows: any[]
+  error?: string
+  dateRange?: { startDate: string; endDate: string; uniqueDates: string[] }
+  totalRows: number
+  filteredRows: number
+}> {
   try {
     // Shift-JIS → UTF-8変換
     const buffer = await file.arrayBuffer()
     const decoder = new TextDecoder('shift-jis')
     const text = decoder.decode(buffer)
 
-    // 最初の数行のみ解析
-    const lines = text.split('\n').slice(0, limit + 1)
-    const previewText = lines.join('\n')
-
-    const result: ParseResult<any> = papaParse(previewText, {
+    // 全データを解析（統計情報用）
+    const fullResult: ParseResult<any> = papaParse(text, {
       header: true,
       skipEmptyLines: true,
     })
+
+    // プレビュー用にも全データを解析
+    const result: ParseResult<any> = fullResult
 
     if (result.errors && result.errors.length > 0) {
       return {
@@ -200,12 +275,50 @@ export async function previewECForceCSV(
     const headers = result.meta.fields || []
     const rows = result.data
 
-    return { headers, rows }
+    // 統計情報（全データから計算）
+    const totalRows = fullResult.data.length
+    const allFilteredRows = fullResult.data.filter((row: any) => row['デバイス'] === '合計')
+    const filteredRowsCount = allFilteredRows.length
+
+    // プレビュー用の複数日付の抽出
+    let dateRange: { startDate: string; endDate: string; uniqueDates: string[] } | undefined
+    const filteredRows = rows.filter((row: any) => row['デバイス'] === '合計')
+
+    if (filteredRows.length > 0) {
+      const dateSet = new Set<string>()
+      filteredRows.forEach((row: any) => {
+        const dateField = row['日付'] || row['期間']
+        if (dateField) {
+          let normalizedDate = String(dateField).replace(/\//g, '-')
+          if (row['日付']) {
+            // 日付フィールドの場合はそのまま使用
+            normalizedDate = normalizedDate.split(' ')[0] // 念のため時刻部分があれば除去
+          } else {
+            // 期間フィールドの場合は時刻部分を除去
+            normalizedDate = normalizedDate.split(' ')[0]
+          }
+          dateSet.add(normalizedDate)
+        }
+      })
+
+      if (dateSet.size > 0) {
+        const sortedDates = Array.from(dateSet).sort()
+        dateRange = {
+          startDate: sortedDates[0],
+          endDate: sortedDates[sortedDates.length - 1],
+          uniqueDates: sortedDates,
+        }
+      }
+    }
+
+    return { headers, rows, dateRange, totalRows, filteredRows: filteredRowsCount }
   } catch (error) {
     return {
       headers: [],
       rows: [],
       error: error instanceof Error ? error.message : 'プレビューエラー',
+      totalRows: 0,
+      filteredRows: 0,
     }
   }
 }
