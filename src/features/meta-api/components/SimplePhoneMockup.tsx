@@ -279,78 +279,78 @@ export function SimplePhoneMockup({
             <div className="h-full bg-gray-50">
               {/* メディア表示 - 高さを縮小してテキストエリアを確保 */}
               <div className="relative bg-black" style={{ height: '240px' }}>
-                  {isVideo && getVideoEmbedUrl() && embedMethod !== 'external' ? (
-                    <div className="relative w-full h-full bg-black">
-                      <iframe
-                        src={getVideoEmbedUrl()}
-                        width="254"
-                        height="240"
-                        style={{ 
-                          border: 'none', 
-                          overflow: 'hidden',
-                          display: 'block',
-                          margin: '0 auto'
-                        }}
-                        scrolling="no"
-                        frameBorder="0"
-                        allowFullScreen={true}
-                        allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
-                        sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-popups-to-escape-sandbox"
-                        title="動画広告"
-                        onError={(e) => {
-                          console.error('❌ iframe error:', e)
-                          handleEmbedError()
-                        }}
-                        onLoad={() => {
-                          setIsIframeLoaded(true)
-                          console.log('✅ Video iframe loaded successfully with method:', embedMethod)
-                        }}
-                      />
-                      {!isIframeLoaded && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
-                          <div className="text-white text-sm">読み込み中...</div>
-                        </div>
-                      )}
-                      <div className="absolute bottom-2 left-2 bg-black bg-opacity-60 px-2 py-1 rounded pointer-events-none z-10">
-                        <span className="text-white text-xs">動画広告</span>
+                {isVideo && getVideoEmbedUrl() && embedMethod !== 'external' ? (
+                  <div className="relative w-full h-full bg-black">
+                    <iframe
+                      src={getVideoEmbedUrl()}
+                      width="254"
+                      height="240"
+                      style={{ 
+                        border: 'none', 
+                        overflow: 'hidden',
+                        display: 'block',
+                        margin: '0 auto'
+                      }}
+                      scrolling="no"
+                      frameBorder="0"
+                      allowFullScreen={true}
+                      allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+                      sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-popups-to-escape-sandbox"
+                      title="動画広告"
+                      onError={(e) => {
+                        console.error('❌ iframe error:', e)
+                        handleEmbedError()
+                      }}
+                      onLoad={() => {
+                        setIsIframeLoaded(true)
+                        console.log('✅ Video iframe loaded successfully with method:', embedMethod)
+                      }}
+                    />
+                    {!isIframeLoaded && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
+                        <div className="text-white text-sm">読み込み中...</div>
                       </div>
+                    )}
+                    <div className="absolute bottom-2 left-2 bg-black bg-opacity-60 px-2 py-1 rounded pointer-events-none z-10">
+                      <span className="text-white text-xs">動画広告</span>
                     </div>
-                  ) : isVideo && embedMethod === 'external' ? (
-                    // 外部リンクフォールバック
-                    <div className="relative w-full h-full bg-gray-900 flex flex-col items-center justify-center">
-                      <img
-                        src={displayImage}
-                        alt="Video thumbnail"
-                        className="absolute inset-0 w-full h-full object-cover opacity-50"
-                      />
-                      <button
-                        onClick={handlePlayClick}
-                        className="relative z-10 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2"
-                      >
-                        <PlayIcon className="w-5 h-5" />
-                        <span>Facebookで視聴</span>
-                      </button>
-                      <div className="absolute bottom-2 left-2 bg-black bg-opacity-60 px-2 py-1 rounded z-10">
-                        <span className="text-white text-xs">動画広告（外部再生）</span>
-                      </div>
+                  </div>
+                ) : isVideo && embedMethod === 'external' ? (
+                  // 外部リンクフォールバック
+                  <div className="relative w-full h-full bg-gray-900 flex flex-col items-center justify-center">
+                    <img
+                      src={displayImage}
+                      alt="Video thumbnail"
+                      className="absolute inset-0 w-full h-full object-cover opacity-50"
+                    />
+                    <button
+                      onClick={handlePlayClick}
+                      className="relative z-10 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2"
+                    >
+                      <PlayIcon className="w-5 h-5" />
+                      <span>Facebookで視聴</span>
+                    </button>
+                    <div className="absolute bottom-2 left-2 bg-black bg-opacity-60 px-2 py-1 rounded z-10">
+                      <span className="text-white text-xs">動画広告（外部再生）</span>
                     </div>
-                  ) : (
-                    // 画像広告の表示
-                    <div className="relative w-full h-full">
-                      <img
-                        src={displayImage}
-                        alt={creativeName || 'Ad creative'}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          console.warn('⚠️ Image load error, using placeholder')
-                          e.currentTarget.src = placeholderImage
-                        }}
-                      />
-                      <div className="absolute bottom-2 left-2 bg-black bg-opacity-60 px-2 py-1 rounded">
-                        <span className="text-white text-xs">画像広告</span>
-                      </div>
+                  </div>
+                ) : (
+                  // 画像広告の表示
+                  <div className="relative w-full h-full">
+                    <img
+                      src={displayImage}
+                      alt={creativeName || 'Ad creative'}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        console.warn('⚠️ Image load error, using placeholder')
+                        e.currentTarget.src = placeholderImage
+                      }}
+                    />
+                    <div className="absolute bottom-2 left-2 bg-black bg-opacity-60 px-2 py-1 rounded">
+                      <span className="text-white text-xs">画像広告</span>
                     </div>
-                  )}
+                  </div>
+                )}
                 </div>
 
                 {/* 広告テキストエリア - スクロール可能に */}
