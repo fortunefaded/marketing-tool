@@ -1,15 +1,36 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { Cog6ToothIcon } from '@heroicons/react/24/outline'
+import { useConvex } from 'convex/react'
+import { api } from '../../convex/_generated/api'
+import { useNavigate } from 'react-router-dom'
 
 export const SettingsManagement: React.FC = () => {
-  // const sections = [ - 未使用
-  //   {
-  //     id: 'api',
-  //     title: 'API連携設定',
-  //     icon: Cog6ToothIcon,
-  //     description: '外部サービスとの連携設定を管理します',
-  //   },
-  // ]
+  const convex = useConvex()
+  const navigate = useNavigate()
+  const [hasMetaAccounts, setHasMetaAccounts] = useState(false)
+  const [isLoadingAccounts, setIsLoadingAccounts] = useState(true)
+
+  // Convexからアカウント情報を取得
+  useEffect(() => {
+    const checkAccounts = async () => {
+      try {
+        setIsLoadingAccounts(true)
+        const accounts = await convex.query(api.metaAccounts.getAccounts)
+        setHasMetaAccounts(accounts && accounts.length > 0)
+      } catch (error) {
+        console.error('アカウント確認エラー:', error)
+        setHasMetaAccounts(false)
+      } finally {
+        setIsLoadingAccounts(false)
+      }
+    }
+    checkAccounts()
+  }, [convex])
+
+  const handleMetaApiClick = () => {
+    // Meta API設定ページに遷移
+    navigate('/settings/meta-api')
+  }
 
   const renderContent = () => {
     return (
@@ -23,10 +44,17 @@ export const SettingsManagement: React.FC = () => {
               <p className="text-sm text-gray-500 mt-1">Meta広告のデータを取得するための設定</p>
             </div>
             <button
-              disabled
-              className="px-4 py-2 bg-gray-300 text-gray-500 rounded-md cursor-not-allowed text-sm font-medium"
+              onClick={handleMetaApiClick}
+              disabled={isLoadingAccounts}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                isLoadingAccounts
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : hasMetaAccounts
+                  ? 'bg-green-600 text-white hover:bg-green-700'
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
             >
-              設定済み
+              {isLoadingAccounts ? '確認中...' : hasMetaAccounts ? '設定を変更' : '設定する'}
             </button>
           </div>
         </div>
@@ -34,29 +62,17 @@ export const SettingsManagement: React.FC = () => {
         <div className="bg-white border border-gray-200 rounded-lg p-6">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h4 className="text-base font-medium text-gray-900">Google Ads API</h4>
-              <p className="text-sm text-gray-500 mt-1">Google広告のデータを取得するための設定</p>
+              <h4 className="text-base font-medium text-gray-900">ecforce</h4>
+              <p className="text-sm text-gray-500 mt-1">ECシステムのデータを取得するための設定</p>
             </div>
             <button
-              disabled
-              className="px-4 py-2 bg-gray-300 text-gray-500 rounded-md cursor-not-allowed text-sm font-medium"
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium transition-colors"
+              onClick={() => {
+                // TODO: ecforce設定モーダルを開く
+                alert('ecforce設定機能は準備中です')
+              }}
             >
-              近日公開
-            </button>
-          </div>
-        </div>
-
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h4 className="text-base font-medium text-gray-900">LINE Ads API</h4>
-              <p className="text-sm text-gray-500 mt-1">LINE広告のデータを取得するための設定</p>
-            </div>
-            <button
-              disabled
-              className="px-4 py-2 bg-gray-300 text-gray-500 rounded-md cursor-not-allowed text-sm font-medium"
-            >
-              近日公開
+              設定する
             </button>
           </div>
         </div>

@@ -12,8 +12,6 @@ import { DataLoadingProgress } from './DataLoadingProgress'
 import { DateRangeFilter } from './DateRangeFilter'
 import { UnifiedFilterSection } from './UnifiedFilterSection'
 import { SafeFilterWrapper } from './SafeFilterWrapper'
-import { ErrorLogPanel } from './ErrorLogPanel'
-import { DateRangeDebugPanel } from '@/components/DateRangeDebugPanel'
 import type { DateRangeFilter as DateRangeFilterType } from '../hooks/useAdFatigueSimplified'
 import { logFilter } from '@/utils/debugLogger'
 
@@ -546,7 +544,7 @@ export function FatigueDashboardPresentation({
               error.message.includes('Token expired or invalid') ||
               error.message.includes('No token found') ||
               error.message.includes('API Error: 401')
-                ? { label: 'Meta API設定を開く', href: '/meta-api-setup' }
+                ? { label: 'Meta API設定を開く', href: '/settings/meta-api' }
                 : undefined
             }
           />
@@ -776,11 +774,6 @@ export function FatigueDashboardPresentation({
         )}
       </div>
 
-      {/* エラーログパネル */}
-      <ErrorLogPanel />
-
-      {/* デバッグ情報パネル */}
-      <DateRangeDebugPanel />
     </div>
   )
 }

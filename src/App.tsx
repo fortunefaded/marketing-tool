@@ -5,10 +5,13 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import { ConvexUsageTracker } from './utils/convex-usage-tracker'
 import MainDashboard from './pages/MainDashboard'
 import { SettingsManagement } from './pages/SettingsManagement'
+import { ConnectStepConvex } from './pages/meta-setup/ConnectStepConvex'
+import { PermissionsAndTestStep } from './pages/meta-setup/PermissionsAndTestStep'
+import { CompleteStepConvex } from './pages/meta-setup/CompleteStepConvex'
 import Sidebar from './components/Sidebar'
 import Header from './components/Header'
 import { vibe } from './utils/vibelogger'
-import { DebugLogPanel } from './components/DebugLogPanel'
+import { UnifiedDebugPanel } from './components/UnifiedDebugPanel'
 
 // Convex URLのフォールバック処理を追加
 const convexUrl = import.meta.env.VITE_CONVEX_URL || 'https://temporary-convex-url.convex.cloud'
@@ -21,7 +24,8 @@ vibe.info('アプリケーション初期化', {
 })
 
 // 開発環境でConvex使用量トラッカーを初期化
-if (import.meta.env.DEV && typeof window !== 'undefined') {
+// 一時的に無効化（エラー対応のため）
+if (false && import.meta.env.DEV && typeof window !== 'undefined') {
   const tracker = new ConvexUsageTracker(convex)
   tracker.start()
 
@@ -57,6 +61,12 @@ function AppContent() {
           <Routes>
             <Route path="/" element={<MainDashboard />} />
             <Route path="/settings" element={<SettingsManagement />} />
+            {/* Meta API設定ルート */}
+            <Route path="/settings/meta-api" element={<ConnectStepConvex />} />
+            <Route path="/settings/meta-api/connect" element={<ConnectStepConvex />} />
+            <Route path="/settings/meta-api/permissions" element={<PermissionsAndTestStep />} />
+            <Route path="/settings/meta-api/test" element={<PermissionsAndTestStep />} />
+            <Route path="/settings/meta-api/complete" element={<CompleteStepConvex />} />
             <Route
               path="*"
               element={
@@ -79,7 +89,7 @@ function App() {
       <ConvexProvider client={convex}>
         <Router>
           <AppContent />
-          <DebugLogPanel />
+          <UnifiedDebugPanel />
         </Router>
       </ConvexProvider>
     </ErrorBoundary>
