@@ -13,7 +13,7 @@ import { DateRangeFilter } from './DateRangeFilter'
 import { UnifiedFilterSection } from './UnifiedFilterSection'
 import { SafeFilterWrapper } from './SafeFilterWrapper'
 import type { DateRangeFilter as DateRangeFilterType } from '../hooks/useAdFatigueSimplified'
-import { logFilter } from '@/utils/debugLogger'
+// import { logFilter } from '@/utils/debugLogger' // レンダリング中のstate更新を避けるため一時的に無効化
 
 interface FatigueDashboardPresentationProps {
   // アカウント関連
@@ -202,14 +202,15 @@ export function FatigueDashboardPresentation({
             end: thisMonthEnd,
           }
 
-          logFilter('FatigueDashboardPresentation', '今月の範囲計算', {
-            currentDate: thisMonth.toLocaleDateString('ja-JP'),
-            currentMonth: thisMonth.getMonth() + 1,
-            startDate: thisMonthStart.toLocaleDateString('ja-JP'),
-            endDate: thisMonthEnd.toLocaleDateString('ja-JP'),
-            startISO: thisMonthStart.toISOString(),
-            endISO: thisMonthEnd.toISOString(),
-          })
+          // デバッグログはuseEffectで記録するように変更
+          // logFilter('FatigueDashboardPresentation', '今月の範囲計算', {
+          //   currentDate: thisMonth.toLocaleDateString('ja-JP'),
+          //   currentMonth: thisMonth.getMonth() + 1,
+          //   startDate: thisMonthStart.toLocaleDateString('ja-JP'),
+          //   endDate: thisMonthEnd.toLocaleDateString('ja-JP'),
+          //   startISO: thisMonthStart.toISOString(),
+          //   endISO: thisMonthEnd.toISOString(),
+          // })
           break
         case 'last_90d':
           const yesterday90d = new Date(today.getTime() - 24 * 60 * 60 * 1000)

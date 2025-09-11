@@ -44,25 +44,28 @@ export function UnifiedDebugPanel() {
     }))
     setLogs(debugLogs)
 
-    // debugLoggerの更新を購読
+    // debugLoggerの更新を購読（レンダリング中の更新を避けるため遅延実行）
     const unsubscribeDebug = debugLogger.subscribe((newLogs) => {
-      const unified = newLogs.map(log => ({
-        id: `debug-${logIdCounter.current++}`,
-        timestamp: log.timestamp,
-        source: 'debugLogger' as const,
-        level: log.level,
-        category: log.category,
-        component: log.component,
-        message: log.message,
-        data: log.data
-      }))
-      setLogs(prev => {
-        // 重複を避けるため、debugLoggerのログを置き換え
-        const vibeLogs = prev.filter(l => l.source === 'vibe')
-        return [...vibeLogs, ...unified].sort((a, b) => 
-          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-        )
-      })
+      // setTimeout 0を使って次のイベントループで実行
+      setTimeout(() => {
+        const unified = newLogs.map(log => ({
+          id: `debug-${logIdCounter.current++}`,
+          timestamp: log.timestamp,
+          source: 'debugLogger' as const,
+          level: log.level,
+          category: log.category,
+          component: log.component,
+          message: log.message,
+          data: log.data
+        }))
+        setLogs(prev => {
+          // 重複を避けるため、debugLoggerのログを置き換え
+          const vibeLogs = prev.filter(l => l.source === 'vibe')
+          return [...vibeLogs, ...unified].sort((a, b) => 
+            new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+          )
+        })
+      }, 0)
     })
 
     // vibeloggerのログをインターセプト
@@ -82,14 +85,17 @@ export function UnifiedDebugPanel() {
         const message = args[0] || ''
         const data = args.slice(1)
         
-        setLogs(prev => [...prev, {
-          id: `vibe-${logIdCounter.current++}`,
-          timestamp: new Date().toISOString(),
-          source: 'vibe',
-          level: level as any,
-          message: typeof message === 'string' ? message : JSON.stringify(message),
-          data: data.length > 0 ? data : undefined
-        }])
+        // setTimeout 0を使って次のイベントループで実行
+        setTimeout(() => {
+          setLogs(prev => [...prev, {
+            id: `vibe-${logIdCounter.current++}`,
+            timestamp: new Date().toISOString(),
+            source: 'vibe',
+            level: level as any,
+            message: typeof message === 'string' ? message : JSON.stringify(message),
+            data: data.length > 0 ? data : undefined
+          }])
+        }, 0)
         
         // 元のメソッドを呼び出す
         const originalMethod = originalMethods[level as keyof typeof originalMethods]
