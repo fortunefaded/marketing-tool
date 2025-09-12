@@ -23,6 +23,8 @@ export const ManualSync: React.FC = () => {
   const [syncResult, setSyncResult] = useState<any>(null)
   const [showNotification, setShowNotification] = useState(false)
   const [notificationMessage, setNotificationMessage] = useState('')
+  const [csvData, setCsvData] = useState<any[]>([])
+  const [showCsvPreview, setShowCsvPreview] = useState(false)
 
   // 最新のインポート履歴を取得
   const latestImport = useQuery(api.ecforce.getImportHistory, { limit: 1 })
@@ -88,6 +90,12 @@ export const ManualSync: React.FC = () => {
           setMessage(`同期が完了しました！ ${result.recordsProcessed || 0}件のデータを処理しました`)
           setProgress(100)
           setSyncResult(result) // importIdをそのまま使用
+
+          // CSVデータが含まれていれば表示
+          if (result.csvPreview && result.csvPreview.length > 0) {
+            setCsvData(result.csvPreview)
+            setShowCsvPreview(true)
+          }
 
           // 通知を表示
           showSyncNotification(
@@ -274,6 +282,66 @@ export const ManualSync: React.FC = () => {
           <li>エラーが発生した場合は、インポート履歴で詳細を確認できます</li>
         </ul>
       </div>
+
+      {/* CSVプレビュー（ダウンロード直後に表示） */}
+      {showCsvPreview && csvData.length > 0 && (
+        <div className="mt-6 rounded-lg bg-yellow-50 border border-yellow-200 p-6">
+          <h4 className="text-sm font-medium text-gray-900 mb-4 flex items-center">
+            <ArrowDownTrayIcon className="h-5 w-5 text-yellow-600 mr-2" />
+            ダウンロードしたCSVデータ（プレビュー）
+          </h4>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-yellow-100">
+                <tr>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-700">日付</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-700">広告主</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-700">
+                    デバイス
+                  </th>
+                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-700">
+                    受注金額
+                  </th>
+                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-700">
+                    アクセス数
+                  </th>
+                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-700">
+                    CV(受注)
+                  </th>
+                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-700">
+                    CVR(受注)
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {csvData.map((row: any, index: number) => (
+                  <tr key={index} className="hover:bg-yellow-50">
+                    <td className="px-3 py-2 text-sm text-gray-900">{row['日付'] || '-'}</td>
+                    <td className="px-3 py-2 text-sm text-gray-900">{row['広告主別'] || '-'}</td>
+                    <td className="px-3 py-2 text-sm text-gray-900">{row['デバイス'] || '-'}</td>
+                    <td className="px-3 py-2 text-sm text-right text-gray-900">
+                      {row['受注金額'] ? `¥${parseInt(row['受注金額']).toLocaleString()}` : '-'}
+                    </td>
+                    <td className="px-3 py-2 text-sm text-right text-gray-900">
+                      {row['アクセス数'] || 0}
+                    </td>
+                    <td className="px-3 py-2 text-sm text-right text-gray-900">
+                      {row['CV（受注）'] || 0}
+                    </td>
+                    <td className="px-3 py-2 text-sm text-right text-gray-900">
+                      {row['CVR（受注）'] ? `${row['CVR（受注）']}%` : '-'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="mt-3 text-xs text-yellow-700">
+            ※
+            これはダウンロードしたCSVファイルのプレビューです。「デバイス=合計」のデータのみがConvexに保存されます。
+          </div>
+        </div>
+      )}
 
       {/* 取得したデータの表示 */}
       {syncResult && latestData?.data && latestData.data.length > 0 && (

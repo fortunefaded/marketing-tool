@@ -73,13 +73,47 @@ app.post('/api/ecforce/sync', async (req, res) => {
         importId = importIdMatch[1];
       }
       
-      console.log('処理完了:', { success, recordsProcessed, importId });
+      // CSVデータを抽出（最初の3行のデータから）
+      let csvPreview = [];
+      const dataMatch = stdout.match(/📋 最初の3行のデータ:([\s\S]*?)処理対象データ:/);
+      if (dataMatch) {
+        const dataText = dataMatch[1];
+        // 各行のデータを解析
+        const rowMatches = dataText.matchAll(/行\d+:\s*({[\s\S]*?})\s*(?=行\d+:|$)/g);
+        for (const match of rowMatches) {
+          try {
+            // JavaScriptオブジェクト形式の文字列を整形
+            const objStr = match[1]
+              .replace(/'/g, '"')
+              .replace(/(\w+):/g, '"$1":')
+              .replace(/,\s*}/g, '}');
+            const rowData = JSON.parse(objStr);
+            csvPreview.push(rowData);
+          } catch (e) {
+            console.log('CSV行パースエラー:', e);
+          }
+        }
+      }
+      
+      // 日付範囲を抽出
+      let dateRange = null;
+      const dateRangeMatch = stdout.match(/📅 日付範囲:\s*(\S+)\s*〜\s*(\S+)/);
+      if (dateRangeMatch) {
+        dateRange = {
+          start: dateRangeMatch[1],
+          end: dateRangeMatch[2]
+        };
+      }
+      
+      console.log('処理完了:', { success, recordsProcessed, importId, csvPreviewCount: csvPreview.length });
       
       res.json({
         success,
         message: success ? 'ECForce同期が完了しました' : 'ECForce同期に失敗しました',
         recordsProcessed,
         importId,
+        csvPreview,
+        dateRange,
         output: stdout
       });
     });
