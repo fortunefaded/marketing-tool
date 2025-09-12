@@ -418,7 +418,7 @@ export default function MainDashboard() {
           action_attribution_windows: ['1d_click', '7d_click'],
           action_breakdowns: ['action_type'],
           use_unified_attribution_setting: 'true',
-          time_increment: '1', // 日別データを取得（疲労度分析に必要）
+          // time_increment: '1' を削除 - 期間全体の集約データを取得
           limit: '500',
         }
 
