@@ -664,9 +664,9 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
 
   // 疲労度スコアを計算
   const fatigueScores = calculateAllFatigueScores({
-    ctr: item.metrics?.ctr || item.ctr || 0,
-    frequency: item.metrics?.frequency || item.frequency || 0,
-    cpm: item.metrics?.cpm || item.cpm || 0,
+    ctr: item.metrics.ctr || 0,
+    frequency: item.metrics.frequency || 0,
+    cpm: item.metrics.cpm || 0,
   })
 
   // 時系列データの抽出と処理
@@ -1198,7 +1198,7 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                           label="クリエイティブの疲労"
                           description=""
                           formula={FATIGUE_FORMULAS.creative}
-                          currentValue={`CTR: ${(item.metrics?.ctr || item.ctr || 0).toFixed(2)}%`}
+                          currentValue={`CTR: ${item.metrics.ctr?.toFixed(2) || 0}%`}
                           size={120}
                         />
 
@@ -1207,7 +1207,7 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                           label="視聴者側の疲労"
                           description=""
                           formula={FATIGUE_FORMULAS.audience}
-                          currentValue={`Frequency: ${(item.metrics?.frequency || item.frequency || 0).toFixed(2)}`}
+                          currentValue={`Frequency: ${item.metrics.frequency?.toFixed(2) || 0}`}
                           size={120}
                         />
 
@@ -1216,7 +1216,7 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                           label="アルゴリズムの疲労"
                           description=""
                           formula={FATIGUE_FORMULAS.algorithm}
-                          currentValue={`CPM: ¥${Math.round(item.metrics?.cpm || item.cpm || 0)}`}
+                          currentValue={`CPM: ¥${Math.round(item.metrics.cpm || 0)}`}
                           size={120}
                         />
                       </div>
@@ -1230,7 +1230,7 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
 
                       <MetricRow
                         label="広告費用"
-                        value={item.metrics?.spend || item.spend || 0}
+                        value={item.metrics.spend}
                         unit="¥"
                         description="Meta APIから取得"
                         showChart={true}
@@ -1241,7 +1241,7 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
 
                       <MetricRow
                         label="インプレッション"
-                        value={item.metrics?.impressions || item.impressions || 0}
+                        value={item.metrics.impressions}
                         description="表示回数"
                         showChart={true}
                         metricType="impressions"
@@ -1251,10 +1251,8 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
 
                       <MetricRow
                         label="Frequency"
-                        value={item.metrics?.frequency || item.frequency || 0}
-                        thresholdStatus={getFrequencyStatus(
-                          item.metrics?.frequency || item.frequency || 0
-                        )}
+                        value={item.metrics.frequency}
+                        thresholdStatus={getFrequencyStatus(item.metrics.frequency)}
                         description="3.5を超えると危険水準"
                         showChart={true}
                         chartThreshold={3.5}
@@ -1264,13 +1262,13 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
 
                       <MetricRow
                         label="クリック数"
-                        value={item.metrics?.clicks || item.clicks || 0}
+                        value={item.metrics.clicks}
                         description="Meta APIから取得"
                       />
 
                       <MetricRow
                         label="コンバージョン（CV）"
-                        value={item.metrics?.conversions || item.conversions || 0}
+                        value={item.metrics.conversions || 0}
                         description="購入・申込などの成果"
                         showChart={true}
                         metricType="conversions"
@@ -1283,7 +1281,7 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                             console.log('🎯 Conversion MetricRow - Total days:', data.length)
                             console.log(
                               '🎯 Conversion MetricRow - Current value:',
-                              item.metrics?.conversions || item.conversions || 0
+                              item.metrics.conversions
                             )
                           }
                           return data
@@ -1298,9 +1296,9 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
 
                       <MetricRow
                         label="CTR（クリック率）"
-                        value={item.metrics?.ctr || item.ctr || 0}
+                        value={item.metrics.ctr}
                         unit="%"
-                        thresholdStatus={getCtrStatus(item.metrics?.ctr || item.ctr || 0)}
+                        thresholdStatus={getCtrStatus(item.metrics.ctr)}
                         description="ベースラインから25%以上低下で危険水準"
                         showChart={true}
                         metricType="ctr"
@@ -1310,26 +1308,24 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
 
                       <MetricRow
                         label="Unique CTR"
-                        value={item.metrics?.unique_ctr || item.unique_ctr || 0}
+                        value={item.metrics.unique_ctr}
                         unit="%"
-                        thresholdStatus={getCtrStatus(
-                          item.metrics?.unique_ctr || item.unique_ctr || 0
-                        )}
+                        thresholdStatus={getCtrStatus(item.metrics.unique_ctr)}
                         description="ユニークユーザーのCTR"
                       />
 
                       <MetricRow
                         label="CPC（クリック単価）"
-                        value={item.metrics?.cpc || item.cpc || 0}
+                        value={item.metrics.cpc}
                         unit="¥"
                         description="Meta APIから取得"
                       />
 
                       <MetricRow
                         label="CPM（1000インプレッション単価）"
-                        value={Math.ceil(item.metrics?.cpm || item.cpm || 0)}
+                        value={Math.ceil(item.metrics.cpm)}
                         unit="¥"
-                        thresholdStatus={getCpmStatus(item.metrics?.cpm || item.cpm || 0)}
+                        thresholdStatus={getCpmStatus(item.metrics.cpm)}
                         description="20%以上上昇かつCTR低下で危険水準"
                         showChart={true}
                         metricType="cpm"
@@ -1340,11 +1336,8 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                       <MetricRow
                         label="CPA（獲得単価）"
                         value={
-                          (item.metrics?.conversions || item.conversions || 0) > 0
-                            ? Math.ceil(
-                                (item.metrics?.spend || item.spend || 0) /
-                                  (item.metrics?.conversions || item.conversions || 1)
-                              )
+                          (item.metrics.conversions || 0) > 0
+                            ? Math.ceil(item.metrics.spend / (item.metrics.conversions || 1))
                             : 0
                         }
                         unit="¥"
@@ -1386,10 +1379,7 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                             currentInsight?.instagram_permalink_url ||
                             insight?.instagram_permalink_url
                           }
-                          platform={
-                            item.metrics?.instagram_metrics?.publisher_platform ||
-                            item.instagram_metrics?.publisher_platform
-                          }
+                          platform={item.metrics.instagram_metrics?.publisher_platform}
                           creativeName={item.adName}
                           adId={item.adId}
                           accountId={accountId}
@@ -1626,9 +1616,7 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                               </td>
                               <td className="px-4 py-2 text-sm text-gray-500">number</td>
                               <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                {(
-                                  item.metrics?.impressions || item.impressions
-                                )?.toLocaleString() || 'N/A'}
+                                {item.metrics?.impressions?.toLocaleString() || 'N/A'}
                               </td>
                             </tr>
                             <tr className="hover:bg-gray-50">
@@ -1652,7 +1640,7 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                               </td>
                               <td className="px-4 py-2 text-sm text-gray-500">number</td>
                               <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                {(item.metrics?.frequency || item.frequency)?.toFixed(2) || 'N/A'}
+                                {item.metrics?.frequency?.toFixed(2) || 'N/A'}
                               </td>
                             </tr>
                             <tr className="hover:bg-gray-50">
@@ -1673,7 +1661,7 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                               </td>
                               <td className="px-4 py-2 text-sm text-gray-500">number</td>
                               <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                {(item.metrics?.ctr || item.ctr)?.toFixed(2) || 'N/A'}%
+                                {item.metrics?.ctr?.toFixed(2) || 'N/A'}%
                               </td>
                             </tr>
                             <tr className="hover:bg-gray-50">
@@ -1703,7 +1691,7 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                               </td>
                               <td className="px-4 py-2 text-sm text-gray-500">number</td>
                               <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                ¥{(item.metrics?.spend || item.spend)?.toLocaleString() || 'N/A'}
+                                ¥{item.metrics?.spend?.toLocaleString() || 'N/A'}
                               </td>
                             </tr>
                             <tr className="hover:bg-gray-50">
@@ -1723,7 +1711,7 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                               </td>
                               <td className="px-4 py-2 text-sm text-gray-500">number</td>
                               <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                ¥{(item.metrics?.cpm || item.cpm)?.toFixed(2) || 'N/A'}
+                                ¥{item.metrics?.cpm?.toFixed(2) || 'N/A'}
                               </td>
                             </tr>
                             <tr className="hover:bg-gray-50">
@@ -1750,7 +1738,7 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                               <td className="px-4 py-2 text-sm text-gray-600">コンバージョン数</td>
                               <td className="px-4 py-2 text-sm text-gray-500">number</td>
                               <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                {item.metrics?.conversions || item.conversions || 'N/A'}
+                                {item.metrics?.conversions || 'N/A'}
                               </td>
                             </tr>
                             <tr className="bg-gray-100">
