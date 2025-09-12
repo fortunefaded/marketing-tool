@@ -578,23 +578,6 @@ export function FatigueDashboardPresentation({
               </div>
             ) : (
               <>
-                {/* フィルターセクション */}
-                {onFilterChange && sourceData && (
-                  <>
-                    {/* 統合フィルターパネル - 折り畳み可能 */}
-                    <SafeFilterWrapper>
-                      <div className="mb-6">
-                        <UnifiedFilterSection
-                          data={sourceData}
-                          onFilter={onFilterChange}
-                          filteredCount={filteredCount}
-                          totalCount={totalInsights}
-                        />
-                      </div>
-                    </SafeFilterWrapper>
-                  </>
-                )}
-
                 {/* データ取得情報 */}
                 {dataSource && (
                   <div className="mb-2 text-sm text-gray-600 px-4">
