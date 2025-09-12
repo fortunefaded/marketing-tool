@@ -121,9 +121,17 @@ export function AggregatedFatigueTable({
           aValue = Number(a.metrics.cpc) || 0
           bValue = Number(b.metrics.cpc) || 0
           break
-        case 'cvr':
-          aValue = Number(a.metrics.cvr) || 0
-          bValue = Number(b.metrics.cvr) || 0
+        case 'reach':
+          aValue = Number(a.metrics.reach) || 0
+          bValue = Number(b.metrics.reach) || 0
+          break
+        case 'unique_ctr':
+          aValue = Number(a.metrics.unique_ctr) || 0
+          bValue = Number(b.metrics.unique_ctr) || 0
+          break
+        case 'conversions_1d_click':
+          aValue = Number(a.metrics.conversions_1d_click) || 0
+          bValue = Number(b.metrics.conversions_1d_click) || 0
           break
         case 'cpm':
           aValue = Number(a.metrics.cpm) || 0
@@ -308,12 +316,14 @@ export function AggregatedFatigueTable({
       <table className="min-w-full divide-y divide-gray-200">
         <thead className="bg-gray-50">
           <tr>
+            {/* Name */}
             <th
               className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              style={{ width: '150px', maxWidth: '150px' }}
               onClick={() => handleSort('name')}
             >
               <div className="flex items-center gap-1">
-                {level === 'campaign' ? 'キャンペーン' : '広告セット'}
+                {level === 'campaign' ? 'Campaign' : 'Ad Set'}
                 {sortField === 'name' &&
                   (sortDirection === 'asc' ? (
                     <ChevronUpIcon className="h-3 w-3" />
@@ -322,12 +332,14 @@ export function AggregatedFatigueTable({
                   ))}
               </div>
             </th>
+            {/* 広告数 */}
             <th
-              className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              style={{ width: '60px' }}
               onClick={() => handleSort('adCount')}
             >
               <div className="flex items-center justify-center gap-1">
-                広告数
+                Ads
                 {sortField === 'adCount' &&
                   (sortDirection === 'asc' ? (
                     <ChevronUpIcon className="h-3 w-3" />
@@ -336,13 +348,15 @@ export function AggregatedFatigueTable({
                   ))}
               </div>
             </th>
+            {/* FRQ */}
             <th
-              className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-              onClick={() => handleSort('spend')}
+              className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              style={{ width: '45px' }}
+              onClick={() => handleSort('frequency')}
             >
-              <div className="flex items-center justify-end gap-1">
-                広告費用 (¥)
-                {sortField === 'spend' &&
+              <div className="flex items-center justify-center gap-1">
+                FRQ
+                {sortField === 'frequency' &&
                   (sortDirection === 'asc' ? (
                     <ChevronUpIcon className="h-3 w-3" />
                   ) : (
@@ -350,12 +364,30 @@ export function AggregatedFatigueTable({
                   ))}
               </div>
             </th>
+            {/* REACH */}
             <th
-              className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              style={{ width: '75px' }}
+              onClick={() => handleSort('reach')}
+            >
+              <div className="flex items-center justify-center gap-1">
+                REACH
+                {sortField === 'reach' &&
+                  (sortDirection === 'asc' ? (
+                    <ChevronUpIcon className="h-3 w-3" />
+                  ) : (
+                    <ChevronDownIcon className="h-3 w-3" />
+                  ))}
+              </div>
+            </th>
+            {/* IMP */}
+            <th
+              className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              style={{ width: '80px' }}
               onClick={() => handleSort('impressions')}
             >
-              <div className="flex items-center justify-end gap-1">
-                インプレッション
+              <div className="flex items-center justify-center gap-1">
+                IMP
                 {sortField === 'impressions' &&
                   (sortDirection === 'asc' ? (
                     <ChevronUpIcon className="h-3 w-3" />
@@ -364,12 +396,14 @@ export function AggregatedFatigueTable({
                   ))}
               </div>
             </th>
+            {/* CLICK */}
             <th
-              className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              style={{ width: '65px' }}
               onClick={() => handleSort('clicks')}
             >
-              <div className="flex items-center justify-end gap-1">
-                クリック
+              <div className="flex items-center justify-center gap-1">
+                CLICK
                 {sortField === 'clicks' &&
                   (sortDirection === 'asc' ? (
                     <ChevronUpIcon className="h-3 w-3" />
@@ -378,44 +412,14 @@ export function AggregatedFatigueTable({
                   ))}
               </div>
             </th>
+            {/* CTR */}
             <th
-              className="px-4 py-3 text-right text-xs font-medium text-purple-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-              onClick={() => handleSort('conversions')}
-            >
-              <div className="flex items-center justify-end gap-1">
-                CV
-                <span className="text-[10px] text-purple-500">(ecforce)</span>
-                {sortField === 'conversions' &&
-                  (sortDirection === 'asc' ? (
-                    <ChevronUpIcon className="h-3 w-3" />
-                  ) : (
-                    <ChevronDownIcon className="h-3 w-3" />
-                  ))}
-              </div>
-            </th>
-            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-              <div className="flex items-center justify-end gap-1">F-CV</div>
-            </th>
-            <th
-              className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-              onClick={() => handleSort('cpa')}
-            >
-              <div className="flex items-center justify-end gap-1">
-                CPA (¥)
-                {sortField === 'cpa' &&
-                  (sortDirection === 'asc' ? (
-                    <ChevronUpIcon className="h-3 w-3" />
-                  ) : (
-                    <ChevronDownIcon className="h-3 w-3" />
-                  ))}
-              </div>
-            </th>
-            <th
-              className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              style={{ width: '55px' }}
               onClick={() => handleSort('ctr')}
             >
-              <div className="flex items-center justify-end gap-1">
-                CTR (%)
+              <div className="flex items-center justify-center gap-1">
+                CTR
                 {sortField === 'ctr' &&
                   (sortDirection === 'asc' ? (
                     <ChevronUpIcon className="h-3 w-3" />
@@ -424,12 +428,30 @@ export function AggregatedFatigueTable({
                   ))}
               </div>
             </th>
+            {/* U-CTR */}
             <th
-              className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              style={{ width: '55px' }}
+              onClick={() => handleSort('unique_ctr')}
+            >
+              <div className="flex items-center justify-center gap-1">
+                U-CTR
+                {sortField === 'unique_ctr' &&
+                  (sortDirection === 'asc' ? (
+                    <ChevronUpIcon className="h-3 w-3" />
+                  ) : (
+                    <ChevronDownIcon className="h-3 w-3" />
+                  ))}
+              </div>
+            </th>
+            {/* CPC */}
+            <th
+              className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              style={{ width: '65px' }}
               onClick={() => handleSort('cpc')}
             >
-              <div className="flex items-center justify-end gap-1">
-                CPC (¥)
+              <div className="flex items-center justify-center gap-1">
+                CPC
                 {sortField === 'cpc' &&
                   (sortDirection === 'asc' ? (
                     <ChevronUpIcon className="h-3 w-3" />
@@ -438,13 +460,15 @@ export function AggregatedFatigueTable({
                   ))}
               </div>
             </th>
+            {/* SPEND */}
             <th
-              className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-              onClick={() => handleSort('cvr')}
+              className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              style={{ width: '85px' }}
+              onClick={() => handleSort('spend')}
             >
-              <div className="flex items-center justify-end gap-1">
-                CVR (%)
-                {sortField === 'cvr' &&
+              <div className="flex items-center justify-center gap-1">
+                SPEND
+                {sortField === 'spend' &&
                   (sortDirection === 'asc' ? (
                     <ChevronUpIcon className="h-3 w-3" />
                   ) : (
@@ -452,27 +476,63 @@ export function AggregatedFatigueTable({
                   ))}
               </div>
             </th>
+            {/* F-CV */}
             <th
-              className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              style={{ width: '55px' }}
+              onClick={() => handleSort('conversions_1d_click')}
+            >
+              <div className="flex items-center justify-center gap-1">
+                F-CV
+                {sortField === 'conversions_1d_click' &&
+                  (sortDirection === 'asc' ? (
+                    <ChevronUpIcon className="h-3 w-3" />
+                  ) : (
+                    <ChevronDownIcon className="h-3 w-3" />
+                  ))}
+              </div>
+            </th>
+            {/* CV */}
+            <th
+              className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              style={{ width: '55px' }}
+              onClick={() => handleSort('conversions')}
+            >
+              <div className="flex items-center justify-center gap-1">
+                CV
+                {sortField === 'conversions' &&
+                  (sortDirection === 'asc' ? (
+                    <ChevronUpIcon className="h-3 w-3" />
+                  ) : (
+                    <ChevronDownIcon className="h-3 w-3" />
+                  ))}
+              </div>
+            </th>
+            {/* CPA */}
+            <th
+              className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              style={{ width: '70px' }}
+              onClick={() => handleSort('cpa')}
+            >
+              <div className="flex items-center justify-center gap-1">
+                CPA
+                {sortField === 'cpa' &&
+                  (sortDirection === 'asc' ? (
+                    <ChevronUpIcon className="h-3 w-3" />
+                  ) : (
+                    <ChevronDownIcon className="h-3 w-3" />
+                  ))}
+              </div>
+            </th>
+            {/* CPM */}
+            <th
+              className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              style={{ width: '65px' }}
               onClick={() => handleSort('cpm')}
             >
-              <div className="flex items-center justify-end gap-1">
-                CPM (¥)
+              <div className="flex items-center justify-center gap-1">
+                CPM
                 {sortField === 'cpm' &&
-                  (sortDirection === 'asc' ? (
-                    <ChevronUpIcon className="h-3 w-3" />
-                  ) : (
-                    <ChevronDownIcon className="h-3 w-3" />
-                  ))}
-              </div>
-            </th>
-            <th
-              className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-              onClick={() => handleSort('frequency')}
-            >
-              <div className="flex items-center justify-end gap-1">
-                Frequency
-                {sortField === 'frequency' &&
                   (sortDirection === 'asc' ? (
                     <ChevronUpIcon className="h-3 w-3" />
                   ) : (
