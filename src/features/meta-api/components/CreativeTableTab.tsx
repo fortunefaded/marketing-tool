@@ -321,7 +321,7 @@ export function CreativeTableTab({
                 {/* FRQ */}
                 <th
                   className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  style={{ width: '70px' }}
+                  style={{ width: '45px' }}
                   onClick={() => handleSort('frequency')}
                 >
                   <div className="flex items-center justify-center gap-1">
@@ -337,7 +337,7 @@ export function CreativeTableTab({
                 {/* REACH */}
                 <th
                   className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  style={{ width: '90px' }}
+                  style={{ width: '75px' }}
                   onClick={() => handleSort('reach')}
                 >
                   <div className="flex items-center justify-center gap-1">
@@ -353,7 +353,7 @@ export function CreativeTableTab({
                 {/* IMP */}
                 <th
                   className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  style={{ width: '100px' }}
+                  style={{ width: '80px' }}
                   onClick={() => handleSort('impressions')}
                 >
                   <div className="flex items-center justify-center gap-1">
@@ -369,7 +369,7 @@ export function CreativeTableTab({
                 {/* CLICK */}
                 <th
                   className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  style={{ width: '80px' }}
+                  style={{ width: '65px' }}
                   onClick={() => handleSort('clicks')}
                 >
                   <div className="flex items-center justify-center gap-1">
@@ -385,7 +385,7 @@ export function CreativeTableTab({
                 {/* CTR */}
                 <th
                   className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  style={{ width: '70px' }}
+                  style={{ width: '55px' }}
                   onClick={() => handleSort('ctr')}
                 >
                   <div className="flex items-center justify-center gap-1">
@@ -401,7 +401,7 @@ export function CreativeTableTab({
                 {/* U-CTR */}
                 <th
                   className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  style={{ width: '70px' }}
+                  style={{ width: '55px' }}
                   onClick={() => handleSort('unique_ctr')}
                 >
                   <div className="flex items-center justify-center gap-1">
@@ -417,7 +417,7 @@ export function CreativeTableTab({
                 {/* CPC */}
                 <th
                   className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  style={{ width: '80px' }}
+                  style={{ width: '65px' }}
                   onClick={() => handleSort('cpc')}
                 >
                   <div className="flex items-center justify-center gap-1">
@@ -433,7 +433,7 @@ export function CreativeTableTab({
                 {/* SPEND */}
                 <th
                   className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  style={{ width: '100px' }}
+                  style={{ width: '85px' }}
                   onClick={() => handleSort('spend')}
                 >
                   <div className="flex items-center justify-center gap-1">
@@ -449,7 +449,7 @@ export function CreativeTableTab({
                 {/* F-CV */}
                 <th
                   className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  style={{ width: '75px' }}
+                  style={{ width: '55px' }}
                   onClick={() => handleSort('conversions_1d_click')}
                 >
                   <div className="flex items-center justify-center gap-1">
@@ -465,7 +465,7 @@ export function CreativeTableTab({
                 {/* CV */}
                 <th
                   className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  style={{ width: '75px' }}
+                  style={{ width: '55px' }}
                   onClick={() => handleSort('conversions')}
                 >
                   <div className="flex items-center justify-center gap-1">
@@ -481,7 +481,7 @@ export function CreativeTableTab({
                 {/* CPA */}
                 <th
                   className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  style={{ width: '80px' }}
+                  style={{ width: '70px' }}
                   onClick={() => handleSort('cpa')}
                 >
                   <div className="flex items-center justify-center gap-1">
@@ -497,7 +497,7 @@ export function CreativeTableTab({
                 {/* CPM */}
                 <th
                   className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  style={{ width: '80px' }}
+                  style={{ width: '65px' }}
                   onClick={() => handleSort('cpm')}
                 >
                   <div className="flex items-center justify-center gap-1">
