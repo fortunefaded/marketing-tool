@@ -213,8 +213,12 @@ export default defineSchema({
     cvrPayment: v.number(), // CVR（決済）- 小数で保存
 
     // アップセル・クロスセル
+    cvUpsell: v.optional(v.number()), // CV（アップセル）
     cvThanksUpsell: v.number(), // CV（サンクスアップセル）
+    cvThanksCrossSell: v.optional(v.number()), // CV（サンクスクロスセル）
+    offerRateUpsell: v.optional(v.number()), // オファー成功率（アップセル）- 小数で保存
     offerRateThanksUpsell: v.number(), // オファー成功率（サンクスアップセル）- 小数で保存
+    offerRateThanksCrossSell: v.optional(v.number()), // オファー成功率（サンクスクロスセル）- 小数で保存
 
     // 計算フィールド
     paymentRate: v.optional(v.number()), // 決済率（CV決済/CV受注）

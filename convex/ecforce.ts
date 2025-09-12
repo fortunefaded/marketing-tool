@@ -25,8 +25,12 @@ export const savePerformanceData = mutation({
         cvrOrder: v.number(),
         cvPayment: v.number(),
         cvrPayment: v.number(),
+        cvUpsell: v.optional(v.number()),
         cvThanksUpsell: v.number(),
+        cvThanksCrossSell: v.optional(v.number()),
+        offerRateUpsell: v.optional(v.number()),
         offerRateThanksUpsell: v.number(),
+        offerRateThanksCrossSell: v.optional(v.number()),
         paymentRate: v.optional(v.number()),
         realCPA: v.optional(v.number()),
         roas: v.optional(v.number()),
@@ -555,6 +559,95 @@ export const fixCvrValues = mutation({
       message: `${fixedCount}件のレコードを修正しました`,
       totalRecords: allRecords.length,
       fixedRecords: fixedCount,
+    }
+  },
+})
+
+// 全データ削除（テスト用）
+export const deleteAllPerformanceData = mutation({
+  handler: async (ctx) => {
+    const allRecords = await ctx.db.query('ecforcePerformance').collect()
+    const count = allRecords.length
+
+    for (const record of allRecords) {
+      await ctx.db.delete(record._id)
+    }
+
+    return {
+      success: true,
+      deletedCount: count,
+      message: `${count}件のデータを削除しました`,
+    }
+  },
+})
+
+// 特定期間のデータ削除
+export const deletePerformanceDataByDateRange = mutation({
+  args: {
+    startDate: v.string(),
+    endDate: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const allRecords = await ctx.db.query('ecforcePerformance').collect()
+    const recordsToDelete = allRecords.filter(
+      (record) => record.dataDate >= args.startDate && record.dataDate <= args.endDate
+    )
+
+    const count = recordsToDelete.length
+
+    for (const record of recordsToDelete) {
+      await ctx.db.delete(record._id)
+    }
+
+    return {
+      success: true,
+      deletedCount: count,
+      message: `${args.startDate}から${args.endDate}までの${count}件のデータを削除しました`,
+    }
+  },
+})
+
+// 個別データ削除
+export const deletePerformanceDataById = mutation({
+  args: {
+    id: v.id('ecforcePerformance'),
+  },
+  handler: async (ctx, args) => {
+    const record = await ctx.db.get(args.id)
+
+    if (!record) {
+      throw new Error('削除対象のデータが見つかりません')
+    }
+
+    await ctx.db.delete(args.id)
+
+    return {
+      success: true,
+      message: `${record.advertiser}（${record.dataDate}）のデータを削除しました`,
+    }
+  },
+})
+
+// 複数データ削除
+export const deleteMultiplePerformanceData = mutation({
+  args: {
+    ids: v.array(v.id('ecforcePerformance')),
+  },
+  handler: async (ctx, args) => {
+    let deletedCount = 0
+
+    for (const id of args.ids) {
+      const record = await ctx.db.get(id)
+      if (record) {
+        await ctx.db.delete(id)
+        deletedCount++
+      }
+    }
+
+    return {
+      success: true,
+      deletedCount,
+      message: `${deletedCount}件のデータを削除しました`,
     }
   },
 })
