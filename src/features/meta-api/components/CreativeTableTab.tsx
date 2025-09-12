@@ -437,21 +437,6 @@ export function CreativeTableTab({
                 </th>
                 <th
                   className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  style={{ width: '80px' }}
-                  onClick={() => handleSort('score')}
-                >
-                  <div className="flex items-center justify-center gap-1">
-                    疲労度
-                    {sortField === 'score' &&
-                      (sortDirection === 'asc' ? (
-                        <ChevronUpIcon className="h-3 w-3" />
-                      ) : (
-                        <ChevronDownIcon className="h-3 w-3" />
-                      ))}
-                  </div>
-                </th>
-                <th
-                  className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   style={{ width: '70px' }}
                   onClick={() => handleSort('frequency')}
                 >
@@ -620,21 +605,6 @@ export function CreativeTableTab({
                 </th>
                 <th
                   className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  style={{ width: '100px' }}
-                  onClick={() => handleSort('revenue')}
-                >
-                  <div className="flex items-center justify-center gap-1">
-                    売上
-                    {sortField === 'revenue' &&
-                      (sortDirection === 'asc' ? (
-                        <ChevronUpIcon className="h-3 w-3" />
-                      ) : (
-                        <ChevronDownIcon className="h-3 w-3" />
-                      ))}
-                  </div>
-                </th>
-                <th
-                  className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   style={{ width: '75px' }}
                   onClick={() => handleSort('roas')}
                 >
@@ -648,12 +618,6 @@ export function CreativeTableTab({
                       ))}
                   </div>
                 </th>
-                <th
-                  className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  style={{ width: '90px' }}
-                >
-                  ステータス
-                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -665,8 +629,6 @@ export function CreativeTableTab({
                 <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-blue-900">
                   合計
                 </td>
-                {/* 疲労度 */}
-                <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">-</td>
                 {/* Frequency */}
                 <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">
                   {sortedData.length > 0
@@ -749,12 +711,6 @@ export function CreativeTableTab({
                       )}`
                     : '-'}
                 </td>
-                {/* 売上 */}
-                <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">
-                  {sortedData.reduce((sum, item) => sum + (item.revenue || 0), 0) > 0
-                    ? `¥${formatNumber(sortedData.reduce((sum, item) => sum + (item.revenue || 0), 0))}`
-                    : '-'}
-                </td>
                 {/* ROAS */}
                 <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">
                   {sortedData.length > 0 && sortedData.some((item) => item.roas > 0)
@@ -764,8 +720,6 @@ export function CreativeTableTab({
                       )}x`
                     : '-'}
                 </td>
-                {/* ステータス */}
-                <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">-</td>
               </tr>
               {sortedData.map((item, index) => (
                 <tr
@@ -804,26 +758,6 @@ export function CreativeTableTab({
                         ? `${item.adIds.length} ads (${item.firstDate} - ${item.lastDate})`
                         : item.adId}
                     </div>
-                  </td>
-
-                  {/* 疲労度スコア */}
-                  <td className="px-2 py-3 whitespace-nowrap text-center">
-                    {item.score < 0 ? (
-                      <span className="text-gray-400 text-sm">-</span>
-                    ) : (
-                      <span
-                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                          item.score >= 80
-                            ? 'bg-red-100 text-red-800'
-                            : item.score >= 60
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-green-100 text-green-800'
-                        }`}
-                        title={`総合疲労度スコア: ${item.score}`}
-                      >
-                        {item.score}
-                      </span>
-                    )}
                   </td>
 
                   {/* Frequency */}
@@ -974,11 +908,6 @@ export function CreativeTableTab({
                     {item.conversions > 0 ? `¥${formatNumber(item.cpa)}` : '-'}
                   </td>
 
-                  {/* 売上 */}
-                  <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-gray-900">
-                    {item.revenue > 0 ? `¥${formatNumber(item.revenue)}` : '-'}
-                  </td>
-
                   {/* ROAS */}
                   <td className="px-2 py-3 whitespace-nowrap text-center text-sm">
                     <span
@@ -994,25 +923,6 @@ export function CreativeTableTab({
                     >
                       {item.roas > 0 ? `${formatDecimal(item.roas)}x` : '-'}
                     </span>
-                  </td>
-
-                  {/* ステータス */}
-                  <td className="px-2 py-3 whitespace-nowrap text-center">
-                    {item.status === 'unknown' ? (
-                      <span className="text-gray-400 text-sm">未計算</span>
-                    ) : (
-                      <span
-                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                          item.status === 'critical'
-                            ? 'bg-red-100 text-red-800'
-                            : item.status === 'warning'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-green-100 text-green-800'
-                        }`}
-                      >
-                        {item.status}
-                      </span>
-                    )}
                   </td>
                 </tr>
               ))}
