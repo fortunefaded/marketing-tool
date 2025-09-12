@@ -641,8 +641,17 @@ export function CreativeTableTab({
                     : '0'}
                 </td>
                 <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">
-                  {sortedData.length > 0 && sortedData.some((item) => item.roas > 0)
-                    ? `${formatDecimal(sortedData.reduce((sum, item) => sum + (item.roas || 0), 0) / sortedData.filter((item) => item.roas > 0).length)}x`
+                  {sortedData.length > 0 &&
+                  sortedData.some((item) => item.website_purchase_roas > 0 || item.roas > 0)
+                    ? `${formatDecimal(
+                        sortedData.reduce(
+                          (sum, item) => sum + (item.website_purchase_roas || item.roas || 0),
+                          0
+                        ) /
+                          sortedData.filter(
+                            (item) => item.website_purchase_roas > 0 || item.roas > 0
+                          ).length
+                      )}x`
                     : '-'}
                 </td>
               </tr>
@@ -805,18 +814,22 @@ export function CreativeTableTab({
                   <td className="px-2 py-3 whitespace-nowrap text-center text-sm">
                     <span
                       className={
-                        item.roas >= 3.0
+                        (item.website_purchase_roas || item.roas) >= 3.0
                           ? 'text-green-600 font-medium'
-                          : item.roas >= 2.0
+                          : (item.website_purchase_roas || item.roas) >= 2.0
                             ? 'text-yellow-600'
-                            : item.roas >= 1.0
+                            : (item.website_purchase_roas || item.roas) >= 1.0
                               ? 'text-orange-600'
-                              : item.roas > 0
+                              : (item.website_purchase_roas || item.roas) > 0
                                 ? 'text-red-600'
                                 : 'text-gray-900'
                       }
                     >
-                      {item.roas > 0 ? `${formatDecimal(item.roas)}x` : '-'}
+                      {item.website_purchase_roas > 0
+                        ? `${formatDecimal(item.website_purchase_roas)}x`
+                        : item.roas > 0
+                          ? `${formatDecimal(item.roas)}x`
+                          : '-'}
                     </span>
                   </td>
                 </tr>
@@ -829,7 +842,8 @@ export function CreativeTableTab({
       {/* 詳細モーダル */}
       {selectedItem && isModalOpen && (
         <CreativeDetailModal
-          creative={selectedItem}
+          isOpen={isModalOpen}
+          item={selectedItem}
           onClose={closeModal}
           insight={insightsMap.get(selectedItem.adId)}
           accessToken={accessToken}
