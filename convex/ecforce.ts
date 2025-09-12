@@ -112,6 +112,14 @@ export const getPerformanceData = query({
         .withIndex('by_date', (q) => q.eq('dataDate', dataDate))
 
       const allData = await query.collect()
+
+      // 日付の降順でソート
+      allData.sort((a, b) => {
+        if (a.dataDate > b.dataDate) return -1
+        if (a.dataDate < b.dataDate) return 1
+        return 0
+      })
+
       const offset = args.offset || 0
       const limit = args.limit || 50
 
@@ -127,6 +135,13 @@ export const getPerformanceData = query({
       const filtered = allData.filter(
         (item) => item.dataDate >= args.startDate! && item.dataDate <= args.endDate!
       )
+
+      // 日付の降順でソート
+      filtered.sort((a, b) => {
+        if (a.dataDate > b.dataDate) return -1
+        if (a.dataDate < b.dataDate) return 1
+        return 0
+      })
 
       const offset = args.offset || 0
       const limit = args.limit || 50
@@ -144,6 +159,14 @@ export const getPerformanceData = query({
         .withIndex('by_advertiser', (q) => q.eq('advertiserNormalized', normalizedAdvertiser))
 
       const allData = await query.collect()
+
+      // 日付の降順でソート
+      allData.sort((a, b) => {
+        if (a.dataDate > b.dataDate) return -1
+        if (a.dataDate < b.dataDate) return 1
+        return 0
+      })
+
       const offset = args.offset || 0
       const limit = args.limit || 50
 
@@ -154,9 +177,17 @@ export const getPerformanceData = query({
       }
     }
 
-    // フィルターなしの場合
+    // フィルターなしの場合（日付の降順でソート）
     const query = ctx.db.query('ecforcePerformance')
     const allData = await query.collect()
+
+    // 日付の降順でソート（最新データが先頭）
+    allData.sort((a, b) => {
+      if (a.dataDate > b.dataDate) return -1
+      if (a.dataDate < b.dataDate) return 1
+      return 0
+    })
+
     const offset = args.offset || 0
     const limit = args.limit || 50
 
@@ -402,29 +433,35 @@ export const updateSyncConfig = mutation({
       frequency: v.string(),
       time: v.string(),
       timezone: v.string(),
+      lastRun: v.optional(v.number()),
+      lastRunStatus: v.optional(v.string()),
+      lastRunError: v.optional(v.string()),
     }),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db.query('ecforceSyncConfig').first()
 
+    const scheduleData = {
+      frequency: args.schedule.frequency,
+      time: args.schedule.time,
+      timezone: args.schedule.timezone,
+      lastRun:
+        args.schedule.lastRun !== undefined ? args.schedule.lastRun : existing?.schedule.lastRun,
+      lastRunStatus: args.schedule.lastRunStatus,
+      lastRunError: args.schedule.lastRunError,
+      nextRun: args.enabled ? calculateNextRun(args.schedule) : undefined,
+    }
+
     if (existing) {
       await ctx.db.patch(existing._id, {
         enabled: args.enabled,
-        schedule: {
-          ...args.schedule,
-          lastRun: existing.schedule.lastRun,
-          nextRun: args.enabled ? calculateNextRun(args.schedule) : undefined,
-        },
+        schedule: scheduleData,
         updatedAt: Date.now(),
       })
     } else {
       await ctx.db.insert('ecforceSyncConfig', {
         enabled: args.enabled,
-        schedule: {
-          ...args.schedule,
-          lastRun: undefined,
-          nextRun: args.enabled ? calculateNextRun(args.schedule) : undefined,
-        },
+        schedule: scheduleData,
         updatedAt: Date.now(),
       })
     }
