@@ -75,6 +75,8 @@ export function aggregateCreativesByName(data: any[]): AggregatedCreative[] {
     firstItem: data[0]
       ? {
           ad_name: data[0].ad_name,
+          date_start: data[0].date_start,
+          date_stop: data[0].date_stop,
           impressions: data[0].impressions,
           impressions_type: typeof data[0].impressions,
           clicks: data[0].clicks,
@@ -83,6 +85,9 @@ export function aggregateCreativesByName(data: any[]): AggregatedCreative[] {
           spend_type: typeof data[0].spend,
         }
       : null,
+    // 同じ広告名のデータ数を確認
+    sampleAdName: data[0]?.ad_name,
+    sampleAdCount: data.filter((d) => d.ad_name === data[0]?.ad_name).length,
   })
 
   // クリエイティブ名でグループ化
