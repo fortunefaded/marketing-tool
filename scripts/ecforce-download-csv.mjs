@@ -13,7 +13,9 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.join(__dirname, '..', '.env.ecforce') });
 
 async function downloadCSVFromMogumo() {
+  const isAutoMode = process.argv.includes('--auto') || process.env.AUTO_SYNC === 'true';
   console.log('🚀 mogumo ECForce CSVダウンロード処理開始...');
+  console.log(`  実行モード: ${isAutoMode ? '🤖 自動同期（バックグラウンド）' : '👤 手動実行（画面表示）'}`);
   
   // 環境変数から認証情報を取得
   const BASIC_USER = process.env.ECFORCE_BASIC_USER;
@@ -28,10 +30,10 @@ async function downloadCSVFromMogumo() {
     console.log('📁 ダウンロードディレクトリを作成:', downloadPath);
   }
   
-  // ブラウザを起動（画面表示あり）
+  // ブラウザを起動（自動実行の場合はヘッドレスモード）
   const browser = await chromium.launch({ 
-    headless: false,  // 画面を表示
-    slowMo: 1000      // 操作を1秒遅らせる（ゆっくり動作）
+    headless: isAutoMode,  // 自動実行時はバックグラウンド、手動時は画面表示
+    slowMo: isAutoMode ? 0 : 1000  // 自動実行時は高速、手動時はゆっくり動作
   });
   
   try {
@@ -676,9 +678,11 @@ async function downloadCSVFromMogumo() {
     });
     console.log('📸 最終スクリーンショット保存');
     
-    // 確認のため10秒間開いたままにする
-    console.log('👀 10秒後にブラウザを閉じます...');
-    await page.waitForTimeout(10000);
+    // 手動実行時のみ確認のため待機
+    if (!isAutoMode) {
+      console.log('👀 10秒後にブラウザを閉じます...');
+      await page.waitForTimeout(10000);
+    }
     
     return downloadTriggered;
     

@@ -473,22 +473,41 @@ export const updateSyncConfig = mutation({
 // 次回実行時刻を計算
 function calculateNextRun(schedule: { frequency: string; time: string; timezone: string }): number {
   const now = new Date()
+
+  // テストモードの場合は次の1分後
+  if (schedule.frequency === 'test') {
+    const next = new Date(now.getTime() + 60000) // 1分後
+    return next.getTime()
+  }
+
   const [hours, minutes] = schedule.time.split(':').map(Number)
 
+  // ConvexはUTCで動作するため、JSTからUTCに変換する必要がある
+  // JST時刻をUTC時刻に変換（JST = UTC + 9時間なので、9時間引く）
+  const utcHours = hours - 9
+
   const next = new Date()
-  next.setHours(hours, minutes, 0, 0)
+
+  // UTCで時刻を設定
+  if (utcHours < 0) {
+    // 日付をまたぐ場合（例：JST 06:00 = UTC 前日21:00）
+    next.setUTCDate(next.getUTCDate() - 1)
+    next.setUTCHours(utcHours + 24, minutes, 0, 0)
+  } else {
+    next.setUTCHours(utcHours, minutes, 0, 0)
+  }
 
   // 今日の実行時刻を過ぎている場合
   if (next.getTime() <= now.getTime()) {
     switch (schedule.frequency) {
       case 'daily':
-        next.setDate(next.getDate() + 1)
+        next.setUTCDate(next.getUTCDate() + 1)
         break
       case 'weekly':
-        next.setDate(next.getDate() + 7)
+        next.setUTCDate(next.getUTCDate() + 7)
         break
       case 'monthly':
-        next.setMonth(next.getMonth() + 1)
+        next.setUTCMonth(next.getUTCMonth() + 1)
         break
     }
   }

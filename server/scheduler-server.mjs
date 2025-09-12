@@ -37,14 +37,15 @@ async function executeSyncJob() {
   try {
     // スクリプトのパス
     const scriptPath = path.join(__dirname, '..', 'scripts', 'ecforce-download-csv.mjs');
-    const command = `node ${scriptPath} --upload`;
+    const command = `node ${scriptPath} --upload --auto`;
     
     console.log('実行コマンド:', command);
     
     // タイムアウトを5分に設定
     exec(command, { 
       timeout: 300000,
-      cwd: path.join(__dirname, '..')
+      cwd: path.join(__dirname, '..'),
+      env: { ...process.env, AUTO_SYNC: 'true' }  // 環境変数でも自動モードを指定
     }, async (error, stdout, stderr) => {
       if (error) {
         console.error('実行エラー:', error);
