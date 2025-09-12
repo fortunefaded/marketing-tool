@@ -13,6 +13,8 @@
     "test:coverage": "vitest run --coverage",
     "test:integration": "tsx src/tests/integration/meta-api-test.ts",
     "test:meta-api": "tsx scripts/test-meta-api-integration.ts",
+    "sync-server": "node server/sync-server.mjs",
+    "scheduler": "node server/scheduler-server.mjs",
     "test:error-scenarios": "tsx scripts/test-error-scenarios.ts",
     "test:rate-limiting": "tsx scripts/test-rate-limiting.ts",
     "type-check": "tsc --noEmit",
