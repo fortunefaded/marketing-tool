@@ -28,7 +28,23 @@ export const ManualSync: React.FC = () => {
   const latestImport = useQuery(api.ecforce.getImportHistory, { limit: 1 })
 
   // 同期完了後、最新のデータを取得（日付順でソート）
-  const latestData = useQuery(api.ecforce.getPerformanceData, syncResult ? { limit: 10 } : 'skip')
+  // 少し遅延を入れてデータ反映を待つ
+  const [shouldFetchData, setShouldFetchData] = useState(false)
+  const latestData = useQuery(
+    api.ecforce.getPerformanceData,
+    shouldFetchData ? { limit: 10 } : 'skip'
+  )
+
+  // syncResultが更新されたら、少し待ってからデータを取得
+  React.useEffect(() => {
+    if (syncResult && syncResult.success) {
+      // 2秒待ってからデータを取得（Convexへの反映を待つ）
+      const timer = setTimeout(() => {
+        setShouldFetchData(true)
+      }, 2000)
+      return () => clearTimeout(timer)
+    }
+  }, [syncResult])
 
   // テスト同期mutationは削除（不要）
   // const runTestSync = useMutation(api.ecforceTestSync.runTestSync)
@@ -38,6 +54,7 @@ export const ManualSync: React.FC = () => {
     setStatus('downloading')
     setMessage('ECForceからCSVファイルをダウンロード中...')
     setProgress(25)
+    setShouldFetchData(false) // データ取得フラグをリセット
 
     try {
       // 常に実際のAPIサーバーを呼び出す
