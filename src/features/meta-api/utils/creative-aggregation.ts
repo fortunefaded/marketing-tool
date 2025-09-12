@@ -35,6 +35,7 @@ export interface AggregatedCreative {
   cpc: number
   cpa: number
   roas: number
+  website_purchase_roas: number // Meta計算のROAS
   frequency: number
 
   // 疲労度（最大値）
@@ -136,6 +137,10 @@ export function aggregateCreativesByName(data: any[]): AggregatedCreative[] {
     let totalEcforceCv = 0
     let totalEcforceFcv = 0
 
+    // Meta ROASの集計（平均を計算するため）
+    let totalWebsitePurchaseRoas = 0
+    let websitePurchaseRoasCount = 0
+
     const adIds: string[] = []
     const dailyData: any[] = []
 
@@ -156,6 +161,10 @@ export function aggregateCreativesByName(data: any[]): AggregatedCreative[] {
         typeof item.conversion_values === 'number'
           ? item.conversion_values
           : parseFloat(item.conversion_values || item.revenue) || 0
+      const websitePurchaseRoas =
+        typeof item.website_purchase_roas === 'number'
+          ? item.website_purchase_roas
+          : parseFloat(item.website_purchase_roas) || 0
       const frequency =
         typeof item.frequency === 'number' ? item.frequency : parseFloat(item.frequency) || 0
       // 疲労度スコアはオプショナル（ない場合は-1で未計算を表す）
@@ -177,6 +186,12 @@ export function aggregateCreativesByName(data: any[]): AggregatedCreative[] {
         typeof item.ecforce_fcv === 'number' ? item.ecforce_fcv : parseFloat(item.ecforce_fcv) || 0
       totalEcforceCv += ecforceCv
       totalEcforceFcv += ecforceFcv
+
+      // website_purchase_roasの集計（0より大きい値のみ）
+      if (websitePurchaseRoas > 0) {
+        totalWebsitePurchaseRoas += websitePurchaseRoas
+        websitePurchaseRoasCount++
+      }
 
       if (frequency > 0) {
         totalFrequency += frequency
@@ -217,6 +232,8 @@ export function aggregateCreativesByName(data: any[]): AggregatedCreative[] {
     const cpc = totalClicks > 0 ? totalSpend / totalClicks : 0
     const cpa = totalConversions > 0 ? totalSpend / totalConversions : 0
     const roas = totalSpend > 0 ? totalConversionValues / totalSpend : 0
+    const avgWebsitePurchaseRoas =
+      websitePurchaseRoasCount > 0 ? totalWebsitePurchaseRoas / websitePurchaseRoasCount : 0
 
     // unique_ctr（簡易的に通常CTRと同じにする）
     const unique_ctr = ctr
@@ -255,6 +272,7 @@ export function aggregateCreativesByName(data: any[]): AggregatedCreative[] {
       cpc,
       cpa,
       roas,
+      website_purchase_roas: avgWebsitePurchaseRoas,
       frequency: avgFrequency,
       fatigue_score: maxFatigueScore > 0 ? maxFatigueScore : -1, // 疲労度スコアが無い場合は-1
       dailyData,

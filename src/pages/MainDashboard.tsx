@@ -703,6 +703,9 @@ export default function MainDashboard() {
             frequency: parseFloat(item.frequency) || 0,
             reach: parseInt(item.reach) || 0,
             conversion_values: item.conversion_values ? parseFloat(item.conversion_values) : 0,
+            website_purchase_roas: item.website_purchase_roas
+              ? parseFloat(item.website_purchase_roas)
+              : 0,
             cost_per_conversion:
               conversionData.cv > 0 ? parseFloat(item.spend || '0') / conversionData.cv : 0,
             // 疲労度ステータスを追加（仮の判定）
