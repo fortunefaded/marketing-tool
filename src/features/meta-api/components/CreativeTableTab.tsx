@@ -260,6 +260,10 @@ export function CreativeTableTab({
           aValue = Number(a.impressions) || 0
           bValue = Number(b.impressions) || 0
           break
+        case 'reach':
+          aValue = Number(a.reach) || 0
+          bValue = Number(b.reach) || 0
+          break
         case 'clicks':
           aValue = Number(a.clicks) || 0
           bValue = Number(b.clicks) || 0
@@ -512,6 +516,21 @@ export function CreativeTableTab({
                 </th>
                 <th
                   className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  style={{ width: '90px' }}
+                  onClick={() => handleSort('reach')}
+                >
+                  <div className="flex items-center justify-center gap-1">
+                    REACH
+                    {sortField === 'reach' &&
+                      (sortDirection === 'asc' ? (
+                        <ChevronUpIcon className="h-3 w-3" />
+                      ) : (
+                        <ChevronDownIcon className="h-3 w-3" />
+                      ))}
+                  </div>
+                </th>
+                <th
+                  className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   style={{ width: '100px' }}
                   onClick={() => handleSort('impressions')}
                 >
@@ -637,6 +656,10 @@ export function CreativeTableTab({
                           sortedData.length
                       )
                     : '-'}
+                </td>
+                {/* REACH */}
+                <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">
+                  {formatNumber(sortedData.reduce((sum, item) => sum + (item.reach || 0), 0))}
                 </td>
                 {/* CTR */}
                 <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">
@@ -769,6 +792,11 @@ export function CreativeTableTab({
                     >
                       {formatDecimal(item.metrics.frequency || 0)}
                     </span>
+                  </td>
+
+                  {/* REACH */}
+                  <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-gray-900">
+                    {formatNumber(item.reach || 0)}
                   </td>
 
                   {/* CTR */}

@@ -13,6 +13,7 @@ export interface AggregatedCreative {
 
   // 集約メトリクス
   impressions: number
+  reach: number
   clicks: number
   spend: number
   conversions: number
@@ -121,6 +122,7 @@ export function aggregateCreativesByName(data: any[]): AggregatedCreative[] {
 
     // メトリクスの集計
     let totalImpressions = 0
+    let totalReach = 0
     let totalClicks = 0
     let totalSpend = 0
     let totalConversions = 0
@@ -141,6 +143,7 @@ export function aggregateCreativesByName(data: any[]): AggregatedCreative[] {
       // 数値変換（文字列の場合も考慮）
       const impressions =
         typeof item.impressions === 'number' ? item.impressions : parseFloat(item.impressions) || 0
+      const reach = typeof item.reach === 'number' ? item.reach : parseFloat(item.reach) || 0
       const clicks = typeof item.clicks === 'number' ? item.clicks : parseFloat(item.clicks) || 0
       const spend = typeof item.spend === 'number' ? item.spend : parseFloat(item.spend) || 0
       const conversions =
@@ -160,6 +163,7 @@ export function aggregateCreativesByName(data: any[]): AggregatedCreative[] {
         item.fatigue_score !== undefined ? parseFloat(item.fatigue_score || item.score) : -1
 
       totalImpressions += impressions
+      totalReach += reach
       totalClicks += clicks
       totalSpend += spend
       totalConversions += conversions
@@ -233,6 +237,7 @@ export function aggregateCreativesByName(data: any[]): AggregatedCreative[] {
       adsetName,
       adsetId,
       impressions: totalImpressions,
+      reach: totalReach,
       clicks: totalClicks,
       spend: totalSpend,
       conversions: totalConversions,
