@@ -545,32 +545,37 @@ export function AggregatedFatigueTable({
         <tbody className="bg-white divide-y divide-gray-200">
           {/* 集計行 */}
           <tr className="bg-blue-50 font-bold border-b-2 border-blue-200">
+            {/* Name */}
             <td className="px-4 py-3 text-left text-sm text-blue-900">合計</td>
-            <td className="px-4 py-3 text-center text-sm text-blue-900">
+            {/* Ads */}
+            <td className="px-2 py-3 text-center text-sm text-blue-900">
               {sortedData.reduce((sum, item) => sum + item.adCount, 0)}
             </td>
-            <td className="px-4 py-3 text-right text-sm text-blue-900">
-              {formatCurrency(sortedData.reduce((sum, item) => sum + (item.metrics.spend || 0), 0))}
+            {/* FRQ */}
+            <td className="px-2 py-3 text-center text-sm text-blue-900">
+              {sortedData.length > 0
+                ? (
+                    sortedData.reduce((sum, item) => sum + (item.metrics.frequency || 0), 0) /
+                    sortedData.length
+                  ).toFixed(2)
+                : '-'}
             </td>
-            <td className="px-4 py-3 text-right text-sm text-blue-900">
+            {/* REACH */}
+            <td className="px-2 py-3 text-center text-sm text-blue-900">
+              {formatNumber(sortedData.reduce((sum, item) => sum + (item.metrics.reach || 0), 0))}
+            </td>
+            {/* IMP */}
+            <td className="px-2 py-3 text-center text-sm text-blue-900">
               {formatNumber(
                 sortedData.reduce((sum, item) => sum + (item.metrics.impressions || 0), 0)
               )}
             </td>
-            <td className="px-4 py-3 text-right text-sm text-blue-900">
+            {/* CLICK */}
+            <td className="px-2 py-3 text-center text-sm text-blue-900">
               {formatNumber(sortedData.reduce((sum, item) => sum + (item.metrics.clicks || 0), 0))}
             </td>
-            <td className="px-4 py-3 text-right text-sm text-purple-600">N/A</td>
-            <td className="px-4 py-3 text-right text-sm text-blue-900">0</td>
-            <td className="px-4 py-3 text-right text-sm text-blue-900">
-              {sortedData.reduce((sum, item) => sum + (item.metrics.conversions || 0), 0) > 0
-                ? formatCurrency(
-                    sortedData.reduce((sum, item) => sum + (item.metrics.spend || 0), 0) /
-                      sortedData.reduce((sum, item) => sum + (item.metrics.conversions || 0), 0)
-                  )
-                : '-'}
-            </td>
-            <td className="px-4 py-3 text-right text-sm text-blue-900">
+            {/* CTR */}
+            <td className="px-2 py-3 text-center text-sm text-blue-900">
               {sortedData.reduce((sum, item) => sum + (item.metrics.impressions || 0), 0) > 0
                 ? (
                     (sortedData.reduce((sum, item) => sum + (item.metrics.clicks || 0), 0) /
@@ -579,39 +584,61 @@ export function AggregatedFatigueTable({
                   ).toFixed(2) + '%'
                 : '-'}
             </td>
-            <td className="px-4 py-3 text-right text-sm text-blue-900">
+            {/* U-CTR */}
+            <td className="px-2 py-3 text-center text-sm text-blue-900">
               {sortedData.length > 0
-                ? formatCurrency(
-                    sortedData.reduce((sum, item) => sum + (item.metrics.cpc || 0), 0) /
-                      sortedData.length
-                  )
-                : '-'}
-            </td>
-            <td className="px-4 py-3 text-right text-sm text-blue-900">
-              {sortedData.reduce((sum, item) => sum + (item.metrics.clicks || 0), 0) > 0 &&
-              sortedData.reduce((sum, item) => sum + (item.metrics.conversions || 0), 0) > 0
                 ? (
-                    (sortedData.reduce((sum, item) => sum + (item.metrics.conversions || 0), 0) /
-                      sortedData.reduce((sum, item) => sum + (item.metrics.clicks || 0), 0)) *
-                    100
+                    sortedData.reduce((sum, item) => sum + (item.metrics.unique_ctr || 0), 0) /
+                    sortedData.length
                   ).toFixed(2) + '%'
                 : '-'}
             </td>
-            <td className="px-4 py-3 text-right text-sm text-blue-900">
-              {sortedData.length > 0
-                ? formatCurrency(
-                    sortedData.reduce((sum, item) => sum + (item.metrics.cpm || 0), 0) /
-                      sortedData.length
+            {/* CPC */}
+            <td className="px-2 py-3 text-center text-sm text-blue-900">
+              ¥
+              {sortedData.reduce((sum, item) => sum + (item.metrics.clicks || 0), 0) > 0
+                ? formatNumber(
+                    sortedData.reduce((sum, item) => sum + (item.metrics.spend || 0), 0) /
+                      sortedData.reduce((sum, item) => sum + (item.metrics.clicks || 0), 0)
                   )
-                : '-'}
+                : '0'}
             </td>
-            <td className="px-4 py-3 text-right text-sm text-blue-900">
-              {sortedData.length > 0
-                ? (
-                    sortedData.reduce((sum, item) => sum + (item.metrics.frequency || 0), 0) /
-                    sortedData.length
-                  ).toFixed(2)
-                : '-'}
+            {/* SPEND */}
+            <td className="px-2 py-3 text-center text-sm text-blue-900">
+              ¥{formatNumber(sortedData.reduce((sum, item) => sum + (item.metrics.spend || 0), 0))}
+            </td>
+            {/* F-CV */}
+            <td className="px-2 py-3 text-center text-sm text-blue-900">
+              {formatNumber(
+                sortedData.reduce((sum, item) => sum + (item.metrics.conversions_1d_click || 0), 0)
+              )}
+            </td>
+            {/* CV */}
+            <td className="px-2 py-3 text-center text-sm text-blue-900">
+              {formatNumber(
+                sortedData.reduce((sum, item) => sum + (item.metrics.conversions || 0), 0)
+              )}
+            </td>
+            {/* CPA */}
+            <td className="px-2 py-3 text-center text-sm text-blue-900">
+              ¥
+              {sortedData.reduce((sum, item) => sum + (item.metrics.conversions || 0), 0) > 0
+                ? formatNumber(
+                    sortedData.reduce((sum, item) => sum + (item.metrics.spend || 0), 0) /
+                      sortedData.reduce((sum, item) => sum + (item.metrics.conversions || 0), 0)
+                  )
+                : '0'}
+            </td>
+            {/* CPM */}
+            <td className="px-2 py-3 text-center text-sm text-blue-900">
+              ¥
+              {sortedData.reduce((sum, item) => sum + (item.metrics.impressions || 0), 0) > 0
+                ? formatNumber(
+                    (sortedData.reduce((sum, item) => sum + (item.metrics.spend || 0), 0) /
+                      sortedData.reduce((sum, item) => sum + (item.metrics.impressions || 0), 0)) *
+                      1000
+                  )
+                : '0'}
             </td>
           </tr>
           {sortedData.map((item) => (
