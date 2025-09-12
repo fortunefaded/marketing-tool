@@ -10,6 +10,7 @@ import {
   VideoCameraIcon,
   DocumentTextIcon,
   ViewColumnsIcon,
+  InformationCircleIcon,
 } from '@heroicons/react/24/outline'
 import { CreativeDetailModal } from './CreativeDetailModal'
 import { normalizeCreativeMediaType } from '../utils/creative-type'
@@ -580,9 +581,20 @@ export function CreativeTableTab({
                   onClick={() => handleSort('conversions')}
                 >
                   <div className="flex items-center justify-center gap-1">
-                    <div className="flex flex-col items-center">
+                    <div className="flex items-center gap-1">
                       <span>CV</span>
-                      <span className="text-[10px] text-purple-500">(ecforce)</span>
+                      <div className="group relative">
+                        <InformationCircleIcon className="h-3 w-3 text-purple-400 cursor-help" />
+                        <div className="hidden group-hover:block absolute z-50 bg-gray-900 text-white text-xs rounded-lg p-2 bottom-full left-1/2 transform -translate-x-1/2 w-56 shadow-xl mb-1 pointer-events-none">
+                          <div className="font-semibold mb-1">ECForceコンバージョン</div>
+                          <div className="text-gray-300">
+                            ECForceから取得した注文完了数です。Meta広告経由の購入データを表示しています。
+                          </div>
+                          <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-full">
+                            <div className="border-4 border-transparent border-t-gray-900"></div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                     {sortField === 'conversions' &&
                       (sortDirection === 'asc' ? (
@@ -608,12 +620,29 @@ export function CreativeTableTab({
                   </div>
                 </th>
                 <th
-                  className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  className="px-2 py-3 text-center text-xs font-medium text-purple-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   style={{ width: '80px' }}
                   onClick={() => handleSort('cpa')}
                 >
                   <div className="flex items-center justify-center gap-1">
-                    CPA
+                    <div className="flex items-center gap-1">
+                      <span>CPA</span>
+                      <div className="group relative">
+                        <InformationCircleIcon className="h-3 w-3 text-purple-400 cursor-help" />
+                        <div className="hidden group-hover:block absolute z-50 bg-gray-900 text-white text-xs rounded-lg p-2 bottom-full left-1/2 transform -translate-x-1/2 w-48 shadow-xl mb-1 pointer-events-none">
+                          <div className="font-semibold mb-1">獲得単価（CPA）</div>
+                          <div className="text-gray-300">
+                            1件のコンバージョンを獲得するのにかかった広告費用
+                          </div>
+                          <div className="text-gray-400 mt-1 text-[10px]">
+                            計算式: 消化金額 ÷ CV数
+                          </div>
+                          <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-full">
+                            <div className="border-4 border-transparent border-t-gray-900"></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                     {sortField === 'cpa' &&
                       (sortDirection === 'asc' ? (
                         <ChevronUpIcon className="h-3 w-3" />
