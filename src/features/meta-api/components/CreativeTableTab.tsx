@@ -550,7 +550,7 @@ export function CreativeTableTab({
                   onClick={() => handleSort('clicks')}
                 >
                   <div className="flex items-center justify-center gap-1">
-                    クリック
+                    CLICK
                     {sortField === 'clicks' &&
                       (sortDirection === 'asc' ? (
                         <ChevronUpIcon className="h-3 w-3" />
@@ -565,7 +565,7 @@ export function CreativeTableTab({
                   onClick={() => handleSort('spend')}
                 >
                   <div className="flex items-center justify-center gap-1">
-                    消化金額
+                    SPEND
                     {sortField === 'spend' &&
                       (sortDirection === 'asc' ? (
                         <ChevronUpIcon className="h-3 w-3" />
@@ -704,11 +704,11 @@ export function CreativeTableTab({
                 <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">
                   {formatNumber(sortedData.reduce((sum, item) => sum + (item.impressions || 0), 0))}
                 </td>
-                {/* クリック */}
+                {/* CLICK */}
                 <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">
                   {formatNumber(sortedData.reduce((sum, item) => sum + (item.clicks || 0), 0))}
                 </td>
-                {/* 消化金額 */}
+                {/* SPEND */}
                 <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">
                   ¥{formatNumber(sortedData.reduce((sum, item) => sum + (item.spend || 0), 0))}
                 </td>
@@ -819,27 +819,27 @@ export function CreativeTableTab({
                     ¥{formatNumber(item.metrics.cpc || 0)}
                   </td>
 
-                  {/* インプレッション */}
+                  {/* IMP */}
                   <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-gray-900">
                     {formatNumber(item.impressions)}
                   </td>
 
-                  {/* クリック数 */}
+                  {/* CLICK */}
                   <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-gray-900">
                     {formatNumber(item.clicks)}
                   </td>
 
-                  {/* 消化金額 */}
+                  {/* SPEND */}
                   <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-gray-900">
                     ¥{formatNumber(item.spend)}
                   </td>
 
-                  {/* コンバージョン */}
+                  {/* CV */}
                   <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-gray-900">
                     {formatNumber(item.conversions)}
                   </td>
 
-                  {/* ファーストCV */}
+                  {/* F-CV */}
                   <td className="px-2 py-3 whitespace-nowrap text-center text-sm">
                     <div className="group relative cursor-help inline-block">
                       {/* メイン表示 */}
