@@ -712,12 +712,10 @@ export function CreativeTableTab({
                   <td className="px-2 py-3 whitespace-nowrap text-center text-sm">
                     <span
                       className={
-                        (item.metrics?.frequency || 0) > 3.5
-                          ? 'text-red-600 font-medium'
-                          : 'text-gray-900'
+                        (item.frequency || 0) > 3.5 ? 'text-red-600 font-medium' : 'text-gray-900'
                       }
                     >
-                      {formatDecimal(item.metrics?.frequency || 0)}
+                      {formatDecimal(item.frequency || 0)}
                     </span>
                   </td>
 
@@ -738,17 +736,17 @@ export function CreativeTableTab({
 
                   {/* CTR */}
                   <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-gray-900">
-                    {formatPercentage(item.metrics?.ctr || 0)}
+                    {formatPercentage(item.ctr || 0)}
                   </td>
 
                   {/* U-CTR */}
                   <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-gray-900">
-                    {formatPercentage(item.metrics?.unique_ctr || 0)}
+                    {formatPercentage(item.unique_ctr || 0)}
                   </td>
 
                   {/* CPC */}
                   <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-gray-900">
-                    ¥{formatNumber(item.metrics?.cpc || 0)}
+                    ¥{formatNumber(item.cpc || 0)}
                   </td>
 
                   {/* SPEND */}
@@ -860,7 +858,7 @@ export function CreativeTableTab({
 
                   {/* CPM */}
                   <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-gray-900">
-                    ¥{formatNumber(item.metrics?.cpm || 0)}
+                    ¥{formatNumber(item.cpm || 0)}
                   </td>
 
                   {/* ROAS */}
