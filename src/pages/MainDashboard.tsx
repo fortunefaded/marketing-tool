@@ -413,7 +413,7 @@ export default function MainDashboard() {
           }),
           level: 'ad',
           fields:
-            'ad_id,ad_name,campaign_id,campaign_name,adset_id,adset_name,impressions,clicks,spend,ctr,cpm,cpc,frequency,reach,date_start,date_stop,conversions,actions,action_values,unique_actions,cost_per_action_type,cost_per_unique_action_type,website_purchase_roas,purchase_roas',
+            'ad_id,ad_name,campaign_id,campaign_name,adset_id,adset_name,impressions,clicks,spend,ctr,cpm,cpc,frequency,reach,date_start,date_stop,conversions,actions,action_values,unique_actions,cost_per_action_type,cost_per_unique_action_type',
           // F-CV調査用: 複数のアトリビューション期間を取得して比較
           action_attribution_windows: ['1d_click', '7d_click'],
           action_breakdowns: ['action_type'],
@@ -703,9 +703,6 @@ export default function MainDashboard() {
             frequency: parseFloat(item.frequency) || 0,
             reach: parseInt(item.reach) || 0,
             conversion_values: item.conversion_values ? parseFloat(item.conversion_values) : 0,
-            website_purchase_roas: item.website_purchase_roas
-              ? parseFloat(item.website_purchase_roas)
-              : 0,
             cost_per_conversion:
               conversionData.cv > 0 ? parseFloat(item.spend || '0') / conversionData.cv : 0,
             // 疲労度ステータスを追加（仮の判定）
@@ -721,6 +718,7 @@ export default function MainDashboard() {
               clicks: formatted.clicks,
               spend: formatted.spend,
               ctr: formatted.ctr,
+              conversion_values: formatted.conversion_values,
             })
           }
 

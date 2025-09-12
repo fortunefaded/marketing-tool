@@ -234,10 +234,6 @@ export function CreativeTableTab({
           aValue = Number(a.revenue) || 0
           bValue = Number(b.revenue) || 0
           break
-        case 'roas':
-          aValue = Number(a.roas) || 0
-          bValue = Number(b.roas) || 0
-          break
         case 'creativeType':
           aValue = (a.creativeType || '').toString().toLowerCase()
           bValue = (b.creativeType || '').toString().toLowerCase()
@@ -545,22 +541,6 @@ export function CreativeTableTab({
                       ))}
                   </div>
                 </th>
-                {/* ROAS */}
-                <th
-                  className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  style={{ width: '75px' }}
-                  onClick={() => handleSort('roas')}
-                >
-                  <div className="flex items-center justify-center gap-1">
-                    ROAS
-                    {sortField === 'roas' &&
-                      (sortDirection === 'asc' ? (
-                        <ChevronUpIcon className="h-3 w-3" />
-                      ) : (
-                        <ChevronDownIcon className="h-3 w-3" />
-                      ))}
-                  </div>
-                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -639,20 +619,6 @@ export function CreativeTableTab({
                           sortedData.length
                       )
                     : '0'}
-                </td>
-                <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">
-                  {sortedData.length > 0 &&
-                  sortedData.some((item) => item.website_purchase_roas > 0 || item.roas > 0)
-                    ? `${formatDecimal(
-                        sortedData.reduce(
-                          (sum, item) => sum + (item.website_purchase_roas || item.roas || 0),
-                          0
-                        ) /
-                          sortedData.filter(
-                            (item) => item.website_purchase_roas > 0 || item.roas > 0
-                          ).length
-                      )}x`
-                    : '-'}
                 </td>
               </tr>
 
@@ -809,28 +775,6 @@ export function CreativeTableTab({
                   {/* CPM */}
                   <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-gray-900">
                     ¥{formatNumber(item.metrics.cpm || 0)}
-                  </td>
-                  {/* ROAS */}
-                  <td className="px-2 py-3 whitespace-nowrap text-center text-sm">
-                    <span
-                      className={
-                        (item.website_purchase_roas || item.roas) >= 3.0
-                          ? 'text-green-600 font-medium'
-                          : (item.website_purchase_roas || item.roas) >= 2.0
-                            ? 'text-yellow-600'
-                            : (item.website_purchase_roas || item.roas) >= 1.0
-                              ? 'text-orange-600'
-                              : (item.website_purchase_roas || item.roas) > 0
-                                ? 'text-red-600'
-                                : 'text-gray-900'
-                      }
-                    >
-                      {item.website_purchase_roas > 0
-                        ? `${formatDecimal(item.website_purchase_roas)}x`
-                        : item.roas > 0
-                          ? `${formatDecimal(item.roas)}x`
-                          : '-'}
-                    </span>
                   </td>
                 </tr>
               ))}
