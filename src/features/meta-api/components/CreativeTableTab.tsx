@@ -594,9 +594,21 @@ export function CreativeTableTab({
                 <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-purple-600 font-semibold">
                   <div className="flex items-center justify-center gap-1">
                     <span>
-                      {sortedData.reduce((sum, item) => sum + (item.conversions || 0), 0) > 0
-                        ? `¥${formatNumber(sortedData.reduce((sum, item) => sum + (item.spend || 0), 0) / sortedData.reduce((sum, item) => sum + (item.conversions || 0), 0))}`
-                        : '-'}
+                      ¥
+                      {(() => {
+                        const totalCV =
+                          sortedData.length > 0 && sortedData[0].ecforce_cv_total !== undefined
+                            ? sortedData[0].ecforce_cv_total
+                            : sortedData.reduce(
+                                (sum, item) => sum + (item.ecforce_cv || item.conversions || 0),
+                                0
+                              )
+                        const totalSpend = sortedData.reduce(
+                          (sum, item) => sum + (item.spend || 0),
+                          0
+                        )
+                        return totalCV > 0 ? formatNumber(totalSpend / totalCV) : '0'
+                      })()}
                     </span>
                     <div className="group relative">
                       <InformationCircleIcon className="h-3 w-3 text-purple-400 cursor-help" />
