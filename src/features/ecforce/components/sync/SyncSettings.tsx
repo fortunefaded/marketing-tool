@@ -113,24 +113,27 @@ export const SyncSettings: React.FC = () => {
               <option value="daily">毎日</option>
               <option value="weekly">毎週</option>
               <option value="monthly">毎月</option>
+              <option value="test">テスト（1分ごと）</option>
             </select>
           </div>
 
           {/* 時刻設定 */}
-          <div>
-            <label htmlFor="time" className="block text-sm font-medium text-gray-700">
-              実行時刻
-            </label>
-            <input
-              type="time"
-              id="time"
-              value={time}
-              onChange={(e) => setTime(e.target.value)}
-              disabled={!enabled}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 sm:text-sm"
-            />
-            <p className="mt-1 text-xs text-gray-500">日本時間（JST）で設定してください</p>
-          </div>
+          {frequency !== 'test' && (
+            <div>
+              <label htmlFor="time" className="block text-sm font-medium text-gray-700">
+                実行時刻
+              </label>
+              <input
+                type="time"
+                id="time"
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+                disabled={!enabled}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 sm:text-sm"
+              />
+              <p className="mt-1 text-xs text-gray-500">日本時間（JST）で設定してください</p>
+            </div>
+          )}
         </div>
 
         {/* 保存ボタン */}

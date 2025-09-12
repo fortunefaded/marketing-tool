@@ -103,6 +103,9 @@ function generateCronExpression(schedule) {
     case 'monthly':
       // 毎月1日の指定時刻に実行
       return `${minutes} ${hours} 1 * *`;
+    case 'test':
+      // テスト用：1分ごとに実行
+      return '* * * * *';
     default:
       return `${minutes} ${hours} * * *`;
   }
