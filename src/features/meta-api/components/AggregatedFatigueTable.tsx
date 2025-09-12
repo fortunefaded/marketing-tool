@@ -649,6 +649,7 @@ export function AggregatedFatigueTable({
                 onClick={item.insights.length > 0 ? () => toggleRow(item.id) : undefined}
                 title={item.insights.length > 0 ? 'クリックして含まれる広告を表示' : undefined}
               >
+                {/* Name */}
                 <td className="px-4 py-4 whitespace-nowrap">
                   <div className="flex items-center space-x-2">
                     {item.insights.length > 0 && (
@@ -666,46 +667,64 @@ export function AggregatedFatigueTable({
                     </div>
                   </div>
                 </td>
-                <td className="px-4 py-4 whitespace-nowrap text-center">
+                {/* Ads */}
+                <td className="px-2 py-4 whitespace-nowrap text-center">
                   <span className="text-sm text-gray-900">{item.adCount}</span>
                 </td>
-                <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                  {formatCurrency(item.metrics.spend || 0)}
+                {/* FRQ */}
+                <td className="px-2 py-4 whitespace-nowrap text-center text-sm text-gray-900">
+                  {formatNumber(item.metrics.frequency || 0, 2)}
                 </td>
-                <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900">
+                {/* REACH */}
+                <td className="px-2 py-4 whitespace-nowrap text-center text-sm text-gray-900">
+                  {formatNumber(item.metrics.reach || 0)}
+                </td>
+                {/* IMP */}
+                <td className="px-2 py-4 whitespace-nowrap text-center text-sm text-gray-900">
                   {formatNumber(item.metrics.impressions || 0)}
                 </td>
-                <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900">
+                {/* CLICK */}
+                <td className="px-2 py-4 whitespace-nowrap text-center text-sm text-gray-900">
                   {formatNumber(item.metrics.clicks || 0)}
                 </td>
-                <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900">
+                {/* CTR */}
+                <td className="px-2 py-4 whitespace-nowrap text-center text-sm text-gray-900">
+                  {item.metrics.ctr ? `${item.metrics.ctr.toFixed(2)}%` : '-'}
+                </td>
+                {/* U-CTR */}
+                <td className="px-2 py-4 whitespace-nowrap text-center text-sm text-gray-900">
+                  {item.metrics.unique_ctr ? `${item.metrics.unique_ctr.toFixed(2)}%` : '0'}
+                </td>
+                {/* CPC */}
+                <td className="px-2 py-4 whitespace-nowrap text-center text-sm text-gray-900">
+                  ¥{formatNumber(item.metrics.cpc || 0)}
+                </td>
+                {/* SPEND */}
+                <td className="px-2 py-4 whitespace-nowrap text-center text-sm text-gray-900">
+                  ¥{formatNumber(item.metrics.spend || 0)}
+                </td>
+                {/* F-CV */}
+                <td className="px-2 py-4 whitespace-nowrap text-center text-sm text-gray-900">
+                  {formatNumber(item.metrics.conversions_1d_click || 0)}
+                </td>
+                {/* CV */}
+                <td className="px-2 py-4 whitespace-nowrap text-center text-sm text-gray-900">
                   {formatNumber(item.metrics.conversions || 0)}
                 </td>
-                <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-500">0</td>
-                <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                  {item.metrics.conversions > 0 ? formatCurrency(item.metrics.cpa) : '-'}
+                {/* CPA */}
+                <td className="px-2 py-4 whitespace-nowrap text-center text-sm text-gray-900">
+                  {item.metrics.conversions > 0 ? `¥${formatNumber(item.metrics.cpa)}` : '-'}
                 </td>
-                <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                  {formatNumber(item.metrics.ctr || 0, 2)}
-                </td>
-                <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                  {formatCurrency(item.metrics.cpc || 0)}
-                </td>
-                <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                  {formatNumber(item.metrics.cvr || 0, 2)}
-                </td>
-                <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                  {formatCurrency(item.metrics.cpm || 0)}
-                </td>
-                <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                  {formatNumber(item.metrics.frequency || 0, 2)}
+                {/* CPM */}
+                <td className="px-2 py-4 whitespace-nowrap text-center text-sm text-gray-900">
+                  ¥{formatNumber(item.metrics.cpm || 0)}
                 </td>
               </tr>
 
               {/* Expanded content showing individual ads */}
               {expandedRows.has(item.id) && item.insights.length > 0 && (
                 <tr>
-                  <td colSpan={13} className="px-4 py-2 bg-gray-50 border-l-4 border-indigo-200">
+                  <td colSpan={14} className="px-4 py-2 bg-gray-50 border-l-4 border-indigo-200">
                     <div className="space-y-2">
                       <div className="text-sm font-medium text-gray-700 mb-3">
                         この{level === 'campaign' ? 'キャンペーン' : '広告セット'}の広告 (
