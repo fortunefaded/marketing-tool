@@ -771,18 +771,40 @@ export default function MainDashboard() {
 
           console.log('ECForce合計:', ecforceTotals)
 
+          // ECForceデータを広告名(creativeName)でグループ化
+          const ecforceByCreativeName = new Map<string, { cv: number; fcv: number }>()
+          ecforceResponse.forEach((ec: any) => {
+            const creativeName = ec.creativeName || ''
+            if (creativeName) {
+              const existing = ecforceByCreativeName.get(creativeName) || { cv: 0, fcv: 0 }
+              ecforceByCreativeName.set(creativeName, {
+                cv: existing.cv + (ec.cvOrder || 0),
+                fcv: existing.fcv + (ec.cvPayment || 0),
+              })
+            }
+          })
+
+          console.log('ECForce広告名別データ:', ecforceByCreativeName.size + '件のクリエイティブ')
+
           // MetaデータにECForceデータを統合
           // 全てのアイテムに合計値を追加（合計行で使用するため）
           const dataWithEcforce = formattedData.map((item: any) => {
+            // 広告名でECForceデータを検索
+            const ecforceCreativeData = ecforceByCreativeName.get(item.ad_name || '') || {
+              cv: 0,
+              fcv: 0,
+            }
+
             return {
               ...item,
               // ECForce合計値を全アイテムに保存（合計行で参照するため）
               ecforce_cv_total: ecforceTotals.totalCvOrder || 0,
               ecforce_fcv_total: ecforceTotals.totalCvPayment || 0,
-              // 個別のクリエイティブ用（Metaのconversionsを使用）
-              ecforce_cv: item.conversions || 0,
-              ecforce_fcv: item.conversions_1d_click || 0,
-              ecforce_cpa: null,
+              // 個別のクリエイティブ用（広告名でマッチング）
+              ecforce_cv: ecforceCreativeData.cv,
+              ecforce_fcv: ecforceCreativeData.fcv,
+              ecforce_cpa:
+                ecforceCreativeData.fcv > 0 ? item.spend / ecforceCreativeData.fcv : null,
             }
           })
 
