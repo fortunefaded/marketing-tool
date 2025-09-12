@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { AggregatedData } from '../utils/aggregation'
-import { ChevronUpIcon, ChevronDownIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
+import {
+  ChevronUpIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  InformationCircleIcon,
+} from '@heroicons/react/24/outline'
 import { FatigueData } from '@/types'
 import { CreativeDetailModal } from './CreativeDetailModal'
 
@@ -614,20 +619,55 @@ export function AggregatedFatigueTable({
               )}
             </td>
             {/* CV */}
-            <td className="px-2 py-3 text-center text-sm text-blue-900">
-              {formatNumber(
-                sortedData.reduce((sum, item) => sum + (item.metrics.conversions || 0), 0)
-              )}
+            <td className="px-2 py-3 text-center text-sm text-purple-600 font-semibold">
+              <div className="flex items-center justify-center gap-1">
+                <span>
+                  {formatNumber(
+                    sortedData.reduce((sum, item) => sum + (item.metrics.conversions || 0), 0)
+                  )}
+                </span>
+                <div className="group relative">
+                  <InformationCircleIcon className="h-3 w-3 text-purple-400 cursor-help" />
+                  <div className="hidden group-hover:block absolute z-50 bg-gray-900 text-white text-xs rounded-lg p-2 bottom-full left-1/2 transform -translate-x-1/2 w-56 shadow-xl mb-1 pointer-events-none">
+                    <div className="font-semibold mb-1">ECForceコンバージョン合計</div>
+                    <div className="text-gray-300">
+                      ECForceから取得した注文完了数の合計です。Meta広告経由の購入データを表示しています。
+                    </div>
+                    <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-full">
+                      <div className="border-4 border-transparent border-t-gray-900"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </td>
             {/* CPA */}
-            <td className="px-2 py-3 text-center text-sm text-blue-900">
-              ¥
-              {sortedData.reduce((sum, item) => sum + (item.metrics.conversions || 0), 0) > 0
-                ? formatNumber(
-                    sortedData.reduce((sum, item) => sum + (item.metrics.spend || 0), 0) /
-                      sortedData.reduce((sum, item) => sum + (item.metrics.conversions || 0), 0)
-                  )
-                : '0'}
+            <td className="px-2 py-3 text-center text-sm text-purple-600 font-semibold">
+              <div className="flex items-center justify-center gap-1">
+                <span>
+                  ¥
+                  {sortedData.reduce((sum, item) => sum + (item.metrics.conversions || 0), 0) > 0
+                    ? formatNumber(
+                        sortedData.reduce((sum, item) => sum + (item.metrics.spend || 0), 0) /
+                          sortedData.reduce((sum, item) => sum + (item.metrics.conversions || 0), 0)
+                      )
+                    : '0'}
+                </span>
+                <div className="group relative">
+                  <InformationCircleIcon className="h-3 w-3 text-purple-400 cursor-help" />
+                  <div className="hidden group-hover:block absolute z-50 bg-gray-900 text-white text-xs rounded-lg p-2 bottom-full left-1/2 transform -translate-x-1/2 w-48 shadow-xl mb-1 pointer-events-none">
+                    <div className="font-semibold mb-1">平均獲得単価（CPA）</div>
+                    <div className="text-gray-300">
+                      1件のコンバージョンを獲得するのにかかった平均広告費用
+                    </div>
+                    <div className="text-gray-400 mt-1 text-[10px]">
+                      計算式: 総消化金額 ÷ 総CV数
+                    </div>
+                    <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-full">
+                      <div className="border-4 border-transparent border-t-gray-900"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </td>
             {/* CPM */}
             <td className="px-2 py-3 text-center text-sm text-blue-900">
