@@ -47,19 +47,36 @@ app.post('/api/ecforce/sync', async (req, res) => {
       const success = stdout.includes('アップロード処理が完了しました') || 
                      stdout.includes('すべての処理が正常に完了しました');
       
-      // 処理件数を抽出
+      // 処理件数を抽出（複数のパターンを試す）
       let recordsProcessed = 0;
-      const match = stdout.match(/処理済み:\s*(\d+)件/);
-      if (match) {
-        recordsProcessed = parseInt(match[1], 10);
+      const patterns = [
+        /処理済み:\s*(\d+)件/,
+        /成功:\s*(\d+)件/,
+        /処理対象データ:\s*(\d+)件/
+      ];
+      
+      for (const pattern of patterns) {
+        const match = stdout.match(pattern);
+        if (match) {
+          recordsProcessed = parseInt(match[1], 10);
+          if (recordsProcessed > 0) break;
+        }
       }
       
-      console.log('処理完了:', { success, recordsProcessed });
+      // インポートIDを抽出
+      let importId = null;
+      const importIdMatch = stdout.match(/インポートID:\s*([^\s]+)/);
+      if (importIdMatch) {
+        importId = importIdMatch[1];
+      }
+      
+      console.log('処理完了:', { success, recordsProcessed, importId });
       
       res.json({
         success,
         message: success ? 'ECForce同期が完了しました' : 'ECForce同期に失敗しました',
         recordsProcessed,
+        importId,
         output: stdout
       });
     });

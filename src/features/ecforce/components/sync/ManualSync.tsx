@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { useMutation, useQuery, useAction } from 'convex/react'
+import { useQuery } from 'convex/react'
 import { api } from '../../../../../convex/_generated/api'
 import {
   PlayIcon,
@@ -27,14 +27,11 @@ export const ManualSync: React.FC = () => {
   // 最新のインポート履歴を取得
   const latestImport = useQuery(api.ecforce.getImportHistory, { limit: 1 })
 
-  // 同期後のデータを取得
-  const latestData = useQuery(
-    api.ecforce.getPerformanceData,
-    syncResult?.importId ? { limit: 10 } : 'skip'
-  )
+  // 同期完了後、最新のデータを取得（日付順でソート）
+  const latestData = useQuery(api.ecforce.getPerformanceData, syncResult ? { limit: 10 } : 'skip')
 
-  // Convexのテスト同期mutationを使用
-  const runTestSync = useMutation(api.ecforceTestSync.runTestSync)
+  // テスト同期mutationは削除（不要）
+  // const runTestSync = useMutation(api.ecforceTestSync.runTestSync)
 
   const handleManualSync = async () => {
     setIsRunning(true)
@@ -43,8 +40,8 @@ export const ManualSync: React.FC = () => {
     setProgress(25)
 
     try {
-      // 実際のAPIサーバーを呼び出す（開発環境用）
-      const useRealSync = true // 本番フラグ
+      // 常に実際のAPIサーバーを呼び出す
+      const useRealSync = true // 常に本番モード
 
       if (useRealSync) {
         // 実際のECForce同期を実行
@@ -73,43 +70,23 @@ export const ManualSync: React.FC = () => {
           setStatus('success')
           setMessage(`同期が完了しました！ ${result.recordsProcessed || 0}件のデータを処理しました`)
           setProgress(100)
-          setSyncResult({ ...result, importId: `manual_${Date.now()}` })
+          setSyncResult(result) // importIdをそのまま使用
 
           // 通知を表示
           showSyncNotification(
             `✅ 同期が完了しました！\n${result.recordsProcessed || 0}件のデータを処理しました`
           )
 
-          // 3秒後にデータを再取得
-          setTimeout(() => {
-            window.location.reload()
-          }, 3000)
+          // リロードは行わない（ユーザーが手動で更新）
+          // setTimeout(() => {
+          //   window.location.reload()
+          // }, 3000)
         } else {
           throw new Error(result.error || '同期処理でエラーが発生しました')
         }
       } else {
-        // テストモード（Convexのmutationを実行）
-        await new Promise((resolve) => setTimeout(resolve, 1500))
-
-        setStatus('uploading')
-        setMessage('Convexデータベースにアップロード中...')
-        setProgress(75)
-
-        const result = await runTestSync()
-
-        if (result.success) {
-          setStatus('success')
-          setMessage(`同期が完了しました！ ${result.recordsProcessed || 0}件のデータを処理しました`)
-          setProgress(100)
-          setSyncResult(result)
-
-          // 通知を表示
-          showSyncNotification(
-            `✅ 同期が完了しました！\n${result.recordsProcessed || 0}件のデータを処理しました`
-          )
-        } else {
-          throw new Error('同期処理でエラーが発生しました')
-        }
+        // テストモードは無効化（常に実際の同期を実行）
+        throw new Error('テストモードは無効化されています')
       }
     } catch (error) {
       setStatus('error')
@@ -284,7 +261,9 @@ export const ManualSync: React.FC = () => {
       {/* 取得したデータの表示 */}
       {syncResult && latestData?.data && latestData.data.length > 0 && (
         <div className="mt-6 rounded-lg bg-white p-6 shadow">
-          <h4 className="text-sm font-medium text-gray-900 mb-4">取得したデータ（最新10件）</h4>
+          <h4 className="text-sm font-medium text-gray-900 mb-4">
+            取得したデータ（{latestData.data.length}件）
+          </h4>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -302,22 +281,26 @@ export const ManualSync: React.FC = () => {
                     売上金額
                   </th>
                   <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">
+                    アクセス数
+                  </th>
+                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">
                     CV(受注)
+                  </th>
+                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">
+                    CVR(受注)
                   </th>
                   <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">
                     CV(決済)
                   </th>
                   <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                    CVR(受注)
+                    CVR(決済)
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {latestData.data.map((row: any, index: number) => (
+                {latestData.data.slice(0, 10).map((row: any, index: number) => (
                   <tr key={index} className="hover:bg-gray-50">
-                    <td className="px-3 py-2 text-sm text-gray-900">
-                      {row.dataDate ? format(new Date(row.dataDate), 'MM/dd', { locale: ja }) : '-'}
-                    </td>
+                    <td className="px-3 py-2 text-sm text-gray-900">{row.dataDate || '-'}</td>
                     <td className="px-3 py-2 text-sm text-gray-900">{row.advertiser || '-'}</td>
                     <td className="px-3 py-2 text-sm text-right text-gray-900">
                       {row.orderAmount ? `¥${row.orderAmount.toLocaleString()}` : '-'}
@@ -326,20 +309,29 @@ export const ManualSync: React.FC = () => {
                       {row.salesAmount ? `¥${row.salesAmount.toLocaleString()}` : '-'}
                     </td>
                     <td className="px-3 py-2 text-sm text-right text-gray-900">
+                      {row.accessCount || 0}
+                    </td>
+                    <td className="px-3 py-2 text-sm text-right text-gray-900">
                       {row.cvOrder || 0}
+                    </td>
+                    <td className="px-3 py-2 text-sm text-right text-gray-900">
+                      {row.cvrOrder ? `${(row.cvrOrder * 100).toFixed(2)}%` : '-'}
                     </td>
                     <td className="px-3 py-2 text-sm text-right text-gray-900">
                       {row.cvPayment || 0}
                     </td>
                     <td className="px-3 py-2 text-sm text-right text-gray-900">
-                      {row.cvrOrder ? `${(row.cvrOrder * 100).toFixed(2)}%` : '-'}
+                      {row.cvrPayment ? `${(row.cvrPayment * 100).toFixed(2)}%` : '-'}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <div className="mt-3 text-xs text-gray-500">インポートID: {syncResult.importId}</div>
+          <div className="mt-3 flex justify-between text-xs text-gray-500">
+            <span>インポートID: {syncResult.importId || 'N/A'}</span>
+            <span>処理件数: {syncResult.recordsProcessed || 0}件</span>
+          </div>
         </div>
       )}
     </div>

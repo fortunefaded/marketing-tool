@@ -33,17 +33,32 @@ export async function uploadToConvex(csvPath) {
     let csvContent;
     const buffer = fs.readFileSync(csvPath);
     
-    // UTF-8として読み込みを試みる
+    // まずShift-JISとして読み込みを試みる（ECForceのCSVは通常Shift-JIS）
     try {
+      // Shift-JISとして読み込み
+      console.log('  Shift-JISからUTF-8に変換中...');
+      csvContent = iconv.decode(buffer, 'Shift_JIS');
+      
+      // 変換成功の確認（日本語が含まれているかチェック）
+      if (!csvContent.includes('デバイス') && !csvContent.includes('合計')) {
+        // UTF-8として再度試みる
+        csvContent = buffer.toString('utf-8');
+        // BOMを除去
+        if (csvContent.charCodeAt(0) === 0xFEFF) {
+          csvContent = csvContent.substring(1);
+        }
+        console.log('  UTF-8として読み込み');
+      } else {
+        console.log('  Shift-JIS変換成功');
+      }
+    } catch (e) {
+      // UTF-8として読み込み
+      console.log('  UTF-8として読み込み中...');
       csvContent = buffer.toString('utf-8');
       // BOMを除去
       if (csvContent.charCodeAt(0) === 0xFEFF) {
         csvContent = csvContent.substring(1);
       }
-    } catch (e) {
-      // Shift-JISとして読み込み
-      console.log('  Shift-JISからUTF-8に変換中...');
-      csvContent = iconv.decode(buffer, 'Shift_JIS');
     }
     
     // papaparseでCSVをパース
@@ -64,6 +79,15 @@ export async function uploadToConvex(csvPath) {
     }
     
     console.log(`  総行数: ${parseResult.data.length}`);
+    
+    // デバッグ: 最初の数行のデータとヘッダーを確認
+    if (parseResult.data.length > 0) {
+      console.log('📋 ヘッダー:', Object.keys(parseResult.data[0]));
+      console.log('📋 最初の3行のデータ:');
+      parseResult.data.slice(0, 3).forEach((row, i) => {
+        console.log(`  行${i + 1}:`, row);
+      });
+    }
     
     // デバイス=「合計」のみフィルタリング
     const filteredData = parseResult.data.filter(row => row['デバイス'] === '合計');
