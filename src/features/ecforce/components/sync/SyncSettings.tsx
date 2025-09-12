@@ -50,6 +50,10 @@ export const SyncSettings: React.FC = () => {
     if (!enabled || !config?.schedule.nextRun) {
       return null
     }
+    // テストモードの場合は「次の1分以内」と表示
+    if (frequency === 'test') {
+      return '次の1分以内'
+    }
     return format(new Date(config.schedule.nextRun), 'yyyy年MM月dd日 HH:mm', { locale: ja })
   }
 

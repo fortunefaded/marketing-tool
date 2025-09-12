@@ -272,11 +272,13 @@ export default defineSchema({
   ecforceSyncConfig: defineTable({
     enabled: v.boolean(),
     schedule: v.object({
-      frequency: v.string(), // 'daily' | 'weekly' | 'monthly'
+      frequency: v.string(), // 'daily' | 'weekly' | 'monthly' | 'test'
       time: v.string(), // 'HH:MM'
       timezone: v.string(), // 'Asia/Tokyo'
       lastRun: v.optional(v.number()),
       nextRun: v.optional(v.number()),
+      lastRunStatus: v.optional(v.string()), // 'success' | 'error'
+      lastRunError: v.optional(v.string()), // エラーメッセージ
     }),
     updatedAt: v.number(),
   }),

@@ -49,6 +49,7 @@ type SortField =
   | 'advertiser'
   | 'orderAmount'
   | 'salesAmount'
+  | 'accessCount'
   | 'cvOrder'
   | 'cvPayment'
   | 'cvrOrder'
@@ -551,6 +552,15 @@ export const ECForceDataList: React.FC = () => {
                   </th>
                   <th
                     className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 bg-gray-50"
+                    onClick={() => handleSort('accessCount')}
+                  >
+                    <div className="flex items-center justify-end gap-1">
+                      アクセス数
+                      <SortIcon field="accessCount" />
+                    </div>
+                  </th>
+                  <th
+                    className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 bg-gray-50"
                     onClick={() => handleSort('cvOrder')}
                   >
                     <div className="flex items-center justify-end gap-1">
@@ -613,6 +623,9 @@ export const ECForceDataList: React.FC = () => {
                       ¥{formatNumber(item.salesAmount || 0)}
                     </td>
                     <td className="px-4 py-2 text-sm text-right text-gray-900">
+                      {formatNumber(item.accessCount || 0)}
+                    </td>
+                    <td className="px-4 py-2 text-sm text-right text-gray-900">
                       {item.cvOrder || 0}
                     </td>
                     <td className="px-4 py-2 text-sm text-right text-gray-900">
@@ -647,6 +660,9 @@ export const ECForceDataList: React.FC = () => {
                   </td>
                   <td className="px-4 py-2 text-sm text-right font-bold text-gray-900">
                     ¥{formatNumber(totals.salesAmount)}
+                  </td>
+                  <td className="px-4 py-2 text-sm text-right font-bold text-gray-900">
+                    {formatNumber(totals.accessCount)}
                   </td>
                   <td className="px-4 py-2 text-sm text-right font-bold text-gray-900">
                     {totals.cvOrder}
