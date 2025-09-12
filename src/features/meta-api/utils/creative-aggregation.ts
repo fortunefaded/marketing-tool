@@ -15,9 +15,11 @@ export interface AggregatedCreative {
   impressions: number
   clicks: number
   spend: number
+  reach: number // リーチ数
   conversions: number
   conversions_1d_click: number // F-CV: 初回コンバージョン
   conversion_values: number
+  revenue: number // 売上
   fcv_debug?: any // F-CVデバッグ情報
 
   // ECForceデータ
@@ -27,7 +29,7 @@ export interface AggregatedCreative {
   ecforce_cv_total?: number // 合計行用
   ecforce_fcv_total?: number // 合計行用
 
-  // 計算メトリクス
+  // 計算メトリクス（直接プロパティとして保持）
   ctr: number
   unique_ctr: number
   cpm: number
@@ -36,8 +38,25 @@ export interface AggregatedCreative {
   roas: number
   frequency: number
 
+  // metricsオブジェクト（互換性のため）
+  metrics: {
+    impressions: number
+    clicks: number
+    spend: number
+    reach: number
+    conversions: number
+    frequency: number
+    ctr: number
+    unique_ctr: number
+    cpm: number
+    cpc: number
+    cpa: number
+    roas: number
+  }
+
   // 疲労度（最大値）
   fatigue_score: number
+  score: number // fatigue_scoreのエイリアス（互換性のため）
 
   // 日別データ（詳細表示用）
   dailyData: Array<{
@@ -118,9 +137,11 @@ export function aggregateCreativesByName(data: any[]): AggregatedCreative[] {
     let totalImpressions = 0
     let totalClicks = 0
     let totalSpend = 0
+    let totalReach = 0 // リーチの集計
     let totalConversions = 0
     let totalConversions1dClick = 0 // F-CV集計用
     let totalConversionValues = 0
+    let totalRevenue = 0 // 売上の集計
     let maxFatigueScore = 0
     let totalFrequency = 0
     let frequencyCount = 0
@@ -138,6 +159,7 @@ export function aggregateCreativesByName(data: any[]): AggregatedCreative[] {
         typeof item.impressions === 'number' ? item.impressions : parseFloat(item.impressions) || 0
       const clicks = typeof item.clicks === 'number' ? item.clicks : parseFloat(item.clicks) || 0
       const spend = typeof item.spend === 'number' ? item.spend : parseFloat(item.spend) || 0
+      const reach = typeof item.reach === 'number' ? item.reach : parseFloat(item.reach) || 0
       const conversions =
         typeof item.conversions === 'number' ? item.conversions : parseFloat(item.conversions) || 0
       const conversions1dClick =
@@ -157,9 +179,11 @@ export function aggregateCreativesByName(data: any[]): AggregatedCreative[] {
       totalImpressions += impressions
       totalClicks += clicks
       totalSpend += spend
+      totalReach += reach
       totalConversions += conversions
       totalConversions1dClick += conversions1dClick
       totalConversionValues += conversionValues
+      totalRevenue += conversionValues // revenueはconversion_valuesと同じ
 
       // ECForceデータの集計
       const ecforceCv =
@@ -220,6 +244,22 @@ export function aggregateCreativesByName(data: any[]): AggregatedCreative[] {
     // ECForce合計値を計算（最初のアイテムから取得）
     const ecforceCpa = totalEcforceFcv > 0 ? totalSpend / totalEcforceFcv : null
 
+    // metricsオブジェクトを作成
+    const metrics = {
+      impressions: totalImpressions,
+      clicks: totalClicks,
+      spend: totalSpend,
+      reach: totalReach,
+      conversions: totalConversions,
+      frequency: avgFrequency,
+      ctr,
+      unique_ctr,
+      cpm,
+      cpc,
+      cpa,
+      roas,
+    }
+
     aggregated.push({
       adName,
       adIds,
@@ -230,9 +270,11 @@ export function aggregateCreativesByName(data: any[]): AggregatedCreative[] {
       impressions: totalImpressions,
       clicks: totalClicks,
       spend: totalSpend,
+      reach: totalReach,
       conversions: totalConversions,
       conversions_1d_click: totalConversions1dClick,
       conversion_values: totalConversionValues,
+      revenue: totalRevenue,
       fcv_debug: first.fcv_debug, // 最初のアイテムのデバッグ情報を使用
       ecforce_cv: totalEcforceCv,
       ecforce_fcv: totalEcforceFcv,
@@ -246,7 +288,9 @@ export function aggregateCreativesByName(data: any[]): AggregatedCreative[] {
       cpa,
       roas,
       frequency: avgFrequency,
+      metrics, // metricsオブジェクトを追加
       fatigue_score: maxFatigueScore > 0 ? maxFatigueScore : -1, // 疲労度スコアが無い場合は-1
+      score: maxFatigueScore > 0 ? maxFatigueScore : -1, // scoreエイリアス
       dailyData,
       firstDate,
       lastDate,
