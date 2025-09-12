@@ -305,7 +305,7 @@ export function CreativeTableTab({
                 {/* Name */}
                 <th
                   className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  style={{ minWidth: '200px' }}
+                  style={{ width: '150px', maxWidth: '150px' }}
                   onClick={() => handleSort('adName')}
                 >
                   <div className="flex items-center gap-1">
@@ -646,7 +646,7 @@ export function CreativeTableTab({
                   <td className="px-4 py-3 whitespace-nowrap">
                     <div
                       className="text-sm font-medium text-gray-900 truncate"
-                      style={{ maxWidth: '300px' }}
+                      style={{ width: '150px', maxWidth: '150px' }}
                       title={item.adName || `Creative ${index + 1}`}
                     >
                       {item.adName || `Creative ${index + 1}`}
