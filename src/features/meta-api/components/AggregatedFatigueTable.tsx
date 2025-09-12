@@ -622,9 +622,15 @@ export function AggregatedFatigueTable({
             <td className="px-2 py-3 text-center text-sm text-purple-600 font-semibold">
               <div className="flex items-center justify-center gap-1">
                 <span>
-                  {formatNumber(
-                    sortedData.reduce((sum, item) => sum + (item.metrics.conversions || 0), 0)
-                  )}
+                  {sortedData.length > 0 && sortedData[0].metrics?.ecforce_cv_total !== undefined
+                    ? formatNumber(sortedData[0].metrics.ecforce_cv_total)
+                    : formatNumber(
+                        sortedData.reduce(
+                          (sum, item) =>
+                            sum + (item.metrics.ecforce_cv || item.metrics.conversions || 0),
+                          0
+                        )
+                      )}
                 </span>
                 <div className="group relative">
                   <InformationCircleIcon className="h-3 w-3 text-purple-400 cursor-help" />
@@ -645,12 +651,21 @@ export function AggregatedFatigueTable({
               <div className="flex items-center justify-center gap-1">
                 <span>
                   ¥
-                  {sortedData.reduce((sum, item) => sum + (item.metrics.conversions || 0), 0) > 0
-                    ? formatNumber(
-                        sortedData.reduce((sum, item) => sum + (item.metrics.spend || 0), 0) /
-                          sortedData.reduce((sum, item) => sum + (item.metrics.conversions || 0), 0)
-                      )
-                    : '0'}
+                  {(() => {
+                    const totalCV =
+                      sortedData.length > 0 && sortedData[0].metrics?.ecforce_cv_total !== undefined
+                        ? sortedData[0].metrics.ecforce_cv_total
+                        : sortedData.reduce(
+                            (sum, item) =>
+                              sum + (item.metrics.ecforce_cv || item.metrics.conversions || 0),
+                            0
+                          )
+                    const totalSpend = sortedData.reduce(
+                      (sum, item) => sum + (item.metrics.spend || 0),
+                      0
+                    )
+                    return totalCV > 0 ? formatNumber(totalSpend / totalCV) : '0'
+                  })()}
                 </span>
                 <div className="group relative">
                   <InformationCircleIcon className="h-3 w-3 text-purple-400 cursor-help" />
@@ -749,11 +764,13 @@ export function AggregatedFatigueTable({
                 </td>
                 {/* CV */}
                 <td className="px-2 py-4 whitespace-nowrap text-center text-sm text-gray-900">
-                  {formatNumber(item.metrics.conversions || 0)}
+                  {formatNumber(item.metrics.ecforce_cv || item.metrics.conversions || 0)}
                 </td>
                 {/* CPA */}
                 <td className="px-2 py-4 whitespace-nowrap text-center text-sm text-gray-900">
-                  {item.metrics.conversions > 0 ? `¥${formatNumber(item.metrics.cpa)}` : '-'}
+                  {(item.metrics.ecforce_cv || item.metrics.conversions || 0) > 0
+                    ? `¥${formatNumber(item.metrics.spend / (item.metrics.ecforce_cv || item.metrics.conversions))}`
+                    : '-'}
                 </td>
                 {/* CPM */}
                 <td className="px-2 py-4 whitespace-nowrap text-center text-sm text-gray-900">

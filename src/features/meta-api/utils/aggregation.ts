@@ -50,6 +50,13 @@ export interface AggregatedData {
     cpc: number
     cvr: number
     cpm: number
+    // ECForceデータ
+    ecforce_cv?: number
+    ecforce_fcv?: number
+    ecforce_cv_total?: number
+    ecforce_fcv_total?: number
+    conversions_1d_click?: number
+    unique_ctr?: number
   }
   // 集計対象の広告数
   adCount: number
