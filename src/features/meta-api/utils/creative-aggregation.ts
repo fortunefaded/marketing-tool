@@ -38,22 +38,6 @@ export interface AggregatedCreative {
   roas: number
   frequency: number
 
-  // metricsオブジェクト（互換性のため）
-  metrics: {
-    impressions: number
-    clicks: number
-    spend: number
-    reach: number
-    conversions: number
-    frequency: number
-    ctr: number
-    unique_ctr: number
-    cpm: number
-    cpc: number
-    cpa: number
-    roas: number
-  }
-
   // 疲労度（最大値）
   fatigue_score: number
   score: number // fatigue_scoreのエイリアス（互換性のため）
@@ -244,22 +228,6 @@ export function aggregateCreativesByName(data: any[]): AggregatedCreative[] {
     // ECForce合計値を計算（最初のアイテムから取得）
     const ecforceCpa = totalEcforceFcv > 0 ? totalSpend / totalEcforceFcv : null
 
-    // metricsオブジェクトを作成
-    const metrics = {
-      impressions: totalImpressions,
-      clicks: totalClicks,
-      spend: totalSpend,
-      reach: totalReach,
-      conversions: totalConversions,
-      frequency: avgFrequency,
-      ctr,
-      unique_ctr,
-      cpm,
-      cpc,
-      cpa,
-      roas,
-    }
-
     aggregated.push({
       adName,
       adIds,
@@ -288,7 +256,6 @@ export function aggregateCreativesByName(data: any[]): AggregatedCreative[] {
       cpa,
       roas,
       frequency: avgFrequency,
-      metrics, // metricsオブジェクトを追加
       fatigue_score: maxFatigueScore > 0 ? maxFatigueScore : -1, // 疲労度スコアが無い場合は-1
       score: maxFatigueScore > 0 ? maxFatigueScore : -1, // scoreエイリアス
       dailyData,
