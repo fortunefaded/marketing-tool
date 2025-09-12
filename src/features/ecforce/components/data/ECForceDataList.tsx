@@ -7,7 +7,10 @@ import {
   ArrowDownIcon,
   ExclamationTriangleIcon,
   CheckCircleIcon,
+  TrashIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline'
+import { Id } from '../../../../../convex/_generated/dataModel'
 
 // キャッシュキー
 const CACHE_KEY = 'ecforce_performance_data'
@@ -61,6 +64,9 @@ export const ECForceDataList: React.FC = () => {
   const [cachedData, setCachedDataState] = useState<any>(null)
   const [fixResult, setFixResult] = useState<any>(null)
   const [isFixing, setIsFixing] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<Id<'ecforcePerformance'>>>(new Set())
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   // Convexからデータ取得
   const performanceData = useQuery(
@@ -76,6 +82,8 @@ export const ECForceDataList: React.FC = () => {
 
   const advertisers = useQuery(api.ecforce.getAdvertisers, cachedData ? 'skip' : undefined)
   const fixCvrValues = useMutation(api.ecforce.fixCvrValues)
+  const deleteData = useMutation(api.ecforce.deletePerformanceDataById)
+  const deleteMultipleData = useMutation(api.ecforce.deleteMultiplePerformanceData)
 
   // 初回ロード時にキャッシュをチェック
   useEffect(() => {
@@ -98,12 +106,11 @@ export const ECForceDataList: React.FC = () => {
   const activeData = cachedData?.performanceData || performanceData
   const activeAdvertisers = cachedData?.advertisers || advertisers
 
-  // 異常値の検出
+  // CVR異常値の検出
   const hasAbnormalCvr = useMemo(() => {
     if (!activeData?.data) return false
     return activeData.data.some(
-      (record: any) =>
-        record.cvrOrder > 1 || record.cvrPayment > 1 || record.offerRateThanksUpsell > 1
+      (item: any) => item.cvrOrder > 1 || item.cvrPayment > 1 || item.offerRateThanksUpsell > 1
     )
   }, [activeData])
 
@@ -113,17 +120,67 @@ export const ECForceDataList: React.FC = () => {
     try {
       const result = await fixCvrValues()
       setFixResult(result)
-      // キャッシュをクリアして再取得
+      // キャッシュをクリアして再読み込み
       localStorage.removeItem(CACHE_KEY)
       setCachedDataState(null)
-      setTimeout(() => {
-        setFixResult(null)
-      }, 5000)
     } catch (error) {
       console.error('CVR修正エラー:', error)
     } finally {
       setIsFixing(false)
     }
+  }
+
+  // 削除処理
+  const handleDelete = async (id: Id<'ecforcePerformance'>) => {
+    if (!confirm('このデータを削除しますか？')) return
+
+    try {
+      await deleteData({ id })
+      // キャッシュをクリアして再読み込み
+      localStorage.removeItem(CACHE_KEY)
+      setCachedDataState(null)
+      setSelectedIds(new Set())
+    } catch (error) {
+      console.error('削除エラー:', error)
+      alert('削除に失敗しました')
+    }
+  }
+
+  // 複数削除処理
+  const handleMultipleDelete = async () => {
+    setIsDeleting(true)
+    try {
+      await deleteMultipleData({ ids: Array.from(selectedIds) })
+      // キャッシュをクリアして再読み込み
+      localStorage.removeItem(CACHE_KEY)
+      setCachedDataState(null)
+      setSelectedIds(new Set())
+      setShowDeleteConfirm(false)
+    } catch (error) {
+      console.error('削除エラー:', error)
+      alert('削除に失敗しました')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  // チェックボックス選択
+  const handleSelectAll = () => {
+    if (selectedIds.size === filteredAndSortedData.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(filteredAndSortedData.map((item) => item._id)))
+    }
+  }
+
+  const handleSelectOne = (id: Id<'ecforcePerformance'>) => {
+    const newSet = new Set(selectedIds)
+    if (newSet.has(id)) {
+      newSet.delete(id)
+    } else {
+      newSet.add(id)
+    }
+    setSelectedIds(newSet)
   }
 
   // ソート処理
@@ -136,67 +193,59 @@ export const ECForceDataList: React.FC = () => {
     }
   }
 
-  // フィルター・ソート済みデータ
+  // フィルタリングとソート
   const filteredAndSortedData = useMemo(() => {
     if (!activeData?.data) return []
 
     let filtered = [...activeData.data]
 
-    // フィルタリング
-    if (selectedAdvertiser) {
-      filtered = filtered.filter((record) => record.advertiser === selectedAdvertiser)
-    }
+    // 日付範囲フィルタ
     if (startDate) {
-      filtered = filtered.filter((record) => record.dataDate >= startDate)
+      filtered = filtered.filter((item) => item.dataDate >= startDate)
     }
     if (endDate) {
-      filtered = filtered.filter((record) => record.dataDate <= endDate)
+      filtered = filtered.filter((item) => item.dataDate <= endDate)
+    }
+
+    // 広告主フィルタ
+    if (selectedAdvertiser) {
+      filtered = filtered.filter((item) => item.advertiser === selectedAdvertiser)
     }
 
     // ソート
     filtered.sort((a, b) => {
-      let aVal = a[sortField]
-      let bVal = b[sortField]
+      const aValue = a[sortField]
+      const bValue = b[sortField]
 
-      if (typeof aVal === 'string') {
+      if (aValue === null || aValue === undefined) return 1
+      if (bValue === null || bValue === undefined) return -1
+
+      if (typeof aValue === 'string') {
         return sortDirection === 'asc'
-          ? aVal.localeCompare(bVal as string)
-          : (bVal as string).localeCompare(aVal)
+          ? aValue.localeCompare(bValue as string)
+          : (bValue as string).localeCompare(aValue)
       } else {
         return sortDirection === 'asc'
-          ? (aVal as number) - (bVal as number)
-          : (bVal as number) - (aVal as number)
+          ? (aValue as number) - (bValue as number)
+          : (bValue as number) - (aValue as number)
       }
     })
 
     return filtered
-  }, [activeData, selectedAdvertiser, startDate, endDate, sortField, sortDirection])
+  }, [activeData, startDate, endDate, selectedAdvertiser, sortField, sortDirection])
 
   // 合計値の計算
   const totals = useMemo(() => {
-    if (!filteredAndSortedData.length) {
-      return {
-        orderAmount: 0,
-        salesAmount: 0,
-        accessCount: 0,
-        cvOrder: 0,
-        cvPayment: 0,
-        cvThanksUpsell: 0,
-        avgCvrOrder: 0,
-        avgCvrPayment: 0,
-        avgOfferRate: 0,
-      }
-    }
-
     const sum = filteredAndSortedData.reduce(
-      (acc, record) => {
-        acc.orderAmount += record.orderAmount
-        acc.salesAmount += record.salesAmount
-        acc.accessCount += record.accessCount
-        acc.cvOrder += record.cvOrder
-        acc.cvPayment += record.cvPayment
-        acc.cvThanksUpsell += record.cvThanksUpsell
-        return acc
+      (acc, item) => {
+        return {
+          orderAmount: acc.orderAmount + (item.orderAmount || 0),
+          salesAmount: acc.salesAmount + (item.salesAmount || 0),
+          accessCount: acc.accessCount + (item.accessCount || 0),
+          cvOrder: acc.cvOrder + (item.cvOrder || 0),
+          cvPayment: acc.cvPayment + (item.cvPayment || 0),
+          cvThanksUpsell: acc.cvThanksUpsell + (item.cvThanksUpsell || 0),
+        }
       },
       {
         orderAmount: 0,
@@ -367,7 +416,7 @@ export const ECForceDataList: React.FC = () => {
         </div>
       </div>
 
-      {/* 統計情報 */}
+      {/* 統計情報と削除ボタン */}
       <div className="bg-white p-4 rounded-lg shadow">
         <div className="flex items-center justify-between">
           <div className="flex gap-6">
@@ -379,9 +428,70 @@ export const ECForceDataList: React.FC = () => {
               <span className="text-sm text-gray-600">総レコード:</span>
               <span className="ml-2 font-bold">{activeData?.totalRecords || 0}件</span>
             </div>
+            {selectedIds.size > 0 && (
+              <div>
+                <span className="text-sm text-gray-600">選択中:</span>
+                <span className="ml-2 font-bold text-red-600">{selectedIds.size}件</span>
+              </div>
+            )}
           </div>
+          {selectedIds.size > 0 && (
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md bg-red-100 text-red-700 hover:bg-red-200"
+            >
+              <TrashIcon className="h-4 w-4 mr-1" />
+              選択したデータを削除
+            </button>
+          )}
         </div>
       </div>
+
+      {/* 削除確認ダイアログ */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex min-h-screen items-end justify-center px-4 pb-20 pt-4 text-center sm:block sm:p-0">
+            <div
+              className="fixed inset-0 bg-gray-500 bg-opacity-75"
+              onClick={() => setShowDeleteConfirm(false)}
+            />
+
+            <div className="inline-block align-bottom bg-white rounded-lg px-4 pb-4 pt-5 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+              <div className="sm:flex sm:items-start">
+                <div className="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                  <ExclamationTriangleIcon className="h-6 w-6 text-red-600" />
+                </div>
+                <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
+                  <h3 className="text-lg font-medium leading-6 text-gray-900">
+                    データを削除しますか？
+                  </h3>
+                  <div className="mt-2">
+                    <p className="text-sm text-gray-500">
+                      選択した{selectedIds.size}件のデータを削除します。この操作は取り消せません。
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+                <button
+                  onClick={handleMultipleDelete}
+                  disabled={isDeleting}
+                  className="inline-flex w-full justify-center rounded-md border border-transparent bg-red-600 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-red-700 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"
+                >
+                  {isDeleting ? '削除中...' : '削除する'}
+                </button>
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  disabled={isDeleting}
+                  className="mt-3 inline-flex w-full justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 sm:mt-0 sm:w-auto sm:text-sm"
+                >
+                  キャンセル
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* データテーブル */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -392,6 +502,17 @@ export const ECForceDataList: React.FC = () => {
             <table className="min-w-full divide-y divide-gray-200 relative">
               <thead className="bg-gray-50 sticky top-0 z-10">
                 <tr>
+                  <th className="px-3 py-3 text-center bg-gray-50">
+                    <input
+                      type="checkbox"
+                      checked={
+                        selectedIds.size === filteredAndSortedData.length &&
+                        filteredAndSortedData.length > 0
+                      }
+                      onChange={handleSelectAll}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                  </th>
                   <th
                     className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 bg-gray-50"
                     onClick={() => handleSort('dataDate')}
@@ -428,9 +549,6 @@ export const ECForceDataList: React.FC = () => {
                       <SortIcon field="salesAmount" />
                     </div>
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">
-                    アクセス数
-                  </th>
                   <th
                     className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 bg-gray-50"
                     onClick={() => handleSort('cvOrder')}
@@ -438,15 +556,6 @@ export const ECForceDataList: React.FC = () => {
                     <div className="flex items-center justify-end gap-1">
                       CV(受注)
                       <SortIcon field="cvOrder" />
-                    </div>
-                  </th>
-                  <th
-                    className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 bg-gray-50"
-                    onClick={() => handleSort('cvrOrder')}
-                  >
-                    <div className="flex items-center justify-end gap-1">
-                      CVR(受注)
-                      <SortIcon field="cvrOrder" />
                     </div>
                   </th>
                   <th
@@ -460,6 +569,15 @@ export const ECForceDataList: React.FC = () => {
                   </th>
                   <th
                     className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 bg-gray-50"
+                    onClick={() => handleSort('cvrOrder')}
+                  >
+                    <div className="flex items-center justify-end gap-1">
+                      CVR(受注)
+                      <SortIcon field="cvrOrder" />
+                    </div>
+                  </th>
+                  <th
+                    className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 bg-gray-50"
                     onClick={() => handleSort('cvrPayment')}
                   >
                     <div className="flex items-center justify-end gap-1">
@@ -467,88 +585,84 @@ export const ECForceDataList: React.FC = () => {
                       <SortIcon field="cvrPayment" />
                     </div>
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">
-                    サンクスアップセル
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">
-                    オファー成功率
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">
+                    操作
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {/* 合計行 */}
-                <tr className="bg-blue-50 font-bold border-b-2 border-blue-200 sticky top-[37px] z-10">
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-blue-900">合計</td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-blue-900">
-                    {filteredAndSortedData.length}件
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-blue-900 text-right">
-                    {formatNumber(totals.orderAmount)}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-blue-900 text-right">
-                    {formatNumber(totals.salesAmount)}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-blue-900 text-right">
-                    {formatNumber(totals.accessCount)}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-blue-900 text-right">
-                    {totals.cvOrder}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-blue-900 text-right">
-                    {formatPercent(totals.avgCvrOrder)}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-blue-900 text-right">
-                    {totals.cvPayment}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-blue-900 text-right">
-                    {formatPercent(totals.avgCvrPayment)}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-blue-900 text-right">
-                    {totals.cvThanksUpsell}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-blue-900 text-right">
-                    {formatPercent(totals.avgOfferRate)}
-                  </td>
-                </tr>
-                {/* データ行 */}
-                {filteredAndSortedData.map((record, index) => (
-                  <tr key={`${record._id}-${index}`} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                      {record.dataDate}
+                {filteredAndSortedData.map((item) => (
+                  <tr
+                    key={item._id}
+                    className={selectedIds.has(item._id) ? 'bg-blue-50' : 'hover:bg-gray-50'}
+                  >
+                    <td className="px-3 py-2 text-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(item._id)}
+                        onChange={() => handleSelectOne(item._id)}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {record.advertiser}
+                    <td className="px-4 py-2 text-sm text-gray-900">{item.dataDate}</td>
+                    <td className="px-4 py-2 text-sm text-gray-900">{item.advertiser}</td>
+                    <td className="px-4 py-2 text-sm text-right text-gray-900">
+                      ¥{formatNumber(item.orderAmount || 0)}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 text-right">
-                      {formatNumber(record.orderAmount)}
+                    <td className="px-4 py-2 text-sm text-right text-gray-900">
+                      ¥{formatNumber(item.salesAmount || 0)}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 text-right">
-                      {formatNumber(record.salesAmount)}
+                    <td className="px-4 py-2 text-sm text-right text-gray-900">
+                      {item.cvOrder || 0}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 text-right">
-                      {formatNumber(record.accessCount)}
+                    <td className="px-4 py-2 text-sm text-right text-gray-900">
+                      {item.cvPayment || 0}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 text-right">
-                      {record.cvOrder}
+                    <td className="px-4 py-2 text-sm text-right text-gray-900">
+                      {formatPercent(item.cvrOrder || 0)}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 text-right">
-                      {formatPercent(record.cvrOrder)}
+                    <td className="px-4 py-2 text-sm text-right text-gray-900">
+                      {formatPercent(item.cvrPayment || 0)}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 text-right">
-                      {record.cvPayment}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 text-right">
-                      {formatPercent(record.cvrPayment)}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 text-right">
-                      {record.cvThanksUpsell}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 text-right">
-                      {formatPercent(record.offerRateThanksUpsell)}
+                    <td className="px-4 py-2 text-center">
+                      <button
+                        onClick={() => handleDelete(item._id)}
+                        className="text-red-600 hover:text-red-900"
+                        title="削除"
+                      >
+                        <TrashIcon className="h-4 w-4" />
+                      </button>
                     </td>
                   </tr>
                 ))}
               </tbody>
+              <tfoot className="bg-gray-100 sticky bottom-0">
+                <tr>
+                  <td className="px-3 py-2"></td>
+                  <td colSpan={2} className="px-4 py-2 text-sm font-bold text-gray-900">
+                    合計
+                  </td>
+                  <td className="px-4 py-2 text-sm text-right font-bold text-gray-900">
+                    ¥{formatNumber(totals.orderAmount)}
+                  </td>
+                  <td className="px-4 py-2 text-sm text-right font-bold text-gray-900">
+                    ¥{formatNumber(totals.salesAmount)}
+                  </td>
+                  <td className="px-4 py-2 text-sm text-right font-bold text-gray-900">
+                    {totals.cvOrder}
+                  </td>
+                  <td className="px-4 py-2 text-sm text-right font-bold text-gray-900">
+                    {totals.cvPayment}
+                  </td>
+                  <td className="px-4 py-2 text-sm text-right font-bold text-gray-900">
+                    {formatPercent(totals.avgCvrOrder)}
+                  </td>
+                  <td className="px-4 py-2 text-sm text-right font-bold text-gray-900">
+                    {formatPercent(totals.avgCvrPayment)}
+                  </td>
+                  <td className="px-4 py-2"></td>
+                </tr>
+              </tfoot>
             </table>
           </div>
         )}

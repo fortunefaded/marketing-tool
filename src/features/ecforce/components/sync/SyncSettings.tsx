@@ -4,6 +4,7 @@ import { api } from '../../../../../convex/_generated/api'
 import { format } from 'date-fns'
 import { ja } from 'date-fns/locale'
 import { ArrowPathIcon, CheckIcon } from '@heroicons/react/24/outline'
+import { ManualSync } from './ManualSync'
 
 export const SyncSettings: React.FC = () => {
   const config = useQuery(api.ecforce.getSyncConfig)
@@ -61,6 +62,9 @@ export const SyncSettings: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* 手動同期 */}
+      <ManualSync />
+
       {/* 自動同期設定 */}
       <div className="rounded-lg bg-white p-6 shadow">
         <div className="flex items-center justify-between mb-6">
