@@ -43,16 +43,19 @@ app.post('/api/ecforce/sync', async (req, res) => {
         });
       }
       
-      // 成功判定
-      const success = stdout.includes('アップロード処理が完了しました') || 
-                     stdout.includes('すべての処理が正常に完了しました');
+      // 成功判定（より多くのパターンに対応）
+      const success = stdout.includes('アップロード結果: true') ||
+                     stdout.includes('アップロード処理が完了しました') || 
+                     stdout.includes('すべての処理が正常に完了しました') ||
+                     stdout.includes('✅ すべての処理が正常に完了しました');
       
       // 処理件数を抽出（複数のパターンを試す）
       let recordsProcessed = 0;
       const patterns = [
         /処理済み:\s*(\d+)件/,
         /成功:\s*(\d+)件/,
-        /処理対象データ:\s*(\d+)件/
+        /処理対象データ:\s*(\d+)件/,
+        /処理対象データ:\s*(\d+)件（デバイス=合計のみ）/
       ];
       
       for (const pattern of patterns) {
