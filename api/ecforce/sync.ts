@@ -1,11 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { chromium } from 'playwright-chromium'
 
 // 環境変数から認証情報を取得
-const BASIC_USER = process.env.ECFORCE_BASIC_USER
-const BASIC_PASS = process.env.ECFORCE_BASIC_PASS
-const LOGIN_EMAIL = process.env.ECFORCE_EMAIL
-const LOGIN_PASS = process.env.ECFORCE_PASSWORD
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN
+const GITHUB_OWNER = process.env.GITHUB_OWNER || 'your-github-username' // GitHubユーザー名を設定
+const GITHUB_REPO = process.env.GITHUB_REPO || 'marketing-tool'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORSヘッダーの設定
@@ -26,36 +24,59 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  // 環境変数のチェック
-  if (!BASIC_USER || !BASIC_PASS || !LOGIN_EMAIL || !LOGIN_PASS) {
-    console.error('ECForce認証情報が設定されていません')
-    return res.status(500).json({
-      success: false,
-      error: 'ECForce認証情報が設定されていません。環境変数を確認してください。',
-    })
-  }
-
   try {
-    console.log('🚀 ECForce同期処理開始...')
+    console.log('🚀 ECForce同期をGitHub Actionsでトリガー...')
 
-    // Vercel環境での制限により、実際のブラウザ自動化は難しい
-    // 代替案として、以下のアプローチを提案:
-    // 1. ECForce APIが利用可能な場合は直接API呼び出し
-    // 2. そうでない場合は、ローカルでのスクリプト実行を推奨
+    // GitHub Actionsワークフローをトリガー
+    if (GITHUB_TOKEN) {
+      const response = await fetch(
+        `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/dispatches`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `token ${GITHUB_TOKEN}`,
+            'Accept': 'application/vnd.github.v3+json',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            event_type: 'ecforce-sync',
+            client_payload: {
+              triggered_by: 'vercel_api',
+              timestamp: new Date().toISOString(),
+            }
+          })
+        }
+      )
 
-    // 現時点では、環境変数が正しく設定されていることを確認
-    return res.status(200).json({
-      success: true,
-      message: 'ECForce認証情報が正しく設定されています',
-      info: {
-        hasBasicAuth: !!BASIC_USER && !!BASIC_PASS,
-        hasLoginCredentials: !!LOGIN_EMAIL && !!LOGIN_PASS,
-        environment: process.env.VERCEL ? 'production' : 'development',
-      },
-      note: 'CSVダウンロードはローカルスクリプト（npm run ecforce:sync）を使用してください',
-    })
+      if (response.ok || response.status === 204) {
+        return res.status(200).json({
+          success: true,
+          message: 'ECForce同期ジョブを開始しました',
+          info: {
+            triggeredAt: new Date().toISOString(),
+            workflowUrl: `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/actions`,
+          },
+        })
+      } else {
+        const errorText = await response.text()
+        console.error('GitHub API Error:', errorText)
+        throw new Error(`GitHub API returned ${response.status}`)
+      }
+    } else {
+      // GitHub Tokenが設定されていない場合は手動実行を案内
+      return res.status(200).json({
+        success: false,
+        message: 'GitHub Actions連携が設定されていません',
+        instructions: {
+          step1: 'GitHub Personal Access Tokenを作成',
+          step2: 'Vercel環境変数にGITHUB_TOKENを設定',
+          step3: 'GITHUB_OWNERとGITHUB_REPOも設定',
+          manual: `手動実行: https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/actions`,
+        },
+      })
+    }
   } catch (error) {
-    console.error('Sync error:', error)
+    console.error('Sync trigger error:', error)
     return res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
