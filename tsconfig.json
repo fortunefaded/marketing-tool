@@ -28,7 +28,7 @@
     },
     "baseUrl": "."
   },
-  "include": ["src", "src/**/*.test.ts", "src/**/*.test.tsx"],
+  "include": ["src", "src/**/*.test.ts", "src/**/*.test.tsx", "vite.config.ts"],
   "exclude": [
     "node_modules",
     "dist",
@@ -36,6 +36,5 @@
     "src/_archived",
     "src/**/_archived/**",
     "src_backup_*"
-  ],
-  "references": [{ "path": "./tsconfig.node.json" }]
+  ]
 }
