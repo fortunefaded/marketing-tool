@@ -239,7 +239,7 @@ export async function parseECForceCSV(file: File): Promise<ECForceParseResult> {
 // CSVプレビュー用（最初のN件のみ）
 export async function previewECForceCSV(
   file: File,
-  _limit: number = 1000
+  limit: number = 10
 ): Promise<{
   headers: string[]
   rows: any[]
@@ -260,8 +260,11 @@ export async function previewECForceCSV(
       skipEmptyLines: true,
     })
 
-    // プレビュー用にも全データを解析
-    const result: ParseResult<any> = fullResult
+    // プレビュー用に件数を制限
+    const result: ParseResult<any> = {
+      ...fullResult,
+      data: fullResult.data.slice(0, limit * 3), // デバイス=合計のフィルタ前なので多めに取得
+    }
 
     if (result.errors && result.errors.length > 0) {
       return {
@@ -281,13 +284,14 @@ export async function previewECForceCSV(
     const allFilteredRows = fullResult.data.filter((row: any) => row['デバイス'] === '合計')
     const filteredRowsCount = allFilteredRows.length
 
-    // プレビュー用の複数日付の抽出
-    let dateRange: { startDate: string; endDate: string; uniqueDates: string[] } | undefined
-    const filteredRows = rows.filter((row: any) => row['デバイス'] === '合計')
+    // プレビュー用のデータを制限（デバイス=合計のみ、最大10件）
+    const filteredRows = rows.filter((row: any) => row['デバイス'] === '合計').slice(0, limit)
 
-    if (filteredRows.length > 0) {
+    // 日付範囲の抽出（全データから）
+    let dateRange: { startDate: string; endDate: string; uniqueDates: string[] } | undefined
+    if (allFilteredRows.length > 0) {
       const dateSet = new Set<string>()
-      filteredRows.forEach((row: any) => {
+      allFilteredRows.forEach((row: any) => {
         const dateField = row['日付'] || row['期間']
         if (dateField) {
           let normalizedDate = String(dateField).replace(/\//g, '-')
@@ -312,7 +316,8 @@ export async function previewECForceCSV(
       }
     }
 
-    return { headers, rows, dateRange, totalRows, filteredRows: filteredRowsCount }
+    // プレビュー用のrows（制限付き）を返す
+    return { headers, rows: filteredRows, dateRange, totalRows, filteredRows: filteredRowsCount }
   } catch (error) {
     return {
       headers: [],

@@ -97,6 +97,9 @@ export const CSVPreview: React.FC<CSVPreviewProps> = ({
             処理対象レコード数（デバイス=合計）:{' '}
             <span className="font-medium">{filteredRows || filteredRowsFromPreview.length}</span>
           </p>
+          <p className="text-blue-600">
+            プレビュー表示: <span className="font-medium">最大10件</span>
+          </p>
           {duplicates.length > 0 && (
             <p className="text-orange-700">
               重複レコード: <span className="font-medium">{duplicates.length}件</span>
