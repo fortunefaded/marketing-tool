@@ -6,7 +6,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "vite",
-    "build": "npx convex codegen --no-push && vite build",
+    "build": "vite build",
     "start": "next start",
     "test": "vitest",
     "test:ui": "vitest --ui",
