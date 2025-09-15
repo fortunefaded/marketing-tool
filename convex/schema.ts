@@ -293,4 +293,61 @@ export default defineSchema({
   })
     .index('by_meta_account', ['metaAccountId'])
     .index('by_advertiser', ['ecforceAdvertiser']),
+
+  // === ECForce月次集計テーブル（コスト最適化用） ===
+  ecforceMonthlyAggregates: defineTable({
+    // 識別子
+    yearMonth: v.string(), // YYYY-MM形式
+    advertiser: v.string(),
+    advertiserNormalized: v.string(),
+    aggregateHash: v.string(), // 重複チェック用（yearMonth+advertiser）
+
+    // 集計期間情報
+    startDate: v.string(), // 月初日
+    endDate: v.string(), // 月末日
+    daysCount: v.number(), // 日数
+
+    // 金額集計（合計値）
+    totalOrderAmount: v.number(),
+    totalSalesAmount: v.number(),
+    totalCost: v.number(),
+
+    // トラフィック・CV集計（合計値）
+    totalAccessCount: v.number(),
+    totalCvOrder: v.number(),
+    totalCvPayment: v.number(),
+    totalCvUpsell: v.number(),
+    totalCvThanksUpsell: v.number(),
+    totalCvThanksCrossSell: v.number(),
+
+    // 平均値
+    avgCvrOrder: v.number(),
+    avgCvrPayment: v.number(),
+    avgPaymentRate: v.number(),
+    avgRealCPA: v.optional(v.number()),
+    avgRoas: v.optional(v.number()),
+
+    // メタデータ
+    dataPoints: v.number(), // 集計に使用したデータポイント数
+    lastUpdated: v.number(),
+    createdAt: v.number(),
+  })
+    .index('by_year_month', ['yearMonth'])
+    .index('by_advertiser', ['advertiserNormalized'])
+    .index('by_year_month_advertiser', ['yearMonth', 'advertiserNormalized'])
+    .index('by_hash', ['aggregateHash']),
+
+  // === データ保持ポリシー設定 ===
+  dataRetentionPolicies: defineTable({
+    policyName: v.string(),
+    dataType: v.string(), // 'daily' | 'monthly' | 'yearly'
+    retentionDays: v.number(),
+    archiveAfterDays: v.optional(v.number()),
+    deleteAfterDays: v.optional(v.number()),
+    isActive: v.boolean(),
+    lastExecuted: v.optional(v.number()),
+    updatedAt: v.number(),
+  })
+    .index('by_policy_name', ['policyName'])
+    .index('by_data_type', ['dataType']),
 })
