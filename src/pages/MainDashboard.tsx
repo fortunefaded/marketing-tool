@@ -32,6 +32,7 @@ export default function MainDashboard() {
   const [accounts, setAccounts] = useState<MetaAccount[]>([])
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
   const [isLoadingAccounts, setIsLoadingAccounts] = useState(true)
+  const [ecforceData, setEcforceData] = useState<any[]>([]) // ECForceデータ用state
   // localStorageから保存された期間選択を復元
   const [dateRange, setDateRange] = useState<
     | 'last_7d'
