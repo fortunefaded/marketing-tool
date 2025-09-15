@@ -102,10 +102,6 @@ export class InstagramMetricsCalculator {
       'saves'
     ])
     
-    const postEngagement = getActionValue([
-      'post_engagement',
-      'onsite_conversion.post_engagement'
-    ])
     
     const postReaction = getActionValue([
       'post_reaction',

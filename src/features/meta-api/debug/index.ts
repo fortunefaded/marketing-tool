@@ -40,7 +40,7 @@ export function resetGlobalDebugSession(): void {
  * Debug decorator for async functions
  */
 export function debugTrace(stageName: string) {
-  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+  return function (_target: any, propertyKey: string, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value
 
     descriptor.value = async function (...args: any[]) {
@@ -60,7 +60,6 @@ export function debugTrace(stageName: string) {
         
         return result
       } catch (error) {
-        const duration = performance.now() - startTime
         session.traceError(error as Error, {
           stage: stageName,
           method: propertyKey,
@@ -78,7 +77,7 @@ export function debugTrace(stageName: string) {
  * Create a debug session for a specific operation
  */
 export function createDebugContext<T>(
-  operation: string,
+  _operation: string,
   fn: (session: DebugSessionClass) => Promise<T>
 ): Promise<T> {
   const session = new DebugSessionClass()

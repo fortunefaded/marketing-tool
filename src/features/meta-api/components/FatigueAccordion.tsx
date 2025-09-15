@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { FatigueData } from '@/types'
 import { ChevronDownIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
-import { SimplePhoneMockup } from './SimplePhoneMockup'
 import { MiniFrequencyChart } from './MiniFrequencyChart'
 import { MiniMetricChart, MetricType } from './MiniMetricChart'
 
@@ -107,7 +106,7 @@ function MetricRow({
   )
 }
 
-export function FatigueAccordion({ data, insights }: FatigueAccordionProps) {
+export function FatigueAccordion({ data, insights: _insights }: FatigueAccordionProps) {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set())
 
   const toggleExpanded = (uniqueKey: string) => {
@@ -141,12 +140,6 @@ export function FatigueAccordion({ data, insights }: FatigueAccordionProps) {
     return 'safe'
   }
 
-  const getEngagementStatus = (engagementRate: number, isReel: boolean = false) => {
-    const benchmark = isReel ? 1.23 : 0.7
-    if (engagementRate < benchmark * 0.7) return 'danger'
-    if (engagementRate < benchmark * 0.9) return 'warning'
-    return 'safe'
-  }
 
   return (
     <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -154,13 +147,6 @@ export function FatigueAccordion({ data, insights }: FatigueAccordionProps) {
         const uniqueKey = `${item.adId}-${index}`
         const isExpanded = expandedItems.has(uniqueKey)
 
-        // Instagram Reelかどうかを判定
-        const isInstagramReel =
-          item.metrics.instagram_metrics?.publisher_platform?.toLowerCase().includes('reel') ||
-          insights
-            ?.find((i) => i.ad_id === item.adId)
-            ?.creative_media_type?.toLowerCase()
-            .includes('reel')
 
         return (
           <div key={uniqueKey} className="border-b border-gray-200 last:border-b-0">

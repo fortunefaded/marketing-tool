@@ -1,7 +1,7 @@
 import { AdInsight } from '../../../types'
 import { vibe } from '../../../lib/vibelogger'
 import { AccountId, AccessToken } from './branded-types'
-import { META_API_BASE_URL, META_API_ENDPOINTS, META_API_FIELDS, META_API_LIMITS } from './constants'
+import { META_API_BASE_URL } from './constants'
 import type { 
   EnhancedInsightsOptions, 
   EnhancedPaginatedResult 

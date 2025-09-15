@@ -232,7 +232,7 @@ export class PredictiveAnalyzer {
   private static assessRisk(
     predictions: PredictionResult['predictions'],
     trend: PredictionResult['trend'],
-    currentFatigue?: FatigueScoreDetail
+    _currentFatigue?: FatigueScoreDetail
   ): PredictionResult['risk'] {
     const lastPrediction = predictions[predictions.length - 1]
     const factors: string[] = []
@@ -295,7 +295,7 @@ export class PredictiveAnalyzer {
     predictions: PredictionResult['predictions'],
     trend: PredictionResult['trend'],
     risk: PredictionResult['risk'],
-    currentFatigue?: FatigueScoreDetail
+    _currentFatigue?: FatigueScoreDetail
   ): PredictionResult['recommendations'] {
     const immediate: string[] = []
     const shortTerm: string[] = []
@@ -407,7 +407,7 @@ export class PredictiveAnalyzer {
    * 統計情報の計算
    */
   private static calculateStatistics(
-    historical: TimeSeriesDataPoint[],
+    _historical: TimeSeriesDataPoint[],
     predictions: PredictionResult['predictions']
   ): PredictionResult['statistics'] {
     // 簡易的な統計（実際の実装ではより詳細な計算が必要）

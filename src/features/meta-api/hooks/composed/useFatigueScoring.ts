@@ -4,11 +4,10 @@
  */
 
 import { useMemo } from 'react'
-import { 
+import {
   UnifiedAdData,
   FatigueData,
-  BaselineMetrics,
-  FatigueDetails 
+  BaselineMetrics
 } from '../../types'
 import { FatigueCalculatorV2, FatigueScoreDetail } from '../../core/fatigue-calculator-v2'
 import { getSafeMetrics } from '../../utils/safe-data-access'

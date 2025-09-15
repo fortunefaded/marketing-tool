@@ -10,8 +10,6 @@ import { useRateLimitStatus } from '../hooks/useRateLimitStatus'
 import { downloadCSV, downloadAggregatedCSV } from '@/utils/csv-export'
 import { DataLoadingProgress } from './DataLoadingProgress'
 import { DateRangeFilter } from './DateRangeFilter'
-import { UnifiedFilterSection } from './UnifiedFilterSection'
-import { SafeFilterWrapper } from './SafeFilterWrapper'
 import type { DateRangeFilter as DateRangeFilterType } from '../hooks/useAdFatigueSimplified'
 // import { logFilter } from '@/utils/debugLogger' // レンダリング中のstate更新を避けるため一時的に無効化
 
@@ -94,8 +92,8 @@ export function FatigueDashboardPresentation({
   customDateRange,
   onCustomDateRange,
   accessToken, // 追加
-  totalInsights,
-  filteredCount,
+  totalInsights: _totalInsights,
+  filteredCount: _filteredCount,
   // onToggleAggregation削除済み
   onFilterChange,
   sourceData: rawSourceData,

@@ -3,7 +3,7 @@
  * TASK-005: 日付範囲の妥当性検証フック
  */
 
-import { useCallback, useMemo } from 'react'
+import { useCallback } from 'react'
 import type { DateRangePreset } from '../utils/date-range-helpers'
 import { getDateRangeInfo, isValidDateRangePreset } from '../utils/date-range-helpers'
 

@@ -31,7 +31,7 @@ export function CreativeTableTab({
   data,
   insights,
   selectedAccountId,
-  isLoading,
+  isLoading: _isLoading,
   accessToken,
   dateRange,
 }: CreativeTableTabProps) {
@@ -271,10 +271,6 @@ export function CreativeTableTab({
   }
 
   const handleViewDetails = (item: any) => {
-    const insight =
-      item.adIds && item.adIds.length > 0
-        ? insightsMap.get(item.adIds[0])
-        : insightsMap.get(item.adId)
     setSelectedItem(item)
     setIsModalOpen(true)
   }

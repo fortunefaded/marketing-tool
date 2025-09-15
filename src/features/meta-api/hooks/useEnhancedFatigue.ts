@@ -62,7 +62,7 @@ export function useEnhancedFatigue(
   const [baseline, setBaseline] = useState<BaselineMetrics | null>(null)
   const [isCalculating, setIsCalculating] = useState(false)
   const [error, setError] = useState<Error | null>(null)
-  const [lastCalculation, setLastCalculation] = useState<Date>(new Date())
+  const [_lastCalculation, setLastCalculation] = useState<Date>(new Date())
 
   // 計算機のインスタンス（メモ化）
   const calculator = useMemo(() => new FatigueCalculatorV2(), [])

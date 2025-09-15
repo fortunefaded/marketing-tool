@@ -141,8 +141,8 @@ export function useDateRangeCache() {
    */
   const clearAccountCache = useCallback((accountId: string): void => {
     let deletedCount = 0
-    
-    for (const [key, entry] of cacheRef.current.entries()) {
+
+    for (const [key, _entry] of cacheRef.current.entries()) {
       if (key.includes(`insights_${accountId}_`)) {
         cacheRef.current.delete(key)
         deletedCount++

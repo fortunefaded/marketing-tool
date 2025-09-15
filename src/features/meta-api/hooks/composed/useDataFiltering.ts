@@ -4,11 +4,10 @@
  */
 
 import { useMemo, useState, useCallback } from 'react'
-import { 
+import {
   UnifiedAdData,
   FilterCriteria,
-  SortConfig,
-  SortField 
+  SortConfig
 } from '../../types'
 
 export interface UseDataFilteringOptions {
