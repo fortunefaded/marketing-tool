@@ -3,8 +3,8 @@
  * UIコンポーネント用の型定義
  */
 
-import { UnifiedAdData, FatigueData, AdStatus, DateRange } from './domain-types'
-import { DateRangeFilter, MetaAccount } from './api-types'
+import { UnifiedAdData, AdStatus, DateRange } from './domain-types'
+import { DateRangeFilter } from './api-types'
 
 /**
  * フィルター条件

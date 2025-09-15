@@ -3,7 +3,6 @@
  * Meta Ads APIのactions配列を分析し、購入ファネル、エンゲージメント、トラフィックに分類して表示
  */
 
-import React from 'react'
 import { TrendingUp, ShoppingCart, Users, MousePointer, Video, ExternalLink } from 'lucide-react'
 
 // アクションの型定義

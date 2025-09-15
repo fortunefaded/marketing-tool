@@ -1,6 +1,5 @@
 // Enhanced API Types
 
-import type { AdInsight } from '../../../../types'
 import type { PaginatedResult } from '../api-client'
 import type { DebugSession } from '../../debug'
 

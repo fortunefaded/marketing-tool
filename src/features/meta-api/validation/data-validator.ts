@@ -181,7 +181,7 @@ export class DataValidator implements DataValidation {
     return numericValue
   }
 
-  normalizeDateWithTimezone(date: string, timezone?: string): Date {
+  normalizeDateWithTimezone(date: string, _timezone?: string): Date {
     const dateObj = new Date(date)
     
     // Check if date is valid
