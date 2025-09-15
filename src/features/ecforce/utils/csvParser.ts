@@ -268,6 +268,8 @@ export async function previewECForceCSV(
         headers: [],
         rows: [],
         error: result.errors[0].message,
+        totalRows: 0,
+        filteredRows: 0,
       }
     }
 

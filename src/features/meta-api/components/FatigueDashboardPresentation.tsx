@@ -23,6 +23,7 @@ interface FatigueDashboardPresentationProps {
   // データ関連
   data: any // FatigueData[]またはAdPerformanceData[]
   insights: any[]
+  ecforceData?: any[] // ECForceデータ
   isLoading: boolean
   isRefreshing: boolean
   error: Error | null

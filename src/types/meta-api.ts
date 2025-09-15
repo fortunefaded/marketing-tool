@@ -70,6 +70,13 @@ export interface AdInsight {
     }
     [key: string]: any
   }
+
+  // ECForce統合データ
+  ecforce_cv?: number
+  ecforce_fcv?: number
+  ecforce_cv_total?: number
+  ecforce_fcv_total?: number
+  ecforce_cpa?: number | null
 }
 
 // MetaInsightsData (統合版)
