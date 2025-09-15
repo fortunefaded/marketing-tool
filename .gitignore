@@ -49,6 +49,12 @@ lerna-debug.log*
 .tsbuildinfo.precommit
 next-env.d.ts
 
+# Screenshots (may contain sensitive data)
+screenshots/
+*.png
+*.jpg
+*.jpeg
+
 # Serena MCP
 .serena/cache/
 .serena/logs/

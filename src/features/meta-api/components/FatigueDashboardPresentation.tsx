@@ -741,7 +741,7 @@ export function FatigueDashboardPresentation({
 
         {!selectedAccountId && !isLoadingAccounts && (
           <div className="bg-gray-50 rounded-lg p-8 text-center text-gray-500">
-            Please select an account to view fatigue data
+            アカウントを選択してデータを表示
           </div>
         )}
       </div>

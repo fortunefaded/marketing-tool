@@ -9,8 +9,18 @@ import { uploadToConvex } from './ecforce-upload-to-convex.mjs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// .env.ecforceファイルを読み込む
+// 環境変数を読み込む
+// 優先順位: 1. 環境変数, 2. .env.ecforceファイル（ローカル開発用）
 dotenv.config({ path: path.join(__dirname, '..', '.env.ecforce') });
+
+// Vercel環境変数が設定されている場合はそちらを優先
+if (process.env.VERCEL) {
+  console.log('📦 Vercel環境変数を使用');
+} else if (fs.existsSync(path.join(__dirname, '..', '.env.ecforce'))) {
+  console.log('📁 ローカル.env.ecforceファイルを使用');
+} else {
+  console.log('⚠️ 環境変数が見つかりません');
+}
 
 async function downloadCSVFromMogumo() {
   const isAutoMode = process.argv.includes('--auto') || process.env.AUTO_SYNC === 'true';
