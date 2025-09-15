@@ -201,6 +201,12 @@ export function FatigueDashboardPresentation({
             start: thisMonthStart,
             end: thisMonthEnd,
           }
+          console.log('📅 今月の範囲（FatigueDashboard）:', {
+            start: thisMonthStart.toISOString(),
+            end: thisMonthEnd.toISOString(),
+            startFormatted: thisMonthStart.toLocaleDateString('ja-JP'),
+            endFormatted: thisMonthEnd.toLocaleDateString('ja-JP'),
+          })
 
           // デバッグログはuseEffectで記録するように変更
           // logFilter('FatigueDashboardPresentation', '今月の範囲計算', {
@@ -288,23 +294,6 @@ export function FatigueDashboardPresentation({
             start: lastSunday,
             end: lastSaturday,
           }
-          break
-
-        case 'this_month':
-          const monthStart = new Date(today.getFullYear(), today.getMonth(), 1)
-          monthStart.setHours(0, 0, 0, 0)
-          const monthEnd = new Date(today)
-          monthEnd.setHours(23, 59, 59, 999)
-          calculatedRange = {
-            start: monthStart,
-            end: monthEnd,
-          }
-          console.log('📅 今月の範囲（FatigueDashboard）:', {
-            start: monthStart.toISOString(),
-            end: monthEnd.toISOString(),
-            startFormatted: monthStart.toLocaleDateString('ja-JP'),
-            endFormatted: monthEnd.toLocaleDateString('ja-JP'),
-          })
           break
       }
 

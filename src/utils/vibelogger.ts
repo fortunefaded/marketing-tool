@@ -1,4 +1,4 @@
-type LogLevel = 'vibe' | 'good' | 'bad' | 'warn' | 'info' | 'debug'
+type LogLevel = 'vibe' | 'good' | 'bad' | 'warn' | 'info' | 'debug' | 'error'
 
 interface LogEntry {
   timestamp: Date
@@ -55,6 +55,7 @@ class VibeLogger {
       warn: '⚠️',
       info: 'ℹ️',
       debug: '🔍',
+      error: '🚨',
     }
     return emojis[level]
   }
@@ -87,6 +88,7 @@ class VibeLogger {
 
     switch (level) {
       case 'bad':
+      case 'error':
         console.error(formattedMessage, context || '')
         break
       case 'warn':
@@ -120,6 +122,10 @@ class VibeLogger {
 
   debug(message: string, context?: Record<string, unknown>): void {
     this.log('debug', message, context)
+  }
+
+  error(message: string, context?: Record<string, unknown>): void {
+    this.log('error', message, context)
   }
 
   story(title: string): {

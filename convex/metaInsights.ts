@@ -149,7 +149,7 @@ export const importInsights = mutation({
           dateStop: insight.date_stop,
           campaignId: insight.campaign_id,
           campaignName: insight.campaign_name,
-          adId: insight.ad_id,
+          adId: insight.ad_id || '',
           adName: insight.ad_name,
           impressions: insight.impressions || 0,
           createdAt: now,
