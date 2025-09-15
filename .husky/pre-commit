@@ -23,16 +23,15 @@ if [ -n "$STAGED_FILES" ]; then
         # クリティカルなファイル（コアロジック）のみ厳密にチェック
         CRITICAL_FILES=$(echo "$FILTERED_FILES" | grep -E "(features/meta-api/core/|services/core/|hooks/core/)" || true)
         
-        if [ -n "$CRITICAL_FILES" ]; then
-            echo "  ⚡ クリティカルファイルの型チェック..."
-            npx tsc --noEmit --project tsconfig.precommit.json --skipLibCheck $CRITICAL_FILES 2>&1 | head -20
-            
-            if [ ${PIPESTATUS[0]} -ne 0 ]; then
-                echo "❌ クリティカルファイルにTypeScriptエラーがあります"
-                echo "💡 修正が必要です: $CRITICAL_FILES"
-                echo "🔧 回避方法: SKIP_PRECOMMIT=1 git commit"
-                exit 1
-            fi
+        # 全ファイルの型チェック（ビルドエラー防止）
+        echo "  🔍 TypeScript型チェック..."
+        npx tsc --noEmit --skipLibCheck 2>&1 | head -20
+
+        if [ ${PIPESTATUS[0]} -ne 0 ]; then
+            echo "❌ TypeScriptエラーがあります（ビルドが失敗します）"
+            echo "💡 修正方法: npm run type-check で詳細を確認"
+            echo "🔧 緊急時の回避: SKIP_PRECOMMIT=1 git commit"
+            exit 1
         fi
         
         # Prettierフォーマットチェック（自動修正）

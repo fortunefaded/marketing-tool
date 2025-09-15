@@ -18,9 +18,13 @@ export class SimpleAccountStore {
       return accounts.map(
         (acc: any) =>
           ({
+            id: acc._id || '',
             accountId: acc.accountId,
+            fullAccountId: acc.accountId,
             name: acc.accountName || acc.name || 'Unknown',
             accessToken: acc.accessToken,
+            isActive: acc.isActive || false,
+            createdAt: acc.createdAt || Date.now(),
           }) as MetaAccount
       )
     } catch (error) {
@@ -41,10 +45,14 @@ export class SimpleAccountStore {
       if (!account) return null
 
       return {
+        id: account._id || '',
         accountId: account.accountId,
+        fullAccountId: account.accountId,
         name: account.accountName || 'Unknown',
         accessToken: account.accessToken || '',
-      }
+        isActive: true,
+        createdAt: account.createdAt || Date.now(),
+      } as MetaAccount
     } catch (error) {
       vibe.bad('アクティブアカウント取得失敗', { error })
       return null
