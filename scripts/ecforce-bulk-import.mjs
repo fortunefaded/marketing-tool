@@ -25,7 +25,7 @@ const options = {
   pattern: '*.csv',
   dryRun: false,
   monthlyOnly: false, // 月次集計のみ生成（日次データはスキップ）
-  batchSize: 200, // 最適化されたバッチサイズ
+  batchSize: 1000, // 最適化されたバッチサイズ（広告主1件の場合）
   parallel: false, // 並列処理
   startDate: null,
   endDate: null,
@@ -84,7 +84,7 @@ ECForce 大量データ一括インポートツール
   --pattern <glob>     ファイルパターン (デフォルト: *.csv)
   --dry-run            実際にはインポートせず、処理内容を表示
   --monthly-only       月次集計のみ生成（日次データはスキップ）
-  --batch-size <num>   バッチサイズ (デフォルト: 200)
+  --batch-size <num>   バッチサイズ (デフォルト: 1000)
   --parallel           並列処理を有効化
   --start-date <date>  開始日 (YYYY-MM-DD)
   --end-date <date>    終了日 (YYYY-MM-DD)

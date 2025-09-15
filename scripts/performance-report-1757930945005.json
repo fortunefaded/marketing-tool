@@ -1,0 +1,144 @@
+{
+  "config": {
+    "recordCount": 300,
+    "testDate": "2025-09-15T10:09:05.005Z"
+  },
+  "results": [
+    {
+      "batchSize": 50,
+      "totalTime": 5,
+      "recordsProcessed": 300,
+      "throughput": 60,
+      "apiCalls": 6,
+      "avgBatchTime": 545,
+      "maxBatchTime": 1271,
+      "minBatchTime": 282,
+      "errors": 0,
+      "errorRate": "0.00",
+      "memory": {
+        "max": 13,
+        "avg": 11
+      },
+      "convexOperations": {
+        "reads": 0,
+        "writes": 300,
+        "mutations": 6
+      },
+      "efficiency": {
+        "apiEfficiency": 50,
+        "timeEfficiency": 92,
+        "estimatedCost": 0.3
+      }
+    },
+    {
+      "batchSize": 100,
+      "totalTime": 2,
+      "recordsProcessed": 300,
+      "throughput": 150,
+      "apiCalls": 3,
+      "avgBatchTime": 513,
+      "maxBatchTime": 696,
+      "minBatchTime": 317,
+      "errors": 0,
+      "errorRate": "0.00",
+      "memory": {
+        "max": 13,
+        "avg": 12
+      },
+      "convexOperations": {
+        "reads": 0,
+        "writes": 300,
+        "mutations": 3
+      },
+      "efficiency": {
+        "apiEfficiency": 100,
+        "timeEfficiency": 195,
+        "estimatedCost": 0.3
+      }
+    },
+    {
+      "batchSize": 200,
+      "totalTime": 1,
+      "recordsProcessed": 300,
+      "throughput": 216,
+      "apiCalls": 2,
+      "avgBatchTime": 468,
+      "maxBatchTime": 618,
+      "minBatchTime": 318,
+      "errors": 0,
+      "errorRate": "0.00",
+      "memory": {
+        "max": 10,
+        "avg": 10
+      },
+      "convexOperations": {
+        "reads": 0,
+        "writes": 300,
+        "mutations": 2
+      },
+      "efficiency": {
+        "apiEfficiency": 150,
+        "timeEfficiency": 427,
+        "estimatedCost": 0.3
+      }
+    },
+    {
+      "batchSize": 500,
+      "totalTime": 1,
+      "recordsProcessed": 300,
+      "throughput": 259,
+      "apiCalls": 1,
+      "avgBatchTime": 706,
+      "maxBatchTime": 706,
+      "minBatchTime": 706,
+      "errors": 0,
+      "errorRate": "0.00",
+      "memory": {
+        "max": 11,
+        "avg": 11
+      },
+      "convexOperations": {
+        "reads": 0,
+        "writes": 300,
+        "mutations": 1
+      },
+      "efficiency": {
+        "apiEfficiency": 300,
+        "timeEfficiency": 708,
+        "estimatedCost": 0.3
+      }
+    },
+    {
+      "batchSize": 1000,
+      "totalTime": 2,
+      "recordsProcessed": 300,
+      "throughput": 181,
+      "apiCalls": 1,
+      "avgBatchTime": 675,
+      "maxBatchTime": 675,
+      "minBatchTime": 675,
+      "errors": 0,
+      "errorRate": "0.00",
+      "memory": {
+        "max": 11,
+        "avg": 11
+      },
+      "convexOperations": {
+        "reads": 0,
+        "writes": 300,
+        "mutations": 1
+      },
+      "efficiency": {
+        "apiEfficiency": 300,
+        "timeEfficiency": 1481,
+        "estimatedCost": 0.3
+      }
+    }
+  ],
+  "recommendations": {
+    "bestThroughput": 500,
+    "bestErrorRate": 50,
+    "bestCost": 50,
+    "overall": 500
+  }
+}
