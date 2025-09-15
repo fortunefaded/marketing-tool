@@ -217,6 +217,7 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
 
   // クリエイティブ情報のstate
   const [creativeInfo, setCreativeInfo] = useState<any>(null)
+  const [isLoadingCreative, setIsLoadingCreative] = useState(false)
 
   // 日別データがあるかチェック（既存データまたは取得したデータ）
   const hasDailyData = (item.dailyData && item.dailyData.length > 0) || dailyData.length > 0
