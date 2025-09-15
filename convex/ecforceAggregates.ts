@@ -218,14 +218,8 @@ export const archiveOldDailyData = mutation({
       .filter((q) => q.lt(q.field('dataDate'), cutoffDateStr))
       .collect()
 
-    for (const record of oldRecords) {
-      // isArchivedフラグが追加されたら、ここで設定
-      // await ctx.db.patch(record._id, {
-      //   isArchived: true,
-      //   archivedAt: Date.now(),
-      // })
-      archivedCount++
-    }
+    // 将来的なアーカイブ実装用（現在はカウントのみ）
+    archivedCount = oldRecords.length
 
     return {
       cutoffDate: cutoffDateStr,
