@@ -361,7 +361,7 @@ export const ECForceDataList: React.FC = () => {
               className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
             >
               <option value="">すべて</option>
-              {activeAdvertisers?.map((advertiser) => (
+              {activeAdvertisers?.map((advertiser: string) => (
                 <option key={advertiser} value={advertiser}>
                   {advertiser}
                 </option>

@@ -25,7 +25,7 @@ export const runTestSync = mutation({
         successRows: 0,
         errorRows: 0,
         duplicateRows: 0,
-        startedAt: now,
+        startedAt: Date.now(),
       })
 
       // テスト用のサンプルデータを挿入（既存データがない場合）
@@ -42,7 +42,6 @@ export const runTestSync = mutation({
           advertiser: 'インハウス',
           advertiserNormalized: 'インハウス',
           dataDate: yesterday,
-          date: yesterday,
           orderAmount: 45624,
           salesAmount: 18111,
           cost: 0,
@@ -56,8 +55,8 @@ export const runTestSync = mutation({
           paymentRate: 0.4,
           realCPA: 0,
           roas: 0,
-          createdAt: now,
-          updatedAt: now,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
         }
 
         await ctx.db.insert('ecforcePerformance', sampleData)
@@ -76,7 +75,7 @@ export const runTestSync = mutation({
           successRows: existingData ? 0 : 1,
           duplicateRows: existingData ? 1 : 0,
           errorRows: 0,
-          completedAt: now + 1000,
+          completedAt: Date.now() + 1000,
         })
       }
 
