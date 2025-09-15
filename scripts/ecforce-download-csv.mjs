@@ -24,9 +24,11 @@ if (process.env.VERCEL) {
 
 async function downloadCSVFromMogumo() {
   const isAutoMode = process.argv.includes('--auto') || process.env.AUTO_SYNC === 'true';
+  const shouldUpload = process.argv.includes('--upload') || isAutoMode; // 自動モードでは必ずアップロード
   console.log('🚀 mogumo ECForce CSVダウンロード処理開始...');
   console.log(`  実行モード: ${isAutoMode ? '🤖 自動同期（バックグラウンド）' : '👤 手動実行（画面表示）'}`);
-  
+  console.log(`  アップロード: ${shouldUpload ? '✅ 有効' : '❌ 無効'}`);
+
   // 環境変数から認証情報を取得
   const BASIC_USER = process.env.ECFORCE_BASIC_USER;
   const BASIC_PASS = process.env.ECFORCE_BASIC_PASS;
@@ -38,6 +40,19 @@ async function downloadCSVFromMogumo() {
   if (!fs.existsSync(downloadPath)) {
     fs.mkdirSync(downloadPath, { recursive: true });
     console.log('📁 ダウンロードディレクトリを作成:', downloadPath);
+  }
+
+  // 自動モード時は古いCSVファイルを削除（最新のみ保持）
+  if (isAutoMode) {
+    console.log('🧹 古いCSVファイルをクリーンアップ中...');
+    const files = fs.readdirSync(downloadPath);
+    const csvFiles = files.filter(f => f.endsWith('.csv'));
+    csvFiles.forEach(file => {
+      const filePath = path.join(downloadPath, file);
+      fs.unlinkSync(filePath);
+      console.log(`  削除: ${file}`);
+    });
+    console.log(`  ${csvFiles.length}ファイルを削除しました`);
   }
   
   // ブラウザを起動（自動実行の場合はヘッドレスモード）
@@ -535,8 +550,8 @@ async function downloadCSVFromMogumo() {
             
             downloadTriggered = true;
             
-            // Convexへのアップロード処理（--uploadオプションが指定された場合）
-            if (process.argv.includes('--upload')) {
+            // Convexへのアップロード処理（--uploadオプションまたは自動モード時）
+            if (shouldUpload) {
               console.log('\n================================');
               console.log('📤 Convexへの自動アップロード開始');
               console.log('================================');
@@ -576,8 +591,8 @@ async function downloadCSVFromMogumo() {
               fs.writeFileSync(utf8Path, utf8Text, 'utf-8');
               console.log(`📝 UTF-8に変換しました: ${utf8Path}`);
               
-              // Convexへのアップロード処理（--uploadオプションが指定された場合）
-              if (process.argv.includes('--upload')) {
+              // Convexへのアップロード処理（--uploadオプションまたは自動モード時）
+              if (shouldUpload) {
                 console.log('\n================================');
                 console.log('📤 Convexへの自動アップロード開始');
                 console.log('================================');
@@ -714,6 +729,7 @@ if (process.argv.includes('--help') || process.argv.includes('-h')) {
   console.log('');
   console.log('オプション:');
   console.log('  --upload    ダウンロード後、自動的にConvexデータベースにアップロード');
+  console.log('  --auto      自動モード（ヘッドレス実行、自動アップロード有効）');
   console.log('  --help, -h  このヘルプを表示');
   console.log('');
   console.log('例:');
@@ -729,7 +745,9 @@ if (process.argv.includes('--help') || process.argv.includes('-h')) {
 console.log('========================================');
 console.log('🚀 ECForce CSV自動処理ツール');
 console.log('========================================');
-if (process.argv.includes('--upload')) {
+const isAutoMode = process.argv.includes('--auto') || process.env.AUTO_SYNC === 'true';
+const shouldUpload = process.argv.includes('--upload') || isAutoMode;
+if (shouldUpload) {
   console.log('モード: ダウンロード & Convexアップロード');
 } else {
   console.log('モード: ダウンロードのみ');
