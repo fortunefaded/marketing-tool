@@ -3,7 +3,7 @@
  * 7日後の予測を表示するダッシュボードコンポーネント
  */
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import {
   PredictiveAnalyzer,
   // PredictionResult, - 未使用
@@ -12,8 +12,8 @@ import {
 import { FatigueScoreDetail } from '../core/fatigue-calculator-v2'
 // import { SafeMetrics } from '../utils/safe-data-access' - 未使用
 import {
-  TrendingUpIcon,
-  TrendingDownIcon,
+  ArrowTrendingUpIcon,
+  ArrowTrendingDownIcon,
   ExclamationTriangleIcon,
   // CheckCircleIcon, - 未使用
   ClockIcon,
@@ -64,9 +64,9 @@ const getRiskColor = (level: string) => {
 const getTrendIcon = (direction: string) => {
   switch (direction) {
     case 'improving':
-      return <TrendingUpIcon className="h-5 w-5 text-green-600" />
+      return <ArrowTrendingUpIcon className="h-5 w-5 text-green-600" />
     case 'declining':
-      return <TrendingDownIcon className="h-5 w-5 text-red-600" />
+      return <ArrowTrendingDownIcon className="h-5 w-5 text-red-600" />
     case 'critical':
       return <ExclamationTriangleIcon className="h-5 w-5 text-red-600" />
     default:

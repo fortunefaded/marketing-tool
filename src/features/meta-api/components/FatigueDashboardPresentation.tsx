@@ -5,7 +5,7 @@ import { CreativeTableTab } from './CreativeTableTab'
 import { Alert } from './Alert'
 import { MetaAccount } from '@/types'
 import { aggregateByLevel } from '../utils/aggregation'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs'
 import { useRateLimitStatus } from '../hooks/useRateLimitStatus'
 import { downloadCSV, downloadAggregatedCSV } from '@/utils/csv-export'
 import { DataLoadingProgress } from './DataLoadingProgress'
@@ -467,7 +467,7 @@ export function FatigueDashboardPresentation({
                 📡 Data Source: {dataSource || 'none'} | Error: {error?.message || 'none'}
               </div>
               <div>
-                📅 Date Filter: {dateFilter} | Custom Range:{' '}
+                📅 Date Filter: {dateRange} | Custom Range:{' '}
                 {customDateRange
                   ? `${customDateRange.start.toLocaleDateString()} - ${customDateRange.end.toLocaleDateString()}`
                   : 'none'}

@@ -6,7 +6,7 @@ export const runTestSync = mutation({
   handler: async (ctx) => {
     try {
       // 現在の日時
-      const now = Date.now().toISOString().split('T')[0]
+      const now = new Date().toISOString().split('T')[0]
       const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
       // テスト用のインポートセッションを作成
