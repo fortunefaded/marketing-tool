@@ -2990,17 +2990,18 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                               <div className="grid grid-cols-3 gap-4 mb-4 text-sm">
                                 <div className="text-center">
                                   <div className="font-medium text-blue-600">
-                                    CTR: {(timeSeriesData.summary.avgCTR * 100).toFixed(2)}%
+                                    CTR: {(timeSeriesData.summary?.avgCTR * 100 || 0).toFixed(2)}%
                                   </div>
                                 </div>
                                 <div className="text-center">
                                   <div className="font-medium text-green-600">
-                                    CPM: ¥{timeSeriesData.summary.avgCPM.toFixed(0)}
+                                    CPM: ¥{(timeSeriesData.summary?.avgCPM || 0).toFixed(0)}
                                   </div>
                                 </div>
                                 <div className="text-center">
                                   <div className="font-medium text-orange-600">
-                                    Frequency: {timeSeriesData.summary.avgFrequency.toFixed(2)}
+                                    Frequency:{' '}
+                                    {(timeSeriesData.summary?.avgFrequency || 0).toFixed(2)}
                                   </div>
                                 </div>
                               </div>
@@ -3035,7 +3036,8 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                               <div className="grid grid-cols-4 gap-4 mb-4 text-sm">
                                 <div className="text-center">
                                   <div className="font-medium text-purple-600">
-                                    広告費: ¥{timeSeriesData.summary.totalSpend.toLocaleString()}
+                                    広告費: ¥
+                                    {(timeSeriesData.summary?.totalSpend || 0).toLocaleString()}
                                   </div>
                                 </div>
                                 <div className="text-center">
@@ -3059,7 +3061,7 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                                 CPA: ¥
                                 {timeSeriesData.chartData[0]?.conversions > 0
                                   ? (
-                                      timeSeriesData.summary.totalSpend /
+                                      (timeSeriesData.summary?.totalSpend || 0) /
                                       timeSeriesData.chartData[0].conversions
                                     ).toLocaleString()
                                   : 'N/A'}
