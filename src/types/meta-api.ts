@@ -47,6 +47,10 @@ export interface AdInsight {
   creative_media_type?: string
   ad_creative_id?: string
   publisher_platform?: string
+  video_id?: string
+  video_url?: string
+  thumbnail_url?: string
+  carousel_cards?: any[]
 
   // Instagram特有メトリクス（計算済み）
   instagram_metrics?: {
