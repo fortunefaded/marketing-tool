@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
-import { Copy, ChevronDown, ChevronUp, X, Download, Bug, Trash2, Filter } from 'lucide-react'
-import { debugLogger, type LogCategory } from '../utils/debugLogger'
+import { Copy, ChevronDown, ChevronUp, X, Download, Bug, Trash2 } from 'lucide-react'
+import { debugLogger } from '../utils/debugLogger'
 import { vibe } from '../utils/vibelogger'
 
 interface UnifiedLog {
@@ -32,7 +32,7 @@ export function UnifiedDebugPanel() {
 
   useEffect(() => {
     // debugLoggerの既存ログを取得
-    const debugLogs = debugLogger.getLogs().map(log => ({
+    const debugLogs = debugLogger.getLogs().map((log) => ({
       id: `debug-${logIdCounter.current++}`,
       timestamp: log.timestamp,
       source: 'debugLogger' as const,
@@ -40,7 +40,7 @@ export function UnifiedDebugPanel() {
       category: log.category,
       component: log.component,
       message: log.message,
-      data: log.data
+      data: log.data,
     }))
     setLogs(debugLogs)
 
@@ -48,7 +48,7 @@ export function UnifiedDebugPanel() {
     const unsubscribeDebug = debugLogger.subscribe((newLogs) => {
       // setTimeout 0を使って次のイベントループで実行
       setTimeout(() => {
-        const unified = newLogs.map(log => ({
+        const unified = newLogs.map((log) => ({
           id: `debug-${logIdCounter.current++}`,
           timestamp: log.timestamp,
           source: 'debugLogger' as const,
@@ -56,13 +56,13 @@ export function UnifiedDebugPanel() {
           category: log.category,
           component: log.component,
           message: log.message,
-          data: log.data
+          data: log.data,
         }))
-        setLogs(prev => {
+        setLogs((prev) => {
           // 重複を避けるため、debugLoggerのログを置き換え
-          const vibeLogs = prev.filter(l => l.source === 'vibe')
-          return [...vibeLogs, ...unified].sort((a, b) => 
-            new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+          const vibeLogs = prev.filter((l) => l.source === 'vibe')
+          return [...vibeLogs, ...unified].sort(
+            (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
           )
         })
       }, 0)
@@ -77,26 +77,29 @@ export function UnifiedDebugPanel() {
       good: vibe.good?.bind(vibe),
       bad: vibe.bad?.bind(vibe),
       vibe: vibe.vibe?.bind(vibe),
-      story: vibe.story?.bind(vibe)
+      story: vibe.story?.bind(vibe),
     }
-    
+
     const interceptVibe = (level: string) => {
-      return function(this: any, ...args: any[]) {
+      return function (this: any, ...args: any[]) {
         const message = args[0] || ''
         const data = args.slice(1)
-        
+
         // setTimeout 0を使って次のイベントループで実行
         setTimeout(() => {
-          setLogs(prev => [...prev, {
-            id: `vibe-${logIdCounter.current++}`,
-            timestamp: new Date().toISOString(),
-            source: 'vibe',
-            level: level as any,
-            message: typeof message === 'string' ? message : JSON.stringify(message),
-            data: data.length > 0 ? data : undefined
-          }])
+          setLogs((prev) => [
+            ...prev,
+            {
+              id: `vibe-${logIdCounter.current++}`,
+              timestamp: new Date().toISOString(),
+              source: 'vibe',
+              level: level as any,
+              message: typeof message === 'string' ? message : JSON.stringify(message),
+              data: data.length > 0 ? data : undefined,
+            },
+          ])
         }, 0)
-        
+
         // 元のメソッドを呼び出す
         const originalMethod = originalMethods[level as keyof typeof originalMethods]
         if (originalMethod) {
@@ -141,10 +144,13 @@ export function UnifiedDebugPanel() {
   })
 
   const handleCopyToClipboard = () => {
-    const logText = filteredLogs.map(log => 
-      `[${log.timestamp}] [${log.source}] [${log.level}] ${log.category || ''} ${log.message} ${log.data ? JSON.stringify(log.data) : ''}`
-    ).join('\n')
-    
+    const logText = filteredLogs
+      .map(
+        (log) =>
+          `[${log.timestamp}] [${log.source}] [${log.level}] ${log.category || ''} ${log.message} ${log.data ? JSON.stringify(log.data) : ''}`
+      )
+      .join('\n')
+
     navigator.clipboard.writeText(logText).then(() => {
       setShowNotification(true)
       setTimeout(() => setShowNotification(false), 2000)
@@ -152,10 +158,13 @@ export function UnifiedDebugPanel() {
   }
 
   const handleDownload = () => {
-    const logText = filteredLogs.map(log => 
-      `[${log.timestamp}] [${log.source}] [${log.level}] ${log.category || ''} ${log.message} ${log.data ? JSON.stringify(log.data) : ''}`
-    ).join('\n')
-    
+    const logText = filteredLogs
+      .map(
+        (log) =>
+          `[${log.timestamp}] [${log.source}] [${log.level}] ${log.category || ''} ${log.message} ${log.data ? JSON.stringify(log.data) : ''}`
+      )
+      .join('\n')
+
     const blob = new Blob([logText], { type: 'text/plain' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -174,20 +183,25 @@ export function UnifiedDebugPanel() {
 
   const getLevelColor = (level: string) => {
     switch (level) {
-      case 'debug': return 'text-gray-500'
-      case 'info': return 'text-blue-600'
-      case 'warn': return 'text-yellow-600'
-      case 'error': return 'text-red-600'
-      case 'bad': return 'text-red-600'
-      case 'good': return 'text-green-600'
-      default: return 'text-gray-600'
+      case 'debug':
+        return 'text-gray-500'
+      case 'info':
+        return 'text-blue-600'
+      case 'warn':
+        return 'text-yellow-600'
+      case 'error':
+        return 'text-red-600'
+      case 'bad':
+        return 'text-red-600'
+      case 'good':
+        return 'text-green-600'
+      default:
+        return 'text-gray-600'
     }
   }
 
   const getSourceBadge = (source: string) => {
-    return source === 'vibe' 
-      ? 'bg-purple-100 text-purple-700' 
-      : 'bg-blue-100 text-blue-700'
+    return source === 'vibe' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
   }
 
   if (isMinimized) {
@@ -292,7 +306,7 @@ export function UnifiedDebugPanel() {
 
       {/* ログ表示エリア */}
       {isExpanded && (
-        <div 
+        <div
           ref={logContainerRef}
           className="flex-1 overflow-y-auto bg-gray-900 text-gray-100 p-2 font-mono text-xs"
         >
@@ -311,9 +325,7 @@ export function UnifiedDebugPanel() {
                   <span className={`font-semibold ${getLevelColor(log.level)}`}>
                     [{log.level.toUpperCase()}]
                   </span>
-                  {log.category && (
-                    <span className="text-cyan-400">[{log.category}]</span>
-                  )}
+                  {log.category && <span className="text-cyan-400">[{log.category}]</span>}
                   <span className="text-gray-100 flex-1">{log.message}</span>
                 </div>
                 {log.data && (

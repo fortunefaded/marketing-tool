@@ -63,7 +63,7 @@ export const updateSettings = mutation({
 
     const existing = await ctx.db
       .query('syncSettings')
-      .withIndex('by_accountId', (q) => q.eq('accountId', accountId))
+      .withIndex('by_account', (q) => q.eq('accountId', accountId))
       .first()
 
     if (!existing) {

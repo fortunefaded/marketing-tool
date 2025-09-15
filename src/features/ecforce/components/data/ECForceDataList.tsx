@@ -8,7 +8,6 @@ import {
   ExclamationTriangleIcon,
   CheckCircleIcon,
   TrashIcon,
-  XMarkIcon,
 } from '@heroicons/react/24/outline'
 import { Id } from '../../../../../convex/_generated/dataModel'
 

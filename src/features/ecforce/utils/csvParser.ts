@@ -4,7 +4,6 @@ import { parse as papaParse, ParseResult } from 'papaparse'
 const HEADER_MAPPING: Record<string, string> = {
   期間: 'period',
   日付: 'date',
-  日付: 'date',
   広告主別: 'advertiser',
   デバイス: 'device',
   受注金額: 'orderAmount',

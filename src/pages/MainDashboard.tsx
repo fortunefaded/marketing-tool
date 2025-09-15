@@ -32,7 +32,6 @@ export default function MainDashboard() {
   const [accounts, setAccounts] = useState<MetaAccount[]>([])
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
   const [isLoadingAccounts, setIsLoadingAccounts] = useState(true)
-  const [ecforceData, setEcforceData] = useState<any[]>([]) // ECForceデータ用state追加
   // localStorageから保存された期間選択を復元
   const [dateRange, setDateRange] = useState<
     | 'last_7d'
@@ -423,7 +422,7 @@ export default function MainDashboard() {
         }
 
         Object.entries(params).forEach(([key, value]) => {
-          url.searchParams.append(key, value)
+          url.searchParams.append(key, Array.isArray(value) ? value.join(',') : value)
         })
 
         // グローバルにデバッグ情報を保存
@@ -580,7 +579,7 @@ export default function MainDashboard() {
         }
 
         // デバッグ: 250802_テキスト流しのCV確認
-        const debugTarget = result.data?.find((item) =>
+        const debugTarget = result.data?.find((item: any) =>
           item.ad_name?.includes('250802_テキスト流し')
         )
 
@@ -1027,7 +1026,7 @@ export default function MainDashboard() {
         }
 
         Object.entries(params).forEach(([key, value]) => {
-          url.searchParams.append(key, value)
+          url.searchParams.append(key, Array.isArray(value) ? value.join(',') : value)
         })
 
         // API呼び出し

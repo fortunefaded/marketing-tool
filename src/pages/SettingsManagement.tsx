@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react'
-import { Cog6ToothIcon } from '@heroicons/react/24/outline'
 import { useConvex } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import { useNavigate, Link } from 'react-router-dom'
