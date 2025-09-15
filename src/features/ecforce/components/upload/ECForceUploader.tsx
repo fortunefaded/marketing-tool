@@ -21,6 +21,7 @@ export const ECForceUploader: React.FC = () => {
   const [duplicates, setDuplicates] = useState<string[]>([])
   const [uploadResult, setUploadResult] = useState<any>(null)
   const [errors, setErrors] = useState<string[]>([])
+  const [warnings, setWarnings] = useState<string[]>([])
   const [duplicateCheckParams, setDuplicateCheckParams] = useState<{
     dateRange: { startDate: string; endDate: string; uniqueDates: string[] }
     advertisers: string[]
@@ -40,6 +41,11 @@ export const ECForceUploader: React.FC = () => {
   useEffect(() => {
     if (duplicateCheck) {
       setDuplicates(duplicateCheck.duplicates || [])
+      if (duplicateCheck.warning) {
+        setWarnings([duplicateCheck.warning])
+      } else {
+        setWarnings([])
+      }
     }
   }, [duplicateCheck])
 
@@ -58,18 +64,24 @@ export const ECForceUploader: React.FC = () => {
 
     setPreviewData(preview)
 
-    // 重複チェック（複数日付対応）
+    // 重複チェック（大量データの場合はスキップ）
     if (preview.rows.length > 0 && preview.dateRange) {
       const advertisers = preview.rows
         .filter((row) => row['デバイス'] === '合計')
         .map((row) => row['広告主別'])
         .filter(Boolean)
 
-      if (advertisers.length > 0) {
+      // 大量データの場合は重複チェックをスキップ
+      const uniqueDates = preview.dateRange.uniqueDates
+      if (advertisers.length > 0 && uniqueDates.length <= 30) {
         setDuplicateCheckParams({
           dateRange: preview.dateRange,
           advertisers,
         })
+      } else if (uniqueDates.length > 30) {
+        setWarnings([
+          `${uniqueDates.length}日分のデータが含まれているため、重複チェックをスキップします。アップロード時に重複処理されます。`,
+        ])
       }
     }
   }, [])
@@ -266,6 +278,18 @@ export const ECForceUploader: React.FC = () => {
               </span>
             </label>
           </div>
+        </div>
+      )}
+
+      {/* 警告表示 */}
+      {warnings.length > 0 && (
+        <div className="rounded-lg bg-yellow-50 p-4">
+          <h3 className="text-sm font-medium text-yellow-800">注意</h3>
+          <ul className="mt-2 list-inside list-disc text-sm text-yellow-700">
+            {warnings.map((warning, index) => (
+              <li key={index}>{warning}</li>
+            ))}
+          </ul>
         </div>
       )}
 
