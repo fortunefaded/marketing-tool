@@ -1,7 +1,7 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CheckCircleIcon, ArrowRightIcon } from '@heroicons/react/24/outline'
-import { MetaAccountManager } from '../../_archived/services/metaAccountManager'
+import { MetaAccountManager } from '../../services/meta-account/MetaAccountManager'
 
 export const CompleteStep: React.FC = () => {
   const navigate = useNavigate()

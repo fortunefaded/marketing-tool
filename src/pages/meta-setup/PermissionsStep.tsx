@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { MetaAccountManager } from '../../_archived/services/metaAccountManager'
+import { MetaAccountManager } from '../../services/meta-account/MetaAccountManager'
 import { CheckIcon, XMarkIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline'
 
 interface Permission {

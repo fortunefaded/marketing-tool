@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useConvex } from 'convex/react'
-import { MetaAccountManagerConvex } from '../../_archived/services/metaAccountManagerConvex'
-import { MetaApiService } from '../../_archived/services/MetaApiServiceSimple'
+import { MetaAccountManagerConvex } from '../../services/meta-account/MetaAccountManagerConvex'
+import { MetaApiService } from '../../services/meta-account/MetaApiServiceSimple'
 import { CheckCircleIcon, XCircleIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline'
 
 interface TestResult {

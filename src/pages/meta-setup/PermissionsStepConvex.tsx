@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useConvex } from 'convex/react'
-import { MetaAccountManagerConvex } from '../../_archived/services/metaAccountManagerConvex'
+import { MetaAccountManagerConvex } from '../../services/meta-account/MetaAccountManagerConvex'
 import { CheckIcon, XMarkIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline'
 
 interface Permission {
