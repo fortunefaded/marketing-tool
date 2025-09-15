@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useEffect } from 'react'
-import { useMutation, useQuery } from 'convex/react'
+import React, { useState, useCallback } from 'react'
+import { useMutation } from 'convex/react'
 import { api } from '../../../../../convex/_generated/api'
 import { CSVDropzone } from './CSVDropzone'
 import { CSVPreview } from './CSVPreview'
@@ -18,36 +18,16 @@ export const ECForceUploader: React.FC = () => {
     totalRows?: number
     filteredRows?: number
   } | null>(null)
-  const [duplicates, setDuplicates] = useState<string[]>([])
   const [uploadResult, setUploadResult] = useState<any>(null)
   const [errors, setErrors] = useState<string[]>([])
   const [warnings, setWarnings] = useState<string[]>([])
-  const [duplicateCheckParams, setDuplicateCheckParams] = useState<{
-    dateRange: { startDate: string; endDate: string; uniqueDates: string[] }
-    advertisers: string[]
-  } | null>(null)
+  // 重複チェック機能は無効化済み
 
   const createImport = useMutation(api.ecforce.createImport)
   const savePerformanceData = useMutation(api.ecforce.savePerformanceData)
   const updateImportStatus = useMutation(api.ecforce.updateImportStatus)
 
-  // 重複チェック用のquery
-  const duplicateCheck = useQuery(
-    api.ecforce.checkDuplicates,
-    duplicateCheckParams ? duplicateCheckParams : 'skip'
-  )
-
-  // 重複チェック結果を反映
-  useEffect(() => {
-    if (duplicateCheck) {
-      setDuplicates(duplicateCheck.duplicates || [])
-      if (duplicateCheck.warning) {
-        setWarnings([duplicateCheck.warning])
-      } else {
-        setWarnings([])
-      }
-    }
-  }, [duplicateCheck])
+  // 重複チェック機能は完全に無効化（大量データ対応）
 
   // ファイル選択時の処理
   const handleFileSelect = useCallback(async (selectedFile: File) => {
@@ -64,25 +44,12 @@ export const ECForceUploader: React.FC = () => {
 
     setPreviewData(preview)
 
-    // 重複チェック（大量データの場合はスキップ）
+    // 重複チェックを完全に無効化（大量データ対応）
     if (preview.rows.length > 0 && preview.dateRange) {
-      const advertisers = preview.rows
-        .filter((row) => row['デバイス'] === '合計')
-        .map((row) => row['広告主別'])
-        .filter(Boolean)
-
-      // 大量データの場合は重複チェックをスキップ
       const uniqueDates = preview.dateRange.uniqueDates
-      if (advertisers.length > 0 && uniqueDates.length <= 30) {
-        setDuplicateCheckParams({
-          dateRange: preview.dateRange,
-          advertisers,
-        })
-      } else if (uniqueDates.length > 30) {
-        setWarnings([
-          `${uniqueDates.length}日分のデータが含まれているため、重複チェックをスキップします。アップロード時に重複処理されます。`,
-        ])
-      }
+      setWarnings([
+        `${uniqueDates.length}日分のデータが検出されました。重複処理はアップロード時に実行されます。`,
+      ])
     }
   }, [])
 
@@ -213,7 +180,7 @@ export const ECForceUploader: React.FC = () => {
         setTimeout(() => {
           setFile(null)
           setPreviewData(null)
-          setDuplicates([])
+          setWarnings([])
           setUploadProgress(0)
         }, 3000)
       }
@@ -243,7 +210,7 @@ export const ECForceUploader: React.FC = () => {
             headers={previewData.headers}
             rows={previewData.rows}
             dateRange={previewData.dateRange}
-            duplicates={duplicates}
+            duplicates={[]} // 事前重複チェック無効化
             totalRows={previewData.totalRows}
             filteredRows={previewData.filteredRows}
           />
@@ -251,9 +218,12 @@ export const ECForceUploader: React.FC = () => {
       )}
 
       {/* 重複処理オプション */}
-      {duplicates.length > 0 && !isUploading && (
-        <div className="rounded-lg bg-orange-50 p-6">
-          <h3 className="text-sm font-medium text-orange-900">重複データの処理方法</h3>
+      {previewData && !isUploading && (
+        <div className="rounded-lg bg-blue-50 p-6">
+          <h3 className="text-sm font-medium text-blue-900">重複データの処理設定</h3>
+          <p className="text-sm text-blue-700 mt-1">
+            アップロード時に重複データが検出された場合の処理方法を選択してください
+          </p>
           <div className="mt-3 space-y-3">
             <label className="flex items-center">
               <input
