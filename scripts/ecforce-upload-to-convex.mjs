@@ -227,8 +227,8 @@ export async function uploadToConvex(csvPath) {
     console.log(`✅ ${transformedData.length}件のデータを変換完了`);
     
     // バッチサイズ設定（一度に処理するレコード数）
-    // 最適化: 50→200に増加してAPI呼び出し回数を75%削減
-    const batchSize = 200;
+    // 最適化: パフォーマンステストの結果、1000が最適（広告主1件の場合）
+    const batchSize = 1000;
     const batches = [];
     for (let i = 0; i < transformedData.length; i += batchSize) {
       batches.push(transformedData.slice(i, i + batchSize));
