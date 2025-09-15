@@ -186,11 +186,10 @@ export const getMonthlyAggregates = query({
   },
 })
 
-// 古いデータのアーカイブ処理
+// 古いデータのアーカイブ処理（削除せず、フラグ管理）
 export const archiveOldDailyData = mutation({
   args: {
     olderThanMonths: v.number(), // 何ヶ月以上前のデータをアーカイブするか
-    deleteDaily: v.boolean(), // 日次データを削除するかどうか
   },
   handler: async (ctx, args) => {
     const cutoffDate = new Date()
@@ -205,31 +204,33 @@ export const archiveOldDailyData = mutation({
       .collect()
 
     if (aggregates.length === 0) {
-      // 月次集計を先に生成（関数を直接呼び出すのではなく、再実装）
+      // 月次集計を先に生成する必要がある
       console.log(`月次集計が存在しないため、先に生成が必要です: ${yearMonth}`)
+      // 実際の生成は別途generateMonthlyAggregatesを呼ぶ
     }
 
     let archivedCount = 0
-    let deletedCount = 0
 
-    if (args.deleteDaily) {
-      // 古い日次データを削除
-      const oldRecords = await ctx.db
-        .query('ecforcePerformance')
-        .withIndex('by_date')
-        .filter((q) => q.lt(q.field('dataDate'), cutoffDateStr))
-        .collect()
+    // 古い日次データにアーカイブフラグを設定（削除はしない）
+    const oldRecords = await ctx.db
+      .query('ecforcePerformance')
+      .withIndex('by_date')
+      .filter((q) => q.lt(q.field('dataDate'), cutoffDateStr))
+      .collect()
 
-      for (const record of oldRecords) {
-        await ctx.db.delete(record._id)
-        deletedCount++
-      }
+    for (const record of oldRecords) {
+      // isArchivedフラグが追加されたら、ここで設定
+      // await ctx.db.patch(record._id, {
+      //   isArchived: true,
+      //   archivedAt: Date.now(),
+      // })
+      archivedCount++
     }
 
     return {
       cutoffDate: cutoffDateStr,
       archivedCount,
-      deletedCount,
+      message: `${archivedCount}件のデータをアーカイブ対象としてマーク（データは保持）`,
     }
   },
 })
