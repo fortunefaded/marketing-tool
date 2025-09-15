@@ -14,7 +14,7 @@ export const getPerformanceDataLimited = query({
   handler: async (ctx, args) => {
     // 厳格な制限値
     const MAX_LIMIT = 50 // 最大50件（設定画面用）
-    const DEFAULT_LIMIT = 30 // デフォルト30件（1ヶ月分）
+    const DEFAULT_LIMIT = 5 // デフォルト5件（最新データのみ）
     const requestedLimit = Math.min(args.limit || DEFAULT_LIMIT, MAX_LIMIT)
     const offset = args.offset || 0
 

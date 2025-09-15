@@ -70,7 +70,7 @@ export const ECForceDataList: React.FC = () => {
 
   // 制限とページネーション状態
   const [currentPage, setCurrentPage] = useState(0)
-  const [pageSize, setPageSize] = useState(30)
+  const [pageSize, setPageSize] = useState(5)
   const [useMonthlyAggregates, setUseMonthlyAggregates] = useState(true)
 
   // Convexからデータ取得（制限付きAPI使用）
@@ -445,6 +445,7 @@ export const ECForceDataList: React.FC = () => {
               }}
               className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
             >
+              <option value={5}>5件</option>
               <option value={10}>10件</option>
               <option value={30}>30件</option>
               <option value={50}>50件</option>
