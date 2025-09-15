@@ -17,9 +17,9 @@ on:
   repository_dispatch:
     types: [ecforce-sync]
 
-  # 定期実行（毎日午前9時JST）
+  # 定期実行（毎日午前3時JST）
   schedule:
-    - cron: '0 0 * * *'  # UTC 0:00 = JST 9:00
+    - cron: '0 18 * * *'  # UTC 18:00 = JST 3:00 (翌日)
 
 jobs:
   sync:
