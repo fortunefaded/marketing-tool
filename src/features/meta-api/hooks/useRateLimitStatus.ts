@@ -9,7 +9,7 @@ interface RateLimitStatus {
 }
 
 export function useRateLimitStatus(): RateLimitStatus {
-  const [lastRateLimitTime, setLastRateLimitTime] = useState<number>(0)
+  const [_lastRateLimitTime, setLastRateLimitTime] = useState<number>(0)
   const [retryAfter, setRetryAfter] = useState<number>(0)
   const [timeRemaining, setTimeRemaining] = useState<number>(0)
   

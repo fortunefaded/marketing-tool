@@ -1,13 +1,11 @@
-import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useConvex } from 'convex/react'
 import { SimpleTokenStore } from '../core/token'
-import { SimpleMetaApi, PaginatedResult } from '../core/api-client'
+import { SimpleMetaApi } from '../core/api-client'
 import { AdInsight } from '@/types'
 import { vibe } from '@/utils/vibelogger'
 import { useLocalCache } from './useLocalCache'
 // TASK-005: リファクタリング - 日付範囲ヘルパーとキャッシュを追加
-import { useDateRangeCache } from './useDateRangeCache'
-import { isValidDateRangePreset, getDateRangeThresholds } from '../utils/date-range-helpers'
 import type { DateRangePreset } from '../utils/date-range-helpers'
 
 interface UseMetaInsightsOptions {
@@ -54,7 +52,6 @@ export function useMetaInsights({
   const convex = useConvex()
   const localCache = useLocalCache()
   // TASK-005: リファクタリング - 日付範囲対応キャッシュを使用
-  const dateRangeCache = useDateRangeCache()
 
   // TASK-005: デバッグログのヘルパー関数
   const debugLog = useCallback(
@@ -305,11 +302,6 @@ export function useMetaInsights({
   // TASK-005: 現在の有効なdatePresetを追跡
   const [currentDatePreset, setCurrentDatePreset] = useState(datePreset)
 
-  // TASK-005: リファクタリング - 日付範囲の妥当性チェック
-  const validatedDatePreset = useMemo(() => {
-    const preset = typeof datePreset === 'string' ? datePreset : 'last_30d'
-    return isValidDateRangePreset(preset) ? (preset as DateRangePreset) : 'last_30d'
-  }, [datePreset])
 
   // 初回取得
   const fetch = useCallback(

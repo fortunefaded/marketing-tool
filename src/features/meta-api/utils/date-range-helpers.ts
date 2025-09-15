@@ -3,7 +3,19 @@
  * TASK-005: 日付範囲処理のユーティリティ関数
  */
 
-export type DateRangePreset = 'today' | 'yesterday' | 'last_7d' | 'last_14d' | 'last_30d' | 'last_month' | 'last_90d' | 'all'
+export type DateRangePreset =
+  | 'today'
+  | 'yesterday'
+  | 'last_7d'
+  | 'last_14d'
+  | 'last_28d'
+  | 'last_30d'
+  | 'last_month'
+  | 'this_week'
+  | 'last_week'
+  | 'this_month'
+  | 'last_90d'
+  | 'all'
 
 export interface DateRangeInfo {
   preset: DateRangePreset
@@ -20,7 +32,7 @@ export interface DateRangeInfo {
 export function getDateRangeInfo(preset: DateRangePreset): DateRangeInfo {
   const now = new Date()
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  
+
   switch (preset) {
     case 'today':
       return {
@@ -29,9 +41,9 @@ export function getDateRangeInfo(preset: DateRangePreset): DateRangeInfo {
         endDate: today,
         isCustomRange: false,
         daysCount: 1,
-        displayName: '今日'
+        displayName: '今日',
       }
-      
+
     case 'yesterday': {
       const yesterday = new Date(today)
       yesterday.setDate(yesterday.getDate() - 1)
@@ -41,49 +53,70 @@ export function getDateRangeInfo(preset: DateRangePreset): DateRangeInfo {
         endDate: yesterday,
         isCustomRange: false,
         daysCount: 1,
-        displayName: '昨日'
+        displayName: '昨日',
       }
     }
-      
+
     case 'last_7d': {
       const startDate = new Date(today)
       startDate.setDate(startDate.getDate() - 7)
+      const endDate = new Date(today)
+      endDate.setDate(endDate.getDate() - 1)
       return {
         preset,
         startDate,
-        endDate: today,
+        endDate,
         isCustomRange: false,
         daysCount: 7,
-        displayName: '過去7日間'
+        displayName: '過去7日間',
       }
     }
-      
+
     case 'last_14d': {
       const startDate = new Date(today)
       startDate.setDate(startDate.getDate() - 14)
+      const endDate = new Date(today)
+      endDate.setDate(endDate.getDate() - 1)
       return {
         preset,
         startDate,
-        endDate: today,
+        endDate,
         isCustomRange: false,
         daysCount: 14,
-        displayName: '過去14日間'
+        displayName: '過去14日間',
       }
     }
-      
+
+    case 'last_28d': {
+      const startDate = new Date(today)
+      startDate.setDate(startDate.getDate() - 28)
+      const endDate = new Date(today)
+      endDate.setDate(endDate.getDate() - 1)
+      return {
+        preset,
+        startDate,
+        endDate,
+        isCustomRange: false,
+        daysCount: 28,
+        displayName: '過去28日間',
+      }
+    }
+
     case 'last_30d': {
       const startDate = new Date(today)
       startDate.setDate(startDate.getDate() - 30)
+      const endDate = new Date(today)
+      endDate.setDate(endDate.getDate() - 1)
       return {
         preset,
         startDate,
-        endDate: today,
+        endDate,
         isCustomRange: false,
         daysCount: 30,
-        displayName: '過去30日間'
+        displayName: '過去30日間',
       }
     }
-      
+
     case 'last_month': {
       const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
       const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0)
@@ -93,30 +126,32 @@ export function getDateRangeInfo(preset: DateRangePreset): DateRangeInfo {
         endDate: endOfLastMonth,
         isCustomRange: false,
         daysCount: endOfLastMonth.getDate(),
-        displayName: '先月'
+        displayName: '先月',
       }
     }
-      
+
     case 'last_90d': {
       const startDate = new Date(today)
       startDate.setDate(startDate.getDate() - 90)
+      const endDate = new Date(today)
+      endDate.setDate(endDate.getDate() - 1)
       return {
         preset,
         startDate,
-        endDate: today,
+        endDate,
         isCustomRange: false,
         daysCount: 90,
-        displayName: '過去90日間'
+        displayName: '過去90日間',
       }
     }
-      
+
     case 'all':
     default:
       return {
         preset,
         isCustomRange: false,
         daysCount: Infinity,
-        displayName: '全期間'
+        displayName: '全期間',
       }
   }
 }
@@ -134,13 +169,13 @@ export function isShortTermRange(preset: DateRangePreset | string): boolean {
  */
 export function getDateRangeThresholds(preset: DateRangePreset | string) {
   const isShortTerm = isShortTermRange(preset)
-  
+
   return {
     isShortTerm,
     ctrDeclineThreshold: isShortTerm ? 0.2 : 0.25, // 短期間はより厳しく
     frequencyWarningThreshold: 3.5,
-    cpmIncreaseThreshold: isShortTerm ? 0.16 : 0.20, // 短期間はより厳しく
-    strictMode: isShortTerm
+    cpmIncreaseThreshold: isShortTerm ? 0.16 : 0.2, // 短期間はより厳しく
+    strictMode: isShortTerm,
   }
 }
 
@@ -149,13 +184,13 @@ export function getDateRangeThresholds(preset: DateRangePreset | string) {
  */
 export function generateDateRangeCacheKey(accountId: string, preset: DateRangePreset): string {
   const info = getDateRangeInfo(preset)
-  
+
   if (info.startDate && info.endDate) {
     const start = formatDateForCache(info.startDate)
     const end = formatDateForCache(info.endDate)
     return `insights_${accountId}_${preset}_${start}_${end}`
   }
-  
+
   return `insights_${accountId}_${preset}`
 }
 
@@ -171,8 +206,18 @@ function formatDateForCache(date: Date): string {
  */
 export function isValidDateRangePreset(preset: string): preset is DateRangePreset {
   const validPresets: DateRangePreset[] = [
-    'today', 'yesterday', 'last_7d', 'last_14d', 'last_30d', 
-    'last_month', 'last_90d', 'all'
+    'today',
+    'yesterday',
+    'last_7d',
+    'last_14d',
+    'last_28d',
+    'last_30d',
+    'last_month',
+    'this_week',
+    'last_week',
+    'this_month',
+    'last_90d',
+    'all',
   ]
   return validPresets.includes(preset as DateRangePreset)
 }
@@ -182,15 +227,19 @@ export function isValidDateRangePreset(preset: string): preset is DateRangePrese
  */
 export function getDateRangePriority(preset: DateRangePreset): number {
   const priorities: Record<DateRangePreset, number> = {
-    'today': 1,
-    'yesterday': 2,
-    'last_7d': 3,
-    'last_14d': 4,
-    'last_30d': 5,
-    'last_month': 6,
-    'last_90d': 7,
-    'all': 8
+    today: 1,
+    yesterday: 2,
+    last_7d: 3,
+    last_14d: 5,
+    last_28d: 6,
+    last_30d: 7,
+    this_week: 8,
+    last_week: 9,
+    this_month: 10,
+    last_month: 11,
+    last_90d: 12,
+    all: 13,
   }
-  
+
   return priorities[preset] || 9
 }

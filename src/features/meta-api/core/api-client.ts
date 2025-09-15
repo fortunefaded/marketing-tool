@@ -1,11 +1,12 @@
 import { AdInsight } from '../../../types'
 import { vibe } from '../../../lib/vibelogger'
 import { AccountId, AccessToken } from './branded-types'
+import { META_API_BASE_URL } from './constants'
 import type { 
   EnhancedInsightsOptions, 
   EnhancedPaginatedResult 
 } from './types/enhanced-api'
-import type { DebugSession } from '../debug'
+// import type { DebugSession } from '../debug' - 未使用
 
 // ページネーション対応の返り値の型
 export interface PaginatedResult {
@@ -16,7 +17,7 @@ export interface PaginatedResult {
 }
 
 export class SimpleMetaApi {
-  private baseUrl = 'https://graph.facebook.com/v23.0'
+  private baseUrl = META_API_BASE_URL
   private accountId: AccountId
   private token: AccessToken
   

@@ -8,7 +8,6 @@
 import * as React from 'react'
 import type { AdInsight } from '../types'
 import { SimpleMetaApi } from './api-client'
-import { DifferentialUpdateEngine } from './differential-update-engine'
 
 // ============================================================================
 // 型定義

@@ -25,7 +25,7 @@ interface UseInsightsCacheResult {
  */
 export function useInsightsCache({
   accountId,
-  preferCache = true
+  preferCache: _preferCache = true
 }: UseInsightsCacheOptions): UseInsightsCacheResult {
   const { data, hasCache, isLoading, error } = useConvexCache(accountId)
   const [cachedInsights, setCachedInsights] = useState<AdInsight[] | null>(null)

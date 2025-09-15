@@ -9,7 +9,7 @@ export const getSettings = query({
   handler: async (ctx, args) => {
     return await ctx.db
       .query('syncSettings')
-      .withIndex('by_accountId', (q) => q.eq('accountId', args.accountId))
+      .withIndex('by_account', (q) => q.eq('accountId', args.accountId))
       .first()
   },
 })
@@ -27,7 +27,7 @@ export const saveSettings = mutation({
   handler: async (ctx, args) => {
     const existing = await ctx.db
       .query('syncSettings')
-      .withIndex('by_accountId', (q) => q.eq('accountId', args.accountId))
+      .withIndex('by_account', (q) => q.eq('accountId', args.accountId))
       .first()
 
     const data = {
@@ -60,10 +60,10 @@ export const updateSettings = mutation({
   },
   handler: async (ctx, args) => {
     const { accountId, ...updates } = args
-    
+
     const existing = await ctx.db
       .query('syncSettings')
-      .withIndex('by_accountId', (q) => q.eq('accountId', accountId))
+      .withIndex('by_account', (q) => q.eq('accountId', accountId))
       .first()
 
     if (!existing) {
@@ -90,7 +90,8 @@ export const updateSettings = mutation({
     if (updates.syncInterval !== undefined) updateData.syncInterval = updates.syncInterval
     if (updates.debugMode !== undefined) updateData.debugMode = updates.debugMode
     if (updates.retentionDays !== undefined) updateData.retentionDays = updates.retentionDays
-    if (updates.excludeTestCampaigns !== undefined) updateData.excludeTestCampaigns = updates.excludeTestCampaigns
+    if (updates.excludeTestCampaigns !== undefined)
+      updateData.excludeTestCampaigns = updates.excludeTestCampaigns
     if (updates.maxMonths !== undefined) updateData.maxMonths = updates.maxMonths
     if (updates.limitPerRequest !== undefined) updateData.limitPerRequest = updates.limitPerRequest
     if (updates.skipCreatives !== undefined) updateData.skipCreatives = updates.skipCreatives
@@ -108,7 +109,7 @@ export const deleteSettings = mutation({
   handler: async (ctx, args) => {
     const existing = await ctx.db
       .query('syncSettings')
-      .withIndex('by_accountId', (q) => q.eq('accountId', args.accountId))
+      .withIndex('by_account', (q) => q.eq('accountId', args.accountId))
       .first()
 
     if (existing) {
@@ -141,8 +142,6 @@ export const getAllSettings = query({
   },
   handler: async (ctx, args) => {
     const limit = args.limit || 100
-    return await ctx.db
-      .query('syncSettings')
-      .take(limit)
+    return await ctx.db.query('syncSettings').take(limit)
   },
 })

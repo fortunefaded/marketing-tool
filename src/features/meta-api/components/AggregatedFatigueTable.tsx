@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { AggregatedData } from '../utils/aggregation'
-import { ChevronUpIcon, ChevronDownIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
+import {
+  ChevronUpIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  InformationCircleIcon,
+} from '@heroicons/react/24/outline'
 import { FatigueData } from '@/types'
 import { CreativeDetailModal } from './CreativeDetailModal'
 
@@ -10,7 +15,8 @@ interface AggregatedFatigueTableProps {
   insights?: any[] // insightsデータを追加
   accessToken?: string // 認証トークン
   accountId?: string | null // アカウントID
-  dateRange?: { // 日付範囲を追加
+  dateRange?: {
+    // 日付範囲を追加
     start: Date | string
     end: Date | string
   }
@@ -26,7 +32,7 @@ export function AggregatedFatigueTable({
 }: AggregatedFatigueTableProps) {
   // デバッグ：受け取ったdateRangeを確認
   console.log('🔍 AggregatedFatigueTable - received dateRange:', dateRange)
-  
+
   // ソート状態管理
   const [sortField, setSortField] = useState<string>('fatigueScore')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
@@ -44,9 +50,9 @@ export function AggregatedFatigueTable({
     item: null,
     insight: null,
     dateRange: null,
-    isOpen: false
+    isOpen: false,
   })
-  
+
   // modalPropsが更新されたときにログを出力
   useEffect(() => {
     console.log('📊 modalProps updated:', {
@@ -54,7 +60,7 @@ export function AggregatedFatigueTable({
       hasItem: !!modalProps.item,
       hasInsight: !!modalProps.insight,
       dateRange: modalProps.dateRange,
-      dateRangeStringified: modalProps.dateRange ? JSON.stringify(modalProps.dateRange) : 'null'
+      dateRangeStringified: modalProps.dateRange ? JSON.stringify(modalProps.dateRange) : 'null',
     })
   }, [modalProps])
 
@@ -120,9 +126,17 @@ export function AggregatedFatigueTable({
           aValue = Number(a.metrics.cpc) || 0
           bValue = Number(b.metrics.cpc) || 0
           break
-        case 'cvr':
-          aValue = Number(a.metrics.cvr) || 0
-          bValue = Number(b.metrics.cvr) || 0
+        case 'reach':
+          aValue = Number(a.metrics.reach) || 0
+          bValue = Number(b.metrics.reach) || 0
+          break
+        case 'unique_ctr':
+          aValue = Number(a.metrics.unique_ctr) || 0
+          bValue = Number(b.metrics.unique_ctr) || 0
+          break
+        case 'conversions_1d_click':
+          aValue = Number(a.metrics.conversions_1d_click) || 0
+          bValue = Number(b.metrics.conversions_1d_click) || 0
           break
         case 'cpm':
           aValue = Number(a.metrics.cpm) || 0
@@ -260,7 +274,7 @@ export function AggregatedFatigueTable({
   // 広告詳細モーダルを開く
   const handleAdClick = (insight: any, event: React.MouseEvent) => {
     event.stopPropagation() // アコーディオンの切り替えを防ぐ
-    
+
     // 詳細なデバッグログ
     console.log('🎯 AggregatedFatigueTable - handleAdClick called:', {
       currentDateRange: dateRange,
@@ -270,25 +284,25 @@ export function AggregatedFatigueTable({
       hasEnd: dateRange?.end !== undefined,
       startValue: dateRange?.start,
       endValue: dateRange?.end,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     })
-    
+
     const fatigueData = generateFatigueDataForAd(insight)
     const fullInsight = insightsMap.get(insight.ad_id) || insight
-    
+
     // modalPropsに設定する前の値を確認
     const newModalProps = {
       item: fatigueData,
       insight: fullInsight,
       dateRange: dateRange,
-      isOpen: true
+      isOpen: true,
     }
-    
+
     console.log('📦 Setting modalProps with:', {
       dateRangeInNewProps: newModalProps.dateRange,
-      stringified: JSON.stringify(newModalProps.dateRange)
+      stringified: JSON.stringify(newModalProps.dateRange),
     })
-    
+
     setModalProps(newModalProps)
   }
 
@@ -298,7 +312,7 @@ export function AggregatedFatigueTable({
       item: null,
       insight: null,
       dateRange: null,
-      isOpen: false
+      isOpen: false,
     })
   }
 
@@ -307,12 +321,14 @@ export function AggregatedFatigueTable({
       <table className="min-w-full divide-y divide-gray-200">
         <thead className="bg-gray-50">
           <tr>
+            {/* Name */}
             <th
               className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              style={{ width: '150px', maxWidth: '150px' }}
               onClick={() => handleSort('name')}
             >
               <div className="flex items-center gap-1">
-                {level === 'campaign' ? 'キャンペーン' : '広告セット'}
+                {level === 'campaign' ? 'Campaign' : 'Ad Set'}
                 {sortField === 'name' &&
                   (sortDirection === 'asc' ? (
                     <ChevronUpIcon className="h-3 w-3" />
@@ -321,12 +337,14 @@ export function AggregatedFatigueTable({
                   ))}
               </div>
             </th>
+            {/* 広告数 */}
             <th
-              className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              style={{ width: '60px' }}
               onClick={() => handleSort('adCount')}
             >
               <div className="flex items-center justify-center gap-1">
-                広告数
+                Ads
                 {sortField === 'adCount' &&
                   (sortDirection === 'asc' ? (
                     <ChevronUpIcon className="h-3 w-3" />
@@ -335,13 +353,15 @@ export function AggregatedFatigueTable({
                   ))}
               </div>
             </th>
+            {/* FRQ */}
             <th
-              className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-              onClick={() => handleSort('spend')}
+              className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              style={{ width: '45px' }}
+              onClick={() => handleSort('frequency')}
             >
-              <div className="flex items-center justify-end gap-1">
-                広告費用 (¥)
-                {sortField === 'spend' &&
+              <div className="flex items-center justify-center gap-1">
+                FRQ
+                {sortField === 'frequency' &&
                   (sortDirection === 'asc' ? (
                     <ChevronUpIcon className="h-3 w-3" />
                   ) : (
@@ -349,12 +369,30 @@ export function AggregatedFatigueTable({
                   ))}
               </div>
             </th>
+            {/* REACH */}
             <th
-              className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              style={{ width: '75px' }}
+              onClick={() => handleSort('reach')}
+            >
+              <div className="flex items-center justify-center gap-1">
+                REACH
+                {sortField === 'reach' &&
+                  (sortDirection === 'asc' ? (
+                    <ChevronUpIcon className="h-3 w-3" />
+                  ) : (
+                    <ChevronDownIcon className="h-3 w-3" />
+                  ))}
+              </div>
+            </th>
+            {/* IMP */}
+            <th
+              className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              style={{ width: '80px' }}
               onClick={() => handleSort('impressions')}
             >
-              <div className="flex items-center justify-end gap-1">
-                インプレッション
+              <div className="flex items-center justify-center gap-1">
+                IMP
                 {sortField === 'impressions' &&
                   (sortDirection === 'asc' ? (
                     <ChevronUpIcon className="h-3 w-3" />
@@ -363,12 +401,14 @@ export function AggregatedFatigueTable({
                   ))}
               </div>
             </th>
+            {/* CLICK */}
             <th
-              className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              style={{ width: '65px' }}
               onClick={() => handleSort('clicks')}
             >
-              <div className="flex items-center justify-end gap-1">
-                クリック
+              <div className="flex items-center justify-center gap-1">
+                CLICK
                 {sortField === 'clicks' &&
                   (sortDirection === 'asc' ? (
                     <ChevronUpIcon className="h-3 w-3" />
@@ -377,11 +417,93 @@ export function AggregatedFatigueTable({
                   ))}
               </div>
             </th>
+            {/* CTR */}
             <th
-              className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              style={{ width: '55px' }}
+              onClick={() => handleSort('ctr')}
+            >
+              <div className="flex items-center justify-center gap-1">
+                CTR
+                {sortField === 'ctr' &&
+                  (sortDirection === 'asc' ? (
+                    <ChevronUpIcon className="h-3 w-3" />
+                  ) : (
+                    <ChevronDownIcon className="h-3 w-3" />
+                  ))}
+              </div>
+            </th>
+            {/* U-CTR */}
+            <th
+              className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              style={{ width: '55px' }}
+              onClick={() => handleSort('unique_ctr')}
+            >
+              <div className="flex items-center justify-center gap-1">
+                U-CTR
+                {sortField === 'unique_ctr' &&
+                  (sortDirection === 'asc' ? (
+                    <ChevronUpIcon className="h-3 w-3" />
+                  ) : (
+                    <ChevronDownIcon className="h-3 w-3" />
+                  ))}
+              </div>
+            </th>
+            {/* CPC */}
+            <th
+              className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              style={{ width: '65px' }}
+              onClick={() => handleSort('cpc')}
+            >
+              <div className="flex items-center justify-center gap-1">
+                CPC
+                {sortField === 'cpc' &&
+                  (sortDirection === 'asc' ? (
+                    <ChevronUpIcon className="h-3 w-3" />
+                  ) : (
+                    <ChevronDownIcon className="h-3 w-3" />
+                  ))}
+              </div>
+            </th>
+            {/* SPEND */}
+            <th
+              className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              style={{ width: '85px' }}
+              onClick={() => handleSort('spend')}
+            >
+              <div className="flex items-center justify-center gap-1">
+                SPEND
+                {sortField === 'spend' &&
+                  (sortDirection === 'asc' ? (
+                    <ChevronUpIcon className="h-3 w-3" />
+                  ) : (
+                    <ChevronDownIcon className="h-3 w-3" />
+                  ))}
+              </div>
+            </th>
+            {/* F-CV */}
+            <th
+              className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              style={{ width: '55px' }}
+              onClick={() => handleSort('conversions_1d_click')}
+            >
+              <div className="flex items-center justify-center gap-1">
+                F-CV
+                {sortField === 'conversions_1d_click' &&
+                  (sortDirection === 'asc' ? (
+                    <ChevronUpIcon className="h-3 w-3" />
+                  ) : (
+                    <ChevronDownIcon className="h-3 w-3" />
+                  ))}
+              </div>
+            </th>
+            {/* CV */}
+            <th
+              className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              style={{ width: '55px' }}
               onClick={() => handleSort('conversions')}
             >
-              <div className="flex items-center justify-end gap-1">
+              <div className="flex items-center justify-center gap-1">
                 CV
                 {sortField === 'conversions' &&
                   (sortDirection === 'asc' ? (
@@ -391,15 +513,14 @@ export function AggregatedFatigueTable({
                   ))}
               </div>
             </th>
-            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-              <div className="flex items-center justify-end gap-1">F-CV</div>
-            </th>
+            {/* CPA */}
             <th
-              className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              style={{ width: '70px' }}
               onClick={() => handleSort('cpa')}
             >
-              <div className="flex items-center justify-end gap-1">
-                CPA (¥)
+              <div className="flex items-center justify-center gap-1">
+                CPA
                 {sortField === 'cpa' &&
                   (sortDirection === 'asc' ? (
                     <ChevronUpIcon className="h-3 w-3" />
@@ -408,69 +529,15 @@ export function AggregatedFatigueTable({
                   ))}
               </div>
             </th>
+            {/* CPM */}
             <th
-              className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-              onClick={() => handleSort('ctr')}
-            >
-              <div className="flex items-center justify-end gap-1">
-                CTR (%)
-                {sortField === 'ctr' &&
-                  (sortDirection === 'asc' ? (
-                    <ChevronUpIcon className="h-3 w-3" />
-                  ) : (
-                    <ChevronDownIcon className="h-3 w-3" />
-                  ))}
-              </div>
-            </th>
-            <th
-              className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-              onClick={() => handleSort('cpc')}
-            >
-              <div className="flex items-center justify-end gap-1">
-                CPC (¥)
-                {sortField === 'cpc' &&
-                  (sortDirection === 'asc' ? (
-                    <ChevronUpIcon className="h-3 w-3" />
-                  ) : (
-                    <ChevronDownIcon className="h-3 w-3" />
-                  ))}
-              </div>
-            </th>
-            <th
-              className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-              onClick={() => handleSort('cvr')}
-            >
-              <div className="flex items-center justify-end gap-1">
-                CVR (%)
-                {sortField === 'cvr' &&
-                  (sortDirection === 'asc' ? (
-                    <ChevronUpIcon className="h-3 w-3" />
-                  ) : (
-                    <ChevronDownIcon className="h-3 w-3" />
-                  ))}
-              </div>
-            </th>
-            <th
-              className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              style={{ width: '65px' }}
               onClick={() => handleSort('cpm')}
             >
-              <div className="flex items-center justify-end gap-1">
-                CPM (¥)
+              <div className="flex items-center justify-center gap-1">
+                CPM
                 {sortField === 'cpm' &&
-                  (sortDirection === 'asc' ? (
-                    <ChevronUpIcon className="h-3 w-3" />
-                  ) : (
-                    <ChevronDownIcon className="h-3 w-3" />
-                  ))}
-              </div>
-            </th>
-            <th
-              className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-              onClick={() => handleSort('frequency')}
-            >
-              <div className="flex items-center justify-end gap-1">
-                Frequency
-                {sortField === 'frequency' &&
                   (sortDirection === 'asc' ? (
                     <ChevronUpIcon className="h-3 w-3" />
                   ) : (
@@ -483,36 +550,37 @@ export function AggregatedFatigueTable({
         <tbody className="bg-white divide-y divide-gray-200">
           {/* 集計行 */}
           <tr className="bg-blue-50 font-bold border-b-2 border-blue-200">
+            {/* Name */}
             <td className="px-4 py-3 text-left text-sm text-blue-900">合計</td>
-            <td className="px-4 py-3 text-center text-sm text-blue-900">
+            {/* Ads */}
+            <td className="px-2 py-3 text-center text-sm text-blue-900">
               {sortedData.reduce((sum, item) => sum + item.adCount, 0)}
             </td>
-            <td className="px-4 py-3 text-right text-sm text-blue-900">
-              {formatCurrency(sortedData.reduce((sum, item) => sum + (item.metrics.spend || 0), 0))}
+            {/* FRQ */}
+            <td className="px-2 py-3 text-center text-sm text-blue-900">
+              {sortedData.length > 0
+                ? (
+                    sortedData.reduce((sum, item) => sum + (item.metrics.frequency || 0), 0) /
+                    sortedData.length
+                  ).toFixed(2)
+                : '-'}
             </td>
-            <td className="px-4 py-3 text-right text-sm text-blue-900">
+            {/* REACH */}
+            <td className="px-2 py-3 text-center text-sm text-blue-900">
+              {formatNumber(sortedData.reduce((sum, item) => sum + (item.metrics.reach || 0), 0))}
+            </td>
+            {/* IMP */}
+            <td className="px-2 py-3 text-center text-sm text-blue-900">
               {formatNumber(
                 sortedData.reduce((sum, item) => sum + (item.metrics.impressions || 0), 0)
               )}
             </td>
-            <td className="px-4 py-3 text-right text-sm text-blue-900">
+            {/* CLICK */}
+            <td className="px-2 py-3 text-center text-sm text-blue-900">
               {formatNumber(sortedData.reduce((sum, item) => sum + (item.metrics.clicks || 0), 0))}
             </td>
-            <td className="px-4 py-3 text-right text-sm text-blue-900">
-              {sortedData.reduce((sum, item) => sum + (item.metrics.conversions || 0), 0)}
-            </td>
-            <td className="px-4 py-3 text-right text-sm text-blue-900">
-              {sortedData.reduce((sum, item) => sum + (item.fcv || 0), 0)}
-            </td>
-            <td className="px-4 py-3 text-right text-sm text-blue-900">
-              {sortedData.reduce((sum, item) => sum + (item.metrics.conversions || 0), 0) > 0
-                ? formatCurrency(
-                    sortedData.reduce((sum, item) => sum + (item.metrics.spend || 0), 0) /
-                      sortedData.reduce((sum, item) => sum + (item.metrics.conversions || 0), 0)
-                  )
-                : '-'}
-            </td>
-            <td className="px-4 py-3 text-right text-sm text-blue-900">
+            {/* CTR */}
+            <td className="px-2 py-3 text-center text-sm text-blue-900">
               {sortedData.reduce((sum, item) => sum + (item.metrics.impressions || 0), 0) > 0
                 ? (
                     (sortedData.reduce((sum, item) => sum + (item.metrics.clicks || 0), 0) /
@@ -521,39 +589,111 @@ export function AggregatedFatigueTable({
                   ).toFixed(2) + '%'
                 : '-'}
             </td>
-            <td className="px-4 py-3 text-right text-sm text-blue-900">
+            {/* U-CTR */}
+            <td className="px-2 py-3 text-center text-sm text-blue-900">
               {sortedData.length > 0
-                ? formatCurrency(
-                    sortedData.reduce((sum, item) => sum + (item.metrics.cpc || 0), 0) /
-                      sortedData.length
-                  )
-                : '-'}
-            </td>
-            <td className="px-4 py-3 text-right text-sm text-blue-900">
-              {sortedData.reduce((sum, item) => sum + (item.metrics.clicks || 0), 0) > 0 &&
-              sortedData.reduce((sum, item) => sum + (item.metrics.conversions || 0), 0) > 0
                 ? (
-                    (sortedData.reduce((sum, item) => sum + (item.metrics.conversions || 0), 0) /
-                      sortedData.reduce((sum, item) => sum + (item.metrics.clicks || 0), 0)) *
-                    100
+                    sortedData.reduce((sum, item) => sum + (item.metrics.unique_ctr || 0), 0) /
+                    sortedData.length
                   ).toFixed(2) + '%'
                 : '-'}
             </td>
-            <td className="px-4 py-3 text-right text-sm text-blue-900">
-              {sortedData.length > 0
-                ? formatCurrency(
-                    sortedData.reduce((sum, item) => sum + (item.metrics.cpm || 0), 0) /
-                      sortedData.length
+            {/* CPC */}
+            <td className="px-2 py-3 text-center text-sm text-blue-900">
+              ¥
+              {sortedData.reduce((sum, item) => sum + (item.metrics.clicks || 0), 0) > 0
+                ? formatNumber(
+                    sortedData.reduce((sum, item) => sum + (item.metrics.spend || 0), 0) /
+                      sortedData.reduce((sum, item) => sum + (item.metrics.clicks || 0), 0)
                   )
-                : '-'}
+                : '0'}
             </td>
-            <td className="px-4 py-3 text-right text-sm text-blue-900">
-              {sortedData.length > 0
-                ? (
-                    sortedData.reduce((sum, item) => sum + (item.metrics.frequency || 0), 0) /
-                    sortedData.length
-                  ).toFixed(2)
-                : '-'}
+            {/* SPEND */}
+            <td className="px-2 py-3 text-center text-sm text-blue-900">
+              ¥{formatNumber(sortedData.reduce((sum, item) => sum + (item.metrics.spend || 0), 0))}
+            </td>
+            {/* F-CV */}
+            <td className="px-2 py-3 text-center text-sm text-blue-900">
+              {formatNumber(
+                sortedData.reduce((sum, item) => sum + (item.metrics.conversions_1d_click || 0), 0)
+              )}
+            </td>
+            {/* CV */}
+            <td className="px-2 py-3 text-center text-sm text-purple-600 font-semibold">
+              <div className="flex items-center justify-center gap-1">
+                <span>
+                  {sortedData.length > 0 && sortedData[0].metrics?.ecforce_cv_total !== undefined
+                    ? formatNumber(sortedData[0].metrics.ecforce_cv_total)
+                    : formatNumber(
+                        sortedData.reduce(
+                          (sum, item) =>
+                            sum + (item.metrics.ecforce_cv || item.metrics.conversions || 0),
+                          0
+                        )
+                      )}
+                </span>
+                <div className="group relative">
+                  <InformationCircleIcon className="h-3 w-3 text-purple-400 cursor-help" />
+                  <div className="hidden group-hover:block absolute z-50 bg-gray-900 text-white text-xs rounded-lg p-2 bottom-full left-1/2 transform -translate-x-1/2 w-56 shadow-xl mb-1 pointer-events-none">
+                    <div className="font-semibold mb-1">ECForceコンバージョン合計</div>
+                    <div className="text-gray-300">
+                      ECForceから取得した注文完了数の合計です。Meta広告経由の購入データを表示しています。
+                    </div>
+                    <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-full">
+                      <div className="border-4 border-transparent border-t-gray-900"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </td>
+            {/* CPA */}
+            <td className="px-2 py-3 text-center text-sm text-purple-600 font-semibold">
+              <div className="flex items-center justify-center gap-1">
+                <span>
+                  ¥
+                  {(() => {
+                    const totalCV =
+                      sortedData.length > 0 && sortedData[0].metrics?.ecforce_cv_total !== undefined
+                        ? sortedData[0].metrics.ecforce_cv_total
+                        : sortedData.reduce(
+                            (sum, item) =>
+                              sum + (item.metrics.ecforce_cv || item.metrics.conversions || 0),
+                            0
+                          )
+                    const totalSpend = sortedData.reduce(
+                      (sum, item) => sum + (item.metrics.spend || 0),
+                      0
+                    )
+                    return totalCV > 0 ? formatNumber(totalSpend / totalCV) : '0'
+                  })()}
+                </span>
+                <div className="group relative">
+                  <InformationCircleIcon className="h-3 w-3 text-purple-400 cursor-help" />
+                  <div className="hidden group-hover:block absolute z-50 bg-gray-900 text-white text-xs rounded-lg p-2 bottom-full left-1/2 transform -translate-x-1/2 w-48 shadow-xl mb-1 pointer-events-none">
+                    <div className="font-semibold mb-1">平均獲得単価（CPA）</div>
+                    <div className="text-gray-300">
+                      1件のコンバージョンを獲得するのにかかった平均広告費用
+                    </div>
+                    <div className="text-gray-400 mt-1 text-[10px]">
+                      計算式: 総消化金額 ÷ 総CV数
+                    </div>
+                    <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-full">
+                      <div className="border-4 border-transparent border-t-gray-900"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </td>
+            {/* CPM */}
+            <td className="px-2 py-3 text-center text-sm text-blue-900">
+              ¥
+              {sortedData.reduce((sum, item) => sum + (item.metrics.impressions || 0), 0) > 0
+                ? formatNumber(
+                    (sortedData.reduce((sum, item) => sum + (item.metrics.spend || 0), 0) /
+                      sortedData.reduce((sum, item) => sum + (item.metrics.impressions || 0), 0)) *
+                      1000
+                  )
+                : '0'}
             </td>
           </tr>
           {sortedData.map((item) => (
@@ -564,6 +704,7 @@ export function AggregatedFatigueTable({
                 onClick={item.insights.length > 0 ? () => toggleRow(item.id) : undefined}
                 title={item.insights.length > 0 ? 'クリックして含まれる広告を表示' : undefined}
               >
+                {/* Name */}
                 <td className="px-4 py-4 whitespace-nowrap">
                   <div className="flex items-center space-x-2">
                     {item.insights.length > 0 && (
@@ -581,48 +722,66 @@ export function AggregatedFatigueTable({
                     </div>
                   </div>
                 </td>
-                <td className="px-4 py-4 whitespace-nowrap text-center">
+                {/* Ads */}
+                <td className="px-2 py-4 whitespace-nowrap text-center">
                   <span className="text-sm text-gray-900">{item.adCount}</span>
                 </td>
-                <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                  {formatCurrency(item.metrics.spend)}
+                {/* FRQ */}
+                <td className="px-2 py-4 whitespace-nowrap text-center text-sm text-gray-900">
+                  {formatNumber(item.metrics.frequency || 0, 2)}
                 </td>
-                <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                  {formatNumber(item.metrics.impressions)}
+                {/* REACH */}
+                <td className="px-2 py-4 whitespace-nowrap text-center text-sm text-gray-900">
+                  {formatNumber(item.metrics.reach || 0)}
                 </td>
-                <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                  {formatNumber(item.metrics.clicks)}
+                {/* IMP */}
+                <td className="px-2 py-4 whitespace-nowrap text-center text-sm text-gray-900">
+                  {formatNumber(item.metrics.impressions || 0)}
                 </td>
-                <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                  {formatNumber(item.metrics.conversions)}
+                {/* CLICK */}
+                <td className="px-2 py-4 whitespace-nowrap text-center text-sm text-gray-900">
+                  {formatNumber(item.metrics.clicks || 0)}
                 </td>
-                <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-500">
-                  N/A
+                {/* CTR */}
+                <td className="px-2 py-4 whitespace-nowrap text-center text-sm text-gray-900">
+                  {item.metrics.ctr ? `${item.metrics.ctr.toFixed(2)}%` : '-'}
                 </td>
-                <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                  {item.metrics.conversions > 0 ? formatCurrency(item.metrics.cpa) : '-'}
+                {/* U-CTR */}
+                <td className="px-2 py-4 whitespace-nowrap text-center text-sm text-gray-900">
+                  {item.metrics.unique_ctr ? `${item.metrics.unique_ctr.toFixed(2)}%` : '0'}
                 </td>
-                <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                  {formatNumber(item.metrics.ctr, 2)}
+                {/* CPC */}
+                <td className="px-2 py-4 whitespace-nowrap text-center text-sm text-gray-900">
+                  ¥{formatNumber(item.metrics.cpc || 0)}
                 </td>
-                <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                  {formatCurrency(item.metrics.cpc)}
+                {/* SPEND */}
+                <td className="px-2 py-4 whitespace-nowrap text-center text-sm text-gray-900">
+                  ¥{formatNumber(item.metrics.spend || 0)}
                 </td>
-                <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                  {formatNumber(item.metrics.cvr, 2)}
+                {/* F-CV */}
+                <td className="px-2 py-4 whitespace-nowrap text-center text-sm text-gray-900">
+                  {formatNumber(item.metrics.conversions_1d_click || 0)}
                 </td>
-                <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                  {formatCurrency(item.metrics.cpm)}
+                {/* CV */}
+                <td className="px-2 py-4 whitespace-nowrap text-center text-sm text-gray-900">
+                  {formatNumber(item.metrics.ecforce_cv || item.metrics.conversions || 0)}
                 </td>
-                <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                  {formatNumber(item.metrics.frequency, 2)}
+                {/* CPA */}
+                <td className="px-2 py-4 whitespace-nowrap text-center text-sm text-gray-900">
+                  {(item.metrics.ecforce_cv || item.metrics.conversions || 0) > 0
+                    ? `¥${formatNumber(item.metrics.spend / (item.metrics.ecforce_cv || item.metrics.conversions))}`
+                    : '-'}
+                </td>
+                {/* CPM */}
+                <td className="px-2 py-4 whitespace-nowrap text-center text-sm text-gray-900">
+                  ¥{formatNumber(item.metrics.cpm || 0)}
                 </td>
               </tr>
 
               {/* Expanded content showing individual ads */}
               {expandedRows.has(item.id) && item.insights.length > 0 && (
                 <tr>
-                  <td colSpan={13} className="px-4 py-2 bg-gray-50 border-l-4 border-indigo-200">
+                  <td colSpan={14} className="px-4 py-2 bg-gray-50 border-l-4 border-indigo-200">
                     <div className="space-y-2">
                       <div className="text-sm font-medium text-gray-700 mb-3">
                         この{level === 'campaign' ? 'キャンペーン' : '広告セット'}の広告 (
@@ -690,7 +849,7 @@ export function AggregatedFatigueTable({
           item={modalProps.item}
           insight={modalProps.insight}
           accessToken={accessToken}
-          accountId={accountId}
+          accountId={accountId || ''}
           dateRange={modalProps.dateRange} // modalPropsから取得
         />
       )}

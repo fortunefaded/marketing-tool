@@ -14,7 +14,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  TooltipProps,
+  // TooltipProps, - 未使用
 } from 'recharts'
 
 /**
@@ -78,13 +78,14 @@ const getAccessibilityLineStyle = (index: number): LineStyleType => {
 /**
  * カスタムツールチップコンポーネント
  */
-const CustomTooltip: React.FC<
-  TooltipProps<any, any> & {
-    unit?: string
-    decimals?: number
-    formatter?: (value: number, platform: string) => [string, string]
-  }
-> = ({ active, payload, label, unit = '', decimals = 2, formatter }) => {
+const CustomTooltip: React.FC<{
+  active?: boolean
+  payload?: any[]
+  label?: string
+  unit?: string
+  decimals?: number
+  formatter?: (value: number, platform: string) => [string, string]
+}> = ({ active, payload, label, unit = '', decimals = 2, formatter }) => {
   if (!active || !payload || !payload.length) {
     return null
   }
@@ -154,7 +155,7 @@ export const MultiLineChart: React.FC<MultiLineChartProps> = ({
   accessibilityMode = false,
   showTooltip = true,
   tooltipFormatter,
-  enableZoom = false,
+  // enableZoom = false, - 未使用
   responsive = true,
 }) => {
   // データ検証と詳細エラーハンドリング

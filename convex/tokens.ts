@@ -1,15 +1,34 @@
 import { v } from 'convex/values'
 import { mutation, query } from './_generated/server'
 
-// トークン情報の取得
-export const getToken = query({
+// アカウント別のトークン取得
+export const getTokenByAccount = query({
   args: {
-    tokenType: v.string(), // 'short', 'long', 'system'
+    accountId: v.string(),
+    tokenType: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    let query = ctx.db
+      .query('tokens')
+      .withIndex('by_account', (q) => q.eq('accountId', args.accountId))
+
+    if (args.tokenType) {
+      query = query.filter((q) => q.eq(q.field('tokenType'), args.tokenType))
+    }
+
+    return await query.first()
+  },
+})
+
+// トークンIDによる取得
+export const getTokenById = query({
+  args: {
+    tokenId: v.string(),
   },
   handler: async (ctx, args) => {
     return await ctx.db
       .query('tokens')
-      .withIndex('by_type', (q) => q.eq('tokenType', args.tokenType))
+      .withIndex('by_token_id', (q) => q.eq('tokenId', args.tokenId))
       .first()
   },
 })
@@ -17,32 +36,37 @@ export const getToken = query({
 // トークン情報の保存
 export const saveToken = mutation({
   args: {
+    tokenId: v.string(),
+    accountId: v.string(),
     tokenType: v.string(),
-    token: v.string(),
-    expiresAt: v.optional(v.string()),
-    scopes: v.optional(v.array(v.string())),
-    userId: v.optional(v.string()),
+    encryptedToken: v.string(),
+    expiresAt: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    const now = Date.now()
+
     // 既存のトークンを検索
     const existing = await ctx.db
       .query('tokens')
-      .withIndex('by_type', (q) => q.eq('tokenType', args.tokenType))
+      .withIndex('by_token_id', (q) => q.eq('tokenId', args.tokenId))
       .first()
 
-    const data = {
-      tokenType: args.tokenType,
-      token: args.token,
-      expiresAt: args.expiresAt,
-      scopes: args.scopes,
-      userId: args.userId,
-      updatedAt: new Date().toISOString(),
-    }
-
     if (existing) {
-      await ctx.db.patch(existing._id, data)
+      await ctx.db.patch(existing._id, {
+        encryptedToken: args.encryptedToken,
+        expiresAt: args.expiresAt,
+        lastUsedAt: now,
+      })
     } else {
-      await ctx.db.insert('tokens', data)
+      await ctx.db.insert('tokens', {
+        tokenId: args.tokenId,
+        accountId: args.accountId,
+        tokenType: args.tokenType,
+        encryptedToken: args.encryptedToken,
+        expiresAt: args.expiresAt,
+        createdAt: now,
+        lastUsedAt: now,
+      })
     }
 
     return { success: true }
@@ -52,12 +76,12 @@ export const saveToken = mutation({
 // トークンの削除
 export const deleteToken = mutation({
   args: {
-    tokenType: v.string(),
+    tokenId: v.string(),
   },
   handler: async (ctx, args) => {
     const token = await ctx.db
       .query('tokens')
-      .withIndex('by_type', (q) => q.eq('tokenType', args.tokenType))
+      .withIndex('by_token_id', (q) => q.eq('tokenId', args.tokenId))
       .first()
 
     if (token) {
@@ -66,6 +90,25 @@ export const deleteToken = mutation({
     }
 
     return { deleted: false }
+  },
+})
+
+// アカウントの全トークンを削除
+export const deleteTokensByAccount = mutation({
+  args: {
+    accountId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const tokens = await ctx.db
+      .query('tokens')
+      .withIndex('by_account', (q) => q.eq('accountId', args.accountId))
+      .collect()
+
+    for (const token of tokens) {
+      await ctx.db.delete(token._id)
+    }
+
+    return { deleted: tokens.length }
   },
 })
 
@@ -83,7 +126,7 @@ export const clearAllTokens = mutation({
   },
 })
 
-// トークンタイプ別に一覧取得
+// 全トークン取得
 export const getAllTokens = query({
   args: {},
   handler: async (ctx) => {

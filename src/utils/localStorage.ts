@@ -8,13 +8,13 @@ const STORAGE_KEYS = {
   SELECTED_ACCOUNT: 'mogumo_selected_account',
   CACHED_DATA_PREFIX: 'mogumo_cached_data_',
   CACHE_TIMESTAMP_PREFIX: 'mogumo_cache_timestamp_',
-  DATE_RANGE: 'mogumo_date_range'
+  DATE_RANGE: 'mogumo_date_range',
 } as const
 
 // キャッシュの有効期限（ミリ秒）
 const CACHE_DURATION = {
-  DATA: 30 * 60 * 1000,        // 30分（データキャッシュ）
-  ACCOUNT: 7 * 24 * 60 * 60 * 1000  // 7日（アカウント選択）
+  DATA: 30 * 60 * 1000, // 30分（データキャッシュ）
+  ACCOUNT: 7 * 24 * 60 * 60 * 1000, // 7日（アカウント選択）
 } as const
 
 /**
@@ -36,14 +36,11 @@ const isLocalStorageAvailable = (): boolean => {
  */
 export const saveSelectedAccount = (accountId: string | null): void => {
   if (!isLocalStorageAvailable()) return
-  
+
   try {
     if (accountId) {
       localStorage.setItem(STORAGE_KEYS.SELECTED_ACCOUNT, accountId)
-      localStorage.setItem(
-        `${STORAGE_KEYS.SELECTED_ACCOUNT}_timestamp`,
-        Date.now().toString()
-      )
+      localStorage.setItem(`${STORAGE_KEYS.SELECTED_ACCOUNT}_timestamp`, Date.now().toString())
     } else {
       localStorage.removeItem(STORAGE_KEYS.SELECTED_ACCOUNT)
       localStorage.removeItem(`${STORAGE_KEYS.SELECTED_ACCOUNT}_timestamp`)
@@ -58,13 +55,13 @@ export const saveSelectedAccount = (accountId: string | null): void => {
  */
 export const getSelectedAccount = (): string | null => {
   if (!isLocalStorageAvailable()) return null
-  
+
   try {
     const accountId = localStorage.getItem(STORAGE_KEYS.SELECTED_ACCOUNT)
     const timestamp = localStorage.getItem(`${STORAGE_KEYS.SELECTED_ACCOUNT}_timestamp`)
-    
+
     if (!accountId || !timestamp) return null
-    
+
     // 有効期限チェック
     const age = Date.now() - parseInt(timestamp)
     if (age > CACHE_DURATION.ACCOUNT) {
@@ -72,7 +69,7 @@ export const getSelectedAccount = (): string | null => {
       localStorage.removeItem(`${STORAGE_KEYS.SELECTED_ACCOUNT}_timestamp`)
       return null
     }
-    
+
     return accountId
   } catch (error) {
     console.error('Failed to get selected account:', error)
@@ -82,21 +79,27 @@ export const getSelectedAccount = (): string | null => {
 
 /**
  * 広告データをキャッシュに保存
+ * @param accountId アカウントID
+ * @param data キャッシュするデータ
+ * @param dateRange 日付範囲（キャッシュキーに含める）
  */
-export const saveCachedData = (accountId: string, data: any[]): void => {
+export const saveCachedData = (accountId: string, data: any[], dateRange?: string): void => {
   if (!isLocalStorageAvailable() || !accountId) return
-  
+
   try {
-    const key = `${STORAGE_KEYS.CACHED_DATA_PREFIX}${accountId}`
-    const timestampKey = `${STORAGE_KEYS.CACHE_TIMESTAMP_PREFIX}${accountId}`
-    
+    // 日付範囲をキャッシュキーに含める
+    const keySuffix = dateRange ? `_${dateRange}` : ''
+    const key = `${STORAGE_KEYS.CACHED_DATA_PREFIX}${accountId}${keySuffix}`
+    const timestampKey = `${STORAGE_KEYS.CACHE_TIMESTAMP_PREFIX}${accountId}${keySuffix}`
+
     // データサイズチェック（localStorage制限対策）
     const jsonData = JSON.stringify(data)
-    if (jsonData.length > 4 * 1024 * 1024) { // 4MB制限
+    if (jsonData.length > 4 * 1024 * 1024) {
+      // 4MB制限
       console.warn('Data too large for localStorage, skipping cache')
       return
     }
-    
+
     localStorage.setItem(key, jsonData)
     localStorage.setItem(timestampKey, Date.now().toString())
   } catch (error) {
@@ -108,32 +111,39 @@ export const saveCachedData = (accountId: string, data: any[]): void => {
 
 /**
  * キャッシュされたデータを取得
+ * @param accountId アカウントID
+ * @param dateRange 日付範囲（キャッシュキーに含める）
  */
-export const getCachedData = (accountId: string): { data: any[] | null; age: number } => {
+export const getCachedData = (
+  accountId: string,
+  dateRange?: string
+): { data: any[] | null; age: number } => {
   if (!isLocalStorageAvailable() || !accountId) {
     return { data: null, age: Infinity }
   }
-  
+
   try {
-    const key = `${STORAGE_KEYS.CACHED_DATA_PREFIX}${accountId}`
-    const timestampKey = `${STORAGE_KEYS.CACHE_TIMESTAMP_PREFIX}${accountId}`
-    
+    // 日付範囲をキャッシュキーに含める
+    const keySuffix = dateRange ? `_${dateRange}` : ''
+    const key = `${STORAGE_KEYS.CACHED_DATA_PREFIX}${accountId}${keySuffix}`
+    const timestampKey = `${STORAGE_KEYS.CACHE_TIMESTAMP_PREFIX}${accountId}${keySuffix}`
+
     const jsonData = localStorage.getItem(key)
     const timestamp = localStorage.getItem(timestampKey)
-    
+
     if (!jsonData || !timestamp) {
       return { data: null, age: Infinity }
     }
-    
+
     const age = Date.now() - parseInt(timestamp)
-    
+
     // 有効期限チェック
     if (age > CACHE_DURATION.DATA) {
       // 期限切れでも一旦返す（UIで古いデータであることを表示）
       const data = JSON.parse(jsonData)
       return { data, age }
     }
-    
+
     const data = JSON.parse(jsonData)
     return { data, age }
   } catch (error) {
@@ -144,16 +154,33 @@ export const getCachedData = (accountId: string): { data: any[] | null; age: num
 
 /**
  * 特定アカウントのキャッシュをクリア
+ * @param accountId アカウントID
+ * @param dateRange 日付範囲（指定した場合はその範囲のキャッシュのみクリア）
  */
-export const clearCachedData = (accountId: string): void => {
+export const clearCachedData = (accountId: string, dateRange?: string): void => {
   if (!isLocalStorageAvailable() || !accountId) return
-  
+
   try {
-    const key = `${STORAGE_KEYS.CACHED_DATA_PREFIX}${accountId}`
-    const timestampKey = `${STORAGE_KEYS.CACHE_TIMESTAMP_PREFIX}${accountId}`
-    
-    localStorage.removeItem(key)
-    localStorage.removeItem(timestampKey)
+    if (dateRange) {
+      // 特定の日付範囲のキャッシュのみクリア
+      const keySuffix = `_${dateRange}`
+      const key = `${STORAGE_KEYS.CACHED_DATA_PREFIX}${accountId}${keySuffix}`
+      const timestampKey = `${STORAGE_KEYS.CACHE_TIMESTAMP_PREFIX}${accountId}${keySuffix}`
+
+      localStorage.removeItem(key)
+      localStorage.removeItem(timestampKey)
+    } else {
+      // すべての日付範囲のキャッシュをクリア
+      const keys = Object.keys(localStorage)
+      keys.forEach((key) => {
+        if (
+          key.startsWith(`${STORAGE_KEYS.CACHED_DATA_PREFIX}${accountId}`) ||
+          key.startsWith(`${STORAGE_KEYS.CACHE_TIMESTAMP_PREFIX}${accountId}`)
+        ) {
+          localStorage.removeItem(key)
+        }
+      })
+    }
   } catch (error) {
     console.error('Failed to clear cached data:', error)
   }
@@ -164,16 +191,16 @@ export const clearCachedData = (accountId: string): void => {
  */
 const clearOldCaches = (): void => {
   if (!isLocalStorageAvailable()) return
-  
+
   try {
     const now = Date.now()
     const keysToRemove: string[] = []
-    
+
     // 全キーをチェック
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i)
       if (!key) continue
-      
+
       // タイムスタンプキーをチェック
       if (key.startsWith(STORAGE_KEYS.CACHE_TIMESTAMP_PREFIX)) {
         const timestamp = localStorage.getItem(key)
@@ -191,10 +218,10 @@ const clearOldCaches = (): void => {
         }
       }
     }
-    
+
     // 削除実行
-    keysToRemove.forEach(key => localStorage.removeItem(key))
-    
+    keysToRemove.forEach((key) => localStorage.removeItem(key))
+
     console.log(`Cleared ${keysToRemove.length / 2} old cache entries`)
   } catch (error) {
     console.error('Failed to clear old caches:', error)
@@ -206,7 +233,7 @@ const clearOldCaches = (): void => {
  */
 export const saveDateRange = (dateRange: { start: string; end: string }): void => {
   if (!isLocalStorageAvailable()) return
-  
+
   try {
     localStorage.setItem(STORAGE_KEYS.DATE_RANGE, JSON.stringify(dateRange))
   } catch (error) {
@@ -219,7 +246,7 @@ export const saveDateRange = (dateRange: { start: string; end: string }): void =
  */
 export const getDateRange = (): { start: string; end: string } | null => {
   if (!isLocalStorageAvailable()) return null
-  
+
   try {
     const json = localStorage.getItem(STORAGE_KEYS.DATE_RANGE)
     return json ? JSON.parse(json) : null
@@ -234,18 +261,18 @@ export const getDateRange = (): { start: string; end: string } | null => {
  */
 export const clearAllCaches = (): void => {
   if (!isLocalStorageAvailable()) return
-  
+
   try {
     const keysToRemove: string[] = []
-    
+
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i)
       if (key?.startsWith('mogumo_')) {
         keysToRemove.push(key)
       }
     }
-    
-    keysToRemove.forEach(key => localStorage.removeItem(key))
+
+    keysToRemove.forEach((key) => localStorage.removeItem(key))
     console.log(`Cleared all ${keysToRemove.length} cache entries`)
   } catch (error) {
     console.error('Failed to clear all caches:', error)

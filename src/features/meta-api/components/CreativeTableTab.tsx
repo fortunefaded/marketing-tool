@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 // CreativeTable import removed - component not used
 import { FatigueData } from '@/types'
-import { getSafeMetrics, calculateMetric, debugDataStructure } from '../utils/safe-data-access'
+import { debugDataStructure } from '../utils/safe-data-access'
 import { aggregateCreativesByName } from '../utils/creative-aggregation'
 import {
   ChevronUpIcon,
@@ -10,6 +10,7 @@ import {
   VideoCameraIcon,
   DocumentTextIcon,
   ViewColumnsIcon,
+  InformationCircleIcon,
 } from '@heroicons/react/24/outline'
 import { CreativeDetailModal } from './CreativeDetailModal'
 import { normalizeCreativeMediaType } from '../utils/creative-type'
@@ -19,56 +20,58 @@ interface CreativeTableTabProps {
   insights: any[]
   selectedAccountId: string | null
   isLoading: boolean
-  accessToken?: string // 追加
-  dateRange?: { // 日付範囲を追加
-    start: Date | string
-    end: Date | string
+  accessToken: string
+  dateRange: {
+    startDate: Date
+    endDate: Date
   }
 }
 
-/**
- * 疲労度ダッシュボード内のクリエイティブテーブルタブ
- * 疲労度データを含むクリエイティブの統計データテーブルを表示
- */
 export function CreativeTableTab({
   data,
   insights,
   selectedAccountId,
-  isLoading,
+  isLoading: _isLoading,
   accessToken,
   dateRange,
 }: CreativeTableTabProps) {
-  // クリエイティブタイプを判定する関数
+  // 既存のロジックはそのまま維持
   const getCreativeType = (insight: any): { type: string; icon: any; color: string } => {
     if (!insight) return { type: 'UNKNOWN', icon: DocumentTextIcon, color: 'text-gray-500' }
 
-    // クリエイティブ名から推測（拡張子やパターンを見る）
     const adName = insight.ad_name || ''
     const namePattern = adName.toLowerCase()
-    
-    // 名前から判定
-    if (namePattern.includes('動画') || namePattern.includes('video') || namePattern.includes('ver') || namePattern.includes('.mp4')) {
+
+    if (
+      namePattern.includes('動画') ||
+      namePattern.includes('video') ||
+      namePattern.includes('ver') ||
+      namePattern.includes('.mp4')
+    ) {
       return { type: 'VIDEO', icon: VideoCameraIcon, color: 'text-purple-600' }
     }
-    if (namePattern.includes('画像') || namePattern.includes('image') || namePattern.includes('.jpg') || namePattern.includes('.png')) {
+    if (
+      namePattern.includes('画像') ||
+      namePattern.includes('image') ||
+      namePattern.includes('.jpg') ||
+      namePattern.includes('.png')
+    ) {
       return { type: 'IMAGE', icon: PhotoIcon, color: 'text-blue-600' }
     }
     if (namePattern.includes('カルーセル') || namePattern.includes('carousel')) {
       return { type: 'CAROUSEL', icon: ViewColumnsIcon, color: 'text-green-600' }
     }
-    
-    // URLベースの判定
+
     if (insight.video_url || insight.video_id) {
       return { type: 'VIDEO', icon: VideoCameraIcon, color: 'text-purple-600' }
     }
     if (insight.image_url || insight.thumbnail_url) {
       return { type: 'IMAGE', icon: PhotoIcon, color: 'text-blue-600' }
     }
-    
-    // Meta APIのobject_typeから判定
+
     const objectType =
       insight.creative?.object_type || insight.creative_type || insight.creative_media_type
-    
+
     if (objectType) {
       const normalizedType = normalizeCreativeMediaType(objectType)
       switch (normalizedType) {
@@ -79,24 +82,18 @@ export function CreativeTableTab({
         case 'carousel':
           return { type: 'CAROUSEL', icon: ViewColumnsIcon, color: 'text-green-600' }
         default:
-          // デフォルトは画像として扱う（多くの広告は画像）
           return { type: 'IMAGE', icon: PhotoIcon, color: 'text-blue-600' }
       }
     }
 
-    // デフォルトは画像（TEXTではなく）
     return { type: 'IMAGE', icon: PhotoIcon, color: 'text-blue-600' }
   }
 
-  // ソート状態管理
   const [sortField, setSortField] = useState<string>('score')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
-
-  // モーダル状態管理
   const [selectedItem, setSelectedItem] = useState<FatigueData | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
 
-  // insightsをマップ化
   const insightsMap = React.useMemo(() => {
     const map = new Map()
     if (insights && Array.isArray(insights)) {
@@ -109,43 +106,17 @@ export function CreativeTableTab({
     return map
   }, [insights])
 
-  // データを拡張してソート
   const sortedData = React.useMemo(() => {
-    console.log('sortedData recalculating:', { sortField, sortDirection, dataLength: data?.length })
-
-    // デバッグ情報を出力（開発環境のみ）
     debugDataStructure(data, 'CreativeTableTab Input Data')
 
-    // データのnullチェック
     if (!data || !Array.isArray(data) || data.length === 0) {
-      console.warn('CreativeTableTab: No valid data')
       return []
     }
 
-    // クリエイティブ名で集約（正規化せずに直接渡す）
     const aggregatedCreatives = aggregateCreativesByName(data)
-    console.log('CreativeTableTab: Aggregated creatives:', {
-      originalCount: data.length,
-      aggregatedCount: aggregatedCreatives.length,
-    })
-
-    // 疲労度データの詳細をログ出力（安全）
-    console.log(
-      '📊 疲労度データの詳細:',
-      aggregatedCreatives.slice(0, 5).map((d) => ({
-        adName: d.adName,
-        score: d.fatigue_score,
-        status: d.status || 'normal',
-        frequency: d.frequency,
-        ctr: d.ctr,
-        cpm: d.cpm,
-      }))
-    )
 
     const enrichedData = aggregatedCreatives.map((item) => {
-      // 集約されたクリエイティブの最初のIDからinsightを取得
       const insight = item.adIds.length > 0 ? insightsMap.get(item.adIds[0]) : null
-      // 集約データのメトリクスを直接使用
       const metrics = {
         impressions: item.impressions,
         clicks: item.clicks,
@@ -158,8 +129,6 @@ export function CreativeTableTab({
         cpc: item.cpc,
       }
 
-      // ステータスを計算（疲労度スコアベース）
-      // 疲労度スコアが未計算（-1）の場合は'unknown'
       const status =
         item.fatigue_score < 0
           ? 'unknown'
@@ -171,9 +140,8 @@ export function CreativeTableTab({
 
       return {
         ...item,
-        // 元のデータ構造との互換性を保つためのマッピング
-        adId: item.adIds[0], // 最初のIDを代表として使用
-        adIds: item.adIds, // 全てのIDを保持
+        adId: item.adIds[0],
+        adIds: item.adIds,
         adName: item.adName,
         campaignId: item.campaignId,
         campaignName: item.campaignName,
@@ -182,33 +150,29 @@ export function CreativeTableTab({
         score: item.fatigue_score,
         status: status,
         metrics: metrics,
-
-        // インサイトデータ
         insight,
-
-        // 集約されたメトリクスを使用
         impressions: item.impressions,
         clicks: item.clicks,
         spend: item.spend,
         conversions: item.conversions,
         conversions_1d_click: item.conversions_1d_click,
         fcv_debug: item.fcv_debug,
-
-        // 計算メトリクス（集約データから）
+        ecforce_cv: item.ecforce_cv || 0,
+        ecforce_fcv: item.ecforce_fcv || 0,
+        ecforce_cpa: item.ecforce_cpa,
+        ecforce_cv_total: item.ecforce_cv_total || 0,
+        ecforce_fcv_total: item.ecforce_fcv_total || 0,
         cpa: item.cpa,
         roas: item.roas,
         cvr: item.conversions > 0 && item.clicks > 0 ? (item.conversions / item.clicks) * 100 : 0,
         revenue: item.conversion_values,
-        // クリエイティブタイプ
         creativeType: getCreativeType(insight).type,
       }
     })
 
-    // ソート処理を分離して確実に実行
     const sortedItems = [...enrichedData].sort((a, b) => {
       let aValue: any, bValue: any
 
-      // フィールド値を取得
       switch (sortField) {
         case 'adName':
           aValue = (a.adName || '').toString().toLowerCase()
@@ -242,6 +206,10 @@ export function CreativeTableTab({
           aValue = Number(a.impressions) || 0
           bValue = Number(b.impressions) || 0
           break
+        case 'reach':
+          aValue = Number(a.reach) || 0
+          bValue = Number(b.reach) || 0
+          break
         case 'clicks':
           aValue = Number(a.clicks) || 0
           bValue = Number(b.clicks) || 0
@@ -266,10 +234,6 @@ export function CreativeTableTab({
           aValue = Number(a.revenue) || 0
           bValue = Number(b.revenue) || 0
           break
-        case 'roas':
-          aValue = Number(a.roas) || 0
-          bValue = Number(b.roas) || 0
-          break
         case 'creativeType':
           aValue = (a.creativeType || '').toString().toLowerCase()
           bValue = (b.creativeType || '').toString().toLowerCase()
@@ -279,7 +243,6 @@ export function CreativeTableTab({
           bValue = 0
       }
 
-      // 文字列の場合
       if (sortField === 'adName' || sortField === 'creativeType') {
         if (sortDirection === 'asc') {
           return aValue.localeCompare(bValue)
@@ -288,7 +251,6 @@ export function CreativeTableTab({
         }
       }
 
-      // 数値の場合
       if (sortDirection === 'asc') {
         return aValue - bValue
       } else {
@@ -296,66 +258,19 @@ export function CreativeTableTab({
       }
     })
 
-    console.log('sortedData result:', {
-      length: sortedItems.length,
-      sortField,
-      sortDirection,
-      firstValue:
-        sortedItems[0]?.[sortField as keyof (typeof sortedItems)[0]] ||
-        (sortedItems[0]?.metrics as any)?.[sortField] ||
-        sortedItems[0]?.score,
-      lastValue:
-        sortedItems[sortedItems.length - 1]?.[sortField as keyof (typeof sortedItems)[0]] ||
-        (sortedItems[sortedItems.length - 1]?.metrics as any)?.[sortField] ||
-        sortedItems[sortedItems.length - 1]?.score,
-    })
-
     return sortedItems
   }, [data, insightsMap, sortField, sortDirection])
 
   const handleSort = (field: string) => {
-    console.log('handleSort called:', {
-      field,
-      currentSortField: sortField,
-      currentDirection: sortDirection,
-    })
-
     if (sortField === field) {
-      const newDirection = sortDirection === 'asc' ? 'desc' : 'asc'
-      setSortDirection(newDirection)
-      console.log('Same field, toggling direction to:', newDirection)
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
     } else {
       setSortField(field)
       setSortDirection('desc')
-      console.log('New field, setting:', { field, direction: 'desc' })
     }
   }
 
   const handleViewDetails = (item: any) => {
-    // 集約されたクリエイティブの最初のIDからinsightを取得
-    const insight =
-      item.adIds && item.adIds.length > 0
-        ? insightsMap.get(item.adIds[0])
-        : insightsMap.get(item.adId)
-    const creativeInfo = getCreativeType(insight)
-
-    console.log('詳細表示:', {
-      adId: item.adId,
-      adIds: item.adIds,
-      adName: item.adName,
-      creativeType: creativeInfo.type,
-      fatigueScore: item.score,
-      metrics: item.metrics,
-      dailyData: item.dailyData,
-      insight: insight,
-      urls: {
-        image: insight?.image_url,
-        video: insight?.video_url,
-        thumbnail: insight?.thumbnail_url,
-      },
-    })
-
-    // モーダルを開く
     setSelectedItem(item)
     setIsModalOpen(true)
   }
@@ -366,50 +281,31 @@ export function CreativeTableTab({
   }
 
   const formatNumber = (num: number) => new Intl.NumberFormat('ja-JP').format(Math.round(num))
-  const formatCurrency = (num: number) => `¥${formatNumber(num)}`
   const formatPercentage = (num: number) => `${num.toFixed(2)}%`
   const formatDecimal = (num: number, decimals: number = 2) => num.toFixed(decimals)
 
-  console.log('CreativeTableTab rendered:', {
-    dataLength: data?.length,
-    insightsLength: insights?.length,
-    isLoading,
-  })
-
-  // 包括的なソート可能テーブル
   return (
     <div className="w-full max-w-none">
-      {/* 包括的な統計データテーブル */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <div className="overflow-x-auto w-full">
-          <table
-            className="w-full divide-y divide-gray-200 table-fixed"
-            style={{ minWidth: '1555px' }}
-          >
+          <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
+                {/* Type */}
                 <th
-                  className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  style={{ width: '80px' }}
-                  onClick={() => handleSort('creativeType')}
+                  className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  style={{ width: '50px' }}
                 >
-                  <div className="flex items-center justify-center gap-1">
-                    タイプ
-                    {sortField === 'creativeType' &&
-                      (sortDirection === 'asc' ? (
-                        <ChevronUpIcon className="h-3 w-3" />
-                      ) : (
-                        <ChevronDownIcon className="h-3 w-3" />
-                      ))}
-                  </div>
+                  Type
                 </th>
+                {/* Name */}
                 <th
-                  className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  style={{ width: '300px' }}
+                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  style={{ width: '150px', maxWidth: '150px' }}
                   onClick={() => handleSort('adName')}
                 >
-                  <div className="flex items-center justify-center gap-1">
-                    クリエイティブ名
+                  <div className="flex items-center gap-1">
+                    Creative Name
                     {sortField === 'adName' &&
                       (sortDirection === 'asc' ? (
                         <ChevronUpIcon className="h-3 w-3" />
@@ -418,28 +314,14 @@ export function CreativeTableTab({
                       ))}
                   </div>
                 </th>
+                {/* FRQ */}
                 <th
                   className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  style={{ width: '80px' }}
-                  onClick={() => handleSort('score')}
-                >
-                  <div className="flex items-center justify-center gap-1">
-                    疲労度
-                    {sortField === 'score' &&
-                      (sortDirection === 'asc' ? (
-                        <ChevronUpIcon className="h-3 w-3" />
-                      ) : (
-                        <ChevronDownIcon className="h-3 w-3" />
-                      ))}
-                  </div>
-                </th>
-                <th
-                  className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  style={{ width: '70px' }}
+                  style={{ width: '45px' }}
                   onClick={() => handleSort('frequency')}
                 >
                   <div className="flex items-center justify-center gap-1">
-                    Freq
+                    FRQ
                     {sortField === 'frequency' &&
                       (sortDirection === 'asc' ? (
                         <ChevronUpIcon className="h-3 w-3" />
@@ -448,14 +330,15 @@ export function CreativeTableTab({
                       ))}
                   </div>
                 </th>
+                {/* REACH */}
                 <th
                   className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  style={{ width: '70px' }}
-                  onClick={() => handleSort('ctr')}
+                  style={{ width: '75px' }}
+                  onClick={() => handleSort('reach')}
                 >
                   <div className="flex items-center justify-center gap-1">
-                    CTR
-                    {sortField === 'ctr' &&
+                    REACH
+                    {sortField === 'reach' &&
                       (sortDirection === 'asc' ? (
                         <ChevronUpIcon className="h-3 w-3" />
                       ) : (
@@ -463,54 +346,10 @@ export function CreativeTableTab({
                       ))}
                   </div>
                 </th>
-                <th
-                  className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  style={{ width: '70px' }}
-                  onClick={() => handleSort('unique_ctr')}
-                >
-                  <div className="flex items-center justify-center gap-1">
-                    U-CTR
-                    {sortField === 'unique_ctr' &&
-                      (sortDirection === 'asc' ? (
-                        <ChevronUpIcon className="h-3 w-3" />
-                      ) : (
-                        <ChevronDownIcon className="h-3 w-3" />
-                      ))}
-                  </div>
-                </th>
+                {/* IMP */}
                 <th
                   className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   style={{ width: '80px' }}
-                  onClick={() => handleSort('cpm')}
-                >
-                  <div className="flex items-center justify-center gap-1">
-                    CPM
-                    {sortField === 'cpm' &&
-                      (sortDirection === 'asc' ? (
-                        <ChevronUpIcon className="h-3 w-3" />
-                      ) : (
-                        <ChevronDownIcon className="h-3 w-3" />
-                      ))}
-                  </div>
-                </th>
-                <th
-                  className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  style={{ width: '80px' }}
-                  onClick={() => handleSort('cpc')}
-                >
-                  <div className="flex items-center justify-center gap-1">
-                    CPC
-                    {sortField === 'cpc' &&
-                      (sortDirection === 'asc' ? (
-                        <ChevronUpIcon className="h-3 w-3" />
-                      ) : (
-                        <ChevronDownIcon className="h-3 w-3" />
-                      ))}
-                  </div>
-                </th>
-                <th
-                  className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  style={{ width: '100px' }}
                   onClick={() => handleSort('impressions')}
                 >
                   <div className="flex items-center justify-center gap-1">
@@ -523,13 +362,14 @@ export function CreativeTableTab({
                       ))}
                   </div>
                 </th>
+                {/* CLICK */}
                 <th
                   className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  style={{ width: '80px' }}
+                  style={{ width: '65px' }}
                   onClick={() => handleSort('clicks')}
                 >
                   <div className="flex items-center justify-center gap-1">
-                    クリック
+                    CLICK
                     {sortField === 'clicks' &&
                       (sortDirection === 'asc' ? (
                         <ChevronUpIcon className="h-3 w-3" />
@@ -538,13 +378,62 @@ export function CreativeTableTab({
                       ))}
                   </div>
                 </th>
+                {/* CTR */}
                 <th
                   className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  style={{ width: '100px' }}
+                  style={{ width: '55px' }}
+                  onClick={() => handleSort('ctr')}
+                >
+                  <div className="flex items-center justify-center gap-1">
+                    CTR
+                    {sortField === 'ctr' &&
+                      (sortDirection === 'asc' ? (
+                        <ChevronUpIcon className="h-3 w-3" />
+                      ) : (
+                        <ChevronDownIcon className="h-3 w-3" />
+                      ))}
+                  </div>
+                </th>
+                {/* U-CTR */}
+                <th
+                  className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  style={{ width: '55px' }}
+                  onClick={() => handleSort('unique_ctr')}
+                >
+                  <div className="flex items-center justify-center gap-1">
+                    U-CTR
+                    {sortField === 'unique_ctr' &&
+                      (sortDirection === 'asc' ? (
+                        <ChevronUpIcon className="h-3 w-3" />
+                      ) : (
+                        <ChevronDownIcon className="h-3 w-3" />
+                      ))}
+                  </div>
+                </th>
+                {/* CPC */}
+                <th
+                  className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  style={{ width: '65px' }}
+                  onClick={() => handleSort('cpc')}
+                >
+                  <div className="flex items-center justify-center gap-1">
+                    CPC
+                    {sortField === 'cpc' &&
+                      (sortDirection === 'asc' ? (
+                        <ChevronUpIcon className="h-3 w-3" />
+                      ) : (
+                        <ChevronDownIcon className="h-3 w-3" />
+                      ))}
+                  </div>
+                </th>
+                {/* SPEND */}
+                <th
+                  className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  style={{ width: '85px' }}
                   onClick={() => handleSort('spend')}
                 >
                   <div className="flex items-center justify-center gap-1">
-                    消化金額
+                    SPEND
                     {sortField === 'spend' &&
                       (sortDirection === 'asc' ? (
                         <ChevronUpIcon className="h-3 w-3" />
@@ -553,24 +442,10 @@ export function CreativeTableTab({
                       ))}
                   </div>
                 </th>
+                {/* F-CV */}
                 <th
                   className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  style={{ width: '75px' }}
-                  onClick={() => handleSort('conversions')}
-                >
-                  <div className="flex items-center justify-center gap-1">
-                    CV
-                    {sortField === 'conversions' &&
-                      (sortDirection === 'asc' ? (
-                        <ChevronUpIcon className="h-3 w-3" />
-                      ) : (
-                        <ChevronDownIcon className="h-3 w-3" />
-                      ))}
-                  </div>
-                </th>
-                <th
-                  className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  style={{ width: '75px' }}
+                  style={{ width: '55px' }}
                   onClick={() => handleSort('conversions_1d_click')}
                 >
                   <div className="flex items-center justify-center gap-1">
@@ -583,9 +458,26 @@ export function CreativeTableTab({
                       ))}
                   </div>
                 </th>
+                {/* CV */}
                 <th
                   className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  style={{ width: '80px' }}
+                  style={{ width: '55px' }}
+                  onClick={() => handleSort('conversions')}
+                >
+                  <div className="flex items-center justify-center gap-1">
+                    CV
+                    {sortField === 'conversions' &&
+                      (sortDirection === 'asc' ? (
+                        <ChevronUpIcon className="h-3 w-3" />
+                      ) : (
+                        <ChevronDownIcon className="h-3 w-3" />
+                      ))}
+                  </div>
+                </th>
+                {/* CPA */}
+                <th
+                  className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  style={{ width: '70px' }}
                   onClick={() => handleSort('cpa')}
                 >
                   <div className="flex items-center justify-center gap-1">
@@ -598,56 +490,31 @@ export function CreativeTableTab({
                       ))}
                   </div>
                 </th>
+                {/* CPM */}
                 <th
                   className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  style={{ width: '100px' }}
-                  onClick={() => handleSort('revenue')}
+                  style={{ width: '65px' }}
+                  onClick={() => handleSort('cpm')}
                 >
                   <div className="flex items-center justify-center gap-1">
-                    売上
-                    {sortField === 'revenue' &&
+                    CPM
+                    {sortField === 'cpm' &&
                       (sortDirection === 'asc' ? (
                         <ChevronUpIcon className="h-3 w-3" />
                       ) : (
                         <ChevronDownIcon className="h-3 w-3" />
                       ))}
                   </div>
-                </th>
-                <th
-                  className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  style={{ width: '75px' }}
-                  onClick={() => handleSort('roas')}
-                >
-                  <div className="flex items-center justify-center gap-1">
-                    ROAS
-                    {sortField === 'roas' &&
-                      (sortDirection === 'asc' ? (
-                        <ChevronUpIcon className="h-3 w-3" />
-                      ) : (
-                        <ChevronDownIcon className="h-3 w-3" />
-                      ))}
-                  </div>
-                </th>
-                <th
-                  className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  style={{ width: '90px' }}
-                >
-                  ステータス
                 </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {/* 集計行 */}
               <tr className="bg-blue-50 font-bold border-b-2 border-blue-200">
-                {/* タイプ */}
                 <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">-</td>
-                {/* クリエイティブ名 */}
                 <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-blue-900">
                   合計
                 </td>
-                {/* 疲労度 */}
-                <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">-</td>
-                {/* Frequency */}
                 <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">
                   {sortedData.length > 0
                     ? formatDecimal(
@@ -656,7 +523,15 @@ export function CreativeTableTab({
                       )
                     : '-'}
                 </td>
-                {/* CTR */}
+                <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">
+                  {formatNumber(sortedData.reduce((sum, item) => sum + (item.reach || 0), 0))}
+                </td>
+                <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">
+                  {formatNumber(sortedData.reduce((sum, item) => sum + (item.impressions || 0), 0))}
+                </td>
+                <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">
+                  {formatNumber(sortedData.reduce((sum, item) => sum + (item.clicks || 0), 0))}
+                </td>
                 <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">
                   {sortedData.reduce((sum, item) => sum + (item.impressions || 0), 0) > 0
                     ? formatPercentage(
@@ -666,7 +541,6 @@ export function CreativeTableTab({
                       )
                     : '-'}
                 </td>
-                {/* U-CTR */}
                 <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">
                   {sortedData.length > 0
                     ? formatPercentage(
@@ -675,17 +549,6 @@ export function CreativeTableTab({
                       )
                     : '-'}
                 </td>
-                {/* CPM */}
-                <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">
-                  ¥
-                  {sortedData.length > 0
-                    ? formatNumber(
-                        sortedData.reduce((sum, item) => sum + (item.metrics?.cpm || 0), 0) /
-                          sortedData.length
-                      )
-                    : '0'}
-                </td>
-                {/* CPC */}
                 <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">
                   ¥
                   {sortedData.length > 0
@@ -695,55 +558,83 @@ export function CreativeTableTab({
                       )
                     : '0'}
                 </td>
-                {/* IMP */}
-                <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">
-                  {formatNumber(sortedData.reduce((sum, item) => sum + (item.impressions || 0), 0))}
-                </td>
-                {/* クリック */}
-                <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">
-                  {formatNumber(sortedData.reduce((sum, item) => sum + (item.clicks || 0), 0))}
-                </td>
-                {/* 消化金額 */}
                 <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">
                   ¥{formatNumber(sortedData.reduce((sum, item) => sum + (item.spend || 0), 0))}
                 </td>
-                {/* CV */}
-                <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">
-                  {formatNumber(sortedData.reduce((sum, item) => sum + (item.conversions || 0), 0))}
-                </td>
-                {/* F-CV */}
                 <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">
                   {formatNumber(
                     sortedData.reduce((sum, item) => sum + (item.conversions_1d_click || 0), 0)
                   )}
                 </td>
-                {/* CPA */}
-                <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">
-                  {sortedData.reduce((sum, item) => sum + (item.conversions || 0), 0) > 0
-                    ? `¥${formatNumber(
-                        sortedData.reduce((sum, item) => sum + (item.spend || 0), 0) /
-                          sortedData.reduce((sum, item) => sum + (item.conversions || 0), 0)
-                      )}`
-                    : '-'}
+                <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-purple-600 font-semibold">
+                  <div className="flex items-center justify-center gap-1">
+                    <span>
+                      {sortedData.length > 0 && sortedData[0].ecforce_cv_total !== undefined
+                        ? formatNumber(sortedData[0].ecforce_cv_total)
+                        : 'N/A'}
+                    </span>
+                    <div className="group relative">
+                      <InformationCircleIcon className="h-3 w-3 text-purple-400 cursor-help" />
+                      <div className="hidden group-hover:block absolute z-50 bg-gray-900 text-white text-xs rounded-lg p-2 bottom-full left-1/2 transform -translate-x-1/2 w-56 shadow-xl mb-1 pointer-events-none">
+                        <div className="font-semibold mb-1">ECForceコンバージョン合計</div>
+                        <div className="text-gray-300">
+                          ECForceから取得した注文完了数の合計です。Meta広告経由の購入データを表示しています。
+                        </div>
+                        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-full">
+                          <div className="border-4 border-transparent border-t-gray-900"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </td>
-                {/* 売上 */}
-                <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">
-                  {sortedData.reduce((sum, item) => sum + (item.revenue || 0), 0) > 0
-                    ? `¥${formatNumber(sortedData.reduce((sum, item) => sum + (item.revenue || 0), 0))}`
-                    : '-'}
+                <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-purple-600 font-semibold">
+                  <div className="flex items-center justify-center gap-1">
+                    <span>
+                      ¥
+                      {(() => {
+                        const totalCV =
+                          sortedData.length > 0 && sortedData[0].ecforce_cv_total !== undefined
+                            ? sortedData[0].ecforce_cv_total
+                            : sortedData.reduce(
+                                (sum, item) => sum + (item.ecforce_cv || item.conversions || 0),
+                                0
+                              )
+                        const totalSpend = sortedData.reduce(
+                          (sum, item) => sum + (item.spend || 0),
+                          0
+                        )
+                        return totalCV > 0 ? formatNumber(totalSpend / totalCV) : '0'
+                      })()}
+                    </span>
+                    <div className="group relative">
+                      <InformationCircleIcon className="h-3 w-3 text-purple-400 cursor-help" />
+                      <div className="hidden group-hover:block absolute z-50 bg-gray-900 text-white text-xs rounded-lg p-2 bottom-full left-1/2 transform -translate-x-1/2 w-48 shadow-xl mb-1 pointer-events-none">
+                        <div className="font-semibold mb-1">平均獲得単価（CPA）</div>
+                        <div className="text-gray-300">
+                          1件のコンバージョンを獲得するのにかかった平均広告費用
+                        </div>
+                        <div className="text-gray-400 mt-1 text-[10px]">
+                          計算式: 総消化金額 ÷ 総CV数
+                        </div>
+                        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-full">
+                          <div className="border-4 border-transparent border-t-gray-900"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </td>
-                {/* ROAS */}
                 <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">
-                  {sortedData.length > 0 && sortedData.some((item) => item.roas > 0)
-                    ? `${formatDecimal(
-                        sortedData.reduce((sum, item) => sum + (item.roas || 0), 0) /
-                          sortedData.filter((item) => item.roas > 0).length
-                      )}x`
-                    : '-'}
+                  ¥
+                  {sortedData.length > 0
+                    ? formatNumber(
+                        sortedData.reduce((sum, item) => sum + (item.metrics?.cpm || 0), 0) /
+                          sortedData.length
+                      )
+                    : '0'}
                 </td>
-                {/* ステータス */}
-                <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">-</td>
               </tr>
+
+              {/* データ行 */}
               {sortedData.map((item, index) => (
                 <tr
                   key={`${item.adId}-${index}`}
@@ -751,27 +642,19 @@ export function CreativeTableTab({
                   onClick={() => handleViewDetails(item)}
                   title="クリックして詳細を表示"
                 >
-                  {/* クリエイティブタイプ */}
+                  {/* Type */}
                   <td className="px-2 py-3 whitespace-nowrap text-center">
-                    {(() => {
-                      const insight =
-                        item.adIds && item.adIds.length > 0
-                          ? insightsMap.get(item.adIds[0])
-                          : insightsMap.get(item.adId)
-                      const { type, icon: Icon, color } = getCreativeType(insight)
-                      return (
-                        <div className="flex flex-col items-center">
-                          <Icon className={`h-5 w-5 ${color}`} />
-                          <span className="text-xs text-gray-500 mt-1">{type}</span>
-                        </div>
-                      )
-                    })()}
+                    <div className={`inline-flex ${getCreativeType(item.insight).color}`}>
+                      {React.createElement(getCreativeType(item.insight).icon, {
+                        className: 'h-5 w-5',
+                      })}
+                    </div>
                   </td>
-
-                  {/* クリエイティブ名 */}
-                  <td className="px-4 py-3 whitespace-nowrap text-center">
+                  {/* Name */}
+                  <td className="px-4 py-3 whitespace-nowrap">
                     <div
                       className="text-sm font-medium text-gray-900 truncate"
+                      style={{ width: '150px', maxWidth: '150px' }}
                       title={item.adName || `Creative ${index + 1}`}
                     >
                       {item.adName || `Creative ${index + 1}`}
@@ -782,28 +665,7 @@ export function CreativeTableTab({
                         : item.adId}
                     </div>
                   </td>
-
-                  {/* 疲労度スコア */}
-                  <td className="px-2 py-3 whitespace-nowrap text-center">
-                    {item.score < 0 ? (
-                      <span className="text-gray-400 text-sm">-</span>
-                    ) : (
-                      <span
-                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                          item.score >= 80
-                            ? 'bg-red-100 text-red-800'
-                            : item.score >= 60
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-green-100 text-green-800'
-                        }`}
-                        title={`総合疲労度スコア: ${item.score}`}
-                      >
-                        {item.score}
-                      </span>
-                    )}
-                  </td>
-
-                  {/* Frequency */}
+                  {/* FRQ */}
                   <td className="px-2 py-3 whitespace-nowrap text-center text-sm">
                     <span
                       className={
@@ -813,51 +675,37 @@ export function CreativeTableTab({
                       {formatDecimal(item.metrics.frequency || 0)}
                     </span>
                   </td>
-
+                  {/* REACH */}
+                  <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-gray-900">
+                    {formatNumber(item.reach || 0)}
+                  </td>
+                  {/* IMP */}
+                  <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-gray-900">
+                    {formatNumber(item.impressions)}
+                  </td>
+                  {/* CLICK */}
+                  <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-gray-900">
+                    {formatNumber(item.clicks)}
+                  </td>
                   {/* CTR */}
                   <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-gray-900">
                     {formatPercentage(item.metrics.ctr || 0)}
                   </td>
-
-                  {/* Unique CTR */}
+                  {/* U-CTR */}
                   <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-gray-900">
                     {formatPercentage(item.metrics.unique_ctr || 0)}
                   </td>
-
-                  {/* CPM */}
-                  <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-gray-900">
-                    ¥{formatNumber(item.metrics.cpm || 0)}
-                  </td>
-
                   {/* CPC */}
                   <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-gray-900">
                     ¥{formatNumber(item.metrics.cpc || 0)}
                   </td>
-
-                  {/* インプレッション */}
-                  <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-gray-900">
-                    {formatNumber(item.impressions)}
-                  </td>
-
-                  {/* クリック数 */}
-                  <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-gray-900">
-                    {formatNumber(item.clicks)}
-                  </td>
-
-                  {/* 消化金額 */}
+                  {/* SPEND */}
                   <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-gray-900">
                     ¥{formatNumber(item.spend)}
                   </td>
-
-                  {/* コンバージョン */}
-                  <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-gray-900">
-                    {formatNumber(item.conversions)}
-                  </td>
-
-                  {/* ファーストCV */}
+                  {/* F-CV */}
                   <td className="px-2 py-3 whitespace-nowrap text-center text-sm">
                     <div className="group relative cursor-help inline-block">
-                      {/* メイン表示 */}
                       <span
                         className={
                           item.fcv_debug?.cv_fcv_valid === false
@@ -867,76 +715,59 @@ export function CreativeTableTab({
                       >
                         {formatNumber(item.conversions_1d_click || 0)}
                       </span>
-
-                      {/* デバッグ情報（開発環境のみ） */}
                       {process.env.NODE_ENV === 'development' && item.fcv_debug && (
                         <span className="ml-1 text-xs text-gray-400">
                           ({item.fcv_debug.unique_actions_value}/
                           {item.fcv_debug.unique_actions_1d_click})
                         </span>
                       )}
-
-                      {/* ツールチップ */}
                       {item.fcv_debug && (
-                        <div className="hidden group-hover:block absolute z-50 bg-gray-900 text-white text-xs rounded-lg p-3 bottom-full left-1/2 transform -translate-x-1/2 w-80 shadow-xl">
-                          <div className="font-bold mb-2 text-yellow-300">F-CVデバッグ情報</div>
+                        <div className="hidden group-hover:block absolute z-50 bg-gray-900 text-white text-xs rounded-lg p-3 bottom-full left-1/2 transform -translate-x-1/2 w-64 shadow-xl mb-2 pointer-events-none">
+                          <div className="font-semibold mb-2">F-CV (ファーストコンバージョン)</div>
                           <div className="space-y-1">
-                            <div>
-                              unique_actions.value:{' '}
-                              <span className="font-mono text-green-300">
-                                {item.fcv_debug.unique_actions_value || 'N/A'}
+                            <div className="flex justify-between">
+                              <span className="text-gray-400">unique_actions:</span>
+                              <span className="font-mono">
+                                {item.fcv_debug.unique_actions_value || 0}
                               </span>
                             </div>
-                            <div>
-                              unique_actions['1d_click']:{' '}
-                              <span className="font-mono text-green-300">
-                                {item.fcv_debug.unique_actions_1d_click || 'N/A'}
+                            <div className="flex justify-between">
+                              <span className="text-gray-400">1d_click:</span>
+                              <span className="font-mono">
+                                {item.fcv_debug.unique_actions_1d_click || 0}
                               </span>
                             </div>
-                            <div>
-                              unique_actions['7d_click']:{' '}
-                              <span className="font-mono text-gray-400">
-                                {item.fcv_debug.unique_actions_7d_click || 'N/A'}
+                            <div className="flex justify-between">
+                              <span className="text-gray-400">通常CV:</span>
+                              <span className="font-mono">
+                                {item.fcv_debug.conversions_value || 0}
                               </span>
                             </div>
-                            <div>
-                              unique_conversions:{' '}
-                              <span className="font-mono text-gray-400">
-                                {item.fcv_debug.unique_conversions || 'N/A'}
+                            <div className="flex justify-between">
+                              <span className="text-gray-400">1d_click CV:</span>
+                              <span className="font-mono">
+                                {item.fcv_debug.conversions_1d_click || 0}
                               </span>
                             </div>
-                            <div>
-                              unique_actions存在:{' '}
-                              <span
-                                className={
-                                  item.fcv_debug.has_unique_actions
-                                    ? 'text-green-400'
-                                    : 'text-red-400'
-                                }
-                              >
-                                {item.fcv_debug.has_unique_actions ? '✓' : '✗'}
-                              </span>
+                            <div className="mt-2 pt-2 border-t border-gray-700">
+                              <div className="flex justify-between">
+                                <span className="text-gray-400">検証結果:</span>
+                                <span
+                                  className={
+                                    item.fcv_debug.cv_fcv_valid === false
+                                      ? 'text-red-400 font-bold'
+                                      : 'text-green-400'
+                                  }
+                                >
+                                  {item.fcv_debug.cv_fcv_valid === false ? '要確認' : '正常'}
+                                </span>
+                              </div>
+                              {item.fcv_debug.cv_fcv_valid === false && (
+                                <div className="mt-1 text-yellow-400 text-[10px]">
+                                  CV ≠ F-CVのため、データに不整合があります
+                                </div>
+                              )}
                             </div>
-                          </div>
-                          <div className="mt-2 pt-2 border-t border-gray-700">
-                            <div>
-                              CV: <span className="font-mono">{item.conversions}</span>
-                            </div>
-                            <div>
-                              F-CV: <span className="font-mono">{item.conversions_1d_click}</span>
-                            </div>
-                            <div
-                              className={
-                                item.fcv_debug.cv_fcv_valid
-                                  ? 'text-green-400'
-                                  : 'text-red-400 font-bold'
-                              }
-                            >
-                              CV≥F-CV: {item.fcv_debug.cv_fcv_valid ? '✓ 正常' : '✗ エラー'}
-                            </div>
-                          </div>
-                          <div className="mt-2 text-xs text-gray-400">
-                            ※Meta Ad Managerの値と比較してください
                           </div>
                           <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-full">
                             <div className="border-8 border-transparent border-t-gray-900"></div>
@@ -945,51 +776,17 @@ export function CreativeTableTab({
                       )}
                     </div>
                   </td>
-
+                  {/* CV */}
+                  <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-gray-900">
+                    {formatNumber(item.conversions)}
+                  </td>
                   {/* CPA */}
                   <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-gray-900">
                     {item.conversions > 0 ? `¥${formatNumber(item.cpa)}` : '-'}
                   </td>
-
-                  {/* 売上 */}
+                  {/* CPM */}
                   <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-gray-900">
-                    {item.revenue > 0 ? `¥${formatNumber(item.revenue)}` : '-'}
-                  </td>
-
-                  {/* ROAS */}
-                  <td className="px-2 py-3 whitespace-nowrap text-center text-sm">
-                    <span
-                      className={
-                        item.roas >= 3.0
-                          ? 'text-green-600 font-medium'
-                          : item.roas >= 2.0
-                            ? 'text-yellow-600'
-                            : item.roas > 0
-                              ? 'text-red-600'
-                              : 'text-gray-900'
-                      }
-                    >
-                      {item.roas > 0 ? `${formatDecimal(item.roas)}x` : '-'}
-                    </span>
-                  </td>
-
-                  {/* ステータス */}
-                  <td className="px-2 py-3 whitespace-nowrap text-center">
-                    {item.status === 'unknown' ? (
-                      <span className="text-gray-400 text-sm">未計算</span>
-                    ) : (
-                      <span
-                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                          item.status === 'critical'
-                            ? 'bg-red-100 text-red-800'
-                            : item.status === 'warning'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-green-100 text-green-800'
-                        }`}
-                      >
-                        {item.status}
-                      </span>
-                    )}
+                    ¥{formatNumber(item.metrics.cpm || 0)}
                   </td>
                 </tr>
               ))}
@@ -999,19 +796,15 @@ export function CreativeTableTab({
       </div>
 
       {/* 詳細モーダル */}
-      {selectedItem && (
+      {selectedItem && isModalOpen && (
         <CreativeDetailModal
           isOpen={isModalOpen}
-          onClose={closeModal}
           item={selectedItem}
-          insight={
-            selectedItem.adIds && selectedItem.adIds.length > 0
-              ? insightsMap.get(selectedItem.adIds[0])
-              : insightsMap.get(selectedItem.adId)
-          }
+          onClose={closeModal}
+          insight={insightsMap.get(selectedItem.adId)}
           accessToken={accessToken}
-          accountId={selectedAccountId}
-          dateRange={dateRange} // 日付範囲を渡す
+          accountId={selectedAccountId || ''}
+          dateRange={dateRange}
         />
       )}
     </div>

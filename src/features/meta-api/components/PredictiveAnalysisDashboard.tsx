@@ -6,23 +6,23 @@
 import React, { useState } from 'react'
 import {
   PredictiveAnalyzer,
-  PredictionResult,
+  // PredictionResult, - 未使用
   TimeSeriesDataPoint,
 } from '../core/predictive-analysis'
 import { FatigueScoreDetail } from '../core/fatigue-calculator-v2'
-import { SafeMetrics } from '../utils/safe-data-access'
+// import { SafeMetrics } from '../utils/safe-data-access' - 未使用
 import {
-  TrendingUpIcon,
-  TrendingDownIcon,
+  ArrowTrendingUpIcon,
+  ArrowTrendingDownIcon,
   ExclamationTriangleIcon,
-  CheckCircleIcon,
+  // CheckCircleIcon, - 未使用
   ClockIcon,
   LightBulbIcon,
   ChartBarIcon,
   FireIcon,
 } from '@heroicons/react/24/outline'
 import {
-  LineChart,
+  // LineChart, - 未使用
   Line,
   Area,
   AreaChart,
@@ -64,9 +64,9 @@ const getRiskColor = (level: string) => {
 const getTrendIcon = (direction: string) => {
   switch (direction) {
     case 'improving':
-      return <TrendingUpIcon className="h-5 w-5 text-green-600" />
+      return <ArrowTrendingUpIcon className="h-5 w-5 text-green-600" />
     case 'declining':
-      return <TrendingDownIcon className="h-5 w-5 text-red-600" />
+      return <ArrowTrendingDownIcon className="h-5 w-5 text-red-600" />
     case 'critical':
       return <ExclamationTriangleIcon className="h-5 w-5 text-red-600" />
     default:

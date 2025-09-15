@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { ClockIcon } from '@heroicons/react/24/outline'
 
 interface CacheSettingsProps {

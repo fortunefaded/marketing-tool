@@ -10,6 +10,7 @@ interface VideoPlayerProps {
   creativeName: string
   onClose?: () => void
   mobileOptimized?: boolean
+  previewShareableLink?: string
 }
 
 export const VideoPlayer: React.FC<VideoPlayerProps> = ({
@@ -19,6 +20,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   creativeName,
   onClose,
   mobileOptimized = false,
+  previewShareableLink,
 }) => {
   const [error, setError] = useState(false)
   const [useIframe, setUseIframe] = useState(false)
@@ -37,15 +39,34 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     }
   }, [videoUrl, videoId])
 
-  // Facebook SDK を初期化
+  // Facebook SDK を初期化（改善版）
   useEffect(() => {
-    if (typeof window !== 'undefined' && !(window as any).FB) {
+    // Facebook SDKの初期化
+    ;(window as any).fbAsyncInit = function() {
+      if ((window as any).FB) {
+        ;(window as any).FB.init({
+          xfbml: true,
+          version: 'v23.0'
+        })
+        
+        // 既存の動画要素をパース
+        ;(window as any).FB.XFBML.parse()
+        logger.debug('Facebook SDK initialized and XFBML parsed')
+      }
+    }
+
+    // SDKスクリプトの読み込み
+    if (!document.getElementById('facebook-jssdk')) {
       const script = document.createElement('script')
+      script.id = 'facebook-jssdk'
       script.async = true
       script.defer = true
       script.crossOrigin = 'anonymous'
       script.src = 'https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v23.0'
       document.body.appendChild(script)
+    } else if ((window as any).FB) {
+      // 既にSDKが読み込まれている場合は再パース
+      ;(window as any).FB.XFBML.parse()
     }
   }, [])
 
@@ -104,18 +125,24 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
   const extractedVideoId = extractVideoId()
 
-  // Facebook動画の埋め込みURLを生成
+  // Facebook動画の埋め込みURLを生成（preview_shareable_link優先）
   const getFacebookEmbedUrl = () => {
-    const vidId = extractedVideoId
-
     // モバイル最適化時のパラメーター
     const width = mobileOptimized ? 280 : 560
     const height = mobileOptimized ? 500 : 314
 
+    // preview_shareable_linkが最優先
+    if (previewShareableLink) {
+      const embedUrl = `https://www.facebook.com/plugins/video.php?height=${height}&href=${encodeURIComponent(previewShareableLink)}&show_text=false&width=${width}&t=0`
+      logger.debug('Generated Facebook embed URL from preview_shareable_link:', embedUrl)
+      return embedUrl
+    }
+
+    const vidId = extractedVideoId
     if (vidId) {
       // video IDがある場合、直接埋め込みURLを生成
       const embedUrl = `https://www.facebook.com/plugins/video.php?height=${height}&href=${encodeURIComponent(`https://www.facebook.com/facebook/videos/${vidId}/`)}&show_text=false&width=${width}&t=0`
-      logger.debug('Generated Facebook embed URL:', embedUrl)
+      logger.debug('Generated Facebook embed URL from video ID:', embedUrl)
       return embedUrl
     } else if (videoUrl) {
       // 完全なURLがある場合

@@ -17,6 +17,12 @@ export default defineConfig({
   server: {
     port: 3000,
     host: true,
+    proxy: {
+      '/api/ecforce': {
+        target: 'http://localhost:3002',
+        changeOrigin: true,
+      },
+    },
   },
   build: {
     outDir: 'dist',

@@ -5,7 +5,7 @@
  * フィーチャーフラグで既存の実装と切り替え可能
  */
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { useAdFatigueSimplified, type DateRangeFilter } from './useAdFatigueSimplified'
 import { AdDataAggregator } from '../core/ad-data-aggregator'
 import type { 

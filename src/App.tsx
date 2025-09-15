@@ -5,9 +5,20 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import { ConvexUsageTracker } from './utils/convex-usage-tracker'
 import MainDashboard from './pages/MainDashboard'
 import { SettingsManagement } from './pages/SettingsManagement'
+import { ConnectStepConvex } from './pages/meta-setup/ConnectStepConvex'
+import { PermissionsAndTestStep } from './pages/meta-setup/PermissionsAndTestStep'
+import { CompleteStepConvex } from './pages/meta-setup/CompleteStepConvex'
 import Sidebar from './components/Sidebar'
 import Header from './components/Header'
 import { vibe } from './utils/vibelogger'
+import { UnifiedDebugPanel } from './components/UnifiedDebugPanel'
+// ECForce関連ページのインポート
+import { ECForceMain } from './features/ecforce/pages/ECForceMain'
+import { ECForceUpload } from './features/ecforce/pages/ECForceUpload'
+import { ECForceDataPage } from './features/ecforce/pages/ECForceDataPage'
+import { ECForceMappingPage } from './features/ecforce/pages/ECForceMappingPage'
+import { ECForceSync } from './features/ecforce/pages/ECForceSync'
+import { ECForceHistory } from './features/ecforce/pages/ECForceHistory'
 
 // Convex URLのフォールバック処理を追加
 const convexUrl = import.meta.env.VITE_CONVEX_URL || 'https://temporary-convex-url.convex.cloud'
@@ -20,7 +31,8 @@ vibe.info('アプリケーション初期化', {
 })
 
 // 開発環境でConvex使用量トラッカーを初期化
-if (import.meta.env.DEV && typeof window !== 'undefined') {
+// 一時的に無効化（エラー対応のため）
+if (false && import.meta.env.DEV && typeof window !== 'undefined') {
   const tracker = new ConvexUsageTracker(convex)
   tracker.start()
 
@@ -56,6 +68,19 @@ function AppContent() {
           <Routes>
             <Route path="/" element={<MainDashboard />} />
             <Route path="/settings" element={<SettingsManagement />} />
+            {/* Meta API設定ルート */}
+            <Route path="/settings/meta-api" element={<ConnectStepConvex />} />
+            <Route path="/settings/meta-api/connect" element={<ConnectStepConvex />} />
+            <Route path="/settings/meta-api/permissions" element={<PermissionsAndTestStep />} />
+            <Route path="/settings/meta-api/test" element={<PermissionsAndTestStep />} />
+            <Route path="/settings/meta-api/complete" element={<CompleteStepConvex />} />
+            {/* ECForce設定ルート */}
+            <Route path="/settings/ecforce" element={<ECForceMain />} />
+            <Route path="/settings/ecforce/upload" element={<ECForceUpload />} />
+            <Route path="/settings/ecforce/data" element={<ECForceDataPage />} />
+            <Route path="/settings/ecforce/mapping" element={<ECForceMappingPage />} />
+            <Route path="/settings/ecforce/sync" element={<ECForceSync />} />
+            <Route path="/settings/ecforce/history" element={<ECForceHistory />} />
             <Route
               path="*"
               element={
@@ -78,6 +103,7 @@ function App() {
       <ConvexProvider client={convex}>
         <Router>
           <AppContent />
+          <UnifiedDebugPanel />
         </Router>
       </ConvexProvider>
     </ErrorBoundary>

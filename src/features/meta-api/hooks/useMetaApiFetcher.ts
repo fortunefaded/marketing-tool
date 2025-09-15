@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useRef, useMemo, useEffect } from 'react'
+import { useCallback, useState, useRef, useMemo, useEffect } from 'react'
 import { useConvex } from 'convex/react'
 import { SimpleTokenStore, TokenInfo } from '../core/token'
 import { SimpleMetaApi } from '../core/api-client'
@@ -124,7 +124,7 @@ export function useMetaApiFetcher(
   }, [mergedOptions.validateResponse])
   
   // メインのデータ取得関数
-  const fetchData = useCallback(async (endpoint: string, params: any = {}): Promise<any> => {
+  const fetchData = useCallback(async (_endpoint: string, _params: any = {}): Promise<any> => {
     const requestId = Math.random().toString(36).substring(7)
     
     // 同時実行制限チェック

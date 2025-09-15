@@ -201,7 +201,7 @@ function getDefaultAction(code: string): MetaApiError['actionRequired'] | undefi
       return {
         type: 'reauth',
         label: 'Meta API設定を開く',
-        href: '/meta-api-setup'
+        href: '/settings/meta-api'
       }
     
     case ERROR_CODES.RATE_LIMIT:

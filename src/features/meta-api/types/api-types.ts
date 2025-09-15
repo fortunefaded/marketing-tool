@@ -15,14 +15,14 @@ export interface MetaApiInsight {
   adset_id: string
   adset_name: string
   account_id: string
-  
+
   // 日付
   date_start: string
   date_stop: string
-  
+
   // プラットフォーム
   publisher_platform?: string
-  
+
   // メトリクス（APIは文字列で返す）
   impressions: string
   clicks: string
@@ -33,12 +33,12 @@ export interface MetaApiInsight {
   ctr: string
   cpm: string
   cpc: string
-  
+
   // コンバージョン
   conversions?: string
   conversion_values?: string
   first_conversions?: string
-  
+
   // クリエイティブ情報
   creative_id?: string
   creative_name?: string
@@ -145,15 +145,19 @@ export type PlatformType = 'facebook' | 'instagram' | 'audience_network' | 'mess
 /**
  * 日付範囲フィルター
  */
-export type DateRangeFilter = 
+export type DateRangeFilter =
   | 'today'
-  | 'yesterday' 
+  | 'yesterday'
   | 'last_7d'
   | 'last_14d'
+  | 'last_28d'
   | 'last_30d'
   | 'last_90d'
+  | 'this_week'
+  | 'last_week'
   | 'this_month'
   | 'last_month'
+  | 'all'
   | 'custom'
 
 /**

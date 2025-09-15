@@ -11,7 +11,10 @@ export default function Header() {
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-6">
           <div className="flex items-center">
-            <h1 className="text-2xl font-bold">
+            <h1
+              className="text-2xl font-bold cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => navigate('/')}
+            >
               <span className="text-gray-800">Mogumo</span>
               <span className="text-gray-700"> Marketing Dashboard</span>
             </h1>

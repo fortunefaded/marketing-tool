@@ -3,7 +3,7 @@ import { vibe } from '@/utils/vibelogger'
 /**
  * Convexが利用できない場合のダミー実装
  */
-export function useDummyConvexCache(accountId: string) {
+export function useDummyConvexCache(_accountId: string) {
   vibe.warn('Using dummy Convex cache - no real data available')
   
   return {
@@ -21,7 +21,6 @@ export function useEmergencyConvexCache(accountId: string) {
   vibe.warn('Using emergency dummy data for Convex cache')
   
   // 少し遅延してローディング感を演出
-  const mockLoading = true // 実際の実装では useState を使う
   
   const dummyData = accountId ? [
     {

@@ -14,7 +14,7 @@ interface UseFatigueCalculationOptions {
  */
 export function useFatigueCalculation(
   insights: AdInsight[] | null,
-  options?: UseFatigueCalculationOptions
+  _options?: UseFatigueCalculationOptions
 ): FatigueData[] {
   const calculator = useMemo(() => new SimpleFatigueCalculator(), [])
   

@@ -9,10 +9,9 @@
 import { ConvexReactClient } from 'convex/react'
 import { api } from '../../../../convex/_generated/api'
 import { MemoryCache } from './memory-cache'
-import { ResilientMetaApiClient } from './resilient-client'
+// import { ResilientMetaApiClient } from './resilient-client' // 将来実装用
 import { DataFreshnessManager } from './data-freshness-manager'
 import { DifferentialUpdateEngine } from './differential-update-engine'
-import type { AdInsight } from '../types'
 
 export interface CacheResult<T> {
   data: T | null
@@ -34,7 +33,7 @@ export interface CacheOptions {
 export class ThreeLayerCache {
   private memoryCache: MemoryCache
   private convex: ConvexReactClient
-  private apiClient: ResilientMetaApiClient
+  // private _apiClient: ResilientMetaApiClient // 将来実装用
   private freshnessManager: DataFreshnessManager
   private updateEngine: DifferentialUpdateEngine
   private metrics: Map<string, { hits: number; misses: number }>
@@ -43,7 +42,7 @@ export class ThreeLayerCache {
   constructor(convex: ConvexReactClient) {
     this.memoryCache = new MemoryCache()
     this.convex = convex
-    this.apiClient = new ResilientMetaApiClient()
+    // this._apiClient = new ResilientMetaApiClient() // 将来実装用
     this.freshnessManager = new DataFreshnessManager()
     this.updateEngine = new DifferentialUpdateEngine()
     this.metrics = new Map()

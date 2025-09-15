@@ -4,7 +4,7 @@ import { SimpleAccountStore } from '../account/account-store'
 import { FatigueDashboardPresentation } from './FatigueDashboardPresentation'
 import { MetaAccount } from '@/types'
 import { ThreeLayerCache } from '../core/three-layer-cache'
-import { api } from '../../../../convex/_generated/api'
+// import { api } from '../../../../convex/_generated/api' - 未使用
 
 // 日付範囲の型定義（シンプル化）
 export type DateRangeFilter = 'last_7d' | 'last_14d' | 'last_30d' | 'last_month' | 'last_90d' | 'all'
@@ -92,7 +92,7 @@ export function FatigueDashboardContainer() {
         }
 
         // 既存データを保持（差分計算用）
-        const oldData = data || []
+        // const oldData = data || [] - 未使用
 
         // キャッシュキーの生成
         const accountIdForKey = selectedAccountId.startsWith('act_')

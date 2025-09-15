@@ -176,7 +176,11 @@ export class SecureTokenManager {
   
   /**
    * トークンの暗号化（将来実装用）
+   * @param token トークン文字列
+   * @returns 暗号化されたデータ
+   * @private
    */
+  // @ts-ignore TS6133 - 将来実装用メソッド
   private async encryptToken(token: string): Promise<ArrayBuffer> {
     if (!this.encryptionKey) {
       throw new Error('Encryption key not initialized')
@@ -205,7 +209,11 @@ export class SecureTokenManager {
   
   /**
    * トークンの復号化（将来実装用）
+   * @param encryptedData 暗号化されたデータ
+   * @returns 復号化されたトークン
+   * @private
    */
+  // @ts-ignore TS6133 - 将来実装用メソッド
   private async decryptToken(encryptedData: ArrayBuffer): Promise<string> {
     if (!this.encryptionKey) {
       throw new Error('Encryption key not initialized')

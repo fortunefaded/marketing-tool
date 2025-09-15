@@ -3,7 +3,7 @@
  * パフォーマンス指標に基づくフィルタリングコンポーネント
  */
 
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { getSafeMetrics, normalizeDataArray } from '../utils/safe-data-access'
 
 interface PerformanceFilterProps {

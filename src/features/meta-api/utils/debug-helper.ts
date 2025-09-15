@@ -13,8 +13,8 @@ export interface DebugLog {
  */
 export function enableDebugMode() {
   if (typeof window !== 'undefined') {
-    (window as any).DEBUG_FATIGUE = true
-    (window as any).DEBUG_FATIGUE_LOGS = []
+    ;(window as any).DEBUG_FATIGUE = true
+    ;(window as any).DEBUG_FATIGUE_LOGS = []
     console.log('🔧 Debug mode enabled. Check window.DEBUG_FATIGUE_LOGS for details.')
   }
 }
@@ -24,7 +24,7 @@ export function enableDebugMode() {
  */
 export function disableDebugMode() {
   if (typeof window !== 'undefined') {
-    (window as any).DEBUG_FATIGUE = false
+    ;(window as any).DEBUG_FATIGUE = false
     console.log('🔧 Debug mode disabled.')
   }
 }
@@ -44,7 +44,7 @@ export function getDebugLogs(): DebugLog[] {
  */
 export function clearDebugLogs() {
   if (typeof window !== 'undefined') {
-    (window as any).DEBUG_FATIGUE_LOGS = []
+    ;(window as any).DEBUG_FATIGUE_LOGS = []
     console.log('🔧 Debug logs cleared.')
   }
 }
@@ -58,24 +58,24 @@ export function showDebugSummary() {
     totalLogs: logs.length,
     byType: {} as Record<string, number>,
     lastLog: logs[logs.length - 1] || null,
-    firstLog: logs[0] || null
+    firstLog: logs[0] || null,
   }
-  
-  logs.forEach(log => {
+
+  logs.forEach((log) => {
     summary.byType[log.type] = (summary.byType[log.type] || 0) + 1
   })
-  
+
   console.log('📊 Debug Summary:', summary)
   return summary
 }
 
 // ブラウザのコンソールから簡単に使えるように、グローバルに公開
 if (typeof window !== 'undefined') {
-  (window as any).FatigueDebug = {
+  ;(window as any).FatigueDebug = {
     enable: enableDebugMode,
     disable: disableDebugMode,
     getLogs: getDebugLogs,
     clearLogs: clearDebugLogs,
-    summary: showDebugSummary
+    summary: showDebugSummary,
   }
 }

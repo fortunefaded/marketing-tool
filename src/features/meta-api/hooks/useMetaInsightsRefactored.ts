@@ -63,7 +63,7 @@ export function useMetaInsightsRefactored({
   // 依存関係の初期化
   const convex = useConvex()
   const dateRangeCache = useDateRangeCache()
-  const { validateDateRange, suggestOptimalDateRange } = useDateRangeValidator()
+  const { validateDateRange, suggestOptimalDateRange: _suggestOptimalDateRange } = useDateRangeValidator()
 
   // 日付範囲の正規化と検証
   const normalizedDatePreset = useMemo(() => {

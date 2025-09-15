@@ -276,14 +276,15 @@ export class BaselineCalculationService {
     }
   }
 
-  private adjustForDeliveryPauses(
-    data: MetaAdInsights[], 
-    _pauseInfo: { pauseDays: number }
-  ): MetaAdInsights[] {
-    // For now, just return the data as-is
-    // In a more sophisticated implementation, we might weight recent data more heavily
-    return data
-  }
+  // private adjustForDeliveryPauses - 未使用のためコメント化
+  // private adjustForDeliveryPauses(
+  //   data: MetaAdInsights[], 
+  //   _pauseInfo: { pauseDays: number }
+  // ): MetaAdInsights[] {
+  //   // For now, just return the data as-is
+  //   // In a more sophisticated implementation, we might weight recent data more heavily
+  //   return data
+  // }
 
   private calculateAverage(values: number[]): number {
     if (values.length === 0) return 0

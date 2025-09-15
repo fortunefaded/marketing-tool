@@ -111,7 +111,7 @@ async function executePaginationLoop(
   initialUrl: string,
   config: ReturnType<typeof buildPaginationConfig>,
   state: ReturnType<typeof initializePaginationState>,
-  params: FetchAdInsightsParams
+  _params: FetchAdInsightsParams
 ): Promise<void> {
   let nextUrl: string | undefined = initialUrl
 
@@ -285,7 +285,7 @@ function buildSuccessResult(
  */
 function handlePaginationError(
   error: unknown,
-  state: ReturnType<typeof initializePaginationState>,
+  _state: ReturnType<typeof initializePaginationState>,
   config: ReturnType<typeof buildPaginationConfig>
 ): never {
   const apiError: ApiClientError = {

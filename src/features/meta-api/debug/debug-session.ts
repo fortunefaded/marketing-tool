@@ -218,7 +218,7 @@ export class DebugSession implements DebugSessionInterface {
       const debugData = this.exportDebugData()
       
       // Stringify with circular reference handling
-      const jsonString = JSON.stringify(debugData, (key, value) => {
+      const jsonString = JSON.stringify(debugData, (_key, value) => {
         // Handle circular references
         const seen = new WeakSet()
         return (function stringify(obj: any): any {

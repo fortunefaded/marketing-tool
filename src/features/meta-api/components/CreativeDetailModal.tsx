@@ -7,9 +7,14 @@ import { MiniFrequencyChart } from './MiniFrequencyChart'
 import { MiniMetricChart, MetricType } from './MiniMetricChart'
 import { FatigueDonutChart } from './FatigueDonutChart'
 import { calculateAllFatigueScores, FATIGUE_FORMULAS } from '../utils/fatigueCalculations'
-import { InstagramMetricsPanel } from './InstagramMetricsPanel'
-import { getSafeMetrics } from '../utils/safe-data-access'
-import { MultiLineChart } from './MultiLineChart'
+import { extractInstagramMetrics, InstagramMetricsDisplay } from './InstagramMetricsExtractor'
+import {
+  extractDetailedMetrics,
+  calculateReliabilityScore,
+} from '../utils/detailed-metrics-extractor'
+import { InsightFetcher } from '../utils/insight-fetcher'
+import { ComprehensiveDataTabs } from './ComprehensiveDataTabs'
+import { ActionMetricsDisplay } from './ActionMetricsExtractor'
 
 interface CreativeDetailModalProps {
   isOpen: boolean
@@ -18,7 +23,8 @@ interface CreativeDetailModalProps {
   insight: any
   accessToken?: string // アクセストークン
   accountId?: string // アカウントID
-  dateRange?: { // 日付範囲を追加
+  dateRange?: {
+    // 日付範囲を追加
     start: Date | string
     end: Date | string
   }
@@ -36,6 +42,9 @@ interface MetricRowProps {
   metricType?: MetricType
   chartType?: 'line' | 'area'
   dailyData?: Array<any> // 日別データ配列
+  ranking?: 'above_average' | 'average' | 'below_average' | 'unknown'
+  tooltip?: string
+  dataSource?: 'api' | 'calculated' | 'estimated'
 }
 
 function MetricRow({
@@ -50,6 +59,9 @@ function MetricRow({
   metricType,
   chartType,
   dailyData,
+  ranking,
+  tooltip: _tooltip,
+  dataSource: _dataSource,
 }: MetricRowProps) {
   const formatValue = (val: number | string) => {
     if (typeof val === 'number') {
@@ -96,6 +108,29 @@ function MetricRow({
               </span>
               {thresholdStatus === 'danger' && <p className="text-xs text-red-500">危険水準</p>}
               {thresholdStatus === 'warning' && <p className="text-xs text-yellow-600">注意水準</p>}
+
+              {/* ランキングバッジの表示 */}
+              {ranking && (
+                <span
+                  className={`ml-2 px-2 py-1 text-xs rounded ${
+                    ranking === 'above_average'
+                      ? 'bg-green-100 text-green-800'
+                      : ranking === 'average'
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : ranking === 'below_average'
+                          ? 'bg-red-100 text-red-800'
+                          : 'bg-gray-100 text-gray-600'
+                  }`}
+                >
+                  {ranking === 'above_average'
+                    ? '↑ 平均以上'
+                    : ranking === 'average'
+                      ? '→ 平均'
+                      : ranking === 'below_average'
+                        ? '↓ 平均以下'
+                        : 'データ不足'}
+                </span>
+              )}
             </>
           )}
           {showChart && typeof value === 'number' && (
@@ -132,42 +167,34 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
     hasDateRange: 'dateRange' in props,
     dateRangeValue: props.dateRange,
     dateRangeStringified: JSON.stringify(props.dateRange),
-    propsStringified: JSON.stringify(props)
+    propsStringified: JSON.stringify(props),
   })
-  
-  const {
-    isOpen,
-    onClose,
-    item,
-    insight,
-    accessToken,
-    accountId,
-    dateRange,
-  } = props
-  
+
+  const { isOpen, onClose, item, insight, accessToken, accountId, dateRange } = props
+
   // デストラクチャリング後も確認
   console.log('📅 After destructuring:', {
     dateRange,
     dateRangeType: typeof dateRange,
-    dateRangeValue: dateRange ? JSON.stringify(dateRange) : 'undefined/null'
+    dateRangeValue: dateRange ? JSON.stringify(dateRange) : 'undefined/null',
   })
-  
+
   // デフォルト値を設定（dateRangeがundefinedの場合の対策）
   const effectiveDateRange = useMemo(() => {
     if (dateRange && dateRange.start && dateRange.end) {
       console.log('📅 Using provided dateRange:', dateRange)
       return dateRange
     }
-    
+
     // デフォルト値：過去30日間
     const defaultRange = {
       start: new Date(new Date().getTime() - 30 * 24 * 60 * 60 * 1000),
-      end: new Date()
+      end: new Date(),
     }
     console.log('📅 Using default dateRange (last 30 days):', defaultRange)
     return defaultRange
   }, [dateRange])
-  
+
   // デバッグ：受け取ったpropsと実効値を確認
   console.log('📅 CreativeDetailModal - Received props:', {
     dateRange,
@@ -176,25 +203,35 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
     dateRangeType: typeof dateRange,
     dateRangeValue: dateRange ? JSON.stringify(dateRange) : 'null/undefined',
   })
-  
-  const [activeTab, setActiveTab] = useState<'metrics' | 'platform' | 'daily' | 'raw'>('metrics')
+
+  const [activeTab, setActiveTab] = useState<'metrics' | 'platform' | 'daily' | 'raw' | 'debug'>(
+    'metrics'
+  )
+  const [showDebugMode, setShowDebugMode] = useState(false)
   const [dailyData, setDailyData] = useState<any[]>([]) // 日別データ
   const [isLoadingDaily, setIsLoadingDaily] = useState(false) // ローディング状態
   const [dailyDataError, setDailyDataError] = useState<string | null>(null) // エラー状態
 
+  // 統一されたデータソース（最新の日別データまたはinsight）
+  const [currentInsight, setCurrentInsight] = useState<any>(null)
+
+  // クリエイティブ情報のstate
+  const [creativeInfo, setCreativeInfo] = useState<any>(null)
+  const [isLoadingCreative, setIsLoadingCreative] = useState(false)
+
   // 日別データがあるかチェック（既存データまたは取得したデータ）
   const hasDailyData = (item.dailyData && item.dailyData.length > 0) || dailyData.length > 0
 
-  // 日別データを取得する関数（useCallbackでラップ）
+  // 日別データを取得する関数（新しいInsightFetcherを使用）
   const fetchDailyData = useCallback(async () => {
     setIsLoadingDaily(true)
     setDailyDataError(null)
-    
+
     console.log('🎯 CreativeDetailModal - fetchDailyData called with:', {
       effectiveDateRange,
       adId: item.adId,
       accessToken: !!accessToken,
-      accountId
+      accountId,
     })
 
     try {
@@ -205,13 +242,12 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
         return
       }
 
-      // 日別データ取得のAPIエンドポイント
-      // accountIdがact_で始まらない場合は追加
-      const formattedAccountId = accountId.startsWith('act_') ? accountId : `act_${accountId}`
-      const url = `https://graph.facebook.com/v23.0/${formattedAccountId}/insights`
-
       // 日付範囲の処理（effectiveDateRangeを使用）
-      let dateParams: any = {}
+      let dateRange = {
+        since: '',
+        until: '',
+      }
+
       if (effectiveDateRange && effectiveDateRange.start && effectiveDateRange.end) {
         // 日付をYYYY-MM-DD形式にフォーマット（ローカルタイムゾーン）
         const formatDate = (date: Date | string) => {
@@ -221,30 +257,35 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
           const day = String(d.getDate()).padStart(2, '0')
           return `${year}-${month}-${day}`
         }
-        
-        dateParams.time_range = JSON.stringify({
-          since: formatDate(effectiveDateRange.start),
-          until: formatDate(effectiveDateRange.end),
-        })
-        
+
+        dateRange.since = formatDate(effectiveDateRange.start)
+        dateRange.until = formatDate(effectiveDateRange.end)
+
         console.log('🔍 API call with date range:', {
-          since: formatDate(effectiveDateRange.start),
-          until: formatDate(effectiveDateRange.end),
-          startDate: effectiveDateRange.start.toLocaleDateString('ja-JP'),
-          endDate: effectiveDateRange.end.toLocaleDateString('ja-JP'),
-          raw: effectiveDateRange
+          since: dateRange.since,
+          until: dateRange.until,
+          startDate: new Date(effectiveDateRange.start).toLocaleDateString('ja-JP'),
+          endDate: new Date(effectiveDateRange.end).toLocaleDateString('ja-JP'),
+          raw: effectiveDateRange,
         })
       } else {
-        // デフォルトは過去30日間（これは起こらないはず）
-        dateParams.date_preset = 'last_30d'
-        console.log('📅 Using default date preset: last_30d (no effectiveDateRange provided)')
+        // デフォルトは過去30日間
+        const end = new Date()
+        const start = new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000)
+        dateRange.since = start.toISOString().split('T')[0]
+        dateRange.until = end.toISOString().split('T')[0]
+        console.log('📅 Using default date range: last 30 days')
       }
 
-      const params = new URLSearchParams({
-        access_token: accessToken,
-        time_increment: '1', // 日別データを取得
+      // InsightFetcherを使用して広告レベルのデータを取得
+      const insightResponse = await InsightFetcher.fetchAdInsights({
+        adId: item.adId,
+        accessToken,
+        dateRange,
+        timeIncrement: true,
+        // 品質指標も含めて全フィールドを要求（失敗したものは代替データで補完）
         fields: [
-          // === 基本フィールド（必須） ===
+          // 基本メトリクス
           'ad_id',
           'ad_name',
           'adset_id',
@@ -259,151 +300,163 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
           'ctr',
           'cpc',
           'cpm',
-          
-          // === 品質評価指標（API v23.0） ===
+
+          // 品質指標（取得できない場合は代替データで補完）
           'quality_ranking',
           'engagement_rate_ranking',
           'conversion_rate_ranking',
-          
-          // === コンバージョン関連（検証済み） ===
-          'conversions',
-          'conversion_values',
-          'cost_per_conversion',
-          // 'purchase', // 削除（#100エラー回避）
-          // 'purchases', // 削除（#100エラー回避）
-          // 'omni_purchase', // 削除（#100エラー回避）
-          // 'website_purchases', // 削除（#100エラー回避）
-          
-          // === 動画メトリクス（API v23.0） ===
-          'video_play_actions',
-          'video_p25_watched_actions',
-          'video_p50_watched_actions',
-          'video_p75_watched_actions',
-          // 'video_p95_watched_actions', // 削除（存在しない可能性）
-          'video_p100_watched_actions',
-          'video_thruplay_watched_actions',
-          'video_avg_time_watched_actions',
-          'video_continuous_2_sec_watched_actions',
-          'video_15_sec_watched_actions',
-          
-          // === リンククリック詳細（検証済み） ===
+
+          // リンククリック詳細
           'inline_link_clicks',
           'inline_link_click_ctr',
           'unique_inline_link_clicks',
-          // 'unique_inline_link_click_ctr', // 削除（#100エラー回避）
           'outbound_clicks',
-          // 'outbound_clicks_ctr', // 削除（#100エラー回避）
-          // 'unique_outbound_clicks', // 削除（#100エラー回避）
-          // 'unique_outbound_clicks_ctr', // 削除（#100エラー回避）
-          // 'link_clicks', // 削除（#100エラー回避）
-          // 'unique_link_clicks', // 削除（#100エラー回避）
-          'website_ctr',
-          
-          // === ROAS関連 ===
-          'purchase_roas',
-          'website_purchase_roas',
-          // 'mobile_app_purchase_roas', // 削除（#100エラー回避）
-          
-          // === アクション関連の詳細 ===
+
+          // エンゲージメント・アクション
           'actions',
           'action_values',
           'unique_actions',
           'cost_per_action_type',
-          'cost_per_unique_action_type',
-          'cost_per_thruplay',
-          'cost_per_unique_click',
-          
-          // === その他の有用なフィールド ===
+
+          // 動画メトリクス
+          'video_play_actions',
+          'video_p25_watched_actions',
+          'video_p50_watched_actions',
+          'video_p75_watched_actions',
+          'video_p100_watched_actions',
+
+          // コンバージョン・ROAS
+          'conversions',
+          'conversion_values',
+          'cost_per_conversion',
+          'purchase_roas',
+          'website_purchase_roas',
+
+          // その他
           'unique_clicks',
-          'social_spend',
           'unique_ctr',
-          // 'objective', // 削除（insightsエンドポイントでは使用不可）
-          // 'optimization_goal', // 削除（insightsエンドポイントでは使用不可）
-          // 'buying_type', // 削除（insightsエンドポイントでは使用不可）
-          // 'bid_strategy', // 削除（insightsエンドポイントでは使用不可）
-          // 'daily_budget', // 削除（insightsエンドポイントでは使用不可）
-          // 'lifetime_budget', // 削除（insightsエンドポイントでは使用不可）
+          'website_ctr',
           'account_currency',
           'account_name',
-          // 'created_time', // 削除（insightsエンドポイントでは使用不可）
-          // 'updated_time', // 削除（insightsエンドポイントでは使用不可）
-          // 'status', // 削除（insightsエンドポイントでは使用不可）
-          // 'effective_status', // 削除（insightsエンドポイントでは使用不可）
           'date_start',
-          'date_stop'
-        ].join(','),
-        filtering: `[{"field":"ad.id","operator":"IN","value":["${item.adId}"]}]`,
-        limit: '100',
+          'date_stop',
+        ],
       })
-      
-      // 日付範囲パラメータを追加
-      if (dateParams.time_range) {
-        params.append('time_range', dateParams.time_range)
-      } else if (dateParams.date_preset) {
-        params.append('date_preset', dateParams.date_preset)
+
+      if (!insightResponse.success || !insightResponse.data) {
+        // APIエラーの詳細分析
+        if (insightResponse.error) {
+          const errorMessage = InsightFetcher.analyzeApiError(insightResponse.error)
+          console.error('❌ Meta API エラー詳細:', errorMessage)
+          throw new Error(errorMessage)
+        }
+        throw new Error('日別データの取得に失敗しました')
       }
 
-      const response = await fetch(`${url}?${params}`)
-      const data = await response.json()
+      // APIレスポンスの詳細分析
+      console.log('✅ 広告レベルAPI成功:', {
+        取得データ日数: insightResponse.data.length,
+        要求フィールド数: insightResponse.requestedFields?.length || 0,
+        取得フィールド数: insightResponse.returnedFields?.length || 0,
+        欠損フィールド数: insightResponse.missingFields?.length || 0,
+      })
 
-      if (data.error) {
-        throw new Error(data.error.message || '日別データの取得に失敗しました')
+      if (insightResponse.missingFields && insightResponse.missingFields.length > 0) {
+        console.warn('⚠️ 取得できなかったフィールド:', insightResponse.missingFields)
+
+        // 品質指標の状態を詳細分析
+        const qualityFields = [
+          'quality_ranking',
+          'engagement_rate_ranking',
+          'conversion_rate_ranking',
+        ]
+        const missingQualityFields = insightResponse.missingFields.filter((f) =>
+          qualityFields.includes(f)
+        )
+
+        if (missingQualityFields.length > 0 && insightResponse.data.length > 0) {
+          const firstResult = insightResponse.data[0]
+          const impressions = parseInt(firstResult.impressions || '0')
+
+          for (const field of missingQualityFields) {
+            const diagnosis = InsightFetcher.diagnoseFieldUnavailability(field, impressions)
+            console.log(`📊 ${field}: ${diagnosis}`)
+          }
+        }
+      } else {
+        console.log('🎉 すべてのフィールドが正常に取得されました')
       }
 
-      // APIレスポンスのデバッグログ
-      if (data.data && data.data.length > 0) {
-        console.log('📊 取得したフィールド一覧:', Object.keys(data.data[0]))
-        console.log('🔍 品質評価:', {
-          quality: data.data[0].quality_ranking,
-          engagement: data.data[0].engagement_rate_ranking,
-          conversion: data.data[0].conversion_rate_ranking
+      // 最初の日のデータで詳細分析
+      if (insightResponse.data.length > 0) {
+        const firstResult = insightResponse.data[0]
+
+        // 詳細メトリクスを抽出（代替データを含む）
+        const detailedMetrics = extractDetailedMetrics(firstResult)
+        const reliabilityScore = calculateReliabilityScore(detailedMetrics)
+
+        console.log('🔍 詳細メトリクス抽出結果:', {
+          信頼性スコア: `${reliabilityScore.score}/100`,
+          直接データ: reliabilityScore.breakdown.directData,
+          計算データ: reliabilityScore.breakdown.calculatedData,
+          欠失データ: reliabilityScore.breakdown.missingData,
         })
-        console.log('🎬 動画メトリクス:', {
-          play: data.data[0].video_play_actions,
-          p25: data.data[0].video_p25_watched_actions,
-          p50: data.data[0].video_p50_watched_actions,
-          p75: data.data[0].video_p75_watched_actions,
-          p100: data.data[0].video_p100_watched_actions
+
+        // 取得できた代替データを表示
+        const availableAlternatives = Object.entries(detailedMetrics)
+          .filter(([_, metric]) => metric.source === 'actions' || metric.source === 'calculated')
+          .map(([field, metric]) => `${field}: ${metric.value} (${metric.source})`)
+
+        if (availableAlternatives.length > 0) {
+          console.log('✨ 代替データで補完できたメトリクス:', availableAlternatives)
+        }
+
+        // 品質指標の取得確認
+        console.log('📊 品質指標:', {
+          quality: firstResult.quality_ranking || 'N/A - 500インプレッション以上で利用可能',
+          engagement: firstResult.engagement_rate_ranking || 'N/A',
+          conversion: firstResult.conversion_rate_ranking || 'N/A',
         })
-        console.log('🔗 リンククリック:', {
-          inline: data.data[0].inline_link_clicks,
-          inline_ctr: data.data[0].inline_link_click_ctr,
-          outbound: data.data[0].outbound_clicks
-        })
-        console.log('💰 ROAS:', {
-          purchase: data.data[0].purchase_roas,
-          website: data.data[0].website_purchase_roas
-        })
+
+        // Instagram関連メトリクスの抽出結果をログ出力
+        const instagramMetrics = extractInstagramMetrics(firstResult)
+        console.log('📸 Instagram関連メトリクス:', instagramMetrics)
+
+        if (instagramMetrics && Object.keys(instagramMetrics.actions).length > 0) {
+          console.log('✅ Instagramアクション検出:', Object.keys(instagramMetrics.actions))
+        }
       }
 
       // 日別データをフォーマット
-      const formattedDailyData = (data.data || []).map((day: any) => {
+      const formattedDailyData = (insightResponse.data || []).map((day: any) => {
         // コンバージョンを取得（aggregation.tsと同じロジックを使用）
         let conversions = 0
-        
+
         // 1. actionsフィールドから優先順位に従って取得
         if (day.actions && Array.isArray(day.actions)) {
           // 最優先: Facebook Pixelによる購入追跡
           const fbPixelPurchase = day.actions.find(
             (action: any) => action.action_type === 'offsite_conversion.fb_pixel_purchase'
           )
-          
+
           if (fbPixelPurchase) {
             // 1d_click値を優先、なければvalue値を使用
             conversions = parseInt(fbPixelPurchase['1d_click'] || fbPixelPurchase.value || '0')
           }
           // 次の優先: 通常のpurchaseアクション
           else {
-            const purchaseAction = day.actions.find((action: any) => action.action_type === 'purchase')
+            const purchaseAction = day.actions.find(
+              (action: any) => action.action_type === 'purchase'
+            )
             if (purchaseAction) {
               conversions = parseInt(purchaseAction['1d_click'] || purchaseAction.value || '0')
             }
           }
         }
-        
+
         // 2. conversionsフィールドは使用しない（不正確な値の可能性があるため）
         // Note: conversionsフィールドは合計値が含まれている可能性があるため使用しない
-        
+
         return {
           // 基本メトリクス
           date: day.date_start,
@@ -415,32 +468,32 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
           ctr: parseFloat(day.ctr || '0'),
           cpc: parseFloat(day.cpc || '0'),
           cpm: parseFloat(day.cpm || '0'),
-          
+
           // 品質評価（新規追加）
           quality_ranking: day.quality_ranking || 'unknown',
           engagement_rate_ranking: day.engagement_rate_ranking || 'unknown',
           conversion_rate_ranking: day.conversion_rate_ranking || 'unknown',
-          
+
           // コンバージョン（新規追加）
           conversions,
           conversion_values: day.conversion_values || 0,
-          
+
           // リンククリック（新規追加）
           inline_link_clicks: day.inline_link_clicks || 0,
           inline_link_click_ctr: parseFloat(day.inline_link_click_ctr || '0'),
           outbound_clicks: day.outbound_clicks?.[0]?.value || 0,
-          
+
           // 動画メトリクス（新規追加）
           video_play_actions: day.video_play_actions?.[0]?.value || null,
           video_p25_watched: day.video_p25_watched_actions?.[0]?.value || null,
           video_p50_watched: day.video_p50_watched_actions?.[0]?.value || null,
           video_p75_watched: day.video_p75_watched_actions?.[0]?.value || null,
           video_p100_watched: day.video_p100_watched_actions?.[0]?.value || null,
-          
+
           // ROAS（新規追加）
           purchase_roas: day.purchase_roas?.[0]?.value || null,
           website_purchase_roas: day.website_purchase_roas?.[0]?.value || null,
-          
+
           // 疲労度スコア
           fatigue_score: calculateFatigueScore(day),
         }
@@ -456,13 +509,147 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
     }
   }, [effectiveDateRange, item.adId, accessToken, accountId]) // 依存配列に含める
 
-  // モーダルが開かれた時に日別データを取得
+  // クリエイティブ情報を取得する関数
+  const fetchCreativeInfo = useCallback(async () => {
+    if (!accessToken || !item.adId) {
+      console.warn('クリエイティブ取得に必要な情報がありません')
+      return
+    }
+
+    setIsLoadingCreative(true)
+    console.log('🎨 Fetching creative info for ad:', item.adId)
+
+    try {
+      const apiUrl = `https://graph.facebook.com/v23.0/${item.adId}`
+
+      // fieldsを修正（権限エラー回避のためpage_idを追加、preview_shareable_linkも追加）
+      const params = new URLSearchParams({
+        access_token: accessToken,
+        fields:
+          'preview_shareable_link,creative{id,name,title,body,image_url,video_id,thumbnail_url,object_type,link_url,effective_object_story_id,object_story_spec{page_id,video_data{video_id,image_url,title,call_to_action},link_data{link,message,picture,call_to_action}}}',
+      })
+
+      const response = await fetch(`${apiUrl}?${params.toString()}`)
+      const data = await response.json()
+
+      if (data.error) {
+        console.error('Creative fetch error:', data.error)
+        return
+      }
+
+      if (data.creative) {
+        // 動画IDを様々な場所から探す
+        let extractedVideoId = data.creative.video_id
+        let videoUrl = null
+        let actualObjectType = data.creative.object_type
+
+        // object_story_specから動画情報を取得
+        if (data.creative.object_story_spec) {
+          // video_dataがある場合
+          if (data.creative.object_story_spec.video_data) {
+            extractedVideoId =
+              data.creative.object_story_spec.video_data.video_id || extractedVideoId
+            // STATUSでも動画があればVIDEO扱いにする
+            if (extractedVideoId) {
+              actualObjectType = 'VIDEO'
+            }
+          }
+
+          // page_idとvideo_idから動画URLを構築
+          if (extractedVideoId && data.creative.object_story_spec.page_id) {
+            // Facebook動画の標準URLフォーマット
+            videoUrl = `https://www.facebook.com/${data.creative.object_story_spec.page_id}/videos/${extractedVideoId}/`
+            console.log('📹 Constructed video URL:', videoUrl)
+          }
+        }
+
+        // effective_object_story_idがある場合でも、権限エラーを避けるため追加取得はしない
+        if (data.creative.effective_object_story_id && !extractedVideoId) {
+          console.log(
+            '⚠️ effective_object_story_id exists but skipping due to permissions:',
+            data.creative.effective_object_story_id
+          )
+          // IDから動画IDを推測（最後の数字部分）
+          const match = data.creative.effective_object_story_id.match(/_(\d+)$/)
+          if (match) {
+            extractedVideoId = match[1]
+            actualObjectType = 'VIDEO'
+            console.log('📹 Extracted video ID from story ID:', extractedVideoId)
+          }
+        }
+
+        // クリエイティブ情報を保存（object_typeを上書き）
+        const enrichedCreative = {
+          ...data.creative,
+          video_id: extractedVideoId,
+          object_type: actualObjectType,
+          preview_shareable_link: data.preview_shareable_link, // プレビューリンクを追加
+          // デバッグ用の元のタイプも保存
+          original_object_type: data.creative.object_type,
+        }
+
+        // 詳細なAPIレスポンスデバッグ
+        console.log('📡 API Response Debug:', {
+          hasPreviewLink: !!data.preview_shareable_link,
+          previewLink: data.preview_shareable_link,
+          previewLinkType: typeof data.preview_shareable_link,
+          hasCreative: !!data.creative,
+          creativeData: data.creative,
+          rawResponse: data,
+        })
+
+        console.log('✅ Creative info enriched:', {
+          original_type: data.creative.object_type,
+          enriched_type: actualObjectType,
+          video_id: extractedVideoId,
+          thumbnail_url: data.creative.thumbnail_url,
+          preview_shareable_link: data.preview_shareable_link,
+          has_video: !!extractedVideoId,
+        })
+
+        setCreativeInfo(enrichedCreative)
+      }
+    } catch (error) {
+      console.error('Failed to fetch creative info:', error)
+    } finally {
+      setIsLoadingCreative(false)
+    }
+  }, [accessToken, item.adId])
+
+  // モーダルが開かれた時に日別データとクリエイティブ情報を取得
   useEffect(() => {
     if (isOpen && item.adId && accessToken && accountId) {
-      console.log('📍 useEffect calling fetchDailyData with effectiveDateRange:', effectiveDateRange)
+      console.log(
+        '📍 useEffect calling fetchDailyData with effectiveDateRange:',
+        effectiveDateRange
+      )
       fetchDailyData()
+      fetchCreativeInfo()
     }
-  }, [isOpen, fetchDailyData]) // fetchDailyDataを依存配列に
+  }, [isOpen, fetchDailyData, fetchCreativeInfo]) // fetchDailyData, fetchCreativeInfoを依存配列に
+
+  // dailyDataが更新されたらcurrentInsightを更新
+  useEffect(() => {
+    if (dailyData.length > 0) {
+      // 最新のデータ（最後の日のデータ）を使用
+      const latestData = dailyData[dailyData.length - 1]
+      setCurrentInsight(latestData)
+      console.log('📊 currentInsight updated from dailyData:', {
+        quality_ranking: latestData.quality_ranking,
+        engagement_rate_ranking: latestData.engagement_rate_ranking,
+        conversion_rate_ranking: latestData.conversion_rate_ranking,
+        actions: latestData.actions,
+        hasActions: !!latestData.actions && latestData.actions.length > 0,
+      })
+    } else if (insight) {
+      // dailyDataがない場合はinsightを使用
+      setCurrentInsight(insight)
+      console.log('📊 currentInsight updated from insight prop:', {
+        quality_ranking: insight.quality_ranking,
+        hasActions: !!insight.actions,
+      })
+    }
+  }, [dailyData, insight])
 
   // 疲労度スコアを計算する関数
   const calculateFatigueScore = (day: any) => {
@@ -530,7 +717,7 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
   }, [insight])
 
   // プラットフォーム別データを処理（レガシー）
-  const platformData = React.useMemo(() => {
+  React.useMemo(() => {
     console.log('[CreativeDetailModal] Processing platform data:', { item, insight })
 
     // insightがない場合はサンプルデータを返す
@@ -612,13 +799,6 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
     const increase = ((cpm - baseline) / baseline) * 100
     if (increase >= 20) return 'danger'
     if (increase >= 10) return 'warning'
-    return 'safe'
-  }
-
-  const getEngagementStatus = (engagementRate: number, isReel: boolean = false) => {
-    const benchmark = isReel ? 1.23 : 0.7
-    if (engagementRate < benchmark * 0.7) return 'danger'
-    if (engagementRate < benchmark * 0.9) return 'warning'
     return 'safe'
   }
 
@@ -722,6 +902,29 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                       </svg>
                       生データ（全フィールド）
                     </button>
+                    <button
+                      onClick={() => setActiveTab('debug')}
+                      className={`${
+                        activeTab === 'debug'
+                          ? 'border-indigo-500 text-indigo-600'
+                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      } whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2`}
+                    >
+                      <svg
+                        className="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                        />
+                      </svg>
+                      API完全データ
+                    </button>
                   </nav>
                 </div>
 
@@ -782,7 +985,9 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                         </p>
                         {effectiveDateRange && (
                           <p className="text-xs text-gray-500 mt-1">
-                            指定期間: {effectiveDateRange.start.toLocaleDateString('ja-JP')} 〜 {effectiveDateRange.end.toLocaleDateString('ja-JP')}
+                            指定期間:{' '}
+                            {new Date(effectiveDateRange.start).toLocaleDateString('ja-JP')} 〜{' '}
+                            {new Date(effectiveDateRange.end).toLocaleDateString('ja-JP')}
                           </p>
                         )}
                       </div>
@@ -827,7 +1032,10 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                             </td>
                             <td className="px-3 py-4 whitespace-nowrap text-sm text-right text-gray-900">
                               {(dailyData.length > 0 ? dailyData : item.dailyData || [])
-                                .reduce((sum: number, day: any) => sum + Number(day.impressions || 0), 0)
+                                .reduce(
+                                  (sum: number, day: any) => sum + Number(day.impressions || 0),
+                                  0
+                                )
                                 .toLocaleString()}
                             </td>
                             <td className="px-3 py-4 whitespace-nowrap text-sm text-right text-gray-900">
@@ -838,41 +1046,69 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                             <td className="px-3 py-4 whitespace-nowrap text-sm text-right text-gray-900">
                               {(() => {
                                 const data = dailyData.length > 0 ? dailyData : item.dailyData || []
-                                const totalClicks = data.reduce((sum: number, day: any) => sum + Number(day.clicks || 0), 0)
-                                const totalImpressions = data.reduce((sum: number, day: any) => sum + Number(day.impressions || 0), 0)
-                                return totalImpressions > 0 ? ((totalClicks / totalImpressions) * 100).toFixed(2) : '0.00'
-                              })()}%
+                                const totalClicks = data.reduce(
+                                  (sum: number, day: any) => sum + Number(day.clicks || 0),
+                                  0
+                                )
+                                const totalImpressions = data.reduce(
+                                  (sum: number, day: any) => sum + Number(day.impressions || 0),
+                                  0
+                                )
+                                return totalImpressions > 0
+                                  ? ((totalClicks / totalImpressions) * 100).toFixed(2)
+                                  : '0.00'
+                              })()}
+                              %
                             </td>
                             <td className="px-3 py-4 whitespace-nowrap text-sm text-right text-gray-900">
-                              ¥{(() => {
+                              ¥
+                              {(() => {
                                 const data = dailyData.length > 0 ? dailyData : item.dailyData || []
-                                const totalSpend = data.reduce((sum: number, day: any) => sum + Number(day.spend || 0), 0)
-                                const totalImpressions = data.reduce((sum: number, day: any) => sum + Number(day.impressions || 0), 0)
-                                return totalImpressions > 0 ? Math.round((totalSpend / totalImpressions) * 1000) : 0
+                                const totalSpend = data.reduce(
+                                  (sum: number, day: any) => sum + Number(day.spend || 0),
+                                  0
+                                )
+                                const totalImpressions = data.reduce(
+                                  (sum: number, day: any) => sum + Number(day.impressions || 0),
+                                  0
+                                )
+                                return totalImpressions > 0
+                                  ? Math.round((totalSpend / totalImpressions) * 1000)
+                                  : 0
                               })()}
                             </td>
                             <td className="px-3 py-4 whitespace-nowrap text-sm text-right text-gray-900">
-                              ¥{(() => {
+                              ¥
+                              {(() => {
                                 const data = dailyData.length > 0 ? dailyData : item.dailyData || []
-                                const totalSpend = data.reduce((sum: number, day: any) => sum + Number(day.spend || 0), 0)
-                                const totalClicks = data.reduce((sum: number, day: any) => sum + Number(day.clicks || 0), 0)
+                                const totalSpend = data.reduce(
+                                  (sum: number, day: any) => sum + Number(day.spend || 0),
+                                  0
+                                )
+                                const totalClicks = data.reduce(
+                                  (sum: number, day: any) => sum + Number(day.clicks || 0),
+                                  0
+                                )
                                 return totalClicks > 0 ? Math.round(totalSpend / totalClicks) : 0
                               })()}
                             </td>
                             <td className="px-3 py-4 whitespace-nowrap text-sm text-right text-gray-900">
-                              ¥{(dailyData.length > 0 ? dailyData : item.dailyData || [])
+                              ¥
+                              {(dailyData.length > 0 ? dailyData : item.dailyData || [])
                                 .reduce((sum: number, day: any) => sum + Number(day.spend || 0), 0)
                                 .toLocaleString()}
                             </td>
                             <td className="px-3 py-4 whitespace-nowrap text-sm text-right text-gray-900">
-                              {(dailyData.length > 0 ? dailyData : item.dailyData || [])
-                                .reduce((sum: number, day: any) => sum + Number(day.conversions || 0), 0)}
+                              {(dailyData.length > 0 ? dailyData : item.dailyData || []).reduce(
+                                (sum: number, day: any) => sum + Number(day.conversions || 0),
+                                0
+                              )}
                             </td>
                             <td className="px-3 py-4 whitespace-nowrap text-sm text-right text-gray-900">
                               -
                             </td>
                           </tr>
-                          
+
                           {/* 各日付の行 */}
                           {(dailyData.length > 0 ? dailyData : item.dailyData || []).map(
                             (day: any, index: number) => (
@@ -919,7 +1155,6 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                           )}
                         </tbody>
                       </table>
-
                     </div>
                   ) : (
                     // データがない場合の表示
@@ -986,39 +1221,7 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                       </div>
                     </div>
 
-                    {/* Middle Column - Smartphone Mockup & Instagram Metrics */}
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <h6 className="text-lg font-semibold text-gray-900 mb-4 border-b pb-2">
-                        広告プレビュー（モックアップ）
-                      </h6>
-                      <div className="flex justify-center">
-                        <SimplePhoneMockup
-                          mediaType={insight?.creative_media_type}
-                          thumbnailUrl={insight?.thumbnail_url}
-                          videoUrl={insight?.video_url}
-                          videoId={insight?.video_id}
-                          platform={item.metrics.instagram_metrics?.publisher_platform}
-                          creativeName={item.adName}
-                          adId={item.adId}
-                          accountId={accountId}
-                        />
-                      </div>
-                      <p className="text-xs text-gray-500 text-center mt-4">
-                        ※
-                        実際のクリエイティブデータが利用できない場合は、プレースホルダーが表示されます
-                      </p>
-
-                      {/* Instagram Metrics - モックアップの下に移動 */}
-                      <div className="mt-6 pt-4 border-t border-gray-300">
-                        <InstagramMetricsPanel
-                          data={insight}
-                          metrics={getSafeMetrics(item.metrics)}
-                          isLoading={false}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Right Column - Basic Metrics */}
+                    {/* Middle Column - Basic Metrics */}
                     <div className="bg-gray-50 rounded-lg p-4">
                       <h5 className="text-lg font-semibold text-gray-900 mb-4 border-b pb-2">
                         基本指標
@@ -1075,7 +1278,10 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                           if (data && data.length > 0) {
                             console.log('🎯 Conversion MetricRow - First day data:', data[0])
                             console.log('🎯 Conversion MetricRow - Total days:', data.length)
-                            console.log('🎯 Conversion MetricRow - Current value:', item.metrics.conversions)
+                            console.log(
+                              '🎯 Conversion MetricRow - Current value:',
+                              item.metrics.conversions
+                            )
                           }
                           return data
                         })()}
@@ -1137,10 +1343,1117 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                         description="1件あたりの獲得コスト"
                       />
                     </div>
+
+                    {/* Right Column - Smartphone Mockup */}
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <h6 className="text-lg font-semibold text-gray-900 mb-4 border-b pb-2">
+                        広告プレビュー（モックアップ）
+                      </h6>
+                      <div className="flex justify-center">
+                        <SimplePhoneMockup
+                          mediaType={
+                            creativeInfo?.object_type ||
+                            currentInsight?.creative_media_type ||
+                            insight?.creative_media_type
+                          }
+                          thumbnailUrl={
+                            creativeInfo?.thumbnail_url ||
+                            currentInsight?.thumbnail_url ||
+                            insight?.thumbnail_url
+                          }
+                          videoUrl={undefined}
+                          videoId={
+                            creativeInfo?.video_id || currentInsight?.video_id || insight?.video_id
+                          }
+                          imageUrl={
+                            creativeInfo?.image_url ||
+                            currentInsight?.image_url ||
+                            insight?.image_url
+                          }
+                          objectType={creativeInfo?.object_type}
+                          title={creativeInfo?.title || currentInsight?.title || insight?.title}
+                          body={creativeInfo?.body || currentInsight?.body || insight?.body}
+                          instagramPermalinkUrl={
+                            creativeInfo?.instagram_permalink_url ||
+                            currentInsight?.instagram_permalink_url ||
+                            insight?.instagram_permalink_url
+                          }
+                          platform={item.metrics.instagram_metrics?.publisher_platform}
+                          creativeName={item.adName}
+                          adId={item.adId}
+                          accountId={accountId}
+                          creativeId={creativeInfo?.id}
+                          creativeNameFull={creativeInfo?.name}
+                          previewShareableLink={creativeInfo?.preview_shareable_link}
+                        />
+                      </div>
+                    </div>
+
+                    {/* 品質指標 */}
+                    <div className="bg-white rounded-lg p-4 shadow-sm">
+                      <h3 className="font-semibold text-gray-900 mb-3">品質評価</h3>
+                      <div className="space-y-2">
+                        <MetricRow
+                          label="品質ランキング"
+                          value={currentInsight?.quality_ranking || 'N/A'}
+                          ranking={currentInsight?.quality_ranking}
+                          tooltip="他の広告と比較した広告の品質"
+                          dataSource={currentInsight?.quality_ranking ? 'api' : 'estimated'}
+                        />
+                        <MetricRow
+                          label="エンゲージメント率"
+                          value={currentInsight?.engagement_rate_ranking || 'N/A'}
+                          ranking={currentInsight?.engagement_rate_ranking}
+                          dataSource={currentInsight?.engagement_rate_ranking ? 'api' : 'estimated'}
+                        />
+                        <MetricRow
+                          label="コンバージョン率"
+                          value={currentInsight?.conversion_rate_ranking || 'N/A'}
+                          ranking={currentInsight?.conversion_rate_ranking}
+                          dataSource={currentInsight?.conversion_rate_ranking ? 'api' : 'estimated'}
+                        />
+                      </div>
+                      {/* 品質指標が取得できない場合の説明 */}
+                      {(!currentInsight?.quality_ranking ||
+                        currentInsight?.quality_ranking === 'unknown') && (
+                        <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs">
+                          <p className="text-yellow-800">
+                            ⚠️ 品質指標はインプレッションが500以上で利用可能になります
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* デバッグ情報（開発環境のみ） */}
+                    {process.env.NODE_ENV === 'development' && (
+                      <div className="col-span-3 bg-gray-100 rounded-lg p-3 text-xs mt-4">
+                        <h4 className="font-semibold mb-2">🔍 デバッグ情報</h4>
+                        <div className="grid grid-cols-3 gap-2">
+                          <div>
+                            <span className="text-gray-600">insight exists:</span>
+                            <span className="ml-2 font-mono">{String(!!insight)}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">currentInsight exists:</span>
+                            <span className="ml-2 font-mono">{String(!!currentInsight)}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">dailyData length:</span>
+                            <span className="ml-2 font-mono">{dailyData.length}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">quality_ranking:</span>
+                            <span className="ml-2 font-mono">
+                              {currentInsight?.quality_ranking || 'N/A'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">has actions:</span>
+                            <span className="ml-2 font-mono">
+                              {String(!!(currentInsight?.actions || item.actions))}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">impressions:</span>
+                            <span className="ml-2 font-mono">
+                              {currentInsight?.impressions || item.metrics?.impressions || 'N/A'}
+                            </span>
+                          </div>
+                        </div>
+                        {currentInsight?.quality_ranking === 'unknown' && (
+                          <div className="mt-2 p-2 bg-yellow-100 border border-yellow-300 rounded">
+                            <p className="text-yellow-800">
+                              品質指標が「unknown」です。インプレッション数が
+                              {currentInsight?.impressions || 0}で、 500未満の可能性があります。
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* アクション分析 - 3カラム幅で表示 */}
+                    {(currentInsight?.actions || item.actions) && (
+                      <div className="col-span-3 mt-4">
+                        <ActionMetricsDisplay
+                          actions={currentInsight?.actions || item.actions}
+                          costPerAction={
+                            currentInsight?.cost_per_action_type || item.cost_per_action_type
+                          }
+                        />
+                      </div>
+                    )}
                   </div>
                 ) : activeTab === 'raw' ? (
                   /* Raw Data Tab - 生データの完全表示 */
                   <div className="space-y-6">
+                    {/* フィールド説明テーブル - 最優先で表示 */}
+                    <div className="bg-white rounded-lg border border-indigo-200 p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                        主要フィールドの詳細説明
+                        <span className="ml-2 text-xs text-blue-500 font-normal">
+                          Meta Ads API Documentation
+                        </span>
+                      </h3>
+                      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-300">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                                項目名
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                                説明
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                                データ型
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                                現在値
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {/* ===== 基本情報 ===== */}
+                            <tr className="bg-gray-100">
+                              <td colSpan={4} className="px-4 py-2 font-bold text-sm text-gray-700">
+                                📋 基本情報
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                ad_id / adId
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">
+                                広告の一意識別子。広告を特定するための固有ID
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">string</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {item.adId || insight?.ad_id || 'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                ad_name / adName
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">
+                                広告の名称。管理画面で設定した広告名
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">string</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {item.adName || insight?.ad_name || 'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                adset_id
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">
+                                広告セットID。この広告が属する広告セットの識別子
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">string</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {insight?.adset_id || 'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                adset_name
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">
+                                広告セット名。ターゲティングや予算設定の単位
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">string</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {insight?.adset_name || 'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                campaign_id
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">
+                                キャンペーンID。最上位の広告グループ識別子
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">string</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {insight?.campaign_id || 'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                campaign_name
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">
+                                キャンペーン名。広告の目的やビジネス目標を表す
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">string</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {item.campaignName || insight?.campaign_name || 'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">status</td>
+                              <td className="px-4 py-2 text-sm text-gray-600">
+                                広告のステータス（ACTIVE、PAUSED、DELETED、ARCHIVED等）
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">string</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {item.status || insight?.status || 'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="bg-gray-100">
+                              <td colSpan={4} className="px-4 py-2 font-bold text-sm text-gray-700">
+                                📊 パフォーマンス指標
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                impressions
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">
+                                広告の表示回数。広告がユーザーの画面に表示された総回数
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">number</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {item.metrics?.impressions?.toLocaleString() || 'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">reach</td>
+                              <td className="px-4 py-2 text-sm text-gray-600">
+                                リーチ数。広告を少なくとも1回見たユニークユーザー数
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">number</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {item.reach?.toLocaleString() ||
+                                  insight?.reach?.toLocaleString() ||
+                                  'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                frequency
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">
+                                フリークエンシー。1人あたりの平均表示回数（impressions ÷ reach）
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">number</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {item.metrics?.frequency?.toFixed(2) || 'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">clicks</td>
+                              <td className="px-4 py-2 text-sm text-gray-600">
+                                クリック数。広告がクリックされた総回数
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">number</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {item.clicks?.toLocaleString() || 'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">ctr</td>
+                              <td className="px-4 py-2 text-sm text-gray-600">
+                                クリック率。表示回数に対するクリック数の割合（clicks ÷ impressions ×
+                                100）
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">number</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {item.metrics?.ctr?.toFixed(2) || 'N/A'}%
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                unique_ctr
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">
+                                ユニークCTR。ユニークユーザーのCTR
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">number</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {item.unique_ctr?.toFixed(2) ||
+                                  insight?.unique_ctr?.toFixed(2) ||
+                                  'N/A'}
+                                %
+                              </td>
+                            </tr>
+                            <tr className="bg-gray-100">
+                              <td colSpan={4} className="px-4 py-2 font-bold text-sm text-gray-700">
+                                💰 コスト指標
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">spend</td>
+                              <td className="px-4 py-2 text-sm text-gray-600">
+                                消化金額。広告に費やされた総額（円）
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">number</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                ¥{item.metrics?.spend?.toLocaleString() || 'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">cpc</td>
+                              <td className="px-4 py-2 text-sm text-gray-600">
+                                クリック単価。1クリックあたりの平均コスト（spend ÷ clicks）
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">number</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                ¥{item.cpc?.toFixed(0) || 'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">cpm</td>
+                              <td className="px-4 py-2 text-sm text-gray-600">
+                                CPM（Cost Per Mille）。1000インプレッションあたりのコスト
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">number</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                ¥{item.metrics?.cpm?.toFixed(2) || 'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                cost_per_conversion
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">
+                                CPA。1コンバージョンあたりの平均コスト
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">number</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                ¥{item.cost_per_conversion?.toFixed(0) || 'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="bg-gray-100">
+                              <td colSpan={4} className="px-4 py-2 font-bold text-sm text-gray-700">
+                                🎯 コンバージョン
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                conversions
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">コンバージョン数</td>
+                              <td className="px-4 py-2 text-sm text-gray-500">number</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {item.metrics?.conversions || 'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="bg-gray-100">
+                              <td colSpan={4} className="px-4 py-2 font-bold text-sm text-gray-700">
+                                ⭐ 品質指標
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                quality_ranking
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">
+                                品質ランキング（500imp以上で利用可）
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">string</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {dailyData.length > 0 && dailyData[0].quality_ranking
+                                  ? dailyData[0].quality_ranking
+                                  : 'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                engagement_rate_ranking
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">
+                                エンゲージメント率ランキング
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">string</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {dailyData.length > 0 && dailyData[0].engagement_rate_ranking
+                                  ? dailyData[0].engagement_rate_ranking
+                                  : 'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                conversion_rate_ranking
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">
+                                コンバージョン率ランキング
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">string</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {dailyData.length > 0 && dailyData[0].conversion_rate_ranking
+                                  ? dailyData[0].conversion_rate_ranking
+                                  : 'N/A'}
+                              </td>
+                            </tr>
+                            {/* ===== 動画メトリクス ===== */}
+                            <tr className="bg-gray-100">
+                              <td colSpan={4} className="px-4 py-2 font-bold text-sm text-gray-700">
+                                🎬 動画メトリクス
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                video_play_actions
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">
+                                動画再生アクション数（自動再生含む）
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">array</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {dailyData.length > 0 && dailyData[0].video_play_actions
+                                  ? JSON.stringify(dailyData[0].video_play_actions)
+                                  : 'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                video_p25_watched_actions
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">
+                                25%視聴完了アクション
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">array</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {dailyData.length > 0 && dailyData[0].video_p25_watched_actions
+                                  ? JSON.stringify(dailyData[0].video_p25_watched_actions)
+                                  : 'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                video_p50_watched_actions
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">
+                                50%視聴完了アクション
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">array</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {dailyData.length > 0 && dailyData[0].video_p50_watched_actions
+                                  ? JSON.stringify(dailyData[0].video_p50_watched_actions)
+                                  : 'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                video_p75_watched_actions
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">
+                                75%視聴完了アクション
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">array</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {dailyData.length > 0 && dailyData[0].video_p75_watched_actions
+                                  ? JSON.stringify(dailyData[0].video_p75_watched_actions)
+                                  : 'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                video_p95_watched_actions
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">
+                                95%視聴完了アクション
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">array</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {dailyData.length > 0 && dailyData[0].video_p95_watched_actions
+                                  ? JSON.stringify(dailyData[0].video_p95_watched_actions)
+                                  : 'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                video_p100_watched_actions
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">
+                                100%視聴完了アクション
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">array</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {dailyData.length > 0 && dailyData[0].video_p100_watched_actions
+                                  ? JSON.stringify(dailyData[0].video_p100_watched_actions)
+                                  : 'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                video_avg_time_watched_actions
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">
+                                平均視聴時間（秒）
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">array</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {dailyData.length > 0 && dailyData[0].video_avg_time_watched_actions
+                                  ? JSON.stringify(dailyData[0].video_avg_time_watched_actions)
+                                  : 'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                video_thruplay_watched_actions
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">
+                                ThruPlay視聴（15秒以上または完全視聴）
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">array</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {dailyData.length > 0 && dailyData[0].video_thruplay_watched_actions
+                                  ? JSON.stringify(dailyData[0].video_thruplay_watched_actions)
+                                  : 'N/A'}
+                              </td>
+                            </tr>
+                            {/* ===== ROAS・購買メトリクス ===== */}
+                            <tr className="bg-gray-100">
+                              <td colSpan={4} className="px-4 py-2 font-bold text-sm text-gray-700">
+                                💰 ROAS・購買メトリクス
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                purchase_roas
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">
+                                購入ROAS（購入収益 ÷ 広告費）
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">array</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {dailyData.length > 0 && dailyData[0].purchase_roas
+                                  ? JSON.stringify(dailyData[0].purchase_roas)
+                                  : 'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                website_purchase_roas
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">
+                                ウェブサイト購入ROAS
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">array</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {dailyData.length > 0 && dailyData[0].website_purchase_roas
+                                  ? JSON.stringify(dailyData[0].website_purchase_roas)
+                                  : 'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">actions</td>
+                              <td className="px-4 py-2 text-sm text-gray-600">
+                                全アクションタイプの詳細配列
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">array</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {dailyData.length > 0 && dailyData[0].actions
+                                  ? `${dailyData[0].actions.length}個のアクション`
+                                  : 'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                cost_per_action_type
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">
+                                アクションタイプ別のコスト
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">array</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {dailyData.length > 0 && dailyData[0].cost_per_action_type
+                                  ? JSON.stringify(dailyData[0].cost_per_action_type)
+                                  : 'N/A'}
+                              </td>
+                            </tr>
+                            {/* ===== リンククリック詳細 ===== */}
+                            <tr className="bg-gray-100">
+                              <td colSpan={4} className="px-4 py-2 font-bold text-sm text-gray-700">
+                                🔗 リンククリック詳細
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                inline_link_clicks
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">
+                                広告内リンクのクリック数
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">string</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {dailyData.length > 0 && dailyData[0].inline_link_clicks
+                                  ? dailyData[0].inline_link_clicks
+                                  : 'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                inline_link_click_ctr
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">
+                                内部リンクのクリック率
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">string</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {dailyData.length > 0 && dailyData[0].inline_link_click_ctr
+                                  ? `${dailyData[0].inline_link_click_ctr}%`
+                                  : 'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                outbound_clicks
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">
+                                外部サイトへのクリック数
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">array</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {dailyData.length > 0 && dailyData[0].outbound_clicks
+                                  ? JSON.stringify(dailyData[0].outbound_clicks)
+                                  : 'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                outbound_clicks_ctr
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">
+                                外部サイトへのクリック率
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">array</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {dailyData.length > 0 && dailyData[0].outbound_clicks_ctr
+                                  ? JSON.stringify(dailyData[0].outbound_clicks_ctr)
+                                  : 'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                unique_clicks
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">
+                                ユニーククリック数（重複除外）
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">string</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {dailyData.length > 0 && dailyData[0].unique_clicks
+                                  ? dailyData[0].unique_clicks
+                                  : 'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                unique_ctr
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">
+                                ユニーククリック率
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">string</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {dailyData.length > 0 && dailyData[0].unique_ctr
+                                  ? `${dailyData[0].unique_ctr}%`
+                                  : 'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                unique_link_clicks_ctr
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">
+                                ユニークリンククリック率
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">string</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {dailyData.length > 0 && dailyData[0].unique_link_clicks_ctr
+                                  ? `${dailyData[0].unique_link_clicks_ctr}%`
+                                  : 'N/A'}
+                              </td>
+                            </tr>
+                            {/* ===== エンゲージメント ===== */}
+                            <tr className="bg-gray-100">
+                              <td colSpan={4} className="px-4 py-2 font-bold text-sm text-gray-700">
+                                ❤️ エンゲージメント
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                engagement
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">
+                                総エンゲージメント数
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">string</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {dailyData.length > 0 && dailyData[0].engagement
+                                  ? dailyData[0].engagement
+                                  : 'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                social_spend
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">
+                                ソーシャルインプレッションに対する広告費
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">string</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {dailyData.length > 0 && dailyData[0].social_spend
+                                  ? `¥${dailyData[0].social_spend}`
+                                  : 'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                unique_actions
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">
+                                ユニークアクション配列
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">array</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {dailyData.length > 0 && dailyData[0].unique_actions
+                                  ? `${dailyData[0].unique_actions.length}個のユニークアクション`
+                                  : 'N/A'}
+                              </td>
+                            </tr>
+                            {/* ===== 追加フィールド ===== */}
+                            <tr className="bg-gray-100">
+                              <td colSpan={4} className="px-4 py-2 font-bold text-sm text-gray-700">
+                                📊 その他のメトリクス
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                unique_inline_link_clicks
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">
+                                ユニーク内部リンククリック数
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">string</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {dailyData.length > 0 && dailyData[0].unique_inline_link_clicks
+                                  ? dailyData[0].unique_inline_link_clicks
+                                  : 'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                action_values
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">
+                                アクションの価値（収益データ）
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">array</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {dailyData.length > 0 && dailyData[0].action_values
+                                  ? JSON.stringify(dailyData[0].action_values)
+                                  : 'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                conversion_values
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">
+                                コンバージョンの価値
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">array</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {dailyData.length > 0 && dailyData[0].conversion_values
+                                  ? JSON.stringify(dailyData[0].conversion_values)
+                                  : 'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                website_ctr
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">
+                                ウェブサイトクリック率
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">array</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {dailyData.length > 0 && dailyData[0].website_ctr
+                                  ? JSON.stringify(dailyData[0].website_ctr)
+                                  : 'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                account_currency
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">アカウント通貨</td>
+                              <td className="px-4 py-2 text-sm text-gray-500">string</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {dailyData.length > 0 && dailyData[0].account_currency
+                                  ? dailyData[0].account_currency
+                                  : 'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                account_name
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">アカウント名</td>
+                              <td className="px-4 py-2 text-sm text-gray-500">string</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {dailyData.length > 0 && dailyData[0].account_name
+                                  ? dailyData[0].account_name
+                                  : 'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                date_start
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">データ開始日</td>
+                              <td className="px-4 py-2 text-sm text-gray-500">string</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {dailyData.length > 0 && dailyData[0].date_start
+                                  ? dailyData[0].date_start
+                                  : 'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                date_stop
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">データ終了日</td>
+                              <td className="px-4 py-2 text-sm text-gray-500">string</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {dailyData.length > 0 && dailyData[0].date_stop
+                                  ? dailyData[0].date_stop
+                                  : 'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                video_avg_time_watched_actions
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">動画平均視聴時間</td>
+                              <td className="px-4 py-2 text-sm text-gray-500">array</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {dailyData.length > 0 && dailyData[0].video_avg_time_watched_actions
+                                  ? JSON.stringify(dailyData[0].video_avg_time_watched_actions)
+                                  : 'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                objective
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">キャンペーン目的</td>
+                              <td className="px-4 py-2 text-sm text-gray-500">string</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {dailyData.length > 0 && dailyData[0].objective
+                                  ? dailyData[0].objective
+                                  : 'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                optimization_goal
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">最適化目標</td>
+                              <td className="px-4 py-2 text-sm text-gray-500">string</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {dailyData.length > 0 && dailyData[0].optimization_goal
+                                  ? dailyData[0].optimization_goal
+                                  : 'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                buying_type
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">
+                                購入タイプ（AUCTION/RESERVED）
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">string</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {dailyData.length > 0 && dailyData[0].buying_type
+                                  ? dailyData[0].buying_type
+                                  : 'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                created_time
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">広告作成日時</td>
+                              <td className="px-4 py-2 text-sm text-gray-500">string</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {dailyData.length > 0 && dailyData[0].created_time
+                                  ? dailyData[0].created_time
+                                  : 'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                updated_time
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">広告更新日時</td>
+                              <td className="px-4 py-2 text-sm text-gray-500">string</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {dailyData.length > 0 && dailyData[0].updated_time
+                                  ? dailyData[0].updated_time
+                                  : 'N/A'}
+                              </td>
+                            </tr>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                relevance_score
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">
+                                関連性スコア（廃止予定）
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">object</td>
+                              <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                                {dailyData.length > 0 && dailyData[0].relevance_score
+                                  ? JSON.stringify(dailyData[0].relevance_score)
+                                  : 'N/A'}
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      <div className="mt-2 text-xs text-gray-500">
+                        ※ 詳細な全フィールドの説明は下部のセクションを参照してください
+                      </div>
+                    </div>
+
+                    {/* API診断情報セクション */}
+                    <div className="bg-white rounded-lg border border-blue-200 p-6 mb-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <svg
+                          className="w-5 h-5 mr-2 text-blue-600"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                        API診断結果
+                      </h3>
+
+                      {/* API接続状態 */}
+                      <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div className="p-3 bg-gray-50 rounded">
+                          <div className="text-sm text-gray-600">APIエンドポイント</div>
+                          <div className="text-sm font-mono mt-1">
+                            {item.adId ? (
+                              <span className="text-green-600">✅ 広告レベル ({item.adId})</span>
+                            ) : (
+                              <span className="text-yellow-600">⚠️ アカウントレベル</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="p-3 bg-gray-50 rounded">
+                          <div className="text-sm text-gray-600">データ取得状態</div>
+                          <div className="text-sm font-medium mt-1">
+                            {dailyData.length > 0 ? (
+                              <span className="text-green-600">
+                                ✅ 成功 ({dailyData.length}日分)
+                              </span>
+                            ) : dailyDataError ? (
+                              <span className="text-red-600">❌ エラー</span>
+                            ) : (
+                              <span className="text-gray-500">未取得</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 品質指標の可用性 */}
+                      <div className="mb-4">
+                        <h4 className="text-sm font-medium text-gray-700 mb-2">品質指標の可用性</h4>
+                        <div className="space-y-2">
+                          {[
+                            'quality_ranking',
+                            'engagement_rate_ranking',
+                            'conversion_rate_ranking',
+                          ].map((field) => {
+                            const impressions = parseInt(item.metrics?.impressions || '0')
+                            const isAvailable = impressions >= 500
+                            const diagnosis = InsightFetcher.diagnoseFieldUnavailability(
+                              field,
+                              impressions
+                            )
+
+                            return (
+                              <div
+                                key={field}
+                                className="flex items-center justify-between p-2 bg-gray-50 rounded"
+                              >
+                                <span className="text-sm font-mono">{field}</span>
+                                <span
+                                  className={`text-xs ${isAvailable ? 'text-green-600' : 'text-yellow-600'}`}
+                                >
+                                  {isAvailable ? '✅ 利用可能' : `⚠️ ${diagnosis}`}
+                                </span>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+
+                      {/* データ信頼性スコア */}
+                      <div className="mb-4">
+                        <h4 className="text-sm font-medium text-gray-700 mb-2">データ信頼性</h4>
+                        <div className="p-3 bg-gray-50 rounded">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm text-gray-600">総合信頼性スコア</span>
+                            <span className="text-sm font-bold">
+                              {dailyData.length > 0 ? '計算中...' : 'N/A'}
+                            </span>
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            直接取得データ、代替データ、欠損データの割合から算出
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* エラー情報 */}
+                      {dailyDataError && (
+                        <div className="p-3 bg-red-50 border border-red-200 rounded">
+                          <div className="text-sm font-medium text-red-800 mb-1">エラー詳細</div>
+                          <div className="text-xs text-red-600">{dailyDataError}</div>
+                        </div>
+                      )}
+
+                      {/* データ取得ボタン */}
+                      {!dailyData.length && !isLoadingDaily && (
+                        <button
+                          onClick={fetchDailyData}
+                          className="w-full mt-4 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 transition-colors"
+                        >
+                          詳細データを取得
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Instagram関連メトリクスセクション */}
+                    <div className="bg-white rounded-lg border border-purple-200 p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <svg
+                          className="w-5 h-5 mr-2 text-purple-600"
+                          fill="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zM5.838 12a6.162 6.162 0 1112.324 0 6.162 6.162 0 01-12.324 0zM12 16a4 4 0 110-8 4 4 0 010 8zm4.965-10.405a1.44 1.44 0 112.881.001 1.44 1.44 0 01-2.881-.001z" />
+                        </svg>
+                        Instagram 関連メトリクス
+                      </h3>
+                      <InstagramMetricsDisplay insight={insight || item} />
+                    </div>
+
+                    {/* APIレスポンス生データ */}
                     <div className="bg-white rounded-lg border border-gray-200 p-6">
                       <h3 className="text-lg font-semibold text-gray-900 mb-4">
                         APIレスポンス生データ（全フィールド）
@@ -1216,35 +2529,83 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                           </div>
                         )}
 
-                        {/* actionsフィールドの詳細表示 */}
+                        {/* actionsフィールドの詳細表示（拡張版） */}
                         {(item.actions || insight?.actions) && (
-                          <div>
-                            <h4 className="font-medium text-gray-700 mb-2">Actions配列詳細</h4>
-                            <div className="bg-blue-50 rounded-lg p-4 max-h-64 overflow-y-auto">
+                          <div className="mb-6 p-4 bg-yellow-50 rounded-lg">
+                            <h4 className="font-semibold text-gray-900 mb-3">
+                              📊 Actions配列詳細（{(item.actions || insight?.actions || []).length}
+                              個のアクション）
+                            </h4>
+
+                            {/* 検索フィルター */}
+                            <div className="mb-3">
+                              <input
+                                type="text"
+                                placeholder="アクションタイプで検索..."
+                                className="px-3 py-2 border rounded-lg text-sm w-full"
+                                onChange={(e) => {
+                                  const searchTerm = e.target.value.toLowerCase()
+                                  const table =
+                                    e.target.parentElement?.nextElementSibling?.querySelector(
+                                      'tbody'
+                                    )
+                                  if (table) {
+                                    const rows = table.querySelectorAll('tr')
+                                    rows.forEach((row: any) => {
+                                      const actionType =
+                                        row.querySelector('td')?.textContent?.toLowerCase() || ''
+                                      row.style.display = actionType.includes(searchTerm)
+                                        ? ''
+                                        : 'none'
+                                    })
+                                  }
+                                }}
+                              />
+                            </div>
+
+                            <div className="bg-white rounded border border-yellow-200 p-3 max-h-96 overflow-y-auto">
                               <table className="min-w-full divide-y divide-gray-200 text-xs">
-                                <thead>
+                                <thead className="bg-yellow-100 sticky top-0">
                                   <tr>
-                                    <th className="px-2 py-1 text-left">action_type</th>
-                                    <th className="px-2 py-1 text-right">value</th>
-                                    <th className="px-2 py-1 text-right">1d_click</th>
-                                    <th className="px-2 py-1 text-right">7d_click</th>
+                                    <th className="px-2 py-2 text-left font-semibold">
+                                      Action Type
+                                    </th>
+                                    <th className="px-2 py-2 text-right font-semibold">
+                                      Total Value
+                                    </th>
+                                    <th className="px-2 py-2 text-right font-semibold">1d Click</th>
+                                    <th className="px-2 py-2 text-right font-semibold">7d Click</th>
+                                    <th className="px-2 py-2 text-right font-semibold">
+                                      28d Click
+                                    </th>
+                                    <th className="px-2 py-2 text-right font-semibold">1d View</th>
+                                    <th className="px-2 py-2 text-right font-semibold">7d View</th>
                                   </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200">
                                   {(item.actions || insight?.actions || []).map(
                                     (action: any, idx: number) => (
-                                      <tr key={idx}>
-                                        <td className="px-2 py-1 font-mono">
+                                      <tr key={idx} className="hover:bg-yellow-50">
+                                        <td className="px-2 py-2 font-mono text-gray-900">
                                           {action.action_type}
                                         </td>
-                                        <td className="px-2 py-1 text-right font-mono">
-                                          {action.value}
+                                        <td className="px-2 py-2 text-right font-mono font-semibold">
+                                          {action.value || 0}
                                         </td>
-                                        <td className="px-2 py-1 text-right font-mono">
+                                        <td className="px-2 py-2 text-right font-mono text-gray-600">
                                           {action['1d_click'] || '-'}
                                         </td>
-                                        <td className="px-2 py-1 text-right font-mono">
+                                        <td className="px-2 py-2 text-right font-mono text-gray-600">
                                           {action['7d_click'] || '-'}
+                                        </td>
+                                        <td className="px-2 py-2 text-right font-mono text-gray-600">
+                                          {action['28d_click'] || '-'}
+                                        </td>
+                                        <td className="px-2 py-2 text-right font-mono text-gray-600">
+                                          {action['1d_view'] || '-'}
+                                        </td>
+                                        <td className="px-2 py-2 text-right font-mono text-gray-600">
+                                          {action['7d_view'] || '-'}
                                         </td>
                                       </tr>
                                     )
@@ -1252,6 +2613,193 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                                 </tbody>
                               </table>
                             </div>
+
+                            {/* エンゲージメント系アクションの抽出結果 */}
+                            <div className="mt-4 p-3 bg-blue-50 rounded">
+                              <h5 className="text-sm font-semibold mb-2">
+                                🔍 抽出されたエンゲージメント指標：
+                              </h5>
+                              <div className="grid grid-cols-2 gap-2 text-sm">
+                                <div>
+                                  👍 Likes:{' '}
+                                  <span className="font-semibold">
+                                    {(item.actions || insight?.actions || []).find(
+                                      (a: any) => a.action_type === 'like'
+                                    )?.value || 'なし'}
+                                  </span>
+                                </div>
+                                <div>
+                                  💬 Comments:{' '}
+                                  <span className="font-semibold">
+                                    {(item.actions || insight?.actions || []).find(
+                                      (a: any) => a.action_type === 'comment'
+                                    )?.value || 'なし'}
+                                  </span>
+                                </div>
+                                <div>
+                                  🔄 Shares:{' '}
+                                  <span className="font-semibold">
+                                    {(item.actions || insight?.actions || []).find(
+                                      (a: any) => a.action_type === 'post'
+                                    )?.value || 'なし'}
+                                  </span>
+                                </div>
+                                <div>
+                                  💾 Saves:{' '}
+                                  <span className="font-semibold">
+                                    {(item.actions || insight?.actions || []).find(
+                                      (a: any) => a.action_type === 'post_save'
+                                    )?.value || 'なし'}
+                                  </span>
+                                </div>
+                                <div>
+                                  🔗 Link Clicks:{' '}
+                                  <span className="font-semibold">
+                                    {(item.actions || insight?.actions || []).find(
+                                      (a: any) => a.action_type === 'link_click'
+                                    )?.value || 'なし'}
+                                  </span>
+                                </div>
+                                <div>
+                                  🛒 Purchases:{' '}
+                                  <span className="font-semibold">
+                                    {(item.actions || insight?.actions || []).find(
+                                      (a: any) => a.action_type === 'purchase'
+                                    )?.value || 'なし'}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* 全アクションタイプの生データ表示 */}
+                            <details className="mt-3">
+                              <summary className="cursor-pointer text-sm text-blue-600 hover:text-blue-800">
+                                🔧 Actions配列の生JSONデータを表示
+                              </summary>
+                              <pre className="mt-2 text-xs bg-gray-100 p-3 rounded overflow-x-auto">
+                                {JSON.stringify(item.actions || insight?.actions || [], null, 2)}
+                              </pre>
+                            </details>
+                          </div>
+                        )}
+
+                        {/* 動画メトリクスの専用表示セクション */}
+                        {(insight?.video_play_actions ||
+                          insight?.video_p25_watched_actions ||
+                          insight?.video_p50_watched_actions ||
+                          insight?.video_p75_watched_actions ||
+                          insight?.video_p100_watched_actions) && (
+                          <div className="mb-6 p-4 bg-green-50 rounded-lg">
+                            <h4 className="font-semibold text-gray-900 mb-3">
+                              🎥 動画メトリクス詳細
+                            </h4>
+
+                            {/* 動画視聴ファネル */}
+                            <div className="bg-white rounded border border-green-200 p-4">
+                              <h5 className="text-sm font-semibold mb-3">視聴ファネル分析</h5>
+                              <div className="space-y-2">
+                                <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                                  <span className="text-sm">▶️ 再生開始</span>
+                                  <span className="font-mono font-semibold">
+                                    {insight?.video_play_actions?.[0]?.value || 0}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                                  <span className="text-sm">📊 25%視聴</span>
+                                  <span className="font-mono font-semibold">
+                                    {insight?.video_p25_watched_actions?.[0]?.value || 0}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                                  <span className="text-sm">📊 50%視聴</span>
+                                  <span className="font-mono font-semibold">
+                                    {insight?.video_p50_watched_actions?.[0]?.value || 0}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                                  <span className="text-sm">📊 75%視聴</span>
+                                  <span className="font-mono font-semibold">
+                                    {insight?.video_p75_watched_actions?.[0]?.value || 0}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                                  <span className="text-sm">📊 95%視聴</span>
+                                  <span className="font-mono font-semibold">
+                                    {insight?.video_p95_watched_actions?.[0]?.value || 0}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between p-2 bg-green-100 rounded">
+                                  <span className="text-sm font-semibold">✅ 完全視聴</span>
+                                  <span className="font-mono font-semibold">
+                                    {insight?.video_p100_watched_actions?.[0]?.value || 0}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* 視聴完了率 */}
+                              <div className="mt-4 p-3 bg-blue-50 rounded">
+                                <h5 className="text-sm font-semibold mb-2">視聴完了率</h5>
+                                <div className="grid grid-cols-2 gap-2 text-sm">
+                                  <div>
+                                    25%到達率:
+                                    <span className="ml-2 font-semibold">
+                                      {insight?.video_play_actions?.[0]?.value > 0
+                                        ? `${(((insight?.video_p25_watched_actions?.[0]?.value || 0) / insight.video_play_actions[0].value) * 100).toFixed(1)}%`
+                                        : 'N/A'}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    50%到達率:
+                                    <span className="ml-2 font-semibold">
+                                      {insight?.video_play_actions?.[0]?.value > 0
+                                        ? `${(((insight?.video_p50_watched_actions?.[0]?.value || 0) / insight.video_play_actions[0].value) * 100).toFixed(1)}%`
+                                        : 'N/A'}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    75%到達率:
+                                    <span className="ml-2 font-semibold">
+                                      {insight?.video_play_actions?.[0]?.value > 0
+                                        ? `${(((insight?.video_p75_watched_actions?.[0]?.value || 0) / insight.video_play_actions[0].value) * 100).toFixed(1)}%`
+                                        : 'N/A'}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    完全視聴率:
+                                    <span className="ml-2 font-semibold">
+                                      {insight?.video_play_actions?.[0]?.value > 0
+                                        ? `${(((insight?.video_p100_watched_actions?.[0]?.value || 0) / insight.video_play_actions[0].value) * 100).toFixed(1)}%`
+                                        : 'N/A'}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* 生データ表示 */}
+                            <details className="mt-3">
+                              <summary className="cursor-pointer text-sm text-blue-600 hover:text-blue-800">
+                                🔧 動画メトリクスの生JSONデータを表示
+                              </summary>
+                              <pre className="mt-2 text-xs bg-gray-100 p-3 rounded overflow-x-auto">
+                                {JSON.stringify(
+                                  {
+                                    video_play_actions: insight?.video_play_actions,
+                                    video_p25_watched_actions: insight?.video_p25_watched_actions,
+                                    video_p50_watched_actions: insight?.video_p50_watched_actions,
+                                    video_p75_watched_actions: insight?.video_p75_watched_actions,
+                                    video_p95_watched_actions: insight?.video_p95_watched_actions,
+                                    video_p100_watched_actions: insight?.video_p100_watched_actions,
+                                    video_avg_time_watched_actions:
+                                      insight?.video_avg_time_watched_actions,
+                                    video_thruplay_watched_actions:
+                                      insight?.video_thruplay_watched_actions,
+                                  },
+                                  null,
+                                  2
+                                )}
+                              </pre>
+                            </details>
                           </div>
                         )}
 
@@ -1330,1590 +2878,39 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                             </div>
                           </div>
                         </div>
-
-                        {/* フィールド説明テーブル */}
-                        <div>
-                          <h4 className="font-medium text-gray-700 mb-2">
-                            主要フィールドの詳細説明
-                            <span className="ml-2 text-xs text-blue-500 font-normal">
-                              Meta Ads API Documentation
-                            </span>
-                          </h4>
-                          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-300">
-                              <thead className="bg-gray-50">
-                                <tr>
-                                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                    項目名
-                                  </th>
-                                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                    説明
-                                  </th>
-                                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                    データ型
-                                  </th>
-                                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                    現在値
-                                  </th>
-                                </tr>
-                              </thead>
-                              <tbody className="bg-white divide-y divide-gray-200">
-                                {/* ===== 基本情報 ===== */}
-                                <tr className="bg-gray-100">
-                                  <td
-                                    colSpan={4}
-                                    className="px-4 py-2 font-bold text-sm text-gray-700"
-                                  >
-                                    📋 基本情報
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    ad_id / adId
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
-                                    広告の一意識別子。広告を特定するための固有ID
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">string</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    {item.adId || insight?.ad_id || 'N/A'}
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    ad_name / adName
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
-                                    広告の名称。管理画面で設定した広告名
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">string</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    {item.adName || insight?.ad_name || 'N/A'}
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    adset_id
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
-                                    広告セットID。この広告が属する広告セットの識別子
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">string</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    {insight?.adset_id || 'N/A'}
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    adset_name
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
-                                    広告セット名。ターゲティングや予算設定の単位
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">string</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    {insight?.adset_name || 'N/A'}
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    campaign_id
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
-                                    キャンペーンID。最上位の広告グループ識別子
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">string</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    {insight?.campaign_id || 'N/A'}
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    campaign_name
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
-                                    キャンペーン名。広告の目的やビジネス目標を表す
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">string</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    {insight?.campaign_name || 'N/A'}
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    status
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
-                                    広告のステータス（ACTIVE、PAUSED、DELETED、ARCHIVED等）
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">string</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    {item.status || insight?.status || 'N/A'}
-                                  </td>
-                                </tr>
-
-                                {/* ===== パフォーマンス指標 ===== */}
-                                <tr className="bg-gray-100">
-                                  <td
-                                    colSpan={4}
-                                    className="px-4 py-2 font-bold text-sm text-gray-700"
-                                  >
-                                    📊 パフォーマンス指標
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    impressions
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
-                                    広告の表示回数。広告がユーザーの画面に表示された総回数
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">number</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    {item.impressions?.toLocaleString() || 'N/A'}
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    reach
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
-                                    リーチ数。広告を少なくとも1回見たユニークユーザー数
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">number</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    {item.reach?.toLocaleString() ||
-                                      insight?.reach?.toLocaleString() ||
-                                      'N/A'}
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    frequency
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
-                                    フリークエンシー。1人あたりの平均表示回数（impressions ÷ reach）
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">number</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    {item.frequency?.toFixed(2) || 'N/A'}
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    clicks
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
-                                    クリック数。広告がクリックされた総回数
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">number</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    {item.clicks?.toLocaleString() || 'N/A'}
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">ctr</td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
-                                    クリック率。表示回数に対するクリック数の割合（clicks ÷
-                                    impressions × 100）
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">number</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    {item.ctr?.toFixed(2) || 'N/A'}%
-                                  </td>
-                                </tr>
-
-                                {/* ===== コスト指標 ===== */}
-                                <tr className="bg-gray-100">
-                                  <td
-                                    colSpan={4}
-                                    className="px-4 py-2 font-bold text-sm text-gray-700"
-                                  >
-                                    💰 コスト指標
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    spend
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
-                                    消化金額。広告に費やされた総額（円）
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">number</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    ¥{item.spend?.toLocaleString() || 'N/A'}
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">cpc</td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
-                                    クリック単価。1クリックあたりの平均コスト（spend ÷ clicks）
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">number</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    ¥{item.cpc?.toFixed(0) || 'N/A'}
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">cpm</td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
-                                    1000インプレッション単価。1000回表示あたりのコスト
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">number</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    ¥{item.cpm?.toFixed(0) || 'N/A'}
-                                  </td>
-                                </tr>
-
-                                {/* ===== コンバージョン指標 ===== */}
-                                <tr className="bg-gray-100">
-                                  <td
-                                    colSpan={4}
-                                    className="px-4 py-2 font-bold text-sm text-gray-700"
-                                  >
-                                    🎯 コンバージョン指標
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    conversions
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
-                                    総コンバージョン数。設定した全てのコンバージョンイベントの合計
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">number</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    {item.conversions || 'N/A'}
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    conversions_1d_click
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
-                                    1日クリックアトリビューション。クリック後1日以内のコンバージョン
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">number</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    {item.conversions_1d_click || 'N/A'}
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">cpa</td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
-                                    獲得単価。1コンバージョンあたりのコスト（spend ÷ conversions）
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">number</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    ¥{item.cpa?.toFixed(0) || 'N/A'}
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">cvr</td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
-                                    コンバージョン率。クリック数に対するコンバージョンの割合
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">number</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    {item.cvr?.toFixed(2) || 'N/A'}%
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    roas
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
-                                    広告費用対効果。広告費に対する売上の倍率（revenue ÷ spend）
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">number</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    {item.roas?.toFixed(2) || 'N/A'}
-                                  </td>
-                                </tr>
-
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    conversion_values
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
-                                    コンバージョンの金額的価値。売上やLTV等の合計値
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">number</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    ¥{insight?.conversion_values?.toLocaleString() || 'N/A'}
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    cost_per_conversion
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
-                                    コンバージョン単価。1件のコンバージョンにかかった平均費用
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">number</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    ¥{insight?.cost_per_conversion?.toFixed(0) || 'N/A'}
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    revenue
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
-                                    収益。広告経由で発生した売上高
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">number</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    ¥{item.revenue?.toLocaleString() || 'N/A'}
-                                  </td>
-                                </tr>
-
-                                {/* ===== ROASとパフォーマンス評価 ===== */}
-                                <tr className="bg-gray-100">
-                                  <td
-                                    colSpan={4}
-                                    className="px-4 py-2 font-bold text-sm text-gray-700"
-                                  >
-                                    📈 ROASとパフォーマンス評価
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900 align-top">
-                                    purchase_roas
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600 align-top">
-                                    購入ROAS。購入イベントベースの広告費用対効果
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500 align-top">
-                                    object
-                                  </td>
-                                  <td className="px-4 py-2 text-sm">
-                                    {insight?.purchase_roas ? (
-                                      <div className="bg-purple-50 p-2 rounded text-xs">
-                                        <div className="font-semibold text-purple-800 mb-1">
-                                          購入ROAS詳細:
-                                        </div>
-                                        {Array.isArray(insight.purchase_roas) ? (
-                                          insight.purchase_roas.map((roas: any, idx: number) => (
-                                            <div
-                                              key={idx}
-                                              className="border-b border-purple-100 pb-1 mb-1 last:border-0"
-                                            >
-                                              <div className="space-y-1">
-                                                <div>
-                                                  <span className="text-purple-600">
-                                                    アクションタイプ:
-                                                  </span>
-                                                  <span className="font-mono ml-1 text-xs">
-                                                    {roas.action_type}
-                                                  </span>
-                                                </div>
-                                                <div className="grid grid-cols-3 gap-1">
-                                                  <div>
-                                                    <span className="text-purple-600">
-                                                      合計ROAS:
-                                                    </span>
-                                                    <span className="font-mono ml-1">
-                                                      {roas.value || 0}
-                                                    </span>
-                                                    <span className="text-gray-500 text-xs ml-1">
-                                                      (売上÷広告費)
-                                                    </span>
-                                                  </div>
-                                                  <div>
-                                                    <span className="text-purple-600">
-                                                      1日クリック:
-                                                    </span>
-                                                    <span className="font-mono ml-1">
-                                                      {roas['1d_click'] || '-'}
-                                                    </span>
-                                                  </div>
-                                                  <div>
-                                                    <span className="text-purple-600">
-                                                      7日クリック:
-                                                    </span>
-                                                    <span className="font-mono ml-1">
-                                                      {roas['7d_click'] || '-'}
-                                                    </span>
-                                                  </div>
-                                                </div>
-                                              </div>
-                                            </div>
-                                          ))
-                                        ) : (
-                                          <div className="font-mono text-xs">
-                                            {JSON.stringify(insight.purchase_roas)}
-                                          </div>
-                                        )}
-                                      </div>
-                                    ) : (
-                                      <span className="font-mono text-gray-900">N/A</span>
-                                    )}
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900 align-top">
-                                    website_purchase_roas
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600 align-top">
-                                    ウェブサイト購入ROAS。ECサイトでの購入に特化したROAS計測
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500 align-top">
-                                    object
-                                  </td>
-                                  <td className="px-4 py-2 text-sm">
-                                    {insight?.website_purchase_roas ? (
-                                      <div className="bg-indigo-50 p-2 rounded text-xs">
-                                        <div className="font-semibold text-indigo-800 mb-1">
-                                          ウェブサイト購入ROAS詳細:
-                                        </div>
-                                        {Array.isArray(insight.website_purchase_roas) ? (
-                                          insight.website_purchase_roas.map(
-                                            (roas: any, idx: number) => (
-                                              <div
-                                                key={idx}
-                                                className="border-b border-indigo-100 pb-1 mb-1 last:border-0"
-                                              >
-                                                <div className="space-y-1">
-                                                  <div>
-                                                    <span className="text-indigo-600">
-                                                      アクションタイプ:
-                                                    </span>
-                                                    <span className="font-mono ml-1 text-xs">
-                                                      {roas.action_type}
-                                                    </span>
-                                                    <span className="text-gray-600 text-xs ml-1">
-                                                      {roas.action_type?.includes(
-                                                        'offsite_conversion'
-                                                      ) && '(オフサイトコンバージョン)'}
-                                                      {roas.action_type?.includes('fb_pixel') &&
-                                                        '(Facebookピクセル計測)'}
-                                                    </span>
-                                                  </div>
-                                                  <div className="grid grid-cols-3 gap-1">
-                                                    <div>
-                                                      <span className="text-indigo-600">
-                                                        合計ROAS:
-                                                      </span>
-                                                      <span className="font-mono ml-1">
-                                                        {parseFloat(roas.value || 0).toFixed(2)}
-                                                      </span>
-                                                      <span className="text-gray-500 text-xs ml-1">
-                                                        {parseFloat(roas.value || 0) >= 1
-                                                          ? '✓ 黒字'
-                                                          : '⚠️ 赤字'}
-                                                      </span>
-                                                    </div>
-                                                    <div>
-                                                      <span className="text-indigo-600">1日:</span>
-                                                      <span className="font-mono ml-1">
-                                                        {parseFloat(roas['1d_click'] || 0).toFixed(
-                                                          2
-                                                        )}
-                                                      </span>
-                                                    </div>
-                                                    <div>
-                                                      <span className="text-indigo-600">7日:</span>
-                                                      <span className="font-mono ml-1">
-                                                        {parseFloat(roas['7d_click'] || 0).toFixed(
-                                                          2
-                                                        )}
-                                                      </span>
-                                                    </div>
-                                                  </div>
-                                                </div>
-                                              </div>
-                                            )
-                                          )
-                                        ) : (
-                                          <div className="font-mono text-xs">
-                                            {JSON.stringify(insight.website_purchase_roas)}
-                                          </div>
-                                        )}
-                                      </div>
-                                    ) : (
-                                      <span className="font-mono text-gray-900">N/A</span>
-                                    )}
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    score
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
-                                    パフォーマンススコア。広告の総合的な効果を示す内部指標
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">number</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    {item.score?.toFixed(1) || 'N/A'}
-                                  </td>
-                                </tr>
-
-                                {/* ===== 疲労度指標 ===== */}
-                                <tr className="bg-gray-100">
-                                  <td
-                                    colSpan={4}
-                                    className="px-4 py-2 font-bold text-sm text-gray-700"
-                                  >
-                                    🔥 疲労度指標
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    fatigue_score
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
-                                    総合疲労度スコア。0-100の値で、高いほど広告疲労が進んでいる
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">number</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    {item.fatigue_score?.toFixed(0) || 'N/A'}
-                                  </td>
-                                </tr>
-
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    fatigueScore
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
-                                    疲労度スコア（APIレスポンス）。広告の疲労度を示す独自指標
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">number</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    {insight?.fatigueScore?.toFixed(0) || 'N/A'}
-                                  </td>
-                                </tr>
-
-                                {/* ===== 日付関連 ===== */}
-                                <tr className="bg-gray-100">
-                                  <td
-                                    colSpan={4}
-                                    className="px-4 py-2 font-bold text-sm text-gray-700"
-                                  >
-                                    📅 日付関連
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    date_start
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
-                                    データ期間の開始日。このデータが対象とする期間の始まり
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">string</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    {item.firstDate || insight?.date_start || 'N/A'}
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    date_stop
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
-                                    データ期間の終了日。このデータが対象とする期間の終わり
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">string</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    {item.lastDate || insight?.date_stop || 'N/A'}
-                                  </td>
-                                </tr>
-
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    firstDate
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
-                                    データ開始日（処理済み）。集計期間の最初の日付
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">string</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    {item.firstDate || 'N/A'}
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    lastDate
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
-                                    データ終了日（処理済み）。集計期間の最後の日付
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">string</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    {item.lastDate || 'N/A'}
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    dayCount
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
-                                    日数。データ取得期間の日数
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">number</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    {item.dayCount || 'N/A'}日
-                                  </td>
-                                </tr>
-
-                                {/* ===== アクション関連 ===== */}
-                                <tr className="bg-gray-100">
-                                  <td
-                                    colSpan={4}
-                                    className="px-4 py-2 font-bold text-sm text-gray-700"
-                                  >
-                                    🎬 アクション関連
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900 align-top">
-                                    actions
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600 align-top">
-                                    アクション配列。購入、登録、カート追加など様々なアクションの詳細データ
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500 align-top">
-                                    object[]
-                                  </td>
-                                  <td className="px-4 py-2 text-sm">
-                                    {(item.actions || insight?.actions)?.length > 0 ? (
-                                      <div className="space-y-2">
-                                        <div className="font-mono text-gray-900">
-                                          {(item.actions || insight?.actions)?.length}件
-                                        </div>
-                                        <div className="bg-blue-50 p-2 rounded text-xs">
-                                          <div className="font-semibold text-blue-800 mb-1">
-                                            アクション詳細:
-                                          </div>
-                                          {(item.actions || insight?.actions)?.map(
-                                            (action: any, idx: number) => (
-                                              <div
-                                                key={idx}
-                                                className="border-b border-blue-100 pb-1 mb-1 last:border-0"
-                                              >
-                                                <div className="grid grid-cols-2 gap-1">
-                                                  <div>
-                                                    <span className="text-blue-600">
-                                                      action_type:
-                                                    </span>
-                                                    <span className="font-mono ml-1">
-                                                      {action.action_type}
-                                                    </span>
-                                                  </div>
-                                                  <div className="text-gray-700 text-xs italic">
-                                                    {action.action_type?.includes('purchase') &&
-                                                      '購入イベント'}
-                                                    {action.action_type?.includes('add_to_cart') &&
-                                                      'カート追加'}
-                                                    {action.action_type?.includes('lead') &&
-                                                      'リード獲得'}
-                                                    {action.action_type?.includes('view_content') &&
-                                                      'コンテンツ閲覧'}
-                                                    {action.action_type?.includes(
-                                                      'complete_registration'
-                                                    ) && '登録完了'}
-                                                    {action.action_type?.includes('link_click') &&
-                                                      'リンククリック'}
-                                                    {action.action_type?.includes(
-                                                      'landing_page_view'
-                                                    ) && 'LP表示'}
-                                                    {action.action_type?.includes('omni_') &&
-                                                      'オムニチャネル'}
-                                                    {action.action_type?.includes(
-                                                      'page_engagement'
-                                                    ) && 'ページエンゲージメント'}
-                                                    {action.action_type?.includes(
-                                                      'post_engagement'
-                                                    ) && '投稿エンゲージメント'}
-                                                  </div>
-                                                </div>
-                                                <div className="grid grid-cols-3 gap-1 mt-1">
-                                                  <div>
-                                                    <span className="text-blue-600">合計:</span>
-                                                    <span className="font-mono ml-1">
-                                                      {action.value || 0}
-                                                    </span>
-                                                  </div>
-                                                  <div>
-                                                    <span className="text-blue-600">1日:</span>
-                                                    <span className="font-mono ml-1">
-                                                      {action['1d_click'] ||
-                                                        action['1d_view'] ||
-                                                        '-'}
-                                                    </span>
-                                                  </div>
-                                                  <div>
-                                                    <span className="text-blue-600">7日:</span>
-                                                    <span className="font-mono ml-1">
-                                                      {action['7d_click'] ||
-                                                        action['7d_view'] ||
-                                                        '-'}
-                                                    </span>
-                                                  </div>
-                                                </div>
-                                              </div>
-                                            )
-                                          )}
-                                        </div>
-                                      </div>
-                                    ) : (
-                                      <span className="font-mono text-gray-900">N/A</span>
-                                    )}
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900 align-top">
-                                    unique_actions
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600 align-top">
-                                    ユニークアクション配列。重複を除いたユーザー単位のアクションデータ
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500 align-top">
-                                    object[]
-                                  </td>
-                                  <td className="px-4 py-2 text-sm">
-                                    {(item.unique_actions || insight?.unique_actions)?.length >
-                                    0 ? (
-                                      <div className="space-y-2">
-                                        <div className="font-mono text-gray-900">
-                                          {(item.unique_actions || insight?.unique_actions)?.length}
-                                          件
-                                        </div>
-                                        <div className="bg-green-50 p-2 rounded text-xs max-h-64 overflow-y-auto">
-                                          <div className="font-semibold text-green-800 mb-1">
-                                            ユニークアクション詳細:
-                                          </div>
-                                          {(item.unique_actions || insight?.unique_actions)?.map(
-                                            (action: any, idx: number) => (
-                                              <div
-                                                key={idx}
-                                                className="border-b border-green-100 pb-1 mb-1 last:border-0"
-                                              >
-                                                <div className="grid grid-cols-2 gap-1">
-                                                  <div>
-                                                    <span className="text-green-600">
-                                                      action_type:
-                                                    </span>
-                                                    <span className="font-mono ml-1">
-                                                      {action.action_type}
-                                                    </span>
-                                                  </div>
-                                                  <div className="text-gray-700 text-xs italic">
-                                                    {action.action_type?.includes('purchase') &&
-                                                      'ユニーク購入者数'}
-                                                    {action.action_type?.includes('add_to_cart') &&
-                                                      'ユニークカート追加者'}
-                                                    {action.action_type?.includes('lead') &&
-                                                      'ユニークリード数'}
-                                                    {action.action_type?.includes('view_content') &&
-                                                      'ユニーク閲覧者'}
-                                                  </div>
-                                                </div>
-                                                <div className="grid grid-cols-3 gap-1 mt-1">
-                                                  <div>
-                                                    <span className="text-green-600">合計:</span>
-                                                    <span className="font-mono ml-1">
-                                                      {action.value || 0}人
-                                                    </span>
-                                                  </div>
-                                                  <div>
-                                                    <span className="text-green-600">1日:</span>
-                                                    <span className="font-mono ml-1">
-                                                      {action['1d_click'] || '-'}人
-                                                    </span>
-                                                  </div>
-                                                  <div>
-                                                    <span className="text-green-600">7日:</span>
-                                                    <span className="font-mono ml-1">
-                                                      {action['7d_click'] || '-'}人
-                                                    </span>
-                                                  </div>
-                                                </div>
-                                              </div>
-                                            )
-                                          )}
-                                        </div>
-                                      </div>
-                                    ) : (
-                                      <span className="font-mono text-gray-900">N/A</span>
-                                    )}
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900 align-top">
-                                    action_values
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600 align-top">
-                                    アクション価値。各アクションの金額的価値（購入金額等）
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500 align-top">
-                                    object
-                                  </td>
-                                  <td className="px-4 py-2 text-sm">
-                                    {insight?.action_values ? (
-                                      <div className="bg-yellow-50 p-2 rounded text-xs max-h-64 overflow-y-auto">
-                                        <div className="font-semibold text-yellow-800 mb-1">
-                                          アクション価値詳細:
-                                        </div>
-                                        {Array.isArray(insight.action_values) ? (
-                                          insight.action_values.map((val: any, idx: number) => (
-                                            <div
-                                              key={idx}
-                                              className="border-b border-yellow-100 pb-1 mb-1 last:border-0"
-                                            >
-                                              <div className="space-y-1">
-                                                <div>
-                                                  <span className="text-yellow-600">
-                                                    アクション:
-                                                  </span>
-                                                  <span className="font-mono ml-1 text-xs">
-                                                    {val.action_type}
-                                                  </span>
-                                                  <span className="text-gray-600 text-xs ml-1">
-                                                    {val.action_type?.includes('purchase') &&
-                                                      '(購入金額)'}
-                                                    {val.action_type?.includes('add_to_cart') &&
-                                                      '(カート金額)'}
-                                                    {val.action_type?.includes('lead') &&
-                                                      '(リード価値)'}
-                                                  </span>
-                                                </div>
-                                                <div className="grid grid-cols-3 gap-1">
-                                                  <div>
-                                                    <span className="text-yellow-600">総価値:</span>
-                                                    <span className="font-mono ml-1">
-                                                      ¥{parseFloat(val.value || 0).toLocaleString()}
-                                                    </span>
-                                                  </div>
-                                                  <div>
-                                                    <span className="text-yellow-600">1日:</span>
-                                                    <span className="font-mono ml-1">
-                                                      ¥
-                                                      {parseFloat(
-                                                        val['1d_click'] || 0
-                                                      ).toLocaleString()}
-                                                    </span>
-                                                  </div>
-                                                  <div>
-                                                    <span className="text-yellow-600">7日:</span>
-                                                    <span className="font-mono ml-1">
-                                                      ¥
-                                                      {parseFloat(
-                                                        val['7d_click'] || 0
-                                                      ).toLocaleString()}
-                                                    </span>
-                                                  </div>
-                                                </div>
-                                              </div>
-                                            </div>
-                                          ))
-                                        ) : (
-                                          <div className="font-mono text-xs">
-                                            {JSON.stringify(insight.action_values)}
-                                          </div>
-                                        )}
-                                      </div>
-                                    ) : (
-                                      <span className="font-mono text-gray-900">N/A</span>
-                                    )}
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900 align-top">
-                                    cost_per_action_type
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600 align-top">
-                                    アクション別単価。各アクションタイプごとのコスト
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500 align-top">
-                                    object
-                                  </td>
-                                  <td className="px-4 py-2 text-sm">
-                                    {insight?.cost_per_action_type ? (
-                                      <div className="bg-rose-50 p-2 rounded text-xs max-h-64 overflow-y-auto">
-                                        <div className="font-semibold text-rose-800 mb-1">
-                                          アクション別単価詳細:
-                                        </div>
-                                        {Array.isArray(insight.cost_per_action_type) ? (
-                                          insight.cost_per_action_type.map(
-                                            (cost: any, idx: number) => (
-                                              <div
-                                                key={idx}
-                                                className="border-b border-rose-100 pb-1 mb-1 last:border-0"
-                                              >
-                                                <div>
-                                                  <span className="text-rose-600">アクション:</span>
-                                                  <span className="font-mono ml-1 text-xs">
-                                                    {cost.action_type}
-                                                  </span>
-                                                </div>
-                                                <div className="grid grid-cols-3 gap-1 mt-1">
-                                                  <div>
-                                                    <span className="text-rose-600">単価:</span>
-                                                    <span className="font-mono ml-1">
-                                                      ¥{parseFloat(cost.value || 0).toFixed(0)}
-                                                    </span>
-                                                  </div>
-                                                  <div>
-                                                    <span className="text-rose-600">1日:</span>
-                                                    <span className="font-mono ml-1">
-                                                      ¥
-                                                      {parseFloat(cost['1d_click'] || 0).toFixed(0)}
-                                                    </span>
-                                                  </div>
-                                                  <div>
-                                                    <span className="text-rose-600">7日:</span>
-                                                    <span className="font-mono ml-1">
-                                                      ¥
-                                                      {parseFloat(cost['7d_click'] || 0).toFixed(0)}
-                                                    </span>
-                                                  </div>
-                                                </div>
-                                              </div>
-                                            )
-                                          )
-                                        ) : (
-                                          <div className="font-mono text-xs">
-                                            {JSON.stringify(insight.cost_per_action_type)}
-                                          </div>
-                                        )}
-                                      </div>
-                                    ) : (
-                                      <span className="font-mono text-gray-900">N/A</span>
-                                    )}
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900 align-top">
-                                    cost_per_unique_action_type
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600 align-top">
-                                    ユニークアクション別単価。重複を除いたアクション単価
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500 align-top">
-                                    object
-                                  </td>
-                                  <td className="px-4 py-2 text-sm">
-                                    {insight?.cost_per_unique_action_type ? (
-                                      <div className="bg-amber-50 p-2 rounded text-xs max-h-64 overflow-y-auto">
-                                        <div className="font-semibold text-amber-800 mb-1">
-                                          ユニークアクション単価:
-                                        </div>
-                                        {Array.isArray(insight.cost_per_unique_action_type) ? (
-                                          insight.cost_per_unique_action_type.map(
-                                            (cost: any, idx: number) => (
-                                              <div
-                                                key={idx}
-                                                className="border-b border-amber-100 pb-1 mb-1 last:border-0"
-                                              >
-                                                <div>
-                                                  <span className="text-amber-600">
-                                                    アクション:
-                                                  </span>
-                                                  <span className="font-mono ml-1 text-xs">
-                                                    {cost.action_type}
-                                                  </span>
-                                                </div>
-                                                <div className="text-xs text-gray-600 mb-1">
-                                                  重複除外でユニークユーザーあたりのコスト
-                                                </div>
-                                                <div className="grid grid-cols-3 gap-1">
-                                                  <div>
-                                                    <span className="text-amber-600">単価:</span>
-                                                    <span className="font-mono ml-1">
-                                                      ¥{parseFloat(cost.value || 0).toFixed(0)}
-                                                    </span>
-                                                  </div>
-                                                  <div>
-                                                    <span className="text-amber-600">1日:</span>
-                                                    <span className="font-mono ml-1">
-                                                      ¥
-                                                      {parseFloat(cost['1d_click'] || 0).toFixed(0)}
-                                                    </span>
-                                                  </div>
-                                                  <div>
-                                                    <span className="text-amber-600">7日:</span>
-                                                    <span className="font-mono ml-1">
-                                                      ¥
-                                                      {parseFloat(cost['7d_click'] || 0).toFixed(0)}
-                                                    </span>
-                                                  </div>
-                                                </div>
-                                              </div>
-                                            )
-                                          )
-                                        ) : (
-                                          <div className="font-mono text-xs">
-                                            {JSON.stringify(insight.cost_per_unique_action_type)}
-                                          </div>
-                                        )}
-                                      </div>
-                                    ) : (
-                                      <span className="font-mono text-gray-900">N/A</span>
-                                    )}
-                                  </td>
-                                </tr>
-
-                                {/* ===== デバッグ・詳細データ ===== */}
-                                <tr className="bg-gray-100">
-                                  <td
-                                    colSpan={4}
-                                    className="px-4 py-2 font-bold text-sm text-gray-700"
-                                  >
-                                    🔍 デバッグ・詳細データ
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900 align-top">
-                                    conversion_debug
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600 align-top">
-                                    コンバージョンデバッグ情報。トラッキング問題の診断用データ
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500 align-top">
-                                    object
-                                  </td>
-                                  <td className="px-4 py-2 text-sm">
-                                    {insight?.conversion_debug ? (
-                                      <div className="bg-red-50 p-2 rounded text-xs">
-                                        <div className="font-semibold text-red-800 mb-1">
-                                          コンバージョントラッキングデバッグ:
-                                        </div>
-                                        {typeof insight.conversion_debug === 'object' ? (
-                                          <div className="space-y-1">
-                                            {Object.entries(insight.conversion_debug).map(
-                                              ([key, value]: [string, any]) => (
-                                                <div
-                                                  key={key}
-                                                  className="border-b border-red-100 pb-1 last:border-0"
-                                                >
-                                                  <div className="grid grid-cols-2 gap-2">
-                                                    <div>
-                                                      <span className="text-red-600 font-semibold">
-                                                        {key}:
-                                                      </span>
-                                                    </div>
-                                                    <div className="text-gray-700">
-                                                      {key === 'calculated_cv' && (
-                                                        <span className="text-xs">
-                                                          計算されたCV数
-                                                        </span>
-                                                      )}
-                                                      {key === 'action_type_used' && (
-                                                        <span className="text-xs">
-                                                          使用されたアクションタイプ
-                                                        </span>
-                                                      )}
-                                                      {key === 'is_valid' && (
-                                                        <span className="text-xs">
-                                                          データ検証結果
-                                                        </span>
-                                                      )}
-                                                      {key === 'missing_data' && (
-                                                        <span className="text-xs">欠損データ</span>
-                                                      )}
-                                                      {key === 'pixel_status' && (
-                                                        <span className="text-xs">
-                                                          ピクセル状態
-                                                        </span>
-                                                      )}
-                                                    </div>
-                                                  </div>
-                                                  <div className="mt-1 font-mono text-xs bg-white p-1 rounded">
-                                                    {typeof value === 'object'
-                                                      ? JSON.stringify(value)
-                                                      : String(value)}
-                                                  </div>
-                                                </div>
-                                              )
-                                            )}
-                                          </div>
-                                        ) : (
-                                          <div className="font-mono text-xs">
-                                            {JSON.stringify(insight.conversion_debug)}
-                                          </div>
-                                        )}
-                                      </div>
-                                    ) : (
-                                      <span className="font-mono text-gray-900">N/A</span>
-                                    )}
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900 align-top">
-                                    conversions_1d_click
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600 align-top">
-                                    1日クリックアトリビューション詳細。クリック後1日以内の詳細CV
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500 align-top">
-                                    object
-                                  </td>
-                                  <td className="px-4 py-2 text-sm">
-                                    {item.conversions_1d_click || insight?.conversions_1d_click ? (
-                                      <div className="bg-orange-50 p-2 rounded text-xs">
-                                        <div className="font-semibold text-orange-800 mb-1">
-                                          1日クリックCV詳細:
-                                        </div>
-                                        <div className="font-mono">
-                                          {typeof (
-                                            item.conversions_1d_click ||
-                                            insight?.conversions_1d_click
-                                          ) === 'number' ? (
-                                            <span className="text-orange-700">
-                                              合計:{' '}
-                                              {item.conversions_1d_click ||
-                                                insight?.conversions_1d_click}
-                                              件
-                                              <span className="text-xs text-gray-600 ml-2">
-                                                (クリック後24時間以内のコンバージョン)
-                                              </span>
-                                            </span>
-                                          ) : (
-                                            <span className="text-xs">
-                                              {JSON.stringify(
-                                                item.conversions_1d_click ||
-                                                  insight?.conversions_1d_click
-                                              )}
-                                            </span>
-                                          )}
-                                        </div>
-                                      </div>
-                                    ) : (
-                                      <span className="font-mono text-gray-900">null</span>
-                                    )}
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900 align-top">
-                                    metrics
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600 align-top">
-                                    メトリクス集計オブジェクト。各種指標の集約データ
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500 align-top">
-                                    object
-                                  </td>
-                                  <td className="px-4 py-2 text-sm">
-                                    {item.metrics ? (
-                                      <div className="bg-cyan-50 p-2 rounded text-xs max-h-64 overflow-y-auto">
-                                        <div className="font-semibold text-cyan-800 mb-1">
-                                          メトリクス詳細:
-                                        </div>
-                                        <div className="space-y-1">
-                                          {Object.entries(item.metrics).map(
-                                            ([key, value]: [string, any]) => (
-                                              <div
-                                                key={key}
-                                                className="grid grid-cols-2 gap-2 border-b border-cyan-100 pb-1 last:border-0"
-                                              >
-                                                <div className="font-mono text-cyan-700">
-                                                  {key}:
-                                                </div>
-                                                <div className="font-mono text-gray-700">
-                                                  {typeof value === 'number'
-                                                    ? value.toLocaleString()
-                                                    : String(value)}
-                                                  <span className="text-xs text-gray-500 ml-1">
-                                                    {key === 'impressions' && '(表示回数)'}
-                                                    {key === 'clicks' && '(クリック数)'}
-                                                    {key === 'spend' && '(円)'}
-                                                    {key === 'ctr' && '(%)'}
-                                                    {key === 'cpm' && '(千回あたり)'}
-                                                    {key === 'cpc' && '(クリック単価)'}
-                                                    {key === 'frequency' && '(平均表示回数)'}
-                                                    {key === 'reach' && '(リーチ数)'}
-                                                    {key === 'conversions' && '(CV数)'}
-                                                    {key === 'cvr' && '(CV率%)'}
-                                                    {key === 'cpa' && '(獲得単価)'}
-                                                  </span>
-                                                </div>
-                                              </div>
-                                            )
-                                          )}
-                                        </div>
-                                      </div>
-                                    ) : (
-                                      <span className="font-mono text-gray-900">N/A</span>
-                                    )}
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900 align-top">
-                                    dailyData
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600 align-top">
-                                    日別データ配列。time_increment=1で取得した日次パフォーマンス
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500 align-top">
-                                    object
-                                  </td>
-                                  <td className="px-4 py-2 text-sm">
-                                    {item.dailyData ? (
-                                      <div className="bg-teal-50 p-2 rounded text-xs">
-                                        <div className="font-semibold text-teal-800 mb-1">
-                                          日別データ詳細:{' '}
-                                          {Array.isArray(item.dailyData)
-                                            ? item.dailyData.length
-                                            : Object.keys(item.dailyData).length}
-                                          日分
-                                        </div>
-                                        {Array.isArray(item.dailyData) &&
-                                          item.dailyData.length > 0 && (
-                                            <div className="space-y-1 max-h-64 overflow-y-auto">
-                                              <div className="text-xs text-teal-700 mb-1">
-                                                全{item.dailyData.length}日間のデータ:
-                                              </div>
-                                              {item.dailyData.map((day: any, idx: number) => (
-                                                <div
-                                                  key={idx}
-                                                  className="border-b border-teal-100 pb-1 last:border-0"
-                                                >
-                                                  <div className="font-mono text-xs text-teal-800">
-                                                    日付: {day.date}
-                                                  </div>
-                                                  <div className="grid grid-cols-4 gap-1 text-xs mt-1">
-                                                    <div>
-                                                      <span className="text-teal-600">表示:</span>{' '}
-                                                      {day.impressions?.toLocaleString()}
-                                                    </div>
-                                                    <div>
-                                                      <span className="text-teal-600">
-                                                        クリック:
-                                                      </span>{' '}
-                                                      {day.clicks}
-                                                    </div>
-                                                    <div>
-                                                      <span className="text-teal-600">費用:</span> ¥
-                                                      {day.spend?.toLocaleString()}
-                                                    </div>
-                                                    <div>
-                                                      <span className="text-teal-600">CV:</span>{' '}
-                                                      {day.conversions || 0}
-                                                    </div>
-                                                  </div>
-                                                  {day.ctr && (
-                                                    <div className="grid grid-cols-3 gap-1 text-xs mt-1">
-                                                      <div>
-                                                        <span className="text-teal-600">CTR:</span>{' '}
-                                                        {day.ctr}%
-                                                      </div>
-                                                      <div>
-                                                        <span className="text-teal-600">CPM:</span>{' '}
-                                                        ¥{day.cpm}
-                                                      </div>
-                                                      <div>
-                                                        <span className="text-teal-600">CPC:</span>{' '}
-                                                        ¥{day.cpc}
-                                                      </div>
-                                                    </div>
-                                                  )}
-                                                  {day.fatigue_score !== undefined && (
-                                                    <div className="mt-1">
-                                                      <span className="text-teal-600 text-xs">
-                                                        疲労度スコア:
-                                                      </span>
-                                                      <span
-                                                        className={`font-mono ml-1 text-xs ${
-                                                          day.fatigue_score > 70
-                                                            ? 'text-red-600'
-                                                            : day.fatigue_score > 40
-                                                              ? 'text-yellow-600'
-                                                              : 'text-green-600'
-                                                        }`}
-                                                      >
-                                                        {day.fatigue_score}
-                                                      </span>
-                                                    </div>
-                                                  )}
-                                                </div>
-                                              ))}
-                                            </div>
-                                          )}
-                                      </div>
-                                    ) : (
-                                      <span className="font-mono text-gray-900">0日分</span>
-                                    )}
-                                  </td>
-                                </tr>
-
-                                {/* ===== 品質評価指標（API v23.0） ===== */}
-                                <tr className="bg-gray-100">
-                                  <td
-                                    colSpan={4}
-                                    className="px-4 py-2 font-bold text-sm text-gray-700"
-                                  >
-                                    ⭐ 品質評価指標
-                                    <span className="ml-2 text-xs font-normal text-blue-600">
-                                      (API v23.0 - 2019年4月30日より relevance_score から移行)
-                                    </span>
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    quality_ranking
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
-                                    品質ランキング。広告の品質を他の広告と比較した評価
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">string</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    <span className={`inline-flex px-2 py-1 text-xs rounded-full ${
-                                      insight?.quality_ranking === 'above_average'
-                                        ? 'bg-green-100 text-green-800'
-                                        : insight?.quality_ranking === 'average'
-                                        ? 'bg-yellow-100 text-yellow-800'
-                                        : insight?.quality_ranking === 'below_average'
-                                        ? 'bg-red-100 text-red-800'
-                                        : 'bg-gray-100 text-gray-800'
-                                    }`}>
-                                      {insight?.quality_ranking || 'N/A'}
-                                    </span>
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    engagement_rate_ranking
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
-                                    エンゲージメント率ランキング。いいね、コメント、シェア等の反応率評価
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">string</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    <span className={`inline-flex px-2 py-1 text-xs rounded-full ${
-                                      insight?.engagement_rate_ranking === 'above_average'
-                                        ? 'bg-green-100 text-green-800'
-                                        : insight?.engagement_rate_ranking === 'average'
-                                        ? 'bg-yellow-100 text-yellow-800'
-                                        : insight?.engagement_rate_ranking === 'below_average'
-                                        ? 'bg-red-100 text-red-800'
-                                        : 'bg-gray-100 text-gray-800'
-                                    }`}>
-                                      {insight?.engagement_rate_ranking || 'N/A'}
-                                    </span>
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    conversion_rate_ranking
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
-                                    コンバージョン率ランキング。目標達成率を他の広告と比較した評価
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">string</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    <span className={`inline-flex px-2 py-1 text-xs rounded-full ${
-                                      insight?.conversion_rate_ranking === 'above_average'
-                                        ? 'bg-green-100 text-green-800'
-                                        : insight?.conversion_rate_ranking === 'average'
-                                        ? 'bg-yellow-100 text-yellow-800'
-                                        : insight?.conversion_rate_ranking === 'below_average'
-                                        ? 'bg-red-100 text-red-800'
-                                        : 'bg-gray-100 text-gray-800'
-                                    }`}>
-                                      {insight?.conversion_rate_ranking || 'N/A'}
-                                    </span>
-                                  </td>
-                                </tr>
-
-                                {/* ===== 動画メトリクス（API v23.0） ===== */}
-                                <tr className="bg-gray-100">
-                                  <td
-                                    colSpan={4}
-                                    className="px-4 py-2 font-bold text-sm text-gray-700"
-                                  >
-                                    🎬 動画メトリクス
-                                    <span className="ml-2 text-xs font-normal text-gray-600">
-                                      (動画広告のみ利用可能)
-                                    </span>
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    video_play_actions
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
-                                    動画再生アクション。動画が再生された回数
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">array</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    {insight?.video_play_actions?.[0]?.value || 'N/A'}
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    video_p25_watched_actions
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
-                                    25%視聴完了。動画の25%以上が視聴された回数
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">array</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    {insight?.video_p25_watched_actions?.[0]?.value || 'N/A'}
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    video_p50_watched_actions
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
-                                    50%視聴完了。動画の半分以上が視聴された回数
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">array</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    {insight?.video_p50_watched_actions?.[0]?.value || 'N/A'}
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    video_p75_watched_actions
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
-                                    75%視聴完了。動画の75%以上が視聴された回数
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">array</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    {insight?.video_p75_watched_actions?.[0]?.value || 'N/A'}
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    video_p100_watched_actions
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
-                                    完全視聴。動画が最後まで視聴された回数
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">array</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    {insight?.video_p100_watched_actions?.[0]?.value || 'N/A'}
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    video_thruplay_watched_actions
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
-                                    ThruPlay視聴。15秒以上または全体（短い方）を視聴した回数
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">array</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    {insight?.video_thruplay_watched_actions?.[0]?.value || 'N/A'}
-                                  </td>
-                                </tr>
-
-                                {/* ===== リンククリック詳細（API v23.0） ===== */}
-                                <tr className="bg-gray-100">
-                                  <td
-                                    colSpan={4}
-                                    className="px-4 py-2 font-bold text-sm text-gray-700"
-                                  >
-                                    🔗 リンククリック詳細
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    inline_link_clicks
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
-                                    広告内リンククリック。広告内のリンクがクリックされた総回数
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">number</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    {insight?.inline_link_clicks?.toLocaleString() || 'N/A'}
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    inline_link_click_ctr
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
-                                    広告内リンクCTR。インプレッションに対する広告内リンククリック率
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">number</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    {insight?.inline_link_click_ctr
-                                      ? `${parseFloat(insight.inline_link_click_ctr).toFixed(2)}%`
-                                      : 'N/A'}
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    unique_inline_link_clicks
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
-                                    ユニーク広告内リンククリック。重複を除いたユニークユーザー数
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">number</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    {insight?.unique_inline_link_clicks?.toLocaleString() || 'N/A'}
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-gray-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    outbound_clicks
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
-                                    外部クリック。Facebook/Instagram外へのリンククリック数
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">array</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900">
-                                    {insight?.outbound_clicks?.[0]?.value || 'N/A'}
-                                  </td>
-                                </tr>
-
-                                {/* ===== 廃止されたフィールド ===== */}
-                                <tr className="bg-red-50">
-                                  <td
-                                    colSpan={4}
-                                    className="px-4 py-2 font-bold text-sm text-red-700"
-                                  >
-                                    ⚠️ 廃止されたフィールド
-                                  </td>
-                                </tr>
-                                <tr className="hover:bg-red-50">
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-900 line-through">
-                                    relevance_score
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-600">
-                                    <span className="text-red-600">【廃止】</span> 2019年4月30日に廃止。
-                                    quality_ranking, engagement_rate_ranking, conversion_rate_ranking に置き換え
-                                  </td>
-                                  <td className="px-4 py-2 text-sm text-gray-500">-</td>
-                                  <td className="px-4 py-2 font-mono text-sm text-gray-500">
-                                    廃止済み
-                                  </td>
-                                </tr>
-                              </tbody>
-                            </table>
-
-                            {/* 追加ヒント */}
-                            <div className="mt-4 p-3 bg-yellow-100 border border-yellow-300 rounded-lg">
-                              <h5 className="font-semibold text-yellow-800 mb-2">
-                                💡 新機能開発のヒント
-                              </h5>
-                              <ul className="text-xs text-yellow-700 space-y-1">
-                                <li>
-                                  • <span className="font-mono">video_play_actions, video_p25_watched_actions等</span>:
-                                  動画広告の詳細な視聴データ（個別フィールドとして提供）
-                                </li>
-                                <li>
-                                  • <span className="font-mono">cost_per_action_type</span>:
-                                  アクション毎のコスト分析が可能
-                                </li>
-                                <li>
-                                  • <span className="font-mono">quality_ranking, engagement_rate_ranking, conversion_rate_ranking</span>:
-                                  品質評価指標（relevance_scoreの後継）
-                                </li>
-                                <li>
-                                  • <span className="font-mono">website_purchase_roas</span>:
-                                  ウェブサイト購入に特化したROAS測定
-                                </li>
-                                <li>
-                                  • <span className="font-mono">inline_link_clicks</span>:
-                                  広告内リンクのクリック詳細
-                                </li>
-                              </ul>
-                            </div>
-                          </div>
+                        {/* 追加ヒント */}
+                        <div className="mt-4 p-3 bg-yellow-100 border border-yellow-300 rounded-lg">
+                          <h5 className="font-semibold text-yellow-800 mb-2">
+                            💡 新機能開発のヒント
+                          </h5>
+                          <ul className="text-xs text-yellow-700 space-y-1">
+                            <li>
+                              •{' '}
+                              <span className="font-mono">
+                                video_play_actions, video_p25_watched_actions等
+                              </span>
+                              : 動画広告の詳細な視聴データ（個別フィールドとして提供）
+                            </li>
+                            <li>
+                              • <span className="font-mono">cost_per_action_type</span>:
+                              アクション毎のコスト分析が可能
+                            </li>
+                            <li>
+                              •{' '}
+                              <span className="font-mono">
+                                quality_ranking, engagement_rate_ranking, conversion_rate_ranking
+                              </span>
+                              : 品質評価指標（relevance_scoreの後継）
+                            </li>
+                            <li>
+                              • <span className="font-mono">website_purchase_roas</span>:
+                              ウェブサイト購入に特化したROAS測定
+                            </li>
+                            <li>
+                              • <span className="font-mono">inline_link_clicks</span>:
+                              広告内リンクのクリック詳細
+                            </li>
+                          </ul>
                         </div>
 
                         {/* デバッグ情報 */}
@@ -2935,6 +2932,38 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                         </div>
                       </div>
                     </div>
+                  </div>
+                ) : activeTab === 'debug' ? (
+                  /* Debug Mode - Comprehensive Data Tabs */
+                  <div className="space-y-6">
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-lg font-semibold text-blue-900">
+                            Meta Ads API 完全データビュー
+                          </h3>
+                          <p className="text-sm text-blue-700 mt-1">
+                            すべてのAPI エンドポイントから取得可能なデータを表示します
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => setShowDebugMode(!showDebugMode)}
+                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                        >
+                          {showDebugMode ? 'タブを隠す' : 'データを表示'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {showDebugMode && (
+                      <ComprehensiveDataTabs
+                        adId={item.adId}
+                        accessToken={accessToken || ''}
+                        accountId={accountId || ''}
+                        adsetId={insight?.adset_id}
+                        campaignId={insight?.campaign_id}
+                      />
+                    )}
                   </div>
                 ) : (
                   /* Time Series Analysis Tab */
@@ -2961,17 +2990,18 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                               <div className="grid grid-cols-3 gap-4 mb-4 text-sm">
                                 <div className="text-center">
                                   <div className="font-medium text-blue-600">
-                                    CTR: {(timeSeriesData.summary.avgCTR * 100).toFixed(2)}%
+                                    CTR: {(timeSeriesData.summary?.avgCTR * 100 || 0).toFixed(2)}%
                                   </div>
                                 </div>
                                 <div className="text-center">
                                   <div className="font-medium text-green-600">
-                                    CPM: ¥{timeSeriesData.summary.avgCPM.toFixed(0)}
+                                    CPM: ¥{(timeSeriesData.summary?.avgCPM || 0).toFixed(0)}
                                   </div>
                                 </div>
                                 <div className="text-center">
                                   <div className="font-medium text-orange-600">
-                                    Frequency: {timeSeriesData.summary.avgFrequency.toFixed(2)}
+                                    Frequency:{' '}
+                                    {(timeSeriesData.summary?.avgFrequency || 0).toFixed(2)}
                                   </div>
                                 </div>
                               </div>
@@ -3006,7 +3036,8 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                               <div className="grid grid-cols-4 gap-4 mb-4 text-sm">
                                 <div className="text-center">
                                   <div className="font-medium text-purple-600">
-                                    広告費: ¥{timeSeriesData.summary.totalSpend.toLocaleString()}
+                                    広告費: ¥
+                                    {(timeSeriesData.summary?.totalSpend || 0).toLocaleString()}
                                   </div>
                                 </div>
                                 <div className="text-center">
@@ -3030,7 +3061,7 @@ export function CreativeDetailModal(props: CreativeDetailModalProps) {
                                 CPA: ¥
                                 {timeSeriesData.chartData[0]?.conversions > 0
                                   ? (
-                                      timeSeriesData.summary.totalSpend /
+                                      (timeSeriesData.summary?.totalSpend || 0) /
                                       timeSeriesData.chartData[0].conversions
                                     ).toLocaleString()
                                   : 'N/A'}

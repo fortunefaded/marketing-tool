@@ -67,8 +67,8 @@ export function useAdFatigueSimplified({
 }: UseAdFatigueOptions): UseAdFatigueResult {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [dataSource, setDataSource] = useState<'cache' | 'api' | null>(null)
-  const [lastRefreshTime, setLastRefreshTime] = useState(0)
-  const [loadingTimeout, setLoadingTimeout] = useState<NodeJS.Timeout | null>(null)
+  const [_lastRefreshTime, setLastRefreshTime] = useState(0)
+  const [_loadingTimeout, _setLoadingTimeout] = useState<NodeJS.Timeout | null>(null)
   
   // TASK-005: リファクタリング - デバッグログヘルパーと日付範囲情報
   const debugLog = useCallback((message: string, data?: any) => {
@@ -240,7 +240,6 @@ export function useAdFatigueSimplified({
       return finalInsights
     }
     
-    const now = new Date()
     const getDaysAgo = (days: number) => {
       const date = new Date()
       date.setDate(date.getDate() - days)
