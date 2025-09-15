@@ -378,7 +378,7 @@ export function ActionMetricsDisplay({
                 value: metrics.summary.conversionFunnel.purchase,
                 color: 'bg-green-500',
               },
-            ].map((step, index) => {
+            ].map((step, _index) => {
               const percentage =
                 metrics.summary.conversionFunnel!.views > 0
                   ? (step.value / metrics.summary.conversionFunnel!.views) * 100

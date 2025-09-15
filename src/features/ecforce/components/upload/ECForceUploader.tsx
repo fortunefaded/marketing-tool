@@ -4,7 +4,7 @@ import { api } from '../../../../../convex/_generated/api'
 import { CSVDropzone } from './CSVDropzone'
 import { CSVPreview } from './CSVPreview'
 import { UploadProgress } from './UploadProgress'
-import { parseECForceCSV, previewECForceCSV, extractAdvertisers } from '../../utils/csvParser'
+import { parseECForceCSV, previewECForceCSV } from '../../utils/csvParser'
 
 export const ECForceUploader: React.FC = () => {
   const [file, setFile] = useState<File | null>(null)
