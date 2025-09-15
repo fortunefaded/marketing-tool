@@ -4,15 +4,7 @@
  */
 
 import React from 'react'
-import {
-  TrendingUp,
-  ShoppingCart,
-  Users,
-  MousePointer,
-  Video,
-  MessageSquare,
-  ExternalLink,
-} from 'lucide-react'
+import { TrendingUp, ShoppingCart, Users, MousePointer, Video, ExternalLink } from 'lucide-react'
 
 // アクションの型定義
 interface Action {
