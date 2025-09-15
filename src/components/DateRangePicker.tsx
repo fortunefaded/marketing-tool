@@ -101,7 +101,7 @@ export function DateRangePicker({
               options: {
                 offset: [0, 8],
               },
-            },
+            } as any,
             {
               name: 'preventOverflow',
               options: {
@@ -109,13 +109,13 @@ export function DateRangePicker({
                 tether: false,
                 altAxis: true,
               },
-            },
+            } as any,
             {
               name: 'flip',
               options: {
                 fallbackPlacements: ['top'],
               },
-            },
+            } as any,
           ]}
           withPortal
         />
@@ -149,7 +149,7 @@ export function DateRangePicker({
               options: {
                 offset: [0, 8],
               },
-            },
+            } as any,
             {
               name: 'preventOverflow',
               options: {
@@ -157,13 +157,13 @@ export function DateRangePicker({
                 tether: false,
                 altAxis: true,
               },
-            },
+            } as any,
             {
               name: 'flip',
               options: {
                 fallbackPlacements: ['top'],
               },
-            },
+            } as any,
           ]}
           withPortal
         />
