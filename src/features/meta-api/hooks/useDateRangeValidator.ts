@@ -3,7 +3,7 @@
  * TASK-005: 日付範囲の妥当性検証フック
  */
 
-import { useCallback, useMemo } from 'react'
+import { useCallback } from 'react'
 import type { DateRangePreset } from '../utils/date-range-helpers'
 import { getDateRangeInfo, isValidDateRangePreset } from '../utils/date-range-helpers'
 
@@ -201,7 +201,7 @@ export function useDateRangeValidator() {
     
     // ユーザー経験レベル別の調整
     if (userExperience === 'beginner') {
-      if (suggested === 'last_90d') {
+      if ((suggested as string) === 'last_90d') {
         suggested = 'last_30d'
         reason = '初心者には扱いやすい期間です'
       }

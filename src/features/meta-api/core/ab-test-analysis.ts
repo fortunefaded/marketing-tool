@@ -268,7 +268,7 @@ export class ABTestAnalyzer {
     const t = (mean2 - mean1) / se
     
     // 自由度
-    const df = n1 + n2 - 2
+    // const df = n1 + n2 - 2
     
     // p値（簡易計算）
     const pValue = Math.min(1, Math.abs(t) < 1.96 ? 0.05 : 0.001)
@@ -393,7 +393,7 @@ export class ABTestAnalyzer {
     statistics: ABTestResult['statistics'],
     comparison: ABTestResult['comparison'],
     control: TestVariant,
-    variant: TestVariant
+    _variant: TestVariant
   ): ABTestResult['recommendations'] {
     const reasoning: string[] = []
     const nextSteps: string[] = []
@@ -462,8 +462,8 @@ export class ABTestAnalyzer {
   private static calculateRequiredSampleSize(
     baseline: number,
     expectedLift: number,
-    alpha: number = 0.05,
-    power: number = 0.8
+    _alpha: number = 0.05,
+    _power: number = 0.8
   ): number {
     // 簡易計算（実際はより詳細な計算が必要）
     const p1 = baseline / 100
@@ -516,8 +516,8 @@ export class ABTestAnalyzer {
    * セグメント分析（簡略版）
    */
   private static analyzeSegments(
-    control: TestVariant,
-    variant: TestVariant
+    _control: TestVariant,
+    _variant: TestVariant
   ): ABTestResult['segments'] {
     // セグメント例
     return [
@@ -571,7 +571,7 @@ export class ABTestAnalyzer {
     effectSize: number,
     n1: number,
     n2: number,
-    alpha: number
+    _alpha: number
   ): number {
     // Cohen's conventionに基づく簡易計算
     const n = (n1 + n2) / 2

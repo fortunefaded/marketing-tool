@@ -4,6 +4,14 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Content Security Policy for Facebook embeds and Convex -->
+    <meta http-equiv="Content-Security-Policy" 
+          content="default-src 'self'; 
+                   script-src 'self' 'unsafe-inline' 'unsafe-eval' https://connect.facebook.net https://*.facebook.com; 
+                   style-src 'self' 'unsafe-inline'; 
+                   img-src 'self' data: https: blob:; 
+                   frame-src https://www.facebook.com https://*.facebook.com https://facebook.com; 
+                   connect-src 'self' https://graph.facebook.com https://*.facebook.com https://ka-f.fontawesome.com wss://*.convex.cloud https://*.convex.cloud;">
     <title>Marketing Tool - 社内マーケティング管理ツール</title>
   </head>
   <body>

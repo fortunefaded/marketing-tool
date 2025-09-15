@@ -4,11 +4,10 @@
  */
 
 import { useMemo } from 'react'
-import { 
-  UnifiedAdData, 
+import {
+  UnifiedAdData,
   AdPerformanceData,
-  AggregationOptions,
-  AggregationResult 
+  AggregationOptions
 } from '../../types'
 import { AdDataAggregator } from '../../core/ad-data-aggregator'
 

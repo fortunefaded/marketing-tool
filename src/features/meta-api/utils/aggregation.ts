@@ -50,6 +50,13 @@ export interface AggregatedData {
     cpc: number
     cvr: number
     cpm: number
+    // ECForceデータ
+    ecforce_cv?: number
+    ecforce_fcv?: number
+    ecforce_cv_total?: number
+    ecforce_fcv_total?: number
+    conversions_1d_click?: number
+    unique_ctr?: number
   }
   // 集計対象の広告数
   adCount: number
@@ -168,6 +175,13 @@ export function aggregateByLevel(insights: AdInsight[], level: AggregationLevel)
               ? (conversionData.cv / Number(insight.clicks)) * 100 // 正しいCV値でCVR計算
               : 0,
           cpm: Number(insight.cpm) || 0,
+          // ECForceデータ
+          ecforce_cv: Number(insight.ecforce_cv) || 0,
+          ecforce_fcv: Number(insight.ecforce_fcv) || 0,
+          ecforce_cv_total: Number(insight.ecforce_cv_total) || 0,
+          ecforce_fcv_total: Number(insight.ecforce_fcv_total) || 0,
+          conversions_1d_click: Number(insight.conversions_1d_click) || 0,
+          unique_ctr: Number(insight.unique_ctr) || 0,
         },
         adCount: 1,
         fatigueScore: fatigueData[index]?.score,
@@ -218,6 +232,13 @@ export function aggregateByLevel(insights: AdInsight[], level: AggregationLevel)
           cpc: 0,
           cvr: 0,
           cpm: 0,
+          // ECForceデータ
+          ecforce_cv: 0,
+          ecforce_fcv: 0,
+          ecforce_cv_total: 0,
+          ecforce_fcv_total: 0,
+          conversions_1d_click: 0,
+          unique_ctr: 0,
         },
         adCount: 0,
         insights: [],
@@ -233,6 +254,17 @@ export function aggregateByLevel(insights: AdInsight[], level: AggregationLevel)
     acc[key].metrics.clicks += Number(insight.clicks) || 0
     acc[key].metrics.conversions += conversionData.cv // 正しいCV値を使用
     acc[key].metrics.reach += Number(insight.reach) || 0
+    // ECForceデータを累積
+    acc[key].metrics.ecforce_cv += Number(insight.ecforce_cv) || 0
+    acc[key].metrics.ecforce_fcv += Number(insight.ecforce_fcv) || 0
+    acc[key].metrics.conversions_1d_click += Number(insight.conversions_1d_click) || 0
+    // 合計値は最初のアイテムから取得（全体の合計値なので）
+    if (acc[key].metrics.ecforce_cv_total === 0) {
+      acc[key].metrics.ecforce_cv_total = Number(insight.ecforce_cv_total) || 0
+    }
+    if (acc[key].metrics.ecforce_fcv_total === 0) {
+      acc[key].metrics.ecforce_fcv_total = Number(insight.ecforce_fcv_total) || 0
+    }
     acc[key].adCount += 1
     acc[key].insights.push(insight)
 
@@ -243,8 +275,20 @@ export function aggregateByLevel(insights: AdInsight[], level: AggregationLevel)
   return Object.values(grouped).map((group) => {
     const metrics = group.metrics
 
-    // 計算メトリクスを更新
-    metrics.cpa = metrics.conversions > 0 ? metrics.spend / metrics.conversions : 0
+    // デバッグ: ECForceデータの集計結果を確認
+    console.log(`📊 ${level} aggregation - ${group.name}:`, {
+      id: group.id,
+      ecforce_cv: metrics.ecforce_cv,
+      ecforce_fcv: metrics.ecforce_fcv,
+      ecforce_cv_total: metrics.ecforce_cv_total,
+      ecforce_fcv_total: metrics.ecforce_fcv_total,
+      conversions: metrics.conversions,
+      meta_api_conversions: metrics.conversions,
+    })
+
+    // 計算メトリクスを更新（ECForceデータを優先）
+    const cvForCpa = metrics.ecforce_cv || metrics.conversions || 0
+    metrics.cpa = cvForCpa > 0 ? metrics.spend / cvForCpa : 0
 
     metrics.ctr = metrics.impressions > 0 ? (metrics.clicks / metrics.impressions) * 100 : 0
 

@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import DatePicker from 'react-datepicker'
 import { CalendarIcon } from 'lucide-react'
 import { ja } from 'date-fns/locale'
+import { logUI } from '@/utils/debugLogger'
 
 interface DateRangePickerProps {
   startDate: Date | null
@@ -52,7 +53,7 @@ export function DateRangePicker({
   }
 
   const handleApply = () => {
-    console.log('🔵 DateRangePicker: Apply button handler called', {
+    logUI('DateRangePicker', 'Apply button handler called', {
       localStartDate: localStartDate?.toISOString(),
       localEndDate: localEndDate?.toISOString(),
       hasOnApply: !!onApply,
@@ -62,11 +63,11 @@ export function DateRangePicker({
       onChange(localStartDate, localEndDate)
       // その後、onApplyを呼ぶ
       if (onApply) {
-        console.log('🔵 DateRangePicker: Calling onApply callback')
+        logUI('DateRangePicker', 'Calling onApply callback', null)
         onApply()
       }
     } else {
-      console.warn('🔵 DateRangePicker: Cannot apply - missing dates', {
+      logUI('DateRangePicker', 'Cannot apply - missing dates', {
         hasStart: !!localStartDate,
         hasEnd: !!localEndDate,
       })
@@ -74,143 +75,141 @@ export function DateRangePicker({
   }
 
   return (
-    <div className={`flex flex-col gap-2 ${className}`}>
-      <div className="flex items-center gap-2">
-        {/* 開始日 */}
-        <div className="relative">
-          <DatePicker
-            selected={localStartDate}
-            onChange={handleStartDateChange}
-            selectsStart
-            startDate={localStartDate}
-            endDate={localEndDate}
-            maxDate={maxDate}
-            minDate={minDate}
-            dateFormat="yyyy/MM/dd"
-            locale={ja}
-            placeholderText="開始日"
-            disabled={disabled}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-32"
-            showMonthDropdown
-            showYearDropdown
-            dropdownMode="select"
-            popperPlacement="bottom"
-            popperModifiers={[
-              {
-                name: 'offset',
-                options: {
-                  offset: [0, 8],
-                },
+    <div className={`flex items-center gap-2 ${className}`}>
+      {/* 開始日 */}
+      <div className="relative">
+        <DatePicker
+          selected={localStartDate}
+          onChange={handleStartDateChange}
+          selectsStart
+          startDate={localStartDate}
+          endDate={localEndDate}
+          maxDate={maxDate}
+          minDate={minDate}
+          dateFormat="yyyy/MM/dd"
+          locale={ja}
+          placeholderText="開始日"
+          disabled={disabled}
+          className="px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-28"
+          showMonthDropdown
+          showYearDropdown
+          dropdownMode="select"
+          popperPlacement="bottom"
+          popperModifiers={[
+            {
+              name: 'offset',
+              options: {
+                offset: [0, 8],
               },
-              {
-                name: 'preventOverflow',
-                options: {
-                  rootBoundary: 'viewport',
-                  tether: false,
-                  altAxis: true,
-                },
+            },
+            {
+              name: 'preventOverflow',
+              options: {
+                rootBoundary: 'viewport',
+                tether: false,
+                altAxis: true,
               },
-              {
-                name: 'flip',
-                options: {
-                  fallbackPlacements: ['top'],
-                },
+            },
+            {
+              name: 'flip',
+              options: {
+                fallbackPlacements: ['top'],
               },
-            ]}
-            withPortal
-          />
-          <CalendarIcon className="absolute right-2 top-2.5 h-4 w-4 text-gray-400 pointer-events-none" />
-        </div>
-
-        <span className="text-gray-500">〜</span>
-
-        {/* 終了日 */}
-        <div className="relative">
-          <DatePicker
-            selected={localEndDate}
-            onChange={handleEndDateChange}
-            selectsEnd
-            startDate={localStartDate}
-            endDate={localEndDate}
-            minDate={localStartDate || minDate}
-            maxDate={maxDate}
-            dateFormat="yyyy/MM/dd"
-            locale={ja}
-            placeholderText="終了日"
-            disabled={disabled || !localStartDate}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-32"
-            showMonthDropdown
-            showYearDropdown
-            dropdownMode="select"
-            popperPlacement="bottom"
-            popperModifiers={[
-              {
-                name: 'offset',
-                options: {
-                  offset: [0, 8],
-                },
-              },
-              {
-                name: 'preventOverflow',
-                options: {
-                  rootBoundary: 'viewport',
-                  tether: false,
-                  altAxis: true,
-                },
-              },
-              {
-                name: 'flip',
-                options: {
-                  fallbackPlacements: ['top'],
-                },
-              },
-            ]}
-            withPortal
-          />
-          <CalendarIcon className="absolute right-2 top-2.5 h-4 w-4 text-gray-400 pointer-events-none" />
-        </div>
-
-        {/* 適用ボタン */}
-        {localStartDate && localEndDate && (
-          <button
-            onClick={handleApply}
-            disabled={isLoading}
-            className={`px-4 py-2 rounded-lg text-white text-sm font-medium transition-all ${
-              isLoading
-                ? 'bg-gray-400 cursor-not-allowed'
-                : 'bg-blue-600 hover:bg-blue-700 active:scale-95'
-            }`}
-          >
-            {isLoading ? (
-              <span className="flex items-center gap-2">
-                <svg
-                  className="animate-spin h-4 w-4"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-                取得中...
-              </span>
-            ) : (
-              '適用'
-            )}
-          </button>
-        )}
+            },
+          ]}
+          withPortal
+        />
+        <CalendarIcon className="absolute right-1 top-2 h-3 w-3 text-gray-400 pointer-events-none" />
       </div>
+
+      <span className="text-gray-500 text-sm">〜</span>
+
+      {/* 終了日 */}
+      <div className="relative">
+        <DatePicker
+          selected={localEndDate}
+          onChange={handleEndDateChange}
+          selectsEnd
+          startDate={localStartDate}
+          endDate={localEndDate}
+          minDate={localStartDate || minDate}
+          maxDate={maxDate}
+          dateFormat="yyyy/MM/dd"
+          locale={ja}
+          placeholderText="終了日"
+          disabled={disabled || !localStartDate}
+          className="px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-28"
+          showMonthDropdown
+          showYearDropdown
+          dropdownMode="select"
+          popperPlacement="bottom"
+          popperModifiers={[
+            {
+              name: 'offset',
+              options: {
+                offset: [0, 8],
+              },
+            },
+            {
+              name: 'preventOverflow',
+              options: {
+                rootBoundary: 'viewport',
+                tether: false,
+                altAxis: true,
+              },
+            },
+            {
+              name: 'flip',
+              options: {
+                fallbackPlacements: ['top'],
+              },
+            },
+          ]}
+          withPortal
+        />
+        <CalendarIcon className="absolute right-1 top-2 h-3 w-3 text-gray-400 pointer-events-none" />
+      </div>
+
+      {/* 適用ボタン */}
+      {localStartDate && localEndDate && (
+        <button
+          onClick={handleApply}
+          disabled={isLoading}
+          className={`px-3 py-1.5 rounded-md text-white text-sm font-medium transition-all ${
+            isLoading
+              ? 'bg-gray-400 cursor-not-allowed'
+              : 'bg-blue-600 hover:bg-blue-700 active:scale-95'
+          }`}
+        >
+          {isLoading ? (
+            <span className="flex items-center gap-2">
+              <svg
+                className="animate-spin h-4 w-4"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              取得中...
+            </span>
+          ) : (
+            '適用'
+          )}
+        </button>
+      )}
     </div>
   )
 }

@@ -258,7 +258,7 @@ export class ChartDataTransformer {
    */
   static toRechartsLineDataOptimized(
     graphDataPoints: GraphDataPoint[],
-    options: ChartTransformOptions = {}
+    _options: ChartTransformOptions = {}
   ): Record<string, any>[] {
     if (!graphDataPoints || graphDataPoints.length === 0) {
       return []

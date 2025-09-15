@@ -4,17 +4,14 @@
  */
 
 import React, { useState } from 'react'
-import { ABTestAnalyzer, ABTestResult, TestVariant } from '../core/ab-test-analysis'
+import { ABTestAnalyzer, TestVariant } from '../core/ab-test-analysis'
 import { SafeMetrics } from '../utils/safe-data-access'
 import {
-  ChartBarIcon,
   CheckCircleIcon,
   XCircleIcon,
   InformationCircleIcon,
   BeakerIcon,
   TrophyIcon,
-  ArrowUpIcon,
-  ArrowDownIcon,
   ScaleIcon,
 } from '@heroicons/react/24/outline'
 import {
@@ -26,7 +23,6 @@ import {
   Tooltip,
   ResponsiveContainer,
   Cell,
-  Legend,
 } from 'recharts'
 
 interface ABTestResultsViewerProps {
@@ -40,11 +36,6 @@ interface ABTestResultsViewerProps {
 /**
  * 信頼度レベルのカラーマップ
  */
-const getConfidenceColor = (confidence: number) => {
-  if (confidence >= 95) return 'text-green-600 bg-green-50'
-  if (confidence >= 90) return 'text-yellow-600 bg-yellow-50'
-  return 'text-gray-600 bg-gray-50'
-}
 
 /**
  * p値の解釈
@@ -100,13 +91,13 @@ export const ABTestResultsViewer: React.FC<ABTestResultsViewerProps> = ({
     return [
       {
         name: control.name || 'Control',
-        value: result.control.mean,
+        value: result.comparison[0]?.control || 0,
         fill: '#3B82F6',
       },
       {
         name: variant.name || 'Variant',
-        value: result.variant.mean,
-        fill: result.winner?.variant === 'variant' ? '#10B981' : '#F59E0B',
+        value: result.comparison[0]?.variant || 0,
+        fill: result.winner?.variant?.type === 'variant' ? '#10B981' : '#F59E0B',
       },
     ]
   }, [result, control.name, variant.name])
@@ -120,11 +111,11 @@ export const ABTestResultsViewer: React.FC<ABTestResultsViewerProps> = ({
       const testResult = ABTestAnalyzer.analyzeTest(control, variant, metric, confidenceLevel)
       return {
         metric: getMetricLabel(metric),
-        control: testResult.control.mean,
-        variant: testResult.variant.mean,
-        improvement: testResult.absoluteDifference,
-        improvementRate: testResult.relativeDifference * 100,
-        significant: testResult.isSignificant,
+        control: testResult.comparison[0]?.control || 0,
+        variant: testResult.comparison[0]?.variant || 0,
+        improvement: testResult.comparison[0]?.difference || 0,
+        improvementRate: testResult.comparison[0]?.percentageChange || 0,
+        significant: testResult.winner?.isSignificant || false,
       }
     })
   }, [control, variant, confidenceLevel])
@@ -180,7 +171,7 @@ export const ABTestResultsViewer: React.FC<ABTestResultsViewerProps> = ({
       {result.winner && (
         <div
           className={`rounded-lg p-6 ${
-            result.isSignificant
+            result.winner?.isSignificant
               ? 'bg-green-50 border-2 border-green-300'
               : 'bg-yellow-50 border-2 border-yellow-300'
           }`}
@@ -188,29 +179,33 @@ export const ABTestResultsViewer: React.FC<ABTestResultsViewerProps> = ({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <TrophyIcon
-                className={`h-8 w-8 ${result.isSignificant ? 'text-green-600' : 'text-yellow-600'}`}
+                className={`h-8 w-8 ${result.winner?.isSignificant ? 'text-green-600' : 'text-yellow-600'}`}
               />
               <div>
                 <h3 className="text-xl font-bold text-gray-900">
-                  {result.winner.variant === 'control' ? control.name : variant.name} が優勢
+                  {result.winner.variant?.type === 'control' ? control.name : variant.name} が優勢
                 </h3>
                 <p className="text-sm text-gray-600 mt-1">
                   {getMetricLabel(selectedMetric)}が
-                  {Math.abs(result.relativeDifference * 100).toFixed(1)}%
-                  {result.relativeDifference > 0 ? '改善' : '低下'}
+                  {Math.abs(result.comparison[0]?.percentageChange || 0).toFixed(1)}%
+                  {(result.comparison[0]?.percentageChange || 0) > 0 ? '改善' : '低下'}
                 </p>
               </div>
             </div>
             <div className="text-right">
               <p
                 className={`text-2xl font-bold ${
-                  result.relativeDifference > 0 ? 'text-green-600' : 'text-red-600'
+                  (result.comparison[0]?.percentageChange || 0) > 0
+                    ? 'text-green-600'
+                    : 'text-red-600'
                 }`}
               >
-                {result.relativeDifference > 0 ? '+' : ''}
-                {(result.relativeDifference * 100).toFixed(1)}%
+                {(result.comparison[0]?.percentageChange || 0) > 0 ? '+' : ''}
+                {(result.comparison[0]?.percentageChange || 0).toFixed(1)}%
               </p>
-              <p className="text-sm text-gray-500">{interpretPValue(result.pValue)}</p>
+              <p className="text-sm text-gray-500">
+                {interpretPValue(result.statistics?.pValue || 1)}
+              </p>
             </div>
           </div>
         </div>
@@ -228,20 +223,22 @@ export const ABTestResultsViewer: React.FC<ABTestResultsViewerProps> = ({
               <span className="text-sm text-gray-600">p値</span>
               <span
                 className={`text-sm font-bold ${
-                  result.pValue < 0.05 ? 'text-green-600' : 'text-gray-900'
+                  (result.statistics?.pValue || 1) < 0.05 ? 'text-green-600' : 'text-gray-900'
                 }`}
               >
-                {result.pValue.toFixed(4)}
+                {result.statistics?.pValue?.toFixed(4) || 'N/A'}
               </span>
             </div>
             <div className="flex justify-between">
               <span className="text-sm text-gray-600">統計的検出力</span>
-              <span className="text-sm font-bold">{(result.power * 100).toFixed(1)}%</span>
+              <span className="text-sm font-bold">
+                {((result.statistics?.power || 0) * 100).toFixed(1)}%
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-sm text-gray-600">有意差</span>
               <span className="text-sm font-bold">
-                {result.isSignificant ? (
+                {result.winner?.isSignificant ? (
                   <span className="text-green-600">あり ✓</span>
                 ) : (
                   <span className="text-gray-500">なし</span>
@@ -260,15 +257,15 @@ export const ABTestResultsViewer: React.FC<ABTestResultsViewerProps> = ({
             <div>
               <span className="text-sm text-gray-600">Control:</span>
               <p className="text-sm font-mono">
-                [{result.confidenceInterval.control.lower.toFixed(4)},{' '}
-                {result.confidenceInterval.control.upper.toFixed(4)}]
+                [{result.statistics?.confidenceInterval?.[0]?.toFixed(4) || 'N/A'},{' '}
+                {result.statistics?.confidenceInterval?.[1]?.toFixed(4) || 'N/A'}]
               </p>
             </div>
             <div>
               <span className="text-sm text-gray-600">Variant:</span>
               <p className="text-sm font-mono">
-                [{result.confidenceInterval.variant.lower.toFixed(4)},{' '}
-                {result.confidenceInterval.variant.upper.toFixed(4)}]
+                [{result.statistics?.confidenceInterval?.[0]?.toFixed(4) || 'N/A'},{' '}
+                {result.statistics?.confidenceInterval?.[1]?.toFixed(4) || 'N/A'}]
               </p>
             </div>
           </div>
@@ -365,14 +362,17 @@ export const ABTestResultsViewer: React.FC<ABTestResultsViewerProps> = ({
                 {variant.sampleSize.toLocaleString()}
               </p>
               <p>
-                推奨最小サンプルサイズ: {result.requiredSampleSize.toLocaleString()}
+                推奨最小サンプルサイズ:{' '}
+                {result.winner?.requiredSampleSize?.toLocaleString() || 'N/A'}
                 (各グループ)
               </p>
-              {result.requiredSampleSize > Math.max(control.sampleSize, variant.sampleSize) && (
+              {(result.winner?.requiredSampleSize || 0) >
+                Math.max(control.sampleSize, variant.sampleSize) && (
                 <p className="text-orange-600 font-bold">
                   ⚠️ より確実な結果のため、さらに{' '}
                   {(
-                    result.requiredSampleSize - Math.max(control.sampleSize, variant.sampleSize)
+                    (result.winner?.requiredSampleSize || 0) -
+                    Math.max(control.sampleSize, variant.sampleSize)
                   ).toLocaleString()}
                   件のデータ収集を推奨します
                 </p>
@@ -383,11 +383,11 @@ export const ABTestResultsViewer: React.FC<ABTestResultsViewerProps> = ({
       </div>
 
       {/* 推奨事項 */}
-      {result.recommendations.length > 0 && (
+      {(result.recommendations?.reasoning?.length || 0) > 0 && (
         <div className="bg-gray-50 rounded-lg p-4">
           <h3 className="font-bold text-gray-900 mb-3">推奨事項</h3>
           <ul className="space-y-2">
-            {result.recommendations.map((rec, index) => (
+            {(result.recommendations?.reasoning || []).map((rec: string, index: number) => (
               <li key={index} className="flex items-start gap-2 text-sm text-gray-700">
                 <span className="text-indigo-600 mt-0.5">•</span>
                 <span>{rec}</span>

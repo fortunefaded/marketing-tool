@@ -215,7 +215,7 @@ export class EnhancedAdDataAggregator extends AdDataAggregator {
    * Step 5: データ整合性チェック
    */
   private static performConsistencyCheck(
-    insights: MetaApiInsight[],
+    _insights: MetaApiInsight[],
     enhancedData: EnhancedAdPerformanceData
   ): DataConsistencyResult {
     const discrepancies: DataDiscrepancy[] = []

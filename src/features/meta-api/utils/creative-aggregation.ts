@@ -13,6 +13,7 @@ export interface AggregatedCreative {
 
   // 集約メトリクス
   impressions: number
+  reach: number
   clicks: number
   spend: number
   conversions: number
@@ -20,13 +21,19 @@ export interface AggregatedCreative {
   conversion_values: number
   fcv_debug?: any // F-CVデバッグ情報
 
+  // ECForceデータ
+  ecforce_cv: number
+  ecforce_fcv: number
+  ecforce_cpa: number | null
+  ecforce_cv_total?: number // 合計行用
+  ecforce_fcv_total?: number // 合計行用
+
   // 計算メトリクス
   ctr: number
   unique_ctr: number
   cpm: number
   cpc: number
   cpa: number
-  roas: number
   frequency: number
 
   // 疲労度（最大値）
@@ -68,14 +75,20 @@ export function aggregateCreativesByName(data: any[]): AggregatedCreative[] {
     firstItem: data[0]
       ? {
           ad_name: data[0].ad_name,
+          date_start: data[0].date_start,
+          date_stop: data[0].date_stop,
           impressions: data[0].impressions,
           impressions_type: typeof data[0].impressions,
           clicks: data[0].clicks,
           clicks_type: typeof data[0].clicks,
           spend: data[0].spend,
           spend_type: typeof data[0].spend,
+          conversion_values: data[0].conversion_values,
         }
       : null,
+    // 同じ広告名のデータ数を確認
+    sampleAdName: data[0]?.ad_name,
+    sampleAdCount: data.filter((d) => d.ad_name === data[0]?.ad_name).length,
   })
 
   // クリエイティブ名でグループ化
@@ -109,6 +122,7 @@ export function aggregateCreativesByName(data: any[]): AggregatedCreative[] {
 
     // メトリクスの集計
     let totalImpressions = 0
+    let totalReach = 0
     let totalClicks = 0
     let totalSpend = 0
     let totalConversions = 0
@@ -118,6 +132,10 @@ export function aggregateCreativesByName(data: any[]): AggregatedCreative[] {
     let totalFrequency = 0
     let frequencyCount = 0
 
+    // ECForceデータの集計
+    let totalEcforceCv = 0
+    let totalEcforceFcv = 0
+
     const adIds: string[] = []
     const dailyData: any[] = []
 
@@ -125,6 +143,7 @@ export function aggregateCreativesByName(data: any[]): AggregatedCreative[] {
       // 数値変換（文字列の場合も考慮）
       const impressions =
         typeof item.impressions === 'number' ? item.impressions : parseFloat(item.impressions) || 0
+      const reach = typeof item.reach === 'number' ? item.reach : parseFloat(item.reach) || 0
       const clicks = typeof item.clicks === 'number' ? item.clicks : parseFloat(item.clicks) || 0
       const spend = typeof item.spend === 'number' ? item.spend : parseFloat(item.spend) || 0
       const conversions =
@@ -144,11 +163,20 @@ export function aggregateCreativesByName(data: any[]): AggregatedCreative[] {
         item.fatigue_score !== undefined ? parseFloat(item.fatigue_score || item.score) : -1
 
       totalImpressions += impressions
+      totalReach += reach
       totalClicks += clicks
       totalSpend += spend
       totalConversions += conversions
       totalConversions1dClick += conversions1dClick
       totalConversionValues += conversionValues
+
+      // ECForceデータの集計
+      const ecforceCv =
+        typeof item.ecforce_cv === 'number' ? item.ecforce_cv : parseFloat(item.ecforce_cv) || 0
+      const ecforceFcv =
+        typeof item.ecforce_fcv === 'number' ? item.ecforce_fcv : parseFloat(item.ecforce_fcv) || 0
+      totalEcforceCv += ecforceCv
+      totalEcforceFcv += ecforceFcv
 
       if (frequency > 0) {
         totalFrequency += frequency
@@ -188,7 +216,6 @@ export function aggregateCreativesByName(data: any[]): AggregatedCreative[] {
     const cpm = totalImpressions > 0 ? (totalSpend / totalImpressions) * 1000 : 0
     const cpc = totalClicks > 0 ? totalSpend / totalClicks : 0
     const cpa = totalConversions > 0 ? totalSpend / totalConversions : 0
-    const roas = totalSpend > 0 ? totalConversionValues / totalSpend : 0
 
     // unique_ctr（簡易的に通常CTRと同じにする）
     const unique_ctr = ctr
@@ -198,6 +225,9 @@ export function aggregateCreativesByName(data: any[]): AggregatedCreative[] {
     const firstDate = dates.length > 0 ? dates[0] : ''
     const lastDate = dates.length > 0 ? dates[dates.length - 1] : ''
 
+    // ECForce合計値を計算（最初のアイテムから取得）
+    const ecforceCpa = totalEcforceFcv > 0 ? totalSpend / totalEcforceFcv : null
+
     aggregated.push({
       adName,
       adIds,
@@ -206,18 +236,23 @@ export function aggregateCreativesByName(data: any[]): AggregatedCreative[] {
       adsetName,
       adsetId,
       impressions: totalImpressions,
+      reach: totalReach,
       clicks: totalClicks,
       spend: totalSpend,
       conversions: totalConversions,
       conversions_1d_click: totalConversions1dClick,
       conversion_values: totalConversionValues,
       fcv_debug: first.fcv_debug, // 最初のアイテムのデバッグ情報を使用
+      ecforce_cv: totalEcforceCv,
+      ecforce_fcv: totalEcforceFcv,
+      ecforce_cpa: ecforceCpa,
+      ecforce_cv_total: first.ecforce_cv_total || 0, // 合計値を保持
+      ecforce_fcv_total: first.ecforce_fcv_total || 0, // 合計値を保持
       ctr,
       unique_ctr,
       cpm,
       cpc,
       cpa,
-      roas,
       frequency: avgFrequency,
       fatigue_score: maxFatigueScore > 0 ? maxFatigueScore : -1, // 疲労度スコアが無い場合は-1
       dailyData,
@@ -227,6 +262,15 @@ export function aggregateCreativesByName(data: any[]): AggregatedCreative[] {
       originalInsight: first,
     })
   })
+
+  // 最初の集約結果をデバッグ出力
+  if (aggregated.length > 0) {
+    console.log('📊 First aggregated item:', {
+      adName: aggregated[0].adName,
+      spend: aggregated[0].spend,
+      conversion_values: aggregated[0].conversion_values,
+    })
+  }
 
   return aggregated
 }

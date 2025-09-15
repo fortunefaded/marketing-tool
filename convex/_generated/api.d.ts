@@ -13,10 +13,13 @@ import type {
   FilterApi,
   FunctionReference,
 } from "convex/server";
+import type * as advertiserMappings from "../advertiserMappings.js";
 import type * as apiConfig from "../apiConfig.js";
 import type * as cache_cacheEntries from "../cache/cacheEntries.js";
 import type * as cache_dataFreshness from "../cache/dataFreshness.js";
 import type * as cache_differentialUpdates from "../cache/differentialUpdates.js";
+import type * as ecforce from "../ecforce.js";
+import type * as ecforceTestSync from "../ecforceTestSync.js";
 import type * as metaAccounts from "../metaAccounts.js";
 import type * as metaInsights from "../metaInsights.js";
 import type * as syncSettings from "../syncSettings.js";
@@ -31,10 +34,13 @@ import type * as tokens from "../tokens.js";
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  advertiserMappings: typeof advertiserMappings;
   apiConfig: typeof apiConfig;
   "cache/cacheEntries": typeof cache_cacheEntries;
   "cache/dataFreshness": typeof cache_dataFreshness;
   "cache/differentialUpdates": typeof cache_differentialUpdates;
+  ecforce: typeof ecforce;
+  ecforceTestSync: typeof ecforceTestSync;
   metaAccounts: typeof metaAccounts;
   metaInsights: typeof metaInsights;
   syncSettings: typeof syncSettings;

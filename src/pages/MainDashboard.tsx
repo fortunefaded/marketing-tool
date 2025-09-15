@@ -10,6 +10,18 @@ import {
   getCachedData,
   clearCachedData,
 } from '@/utils/localStorage'
+import { logAPI, logState, logFilter } from '../utils/debugLogger'
+
+// デバッグコマンドを読み込み（開発環境のみ）
+if (
+  typeof process !== 'undefined' &&
+  process.env?.NODE_ENV === 'development' &&
+  typeof window !== 'undefined'
+) {
+  import('../utils/debug-commands.js' as any).catch(() => {
+    // エラーを無視（ファイルが存在しない場合）
+  })
+}
 
 export default function MainDashboard() {
   const convex = useConvex()
@@ -20,14 +32,65 @@ export default function MainDashboard() {
   const [accounts, setAccounts] = useState<MetaAccount[]>([])
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
   const [isLoadingAccounts, setIsLoadingAccounts] = useState(true)
+  const [ecforceData, setEcforceData] = useState<any[]>([]) // ECForceデータ用state
+  // localStorageから保存された期間選択を復元
   const [dateRange, setDateRange] = useState<
-    'last_7d' | 'last_14d' | 'last_30d' | 'last_month' | 'last_90d' | 'all' | 'custom'
-  >('last_7d')
-  const [customDateRange, setCustomDateRange] = useState<{ start: Date; end: Date } | null>(null)
+    | 'last_7d'
+    | 'last_14d'
+    | 'last_28d'
+    | 'last_30d'
+    | 'last_month'
+    | 'last_90d'
+    | 'all'
+    | 'custom'
+    | 'today'
+    | 'yesterday'
+    | 'this_week'
+    | 'last_week'
+    | 'this_month'
+  >(() => {
+    const savedDateRange = localStorage.getItem('selectedDateRange')
+    return (savedDateRange as any) || 'last_7d'
+  })
+  const [customDateRange, setCustomDateRange] = useState<{ start: Date; end: Date } | null>(() => {
+    const savedCustomRange = localStorage.getItem('customDateRange')
+    if (savedCustomRange) {
+      try {
+        const parsed = JSON.parse(savedCustomRange)
+        return {
+          start: new Date(parsed.start),
+          end: new Date(parsed.end),
+        }
+      } catch (e) {
+        return null
+      }
+    }
+    return null
+  })
   const [filteredData] = useState<any>(null)
   const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null)
-  const [dailyDataCache, setDailyDataCache] = useState<Record<string, any>>({}) // 日別データのキャッシュ
-  const [cacheAge, setCacheAge] = useState<number>(Infinity) // キャッシュの経過時間
+  // const [, setDailyDataCache] = useState<Record<string, any>>({}) // 未使用のためコメント化
+  const [, setCacheAge] = useState<number>(Infinity) // キャッシュの経過時間
+
+  // 期間選択が変更されたらlocalStorageに保存
+  useEffect(() => {
+    localStorage.setItem('selectedDateRange', dateRange)
+    logState('MainDashboard', '期間選択を保存', { dateRange })
+  }, [dateRange])
+
+  // カスタム期間が変更されたらlocalStorageに保存
+  useEffect(() => {
+    if (customDateRange) {
+      localStorage.setItem(
+        'customDateRange',
+        JSON.stringify({
+          start: customDateRange.start.toISOString(),
+          end: customDateRange.end.toISOString(),
+        })
+      )
+      logState('MainDashboard', 'カスタム期間を保存', customDateRange)
+    }
+  }, [customDateRange])
 
   // Convexからアカウント情報を取得
   const loadAccountsFromConvex = useCallback(async () => {
@@ -46,10 +109,17 @@ export default function MainDashboard() {
 
       // MetaAccount型に変換
       const formattedAccounts: MetaAccount[] = convexAccounts.map((acc: any) => ({
+        id: acc._id || acc.accountId,
         accountId: acc.accountId,
+        fullAccountId: acc.accountId.startsWith('act_') ? acc.accountId : `act_${acc.accountId}`,
         name: acc.accountName || acc.name || 'Unknown Account',
-        accessToken: acc.accessToken,
+        accessToken: acc.accessToken || '',
         isActive: acc.isActive || false,
+        createdAt: new Date(acc.createdAt || Date.now()),
+        currency: acc.currency,
+        timezone: acc.timezone,
+        permissions: acc.permissions,
+        lastUsedAt: acc.lastSyncAt ? new Date(acc.lastSyncAt) : undefined,
       }))
 
       setAccounts(formattedAccounts)
@@ -98,14 +168,18 @@ export default function MainDashboard() {
       }
 
       // キャッシュチェック（強制リフレッシュでない場合）
-      if (!forceRefresh) {
+      // デバッグ: キャッシュを一時的に無効化
+      const DISABLE_CACHE = true
+
+      if (!forceRefresh && !DISABLE_CACHE) {
         // 日付範囲を含めたキャッシュキー（カスタムの場合は日付を含める）
         const effectiveRange = customRange || customDateRange
-        const cacheKey =
+        // 日付範囲を含めたキャッシュキーを生成
+        const dateRangeKey =
           dateRange === 'custom' && effectiveRange
-            ? `${targetAccountId}_custom_${effectiveRange.start.toISOString().split('T')[0]}_${effectiveRange.end.toISOString().split('T')[0]}`
-            : `${targetAccountId}_${dateRange}`
-        const { data: cachedData, age } = getCachedData(cacheKey)
+            ? `custom_${effectiveRange.start.toISOString().split('T')[0]}_${effectiveRange.end.toISOString().split('T')[0]}`
+            : dateRange
+        const { data: cachedData, age } = getCachedData(targetAccountId!, dateRangeKey)
 
         if (cachedData) {
           // 30分以内ならキャッシュを使用
@@ -151,9 +225,17 @@ export default function MainDashboard() {
           throw new Error('アクセストークンが見つかりません')
         }
 
-        // 日付範囲を計算
-        const endDate = new Date()
-        const startDate = new Date()
+        // 日付フォーマット関数
+        const formatDate = (date: Date) => {
+          const year = date.getFullYear()
+          const month = String(date.getMonth() + 1).padStart(2, '0')
+          const day = String(date.getDate()).padStart(2, '0')
+          return `${year}-${month}-${day}`
+        }
+
+        // 日付範囲を計算（独立したDateオブジェクトを作成）
+        let startDate = new Date()
+        let endDate = new Date()
 
         // dateRangeに応じて期間を設定
         console.log('📅 fetchDataFromMetaAPI: Setting date range', {
@@ -187,15 +269,46 @@ export default function MainDashboard() {
         } else {
           // プリセット範囲を使用
           switch (dateRange) {
-            case 'last_7d':
+            case 'last_7d': {
+              const now = new Date()
+              startDate = new Date(now)
               startDate.setDate(startDate.getDate() - 7)
+              startDate.setHours(0, 0, 0, 0)
+              endDate = new Date(now)
+              endDate.setDate(endDate.getDate() - 1)
+              endDate.setHours(23, 59, 59, 999)
               break
-            case 'last_14d':
+            }
+            case 'last_14d': {
+              const now = new Date()
+              startDate = new Date(now)
               startDate.setDate(startDate.getDate() - 14)
+              startDate.setHours(0, 0, 0, 0)
+              endDate = new Date(now)
+              endDate.setDate(endDate.getDate() - 1)
+              endDate.setHours(23, 59, 59, 999)
               break
-            case 'last_30d':
+            }
+            case 'last_28d': {
+              const now = new Date()
+              startDate = new Date(now)
+              startDate.setDate(startDate.getDate() - 28)
+              startDate.setHours(0, 0, 0, 0)
+              endDate = new Date(now)
+              endDate.setDate(endDate.getDate() - 1)
+              endDate.setHours(23, 59, 59, 999)
+              break
+            }
+            case 'last_30d': {
+              const now = new Date()
+              startDate = new Date(now)
               startDate.setDate(startDate.getDate() - 30)
+              startDate.setHours(0, 0, 0, 0)
+              endDate = new Date(now)
+              endDate.setDate(endDate.getDate() - 1)
+              endDate.setHours(23, 59, 59, 999)
               break
+            }
             case 'last_month': {
               // 先月の初日から最終日
               const now = new Date()
@@ -203,20 +316,85 @@ export default function MainDashboard() {
               endDate.setFullYear(now.getFullYear(), now.getMonth(), 0)
               break
             }
-            case 'last_90d':
-              startDate.setDate(startDate.getDate() - 90)
+            case 'this_month': {
+              // 今月の初日から今日まで
+              const now = new Date()
+              startDate.setFullYear(now.getFullYear(), now.getMonth(), 1)
+              startDate.setHours(0, 0, 0, 0)
+              endDate.setHours(23, 59, 59, 999)
+              // logAPI('今月の日付範囲設定') - useEffect内で実行
               break
+            }
+            case 'today': {
+              // 今日のみ
+              // Meta APIは現在時刻までのデータしか返さないため、
+              // 終了時刻を現在時刻に設定する
+              const now = new Date()
+              startDate = new Date(now)
+              startDate.setHours(0, 0, 0, 0)
+              endDate = new Date(now) // 現在時刻をそのまま使用
+
+              // logAPI('今日の日付範囲設定') - useEffect内で実行
+              break
+            }
+            case 'yesterday': {
+              // 昨日のみ
+              const now = new Date()
+              startDate = new Date(now)
+              startDate.setDate(startDate.getDate() - 1)
+              startDate.setHours(0, 0, 0, 0)
+              endDate = new Date(now)
+              endDate.setDate(endDate.getDate() - 1)
+              endDate.setHours(23, 59, 59, 999)
+              // logAPI('昨日の日付範囲設定') - useEffect内で実行
+              break
+            }
+            case 'this_week': {
+              // 今週（日曜始まり）
+              const now = new Date()
+              const dayOfWeek = now.getDay() // 0=日曜, 1=月曜, ..., 6=土曜
+              // 今週の日曜日を計算（今日から dayOfWeek 日前）
+              startDate.setDate(now.getDate() - dayOfWeek)
+              startDate.setHours(0, 0, 0, 0)
+              // 今週の土曜日（今週の日曜日から6日後）
+              const weekEnd = new Date(startDate)
+              weekEnd.setDate(startDate.getDate() + 6)
+              weekEnd.setHours(23, 59, 59, 999)
+              // 今日が土曜日より後の場合は今日を終了日とする
+              if (weekEnd > now) {
+                endDate.setHours(23, 59, 59, 999)
+              } else {
+                endDate.setTime(weekEnd.getTime())
+              }
+              break
+            }
+            case 'last_week': {
+              // 先週（日曜始まり）
+              const now = new Date()
+              const currentDay = now.getDay() // 0=日曜, 1=月曜, ..., 6=土曜
+              // 先週の土曜日を計算（今日から currentDay + 1 日前）
+              endDate.setDate(now.getDate() - currentDay - 1)
+              endDate.setHours(23, 59, 59, 999)
+              // 先週の日曜日を計算（先週の土曜日から6日前）
+              startDate.setTime(endDate.getTime())
+              startDate.setDate(endDate.getDate() - 6)
+              startDate.setHours(0, 0, 0, 0)
+              break
+            }
+            case 'last_90d': {
+              const now = new Date()
+              startDate = new Date(now)
+              startDate.setDate(startDate.getDate() - 90)
+              startDate.setHours(0, 0, 0, 0)
+              endDate = new Date(now)
+              endDate.setDate(endDate.getDate() - 1)
+              endDate.setHours(23, 59, 59, 999)
+              break
+            }
             case 'all':
               startDate.setDate(startDate.getDate() - 365)
               break
           }
-        }
-
-        const formatDate = (date: Date) => {
-          const year = date.getFullYear()
-          const month = String(date.getMonth() + 1).padStart(2, '0')
-          const day = String(date.getDate()).padStart(2, '0')
-          return `${year}-${month}-${day}`
         }
 
         // Meta API URL構築
@@ -235,24 +413,124 @@ export default function MainDashboard() {
           }),
           level: 'ad',
           fields:
-            'ad_id,ad_name,campaign_id,campaign_name,adset_id,adset_name,impressions,clicks,spend,ctr,cpm,cpc,frequency,reach,date_start,date_stop,conversions,actions,action_values,unique_actions,cost_per_action_type,cost_per_unique_action_type,website_purchase_roas,purchase_roas',
+            'ad_id,ad_name,campaign_id,campaign_name,adset_id,adset_name,impressions,clicks,spend,ctr,cpm,cpc,frequency,reach,date_start,date_stop,conversions,actions,action_values,unique_actions,cost_per_action_type,cost_per_unique_action_type',
           // F-CV調査用: 複数のアトリビューション期間を取得して比較
-          action_attribution_windows: JSON.stringify(['1d_click', '7d_click']),
-          action_breakdowns: JSON.stringify(['action_type']),
-          use_unified_attribution_setting: true,
+          action_attribution_windows: ['1d_click', '7d_click'],
+          action_breakdowns: ['action_type'],
+          use_unified_attribution_setting: 'true',
           // time_increment: '1' を削除 - 期間全体の集約データを取得
           limit: '500',
         }
 
         Object.entries(params).forEach(([key, value]) => {
-          url.searchParams.append(key, value)
+          url.searchParams.append(key, Array.isArray(value) ? value.join(',') : value)
         })
 
-        console.log('🔗 API URL:', url.toString().replace(account.accessToken, '***'))
+        // グローバルにデバッグ情報を保存
+        const requestDebugInfo = {
+          url: url.toString().replace(account.accessToken, '***'),
+          dateRange,
+          timeRange: {
+            since: formatDate(startDate),
+            until: formatDate(endDate),
+          },
+          debugDateInfo: {
+            startDate: {
+              iso: startDate.toISOString(),
+              formatted: formatDate(startDate),
+              time: `${startDate.getHours()}:${startDate.getMinutes()}:${startDate.getSeconds()}.${startDate.getMilliseconds()}`,
+            },
+            endDate: {
+              iso: endDate.toISOString(),
+              formatted: formatDate(endDate),
+              time: `${endDate.getHours()}:${endDate.getMinutes()}:${endDate.getSeconds()}.${endDate.getMilliseconds()}`,
+            },
+          },
+          account: cleanAccountId,
+        }
+
+        // グローバル変数に保存
+        if (typeof window !== 'undefined') {
+          ;(window as any).LAST_API_REQUEST = requestDebugInfo
+          console.log('🌐 APIリクエスト情報をwindow.LAST_API_REQUESTに保存しました')
+        }
+
+        logAPI('MainDashboard', 'Meta API Request', requestDebugInfo)
 
         // API呼び出し
         const response = await fetch(url.toString())
         const result = await response.json()
+
+        // 最大インプレッションを持つ広告を找す
+        let maxImpressionsItem = null
+        let maxImpressions = 0
+        const top5Items = []
+
+        if (result.data && Array.isArray(result.data)) {
+          // インプレッションでソート
+          const sortedByImpressions = [...result.data].sort(
+            (a, b) => parseInt(b.impressions || '0') - parseInt(a.impressions || '0')
+          )
+
+          maxImpressionsItem = sortedByImpressions[0]
+          maxImpressions = parseInt(maxImpressionsItem?.impressions || '0')
+
+          // 上位5件を取得
+          for (let i = 0; i < Math.min(5, sortedByImpressions.length); i++) {
+            top5Items.push({
+              ad_name: sortedByImpressions[i].ad_name,
+              impressions: parseInt(sortedByImpressions[i].impressions || '0'),
+              spend: parseFloat(sortedByImpressions[i].spend || '0'),
+            })
+          }
+        }
+
+        // レスポンス情報をグローバルに保存
+        const responseDebugInfo = {
+          dateRange,
+          requestedRange: {
+            since: formatDate(startDate),
+            until: formatDate(endDate),
+          },
+          dataCount: result.data?.length || 0,
+          hasData: !!result.data,
+          hasPaging: !!result.paging,
+          maxImpressions: {
+            value: maxImpressions,
+            ad_name: maxImpressionsItem?.ad_name || 'N/A',
+            spend: maxImpressionsItem?.spend || 0,
+          },
+          top5ByImpressions: top5Items,
+          totalSpend: result.data?.reduce(
+            (sum: number, item: any) => sum + parseFloat(item.spend || 0),
+            0
+          ),
+        }
+
+        // グローバル変数に保存
+        if (typeof window !== 'undefined') {
+          ;(window as any).LAST_API_RESPONSE = responseDebugInfo
+          console.log('🌐 APIレスポンス情報をwindow.LAST_API_RESPONSEに保存しました')
+
+          // 簡単なデバッグ情報を表示
+          console.log('🔍 === デバッグ情報 ===')
+          console.log('フィルター:', responseDebugInfo.dateRange)
+          console.log('日付範囲:', responseDebugInfo.requestedRange)
+          console.log('データ件数:', responseDebugInfo.dataCount)
+          console.log('合計広告費:', '¥' + responseDebugInfo.totalSpend.toLocaleString())
+          console.log(
+            '最大インプレッション:',
+            responseDebugInfo.maxImpressions.value.toLocaleString()
+          )
+          console.log('最大インプレッション広告:', responseDebugInfo.maxImpressions.ad_name)
+
+          if (responseDebugInfo.maxImpressions.value < 80594) {
+            console.warn('⚠️ 最大インプレッションが実際の値(80,594)より小さいです')
+            console.warn('差分:', (80594 - responseDebugInfo.maxImpressions.value).toLocaleString())
+          }
+        }
+
+        logAPI('MainDashboard', 'Meta API Response', responseDebugInfo)
 
         // コンバージョンデータを正しく抽出する関数（重複カウント回避）
         const extractConversionData = (item: any) => {
@@ -292,7 +570,7 @@ export default function MainDashboard() {
               original_conversions_field: item.conversions, // デバッグ用
               calculated_cv: cv,
               action_type_used: action_type_used,
-              all_actions: item.actions?.map((a: any) => ({
+              all_actions: (item as any).actions?.map((a: any) => ({
                 type: a.action_type,
                 value: a.value,
                 '1d_click': a['1d_click'],
@@ -302,7 +580,7 @@ export default function MainDashboard() {
         }
 
         // デバッグ: 250802_テキスト流しのCV確認
-        const debugTarget = result.data?.find((item) =>
+        const debugTarget = result.data?.find((item: any) =>
           item.ad_name?.includes('250802_テキスト流し')
         )
 
@@ -440,6 +718,7 @@ export default function MainDashboard() {
               clicks: formatted.clicks,
               spend: formatted.spend,
               ctr: formatted.ctr,
+              conversion_values: formatted.conversion_values,
             })
           }
 
@@ -458,25 +737,102 @@ export default function MainDashboard() {
         }))
         console.table(debugSummary)
 
-        // データをセット
-        setData(formattedData)
+        // ECForceデータを取得して統合
+        try {
+          console.log('📊 ECForceデータを取得開始')
+          const ecforceResponse = await convex.query(
+            api.advertiserMappings.getECForceDataForMetaAccount,
+            {
+              metaAccountId: targetAccountId!,
+              startDate: formatDate(startDate),
+              endDate: formatDate(endDate),
+            }
+          )
+
+          console.log('ECForceデータ取得完了:', ecforceResponse.length + '件')
+
+          // 日付をキーにしたECForceデータのマップを作成
+          const ecforceMap = new Map()
+          ecforceResponse.forEach((ec: any) => {
+            if (ec.date) {
+              ecforceMap.set(ec.date, ec)
+            }
+          })
+
+          console.log('ECForce日別データマップ:', ecforceMap.size + '件の日付データ')
+
+          // 期間全体の合計を計算（合計行用）
+          const ecforceTotals = ecforceResponse.reduce((acc: any, ec: any) => {
+            return {
+              totalCvOrder: (acc.totalCvOrder || 0) + (ec.cvOrder || 0),
+              totalCvPayment: (acc.totalCvPayment || 0) + (ec.cvPayment || 0),
+            }
+          }, {})
+
+          console.log('ECForce合計:', ecforceTotals)
+
+          // ECForceデータを広告名(creativeName)でグループ化
+          const ecforceByCreativeName = new Map<string, { cv: number; fcv: number }>()
+          ecforceResponse.forEach((ec: any) => {
+            const creativeName = ec.creativeName || ''
+            if (creativeName) {
+              const existing = ecforceByCreativeName.get(creativeName) || { cv: 0, fcv: 0 }
+              ecforceByCreativeName.set(creativeName, {
+                cv: existing.cv + (ec.cvOrder || 0),
+                fcv: existing.fcv + (ec.cvPayment || 0),
+              })
+            }
+          })
+
+          console.log('ECForce広告名別データ:', ecforceByCreativeName.size + '件のクリエイティブ')
+
+          // MetaデータにECForceデータを統合
+          // 全てのアイテムに合計値を追加（合計行で使用するため）
+          const dataWithEcforce = formattedData.map((item: any) => {
+            // 広告名でECForceデータを検索
+            const ecforceCreativeData = ecforceByCreativeName.get(item.ad_name || '') || {
+              cv: 0,
+              fcv: 0,
+            }
+
+            return {
+              ...item,
+              // ECForce合計値を全アイテムに保存（合計行で参照するため）
+              ecforce_cv_total: ecforceTotals.totalCvOrder || 0,
+              ecforce_fcv_total: ecforceTotals.totalCvPayment || 0,
+              // 個別のクリエイティブ用（広告名でマッチング）
+              ecforce_cv: ecforceCreativeData.cv,
+              ecforce_fcv: ecforceCreativeData.fcv,
+              ecforce_cpa:
+                ecforceCreativeData.fcv > 0 ? item.spend / ecforceCreativeData.fcv : null,
+            }
+          })
+
+          setData(dataWithEcforce)
+          setEcforceData(ecforceResponse)
+        } catch (ecError) {
+          console.error('ECForceデータ取得エラー:', ecError)
+          // ECForceデータが取得できなくてもMetaデータは表示
+          setData(formattedData)
+        }
+
         setLastUpdateTime(new Date())
         setCacheAge(0) // 新規取得なので経過時間はゼロ
 
         // localStorageにキャッシュ（日付範囲を含めたキーで保存）
         const effectiveDateRange = customRange || customDateRange
-        const cacheKey =
+        // 日付範囲を含めたキャッシュキーを生成
+        const dateRangeKey =
           dateRange === 'custom' && effectiveDateRange
-            ? `${targetAccountId}_custom_${effectiveDateRange.start.toISOString().split('T')[0]}_${effectiveDateRange.end.toISOString().split('T')[0]}`
-            : `${targetAccountId}_${dateRange}`
-        saveCachedData(cacheKey, formattedData)
+            ? `custom_${effectiveDateRange.start.toISOString().split('T')[0]}_${effectiveDateRange.end.toISOString().split('T')[0]}`
+            : dateRange
+        saveCachedData(targetAccountId!, formattedData, dateRangeKey)
       } catch (err: any) {
         console.error('❌ データ取得エラー:', err)
         setError(err.message)
 
         // エラー時はキャッシュから復元を試みる
-        const fallbackCacheKey = `${targetAccountId}_${dateRange}`
-        const { data: cachedData, age } = getCachedData(fallbackCacheKey)
+        const { data: cachedData, age } = getCachedData(targetAccountId!, dateRange)
         if (cachedData) {
           try {
             console.log('💾 エラー時のフォールバック: キャッシュから復元')
@@ -548,8 +904,7 @@ export default function MainDashboard() {
 
     // キャッシュをクリアする場合（日付範囲を含めたキーで削除）
     if (options?.clearCache && selectedAccountId) {
-      const cacheKey = `${selectedAccountId}_${dateRange}`
-      clearCachedData(cacheKey)
+      clearCachedData(selectedAccountId, dateRange)
     }
 
     await fetchDataFromMetaAPI(selectedAccountId, true, customDateRange) // 強制リフレッシュ
@@ -585,7 +940,8 @@ export default function MainDashboard() {
   }, [dateRange, customDateRange, selectedAccountId, fetchDataFromMetaAPI])
 
   // 詳細分析用：特定の広告の日別データを取得
-  const fetchDailyDataForAd = useCallback(
+  // Unused function - commented out for future use
+  /* const fetchDailyDataForAd = useCallback(
     async (adId: string) => {
       // キャッシュチェック
       const cacheKey = `${adId}_${dateRange}`
@@ -610,12 +966,23 @@ export default function MainDashboard() {
         switch (dateRange) {
           case 'last_7d':
             startDate.setDate(startDate.getDate() - 7)
+            endDate.setDate(endDate.getDate() - 1)
+            endDate.setHours(23, 59, 59, 999)
             break
           case 'last_14d':
             startDate.setDate(startDate.getDate() - 14)
+            endDate.setDate(endDate.getDate() - 1)
+            endDate.setHours(23, 59, 59, 999)
+            break
+          case 'last_28d':
+            startDate.setDate(startDate.getDate() - 28)
+            endDate.setDate(endDate.getDate() - 1)
+            endDate.setHours(23, 59, 59, 999)
             break
           case 'last_30d':
             startDate.setDate(startDate.getDate() - 30)
+            endDate.setDate(endDate.getDate() - 1)
+            endDate.setHours(23, 59, 59, 999)
             break
           case 'last_month': {
             // 先月の初日から最終日
@@ -626,6 +993,8 @@ export default function MainDashboard() {
           }
           case 'last_90d':
             startDate.setDate(startDate.getDate() - 90)
+            endDate.setDate(endDate.getDate() - 1)
+            endDate.setHours(23, 59, 59, 999)
             break
           case 'all':
             startDate.setDate(startDate.getDate() - 365)
@@ -658,7 +1027,7 @@ export default function MainDashboard() {
         }
 
         Object.entries(params).forEach(([key, value]) => {
-          url.searchParams.append(key, value)
+          url.searchParams.append(key, Array.isArray(value) ? value.join(',') : value)
         })
 
         // API呼び出し
@@ -699,7 +1068,7 @@ export default function MainDashboard() {
       }
     },
     [accounts, selectedAccountId, dateRange, dailyDataCache]
-  )
+  ) */
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -714,24 +1083,6 @@ export default function MainDashboard() {
       )}
 
       {/* FatigueDashboardPresentationを使用 */}
-      {(() => {
-        console.log('🔍 MainDashboard: Passing data to FatigueDashboardPresentation:', {
-          dataLength: data.length,
-          sampleData: data.slice(0, 2),
-          firstItem: data[0]
-            ? {
-                ad_name: data[0].ad_name,
-                impressions: data[0].impressions,
-                clicks: data[0].clicks,
-                spend: data[0].spend,
-                type_impressions: typeof data[0].impressions,
-                type_clicks: typeof data[0].clicks,
-                type_spend: typeof data[0].spend,
-              }
-            : null,
-        })
-        return null
-      })()}
       <FatigueDashboardPresentation
         // アカウント関連
         accounts={accounts}
@@ -741,6 +1092,7 @@ export default function MainDashboard() {
         // データ関連
         data={data}
         insights={data}
+        ecforceData={ecforceData}
         isLoading={isLoading}
         isRefreshing={false}
         error={error ? new Error(error) : null}
@@ -756,7 +1108,7 @@ export default function MainDashboard() {
         // 認証情報（追加）
         accessToken={accounts.find((acc) => acc.accountId === selectedAccountId)?.accessToken}
         onCustomDateRange={(start, end) => {
-          console.log('📅 MainDashboard: Custom date range selected', {
+          logFilter('MainDashboard', 'Custom date range selected', {
             start: start.toISOString(),
             end: end.toISOString(),
             selectedAccountId,

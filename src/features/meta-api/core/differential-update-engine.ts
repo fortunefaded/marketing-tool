@@ -8,7 +8,6 @@
 import * as React from 'react'
 import type { AdInsight } from '../types'
 import { DataFreshnessManager, type FreshnessState } from './data-freshness-manager'
-import type { DateRangePreset } from '@/features/common/types/date'
 
 // ============================================================================
 // 型定義
@@ -278,7 +277,7 @@ export class DifferentialUpdateEngine {
     currentData: AdInsight[],
     previousCheckpoint: UpdateCheckpoint | undefined,
     freshnessState: FreshnessState,
-    metadata: any
+    _metadata: any
   ): UpdateStrategy {
     // チェックポイントがない場合は完全更新
     if (!previousCheckpoint) {
@@ -399,7 +398,7 @@ export class DifferentialUpdateEngine {
    */
   private identifyCriticalParts(
     currentData: AdInsight[],
-    previousCheckpoint?: UpdateCheckpoint
+    _previousCheckpoint?: UpdateCheckpoint
   ): UpdateDataPart[] {
     const parts: UpdateDataPart[] = []
     
@@ -676,7 +675,7 @@ export class DifferentialUpdateEngine {
    */
   private calculateDataSaved(
     strategy: UpdateStrategy,
-    oldData: AdInsight[],
+    _oldData: AdInsight[],
     newData: AdInsight[]
   ): number {
     const fullSize = JSON.stringify(newData).length

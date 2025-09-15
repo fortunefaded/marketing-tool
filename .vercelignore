@@ -1,0 +1,45 @@
+# Git files
+.git/
+.gitignore
+.gitattributes
+
+# Development files
+.husky/
+.vscode/
+.idea/
+*.log
+*.swp
+.DS_Store
+
+# Test files
+__tests__/
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+coverage/
+.nyc_output/
+
+# Documentation
+*.md
+docs/
+LICENSE
+
+# Scripts and configs
+scripts/
+commitlint.config.js
+.eslintrc*
+.prettierrc*
+vitest.config.ts
+tsconfig.*.json
+
+# Node modules (Vercel will install these)
+node_modules/
+
+# Environment files (should be set in Vercel dashboard)
+.env
+.env.local
+.env.*.local
+
+# Server files (if not needed for deployment)
+server/
