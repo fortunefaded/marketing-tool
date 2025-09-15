@@ -316,7 +316,7 @@ export const updateImportStatus = mutation({
   },
 })
 
-// 重複チェック
+// 重複チェック（効率化版）
 export const checkDuplicates = query({
   args: {
     dateRange: v.object({
@@ -327,31 +327,73 @@ export const checkDuplicates = query({
     advertisers: v.array(v.string()),
   },
   handler: async (ctx, args) => {
-    const duplicates: string[] = []
+    // 大量データの場合は制限を設ける
+    const MAX_DATES_TO_CHECK = 30 // 最大30日分のみチェック
+    const MAX_ADVERTISERS_TO_CHECK = 5 // 最大5広告主のみチェック
 
-    // 各広告主について、複数日付での重複をチェック
-    for (const advertiser of args.advertisers) {
-      let hasAnyDuplicate = false
-
-      // 各日付での重複をチェック
-      for (const date of args.dateRange.uniqueDates) {
-        const hash = generateHash(date, advertiser)
-        const existing = await ctx.db
-          .query('ecforcePerformance')
-          .withIndex('by_hash', (q) => q.eq('hash', hash))
-          .first()
-        if (existing) {
-          hasAnyDuplicate = true
-          break // 1つでも重複があれば十分
-        }
-      }
-
-      if (hasAnyDuplicate) {
-        duplicates.push(advertiser)
+    if (args.dateRange.uniqueDates.length > MAX_DATES_TO_CHECK) {
+      // 日付が多すぎる場合は簡易チェックのみ
+      return {
+        duplicates: [],
+        count: 0,
+        warning: `日付が${args.dateRange.uniqueDates.length}件と多いため、重複チェックをスキップしました。アップロード時に重複処理されます。`,
       }
     }
 
-    return { duplicates, count: duplicates.length }
+    if (args.advertisers.length > MAX_ADVERTISERS_TO_CHECK) {
+      return {
+        duplicates: [],
+        count: 0,
+        warning: `広告主が${args.advertisers.length}件と多いため、重複チェックをスキップしました。アップロード時に重複処理されます。`,
+      }
+    }
+
+    const duplicates: string[] = []
+
+    try {
+      // 日付範囲での既存データを一括取得（効率的）
+      const existingData = await ctx.db
+        .query('ecforcePerformance')
+        .withIndex('by_date')
+        .filter((q) =>
+          q.and(
+            q.gte(q.field('dataDate'), args.dateRange.startDate),
+            q.lte(q.field('dataDate'), args.dateRange.endDate)
+          )
+        )
+        .collect()
+
+      // 既存データから広告主と日付の組み合わせを抽出
+      const existingCombinations = new Set(
+        existingData.map((item) => `${item.dataDate}:${item.advertiser}`)
+      )
+
+      // 新しいデータと既存データの重複をチェック
+      for (const advertiser of args.advertisers) {
+        let hasAnyDuplicate = false
+
+        for (const date of args.dateRange.uniqueDates) {
+          const combination = `${date}:${advertiser}`
+          if (existingCombinations.has(combination)) {
+            hasAnyDuplicate = true
+            break
+          }
+        }
+
+        if (hasAnyDuplicate) {
+          duplicates.push(advertiser)
+        }
+      }
+
+      return { duplicates, count: duplicates.length }
+    } catch (error) {
+      console.error('重複チェックエラー:', error)
+      return {
+        duplicates: [],
+        count: 0,
+        warning: '重複チェック中にエラーが発生しました。アップロード時に重複処理されます。',
+      }
+    }
   },
 })
 
