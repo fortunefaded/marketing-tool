@@ -1,0 +1,109 @@
+name: ECForce Data Sync
+
+on:
+  # 手動トリガー
+  workflow_dispatch:
+    inputs:
+      debug_mode:
+        description: 'デバッグモードで実行'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+  # APIからのトリガー
+  repository_dispatch:
+    types: [ecforce-sync]
+
+  # 定期実行（毎日午前9時JST）
+  schedule:
+    - cron: '0 0 * * *'  # UTC 0:00 = JST 9:00
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          npx playwright install chromium --with-deps
+
+      - name: Run ECForce sync
+        env:
+          ECFORCE_BASIC_USER: ${{ secrets.ECFORCE_BASIC_USER }}
+          ECFORCE_BASIC_PASS: ${{ secrets.ECFORCE_BASIC_PASS }}
+          ECFORCE_EMAIL: ${{ secrets.ECFORCE_EMAIL }}
+          ECFORCE_PASSWORD: ${{ secrets.ECFORCE_PASSWORD }}
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+          VITE_CONVEX_URL: ${{ secrets.VITE_CONVEX_URL }}
+          AUTO_SYNC: true
+          DEBUG: ${{ github.event.inputs.debug_mode || 'false' }}
+        run: |
+          echo "🚀 ECForce同期を開始..."
+          echo "実行時刻: $(date '+%Y-%m-%d %H:%M:%S JST' -d '+9 hours')"
+          node scripts/ecforce-download-csv.mjs --auto
+
+          # CSVファイルの存在確認
+          if ls downloads/*.csv 1> /dev/null 2>&1; then
+            echo "✅ CSVファイルのダウンロード成功"
+            ls -la downloads/*.csv
+          else
+            echo "⚠️ CSVファイルが見つかりません"
+            exit 1
+          fi
+
+      - name: Upload CSV artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ecforce-csv-${{ github.run_id }}
+          path: downloads/*.csv
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Upload screenshots (Debug)
+        if: failure() || github.event.inputs.debug_mode == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-screenshots-${{ github.run_id }}
+          path: screenshots/*.png
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Create summary
+        if: always()
+        run: |
+          echo "## ECForce同期結果" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- 実行時刻: $(date '+%Y-%m-%d %H:%M:%S JST' -d '+9 hours')" >> $GITHUB_STEP_SUMMARY
+          echo "- ステータス: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "- 実行ID: ${{ github.run_id }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if ls downloads/*.csv 1> /dev/null 2>&1; then
+            echo "### ダウンロードしたファイル" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            ls -lh downloads/*.csv >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
