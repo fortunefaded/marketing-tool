@@ -20,6 +20,7 @@ import type * as cache_dataFreshness from "../cache/dataFreshness.js";
 import type * as cache_differentialUpdates from "../cache/differentialUpdates.js";
 import type * as ecforce from "../ecforce.js";
 import type * as ecforceAggregates from "../ecforceAggregates.js";
+import type * as ecforceLimited from "../ecforceLimited.js";
 import type * as ecforceTestSync from "../ecforceTestSync.js";
 import type * as metaAccounts from "../metaAccounts.js";
 import type * as metaInsights from "../metaInsights.js";
@@ -42,6 +43,7 @@ declare const fullApi: ApiFromModules<{
   "cache/differentialUpdates": typeof cache_differentialUpdates;
   ecforce: typeof ecforce;
   ecforceAggregates: typeof ecforceAggregates;
+  ecforceLimited: typeof ecforceLimited;
   ecforceTestSync: typeof ecforceTestSync;
   metaAccounts: typeof metaAccounts;
   metaInsights: typeof metaInsights;
