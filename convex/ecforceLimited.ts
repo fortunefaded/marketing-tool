@@ -19,9 +19,9 @@ export const getPerformanceDataLimited = query({
       const requestedLimit = Math.min(args.limit || DEFAULT_LIMIT, MAX_LIMIT)
       const offset = args.offset || 0
 
-    // 月次集計を優先的に使用（パフォーマンス最適化）
-    if (args.useMonthlyAggregates !== false) {
-      // デフォルトで月次集計を使用
+    // 月次集計を使用するかどうか（現在は無効化）
+    if (args.useMonthlyAggregates === true) {
+      // 明示的に有効化された場合のみ月次集計を使用
 
       // 日付範囲を年月に変換
       let yearMonthStart: string | undefined
