@@ -12,11 +12,12 @@ export const getPerformanceDataLimited = query({
     useMonthlyAggregates: v.optional(v.boolean()), // 月次集計を使用するか
   },
   handler: async (ctx, args) => {
-    // 厳格な制限値
-    const MAX_LIMIT = 50 // 最大50件（設定画面用）
-    const DEFAULT_LIMIT = 5 // デフォルト5件（最新データのみ）
-    const requestedLimit = Math.min(args.limit || DEFAULT_LIMIT, MAX_LIMIT)
-    const offset = args.offset || 0
+    try {
+      // 厳格な制限値
+      const MAX_LIMIT = 50 // 最大50件（設定画面用）
+      const DEFAULT_LIMIT = 5 // デフォルト5件（最新データのみ）
+      const requestedLimit = Math.min(args.limit || DEFAULT_LIMIT, MAX_LIMIT)
+      const offset = args.offset || 0
 
     // 月次集計を優先的に使用（パフォーマンス最適化）
     if (args.useMonthlyAggregates !== false) {
@@ -156,6 +157,23 @@ export const getPerformanceDataLimited = query({
           : allData.length >= MAX_LIMIT
             ? `表示件数が制限されています（最大${MAX_LIMIT}件）。詳細なデータが必要な場合は期間を絞り込んでください。`
             : undefined,
+      }
+    } catch (error) {
+      console.error('Error in getPerformanceDataLimited:', error)
+      // エラー時は空のデータを返す
+      return {
+        data: [],
+        total: 0,
+        hasMore: false,
+        limit: args.limit || 5,
+        offset: args.offset || 0,
+        dataType: 'daily',
+        dateRange: {
+          start: args.startDate || '',
+          end: args.endDate || '',
+        },
+        message: 'データの取得中にエラーが発生しました。',
+      }
     }
   },
 })
