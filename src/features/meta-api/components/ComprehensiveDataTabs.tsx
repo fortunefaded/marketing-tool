@@ -18,29 +18,9 @@ interface FieldDefinition {
   description: string
 }
 
-// Meta Ads API v23.0で有効なdate_preset値
+// Meta Ads API v23.0で有効なdate_preset値の参考情報
 // 参考: https://developers.facebook.com/docs/marketing-api/insights/parameters
-const VALID_DATE_PRESETS = [
-  'today',
-  'yesterday',
-  'this_month',
-  'last_month',
-  'this_quarter',
-  'maximum', // 全期間のデータ（lifetimeの代替）
-  'last_3d',
-  'last_7d',
-  'last_14d',
-  'last_28d',
-  'last_30d',
-  'last_90d',
-  'last_week_mon_sun',
-  'last_week_sun_sat',
-  'last_quarter',
-  'last_year',
-  'this_week_mon_today',
-  'this_week_sun_today',
-  'this_year',
-]
+// 'today', 'yesterday', 'this_month', 'last_month', 'this_quarter', 'maximum' など
 
 const TAB_DEFINITIONS: Record<DataTabType, FieldDefinition> = {
   ad_object: {

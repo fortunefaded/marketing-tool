@@ -7,7 +7,6 @@ import { MiniFrequencyChart } from './MiniFrequencyChart'
 import { MiniMetricChart, MetricType } from './MiniMetricChart'
 import { FatigueDonutChart } from './FatigueDonutChart'
 import { calculateAllFatigueScores, FATIGUE_FORMULAS } from '../utils/fatigueCalculations'
-import { getSafeMetrics } from '../utils/safe-data-access'
 import { extractInstagramMetrics, InstagramMetricsDisplay } from './InstagramMetricsExtractor'
 import {
   extractDetailedMetrics,
