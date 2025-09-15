@@ -68,19 +68,29 @@ export const ECForceDataList: React.FC = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
 
-  // Convexからデータ取得
+  // 制限とページネーション状態
+  const [currentPage, setCurrentPage] = useState(0)
+  const [pageSize, setPageSize] = useState(30)
+  const [useMonthlyAggregates, setUseMonthlyAggregates] = useState(true)
+
+  // Convexからデータ取得（制限付きAPI使用）
   const performanceData = useQuery(
-    api.ecforce.getPerformanceDataByDate,
+    api.ecforceLimited.getPerformanceDataLimited,
     cachedData
       ? 'skip'
       : {
           startDate: startDate || undefined,
           endDate: endDate || undefined,
           advertiser: selectedAdvertiser || undefined,
+          limit: pageSize,
+          offset: currentPage * pageSize,
+          useMonthlyAggregates,
         }
   )
 
-  const advertisers = useQuery(api.ecforce.getAdvertisers, cachedData ? 'skip' : undefined)
+  // 統計情報の取得（軽量版）
+  const statistics = useQuery(api.ecforceLimited.getDataStatistics, {})
+
   const fixCvrValues = useMutation(api.ecforce.fixCvrValues)
   const deleteData = useMutation(api.ecforce.deletePerformanceDataById)
   const deleteMultipleData = useMutation(api.ecforce.deleteMultiplePerformanceData)
@@ -95,16 +105,16 @@ export const ECForceDataList: React.FC = () => {
 
   // データが取得できたらキャッシュに保存
   useEffect(() => {
-    if (performanceData && advertisers) {
-      const dataToCache = { performanceData, advertisers }
+    if (performanceData && statistics) {
+      const dataToCache = { performanceData, statistics }
       setCachedData(dataToCache)
       setCachedDataState(dataToCache)
     }
-  }, [performanceData, advertisers])
+  }, [performanceData, statistics])
 
   // 使用するデータ（キャッシュまたは新規取得）
   const activeData = cachedData?.performanceData || performanceData
-  const activeAdvertisers = cachedData?.advertisers || advertisers
+  const activeAdvertisers = cachedData?.statistics?.advertisers || statistics?.advertisers || []
 
   // CVR異常値の検出
   const hasAbnormalCvr = useMemo(() => {
@@ -193,26 +203,13 @@ export const ECForceDataList: React.FC = () => {
     }
   }
 
-  // フィルタリングとソート
+  // フィルタリングとソート（サーバーサイドでの制限により最小限のクライアントサイドフィルタリング）
   const filteredAndSortedData = useMemo(() => {
     if (!activeData?.data) return []
 
     let filtered = [...activeData.data]
 
-    // 日付範囲フィルタ
-    if (startDate) {
-      filtered = filtered.filter((item) => item.dataDate >= startDate)
-    }
-    if (endDate) {
-      filtered = filtered.filter((item) => item.dataDate <= endDate)
-    }
-
-    // 広告主フィルタ
-    if (selectedAdvertiser) {
-      filtered = filtered.filter((item) => item.advertiser === selectedAdvertiser)
-    }
-
-    // ソート
+    // ソート（サーバーサイドでの制限により、ページ内でのソートのみ）
     filtered.sort((a, b) => {
       const aValue = a[sortField]
       const bValue = b[sortField]
@@ -232,7 +229,7 @@ export const ECForceDataList: React.FC = () => {
     })
 
     return filtered
-  }, [activeData, startDate, endDate, selectedAdvertiser, sortField, sortDirection])
+  }, [activeData, sortField, sortDirection])
 
   // 合計値の計算
   const totals = useMemo(() => {
@@ -343,15 +340,59 @@ export const ECForceDataList: React.FC = () => {
         </div>
       )}
 
+      {/* データタイプとパフォーマンス情報 */}
+      {performanceData && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="text-sm text-blue-800">
+                <strong>データタイプ:</strong>{' '}
+                {performanceData.dataType === 'monthly' ? '月次集計' : '日次データ'}
+                {performanceData.message && (
+                  <div className="text-xs text-blue-600 mt-1">{performanceData.message}</div>
+                )}
+              </div>
+              {performanceData.dataType === 'monthly' && (
+                <div className="text-xs text-blue-600">
+                  月次集計: {statistics?.monthlyAggregateCount || 0}ヶ月分 | 推定総レコード:{' '}
+                  {statistics?.totalRecords?.toLocaleString() || 0}件
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* フィルター */}
       <div className="bg-white p-6 rounded-lg shadow">
-        <div className="flex items-center gap-4 mb-4">
-          <FunnelIcon className="h-5 w-5 text-gray-400" />
-          <h3 className="text-lg font-medium text-gray-900">フィルター</h3>
-          {cachedData && <span className="text-xs text-gray-500">(キャッシュ使用中)</span>}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-4">
+            <FunnelIcon className="h-5 w-5 text-gray-400" />
+            <h3 className="text-lg font-medium text-gray-900">フィルター</h3>
+            {cachedData && <span className="text-xs text-gray-500">(キャッシュ使用中)</span>}
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-gray-700">データタイプ:</label>
+              <select
+                value={useMonthlyAggregates ? 'monthly' : 'daily'}
+                onChange={(e) => {
+                  const isMonthly = e.target.value === 'monthly'
+                  setUseMonthlyAggregates(isMonthly)
+                  setCurrentPage(0) // リセット
+                  localStorage.removeItem(CACHE_KEY) // キャッシュクリア
+                  setCachedDataState(null)
+                }}
+                className="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+              >
+                <option value="monthly">月次集計（推奨）</option>
+                <option value="daily">日次データ（制限付き）</option>
+              </select>
+            </div>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
           {/* 広告主選択 */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">広告主</label>
@@ -391,6 +432,25 @@ export const ECForceDataList: React.FC = () => {
             />
           </div>
 
+          {/* ページサイズ */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">表示件数</label>
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value))
+                setCurrentPage(0)
+                localStorage.removeItem(CACHE_KEY)
+                setCachedDataState(null)
+              }}
+              className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            >
+              <option value={10}>10件</option>
+              <option value={30}>30件</option>
+              <option value={50}>50件</option>
+            </select>
+          </div>
+
           {/* クリアボタン */}
           <div className="flex items-end gap-2">
             <button
@@ -398,6 +458,7 @@ export const ECForceDataList: React.FC = () => {
                 setSelectedAdvertiser('')
                 setStartDate('')
                 setEndDate('')
+                setCurrentPage(0)
               }}
               className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
             >
@@ -407,6 +468,7 @@ export const ECForceDataList: React.FC = () => {
               onClick={() => {
                 localStorage.removeItem(CACHE_KEY)
                 setCachedDataState(null)
+                setCurrentPage(0)
               }}
               className="px-4 py-2 text-sm font-medium text-blue-700 bg-white border border-blue-300 rounded-md hover:bg-blue-50"
             >
@@ -416,17 +478,25 @@ export const ECForceDataList: React.FC = () => {
         </div>
       </div>
 
-      {/* 統計情報と削除ボタン */}
+      {/* ページネーションと統計情報 */}
       <div className="bg-white p-4 rounded-lg shadow">
         <div className="flex items-center justify-between">
           <div className="flex gap-6">
             <div>
               <span className="text-sm text-gray-600">表示中:</span>
-              <span className="ml-2 font-bold text-blue-600">{filteredAndSortedData.length}件</span>
+              <span className="ml-2 font-bold text-blue-600">
+                {activeData?.data?.length || 0}件
+              </span>
             </div>
             <div>
-              <span className="text-sm text-gray-600">総レコード:</span>
-              <span className="ml-2 font-bold">{activeData?.totalRecords || 0}件</span>
+              <span className="text-sm text-gray-600">総件数:</span>
+              <span className="ml-2 font-bold">{activeData?.total || 0}件</span>
+            </div>
+            <div>
+              <span className="text-sm text-gray-600">ページ:</span>
+              <span className="ml-2 font-bold">
+                {currentPage + 1} / {Math.ceil((activeData?.total || 0) / pageSize)}
+              </span>
             </div>
             {selectedIds.size > 0 && (
               <div>
@@ -435,15 +505,42 @@ export const ECForceDataList: React.FC = () => {
               </div>
             )}
           </div>
-          {selectedIds.size > 0 && (
+          <div className="flex items-center gap-2">
+            {/* ページネーション */}
             <button
-              onClick={() => setShowDeleteConfirm(true)}
-              className="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md bg-red-100 text-red-700 hover:bg-red-200"
+              onClick={() => {
+                setCurrentPage(Math.max(0, currentPage - 1))
+                localStorage.removeItem(CACHE_KEY)
+                setCachedDataState(null)
+              }}
+              disabled={currentPage === 0}
+              className="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <TrashIcon className="h-4 w-4 mr-1" />
-              選択したデータを削除
+              前へ
             </button>
-          )}
+            <button
+              onClick={() => {
+                if (activeData?.hasMore) {
+                  setCurrentPage(currentPage + 1)
+                  localStorage.removeItem(CACHE_KEY)
+                  setCachedDataState(null)
+                }
+              }}
+              disabled={!activeData?.hasMore}
+              className="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              次へ
+            </button>
+            {selectedIds.size > 0 && (
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                className="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md bg-red-100 text-red-700 hover:bg-red-200 ml-2"
+              >
+                <TrashIcon className="h-4 w-4 mr-1" />
+                選択したデータを削除
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -613,7 +710,14 @@ export const ECForceDataList: React.FC = () => {
                         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
                     </td>
-                    <td className="px-4 py-2 text-sm text-gray-900">{item.dataDate}</td>
+                    <td className="px-4 py-2 text-sm text-gray-900">
+                      {item.dataDate}
+                      {item.isMonthlyAggregate && (
+                        <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          月次
+                        </span>
+                      )}
+                    </td>
                     <td className="px-4 py-2 text-sm text-gray-900">{item.advertiser}</td>
                     <td className="px-4 py-2 text-sm text-right text-gray-900">
                       ¥{formatNumber(item.orderAmount || 0)}
@@ -637,13 +741,15 @@ export const ECForceDataList: React.FC = () => {
                       {formatPercent(item.cvrPayment || 0)}
                     </td>
                     <td className="px-4 py-2 text-center">
-                      <button
-                        onClick={() => handleDelete(item._id)}
-                        className="text-red-600 hover:text-red-900"
-                        title="削除"
-                      >
-                        <TrashIcon className="h-4 w-4" />
-                      </button>
+                      {!item.isMonthlyAggregate && (
+                        <button
+                          onClick={() => handleDelete(item._id)}
+                          className="text-red-600 hover:text-red-900"
+                          title="削除"
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
