@@ -239,7 +239,7 @@ export async function parseECForceCSV(file: File): Promise<ECForceParseResult> {
 // CSVプレビュー用（最初のN件のみ）
 export async function previewECForceCSV(
   file: File,
-  limit: number = 1000
+  _limit: number = 1000
 ): Promise<{
   headers: string[]
   rows: any[]

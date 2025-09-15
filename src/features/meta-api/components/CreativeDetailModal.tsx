@@ -60,8 +60,8 @@ function MetricRow({
   chartType,
   dailyData,
   ranking,
-  tooltip,
-  dataSource,
+  _tooltip,
+  _dataSource,
 }: MetricRowProps) {
   const formatValue = (val: number | string) => {
     if (typeof val === 'number') {
