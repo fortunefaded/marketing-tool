@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react'
-import { LineChart, Line, ResponsiveContainer, YAxis, Tooltip } from 'recharts'
+import React, { useMemo, useState } from 'react'
+import { LineChart, Line, BarChart, Bar, ResponsiveContainer, YAxis, Tooltip } from 'recharts'
 import { useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 
@@ -15,6 +15,8 @@ export const DailySparklineCharts: React.FC<DailySparklineChartsProps> = ({
   accountId,
   dateRange,
 }) => {
+  // チャートタイプの状態管理
+  const [chartType, setChartType] = useState<'line' | 'bar'>('line')
   // 日別データを取得
   const dailyData = useQuery(
     api.metaDailySummary.getDailySummaries,
@@ -127,10 +129,32 @@ export const DailySparklineCharts: React.FC<DailySparklineChartsProps> = ({
 
   return (
     <div className="bg-white rounded-lg shadow-sm h-full">
-      <div className="p-3 border-b border-gray-200">
+      <div className="p-3 border-b border-gray-200 flex items-center justify-between">
         <h3 className="text-sm font-semibold text-gray-900">
           日別推移（{dateRange.start} ～ {dateRange.end}）
         </h3>
+        <div className="flex items-center gap-1 bg-gray-100 rounded-md p-0.5">
+          <button
+            onClick={() => setChartType('line')}
+            className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+              chartType === 'line'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            折れ線
+          </button>
+          <button
+            onClick={() => setChartType('bar')}
+            className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+              chartType === 'bar'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            棒グラフ
+          </button>
+        </div>
       </div>
       <div className="p-4">
 
@@ -141,33 +165,60 @@ export const DailySparklineCharts: React.FC<DailySparklineChartsProps> = ({
 
             <div className="h-20 mb-2">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart
-                  data={days}
-                  margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
-                >
-                  {group.metrics.map((metric) => (
-                    <Line
-                      key={metric.key}
-                      type="monotone"
-                      dataKey={metric.key}
-                      stroke={metric.color}
-                      strokeWidth={1.5}
-                      dot={false}
-                      animationDuration={500}
-                    />
-                  ))}
-                  <YAxis hide />
-                  <Tooltip
-                    content={({ active, payload, label }) => (
-                      <CustomTooltip
-                        active={active}
-                        payload={payload}
-                        label={label}
-                        format={group.metrics[0].format}
+                {chartType === 'line' ? (
+                  <LineChart
+                    data={days}
+                    margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
+                  >
+                    {group.metrics.map((metric) => (
+                      <Line
+                        key={metric.key}
+                        type="monotone"
+                        dataKey={metric.key}
+                        stroke={metric.color}
+                        strokeWidth={1.5}
+                        dot={false}
+                        animationDuration={500}
                       />
-                    )}
-                  />
-                </LineChart>
+                    ))}
+                    <YAxis hide />
+                    <Tooltip
+                      content={({ active, payload, label }) => (
+                        <CustomTooltip
+                          active={active}
+                          payload={payload}
+                          label={label}
+                          format={group.metrics[0].format}
+                        />
+                      )}
+                    />
+                  </LineChart>
+                ) : (
+                  <BarChart
+                    data={days}
+                    margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
+                  >
+                    {group.metrics.map((metric) => (
+                      <Bar
+                        key={metric.key}
+                        dataKey={metric.key}
+                        fill={metric.color}
+                        animationDuration={500}
+                      />
+                    ))}
+                    <YAxis hide />
+                    <Tooltip
+                      content={({ active, payload, label }) => (
+                        <CustomTooltip
+                          active={active}
+                          payload={payload}
+                          label={label}
+                          format={group.metrics[0].format}
+                        />
+                      )}
+                    />
+                  </BarChart>
+                )}
               </ResponsiveContainer>
             </div>
 
