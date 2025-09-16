@@ -720,9 +720,7 @@ export default function MainDashboard() {
           console.log('  全actions:', conversionData.debug.all_actions)
         }
 
-        if (!response.ok) {
-          throw new Error(result.error?.message || 'Meta API Error')
-        }
+        // エラーチェックは既に上で実施済み（adResponseのチェック）
 
         console.log(`✅ ${result.data?.length || 0}件のデータ取得完了`)
 
