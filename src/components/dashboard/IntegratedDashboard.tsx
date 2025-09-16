@@ -26,8 +26,8 @@ const COLORS = {
 
 // ファネル分析パネル
 const FunnelAnalysisPanel: React.FC<{ metaData: any[], ecforceData: any[] }> = ({
-  metaData,
-  ecforceData
+  metaData = [],
+  ecforceData = []
 }) => {
   const funnelData = useMemo(() => {
     // ファネルステップの定義
@@ -93,8 +93,8 @@ const FunnelAnalysisPanel: React.FC<{ metaData: any[], ecforceData: any[] }> = (
 
 // 収益効率パネル
 const RevenueEfficiencyPanel: React.FC<{ metaData: any[], ecforceData: any[] }> = ({
-  metaData,
-  ecforceData
+  metaData = [],
+  ecforceData = []
 }) => {
   const metrics = useMemo(() => {
     const totalSpend = metaData.reduce((sum, d) => sum + (d.spend || 0), 0)
@@ -189,8 +189,8 @@ const RevenueEfficiencyPanel: React.FC<{ metaData: any[], ecforceData: any[] }> 
 
 // コンバージョン率パネル
 const ConversionRatePanel: React.FC<{ metaData: any[], ecforceData: any[] }> = ({
-  metaData,
-  ecforceData
+  metaData = [],
+  ecforceData = []
 }) => {
   const cvrMetrics = useMemo(() => {
     const totalImpressions = metaData.reduce((sum, d) => sum + (d.impressions || 0), 0)
@@ -287,8 +287,8 @@ const ConversionRatePanel: React.FC<{ metaData: any[], ecforceData: any[] }> = (
 
 // 単価分析パネル
 const UnitPricePanel: React.FC<{ metaData: any[], ecforceData: any[] }> = ({
-  metaData,
-  ecforceData
+  metaData = [],
+  ecforceData = []
 }) => {
   const unitPrices = useMemo(() => {
     const totalClicks = metaData.reduce((sum, d) => sum + (d.clicks || 0), 0)
@@ -386,11 +386,28 @@ const UnitPricePanel: React.FC<{ metaData: any[], ecforceData: any[] }> = ({
 
 // メインコンポーネント
 export const IntegratedDashboard: React.FC<IntegratedDashboardProps> = ({
-  metaData,
-  ecforceData,
+  metaData = [],
+  ecforceData = [],
   dateRange,
   selectedAccountId
 }) => {
+  // デバッグ: データ内容を確認
+  React.useEffect(() => {
+    console.log('🔍 IntegratedDashboard - データ確認:', {
+      metaData: {
+        count: metaData?.length || 0,
+        sample: metaData?.[0],
+        totalSpend: metaData?.reduce((sum, d) => sum + (d.spend || 0), 0) || 0
+      },
+      ecforceData: {
+        count: ecforceData?.length || 0,
+        sample: ecforceData?.[0],
+        totalRevenue: ecforceData?.reduce((sum, d) => sum + (d.revenue || 0), 0) || 0
+      },
+      dateRange
+    })
+  }, [metaData, ecforceData, dateRange])
+
   if (!selectedAccountId) {
     return (
       <div className="bg-white rounded-lg shadow-sm p-8 text-center">

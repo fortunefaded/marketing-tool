@@ -187,7 +187,9 @@ export default function MainDashboard() {
 
           console.log('✅ ECForceデータ取得完了（Convex）', {
             count: formattedData.length,
-            sample: formattedData[0]
+            sample: formattedData[0],
+            rawSample: result.data[0],
+            dateRange: { startDate, endDate }
           })
 
           setEcforceData(formattedData)
