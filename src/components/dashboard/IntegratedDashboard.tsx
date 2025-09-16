@@ -119,24 +119,15 @@ const RevenueEfficiencyPanel: React.FC<{ metaData: any[], ecforceData: any[] }> 
   const dailyData = useMemo(() => {
     const dataMap = new Map()
 
-    // Meta APIデータを日付でグループ化
-    metaData.forEach(item => {
-      const date = item.date_start || item.date || new Date().toISOString().split('T')[0]
-      if (!dataMap.has(date)) {
-        dataMap.set(date, {
-          date,
-          spend: 0,
-          revenue: 0,
-          roas: 0
-        })
-      }
-      const dayData = dataMap.get(date)
-      dayData.spend += item.spend || 0
+    // デバッグ: データ構造を確認
+    console.log('📊 日別データ集計:', {
+      metaDataSample: metaData[0],
+      ecforceDataSample: ecforceData[0]
     })
 
-    // ECForceデータを統合
+    // ECForceデータから日付のリストを作成
     ecforceData.forEach(item => {
-      const date = item.date || new Date().toISOString().split('T')[0]
+      const date = item.date || item.dataDate || new Date().toISOString().split('T')[0]
       if (!dataMap.has(date)) {
         dataMap.set(date, {
           date,
@@ -147,10 +138,43 @@ const RevenueEfficiencyPanel: React.FC<{ metaData: any[], ecforceData: any[] }> 
       }
       const dayData = dataMap.get(date)
       dayData.revenue += item.revenue || 0
-      dayData.roas = dayData.spend > 0 ? dayData.revenue / dayData.spend : 0
+
+      // ECForceデータにもcostがある場合は使用
+      if (item.cost) {
+        dayData.spend += item.cost
+      }
     })
 
-    return Array.from(dataMap.values()).sort((a, b) => a.date.localeCompare(b.date))
+    // Meta APIデータが日別データでない場合は、総計を日数で割る
+    if (metaData.length > 0) {
+      const totalMetaSpend = metaData.reduce((sum, d) => sum + (d.spend || 0), 0)
+
+      if (dataMap.size > 0) {
+        // ECForceデータの日数で割る
+        const dailySpend = totalMetaSpend / dataMap.size
+        dataMap.forEach(dayData => {
+          if (!dayData.spend) { // ECForceからのcostがない場合
+            dayData.spend = dailySpend
+          }
+          dayData.roas = dayData.spend > 0 ? dayData.revenue / dayData.spend : 0
+        })
+      } else if (metaData.length === 1 && metaData[0].date_start) {
+        // Meta APIから単一期間データの場合、その日付を使用
+        const date = metaData[0].date_start
+        dataMap.set(date, {
+          date,
+          spend: totalMetaSpend,
+          revenue: ecforceData.reduce((sum, d) => sum + (d.revenue || 0), 0),
+          roas: 0
+        })
+        const dayData = dataMap.get(date)
+        dayData.roas = dayData.spend > 0 ? dayData.revenue / dayData.spend : 0
+      }
+    }
+
+    const result = Array.from(dataMap.values()).sort((a, b) => a.date.localeCompare(b.date))
+    console.log('📊 日別データ結果:', result)
+    return result
   }, [metaData, ecforceData])
 
   return (
@@ -214,36 +238,47 @@ const ConversionRatePanel: React.FC<{ metaData: any[], ecforceData: any[] }> = (
   const dailyCvrData = useMemo(() => {
     const dataMap = new Map()
 
-    // Meta APIデータを日付でグループ化
-    metaData.forEach(item => {
-      const date = item.date_start || item.date || new Date().toISOString().split('T')[0]
+    // ECForceデータから日付リストを作成
+    ecforceData.forEach(item => {
+      const date = item.date || item.dataDate || new Date().toISOString().split('T')[0]
       if (!dataMap.has(date)) {
         dataMap.set(date, {
           date,
           impressions: 0,
           clicks: 0,
-          ctr: 0
+          ctr: 0,
+          cvrOrder: 0,
+          cvrPayment: 0,
+          access: 0,
+          orders: 0,
+          payments: 0
         })
       }
       const dayData = dataMap.get(date)
-      dayData.impressions += item.impressions || 0
-      dayData.clicks += item.clicks || 0
-      dayData.ctr = dayData.impressions > 0 ? (dayData.clicks / dayData.impressions * 100) : 0
+      dayData.access = item.access || 0
+      dayData.orders = item.cvOrder || 0
+      dayData.payments = item.cvPayment || 0
+      dayData.cvrOrder = dayData.access > 0 ? (dayData.orders / dayData.access * 100) : 0
+      dayData.cvrPayment = dayData.orders > 0 ? (dayData.payments / dayData.orders * 100) : 0
     })
 
-    // ECForceデータを統合
-    ecforceData.forEach(item => {
-      const date = item.date || new Date().toISOString().split('T')[0]
-      if (dataMap.has(date)) {
-        const dayData = dataMap.get(date)
-        const access = item.access || 0
-        const orders = item.cvOrder || 0
-        const payments = item.cvPayment || 0
+    // Meta APIデータの処理（期間集約の場合は日数で分割）
+    if (metaData.length > 0) {
+      const totalImpressions = metaData.reduce((sum, d) => sum + (d.impressions || 0), 0)
+      const totalClicks = metaData.reduce((sum, d) => sum + (d.clicks || 0), 0)
 
-        dayData.cvrOrder = access > 0 ? (orders / access * 100) : 0
-        dayData.cvrPayment = orders > 0 ? (payments / orders * 100) : 0
+      if (dataMap.size > 0) {
+        // 日数で割って各日に配分
+        const dailyImpressions = totalImpressions / dataMap.size
+        const dailyClicks = totalClicks / dataMap.size
+
+        dataMap.forEach(dayData => {
+          dayData.impressions = dailyImpressions
+          dayData.clicks = dailyClicks
+          dayData.ctr = dailyImpressions > 0 ? (dailyClicks / dailyImpressions * 100) : 0
+        })
       }
-    })
+    }
 
     return Array.from(dataMap.values()).sort((a, b) => a.date.localeCompare(b.date))
   }, [metaData, ecforceData])
@@ -309,36 +344,51 @@ const UnitPricePanel: React.FC<{ metaData: any[], ecforceData: any[] }> = ({
   const dailyUnitPriceData = useMemo(() => {
     const dataMap = new Map()
 
-    // Meta APIデータを日付でグループ化
-    metaData.forEach(item => {
-      const date = item.date_start || item.date || new Date().toISOString().split('T')[0]
+    // ECForceデータから日付リストを作成
+    ecforceData.forEach(item => {
+      const date = item.date || item.dataDate || new Date().toISOString().split('T')[0]
       if (!dataMap.has(date)) {
         dataMap.set(date, {
           date,
           clicks: 0,
           spend: 0,
           cpc: 0,
-          cpa: 0
+          cpa: 0,
+          customerUnitPrice: 0,
+          payments: 0,
+          revenue: 0
         })
       }
       const dayData = dataMap.get(date)
-      dayData.clicks += item.clicks || 0
-      dayData.spend += item.spend || 0
-      dayData.cpc = dayData.clicks > 0 ? dayData.spend / dayData.clicks : 0
-    })
+      dayData.payments = item.cvPayment || 0
+      dayData.revenue = item.revenue || 0
+      dayData.customerUnitPrice = dayData.payments > 0 ? dayData.revenue / dayData.payments : 0
 
-    // ECForceデータを統合
-    ecforceData.forEach(item => {
-      const date = item.date || new Date().toISOString().split('T')[0]
-      if (dataMap.has(date)) {
-        const dayData = dataMap.get(date)
-        const payments = item.cvPayment || 0
-        const revenue = item.revenue || 0
-
-        dayData.cpa = payments > 0 ? dayData.spend / payments : 0
-        dayData.customerUnitPrice = payments > 0 ? revenue / payments : 0
+      // ECForceデータにcostがある場合
+      if (item.cost) {
+        dayData.spend = item.cost
       }
     })
+
+    // Meta APIデータの処理（期間集約の場合は日数で分割）
+    if (metaData.length > 0) {
+      const totalSpend = metaData.reduce((sum, d) => sum + (d.spend || 0), 0)
+      const totalClicks = metaData.reduce((sum, d) => sum + (d.clicks || 0), 0)
+
+      if (dataMap.size > 0) {
+        const dailySpend = totalSpend / dataMap.size
+        const dailyClicks = totalClicks / dataMap.size
+
+        dataMap.forEach(dayData => {
+          if (!dayData.spend) { // ECForceからのcostがない場合
+            dayData.spend = dailySpend
+          }
+          dayData.clicks = dailyClicks
+          dayData.cpc = dayData.clicks > 0 ? dayData.spend / dayData.clicks : 0
+          dayData.cpa = dayData.payments > 0 ? dayData.spend / dayData.payments : 0
+        })
+      }
+    }
 
     return Array.from(dataMap.values()).sort((a, b) => a.date.localeCompare(b.date))
   }, [metaData, ecforceData])
