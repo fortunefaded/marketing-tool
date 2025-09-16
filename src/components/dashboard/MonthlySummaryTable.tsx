@@ -77,9 +77,6 @@ export const MonthlySummaryTable: React.FC<MonthlySummaryTableProps> = ({
                 月
               </th>
               <th className="px-2 py-1.5 text-right text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50">
-                ADS
-              </th>
-              <th className="px-2 py-1.5 text-right text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50">
                 FRQ
               </th>
               <th className="px-2 py-1.5 text-right text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50">
@@ -133,9 +130,6 @@ export const MonthlySummaryTable: React.FC<MonthlySummaryTableProps> = ({
                         </span>
                       )}
                     </div>
-                  </td>
-                  <td className="px-2 py-1.5 whitespace-nowrap text-xs text-gray-900 text-right">
-                    {data ? formatNumber(data.totalAds, 'number') : '-'}
                   </td>
                   <td className="px-2 py-1.5 whitespace-nowrap text-xs text-gray-900 text-right">
                     {data ? formatNumber(data.avgFrequency, 'decimal') : '-'}
