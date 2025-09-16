@@ -944,7 +944,18 @@ export default function MainDashboard() {
         } catch (ecError) {
           console.error('ECForceデータ取得エラー:', ecError)
           // ECForceデータが取得できなくてもMetaデータは表示
-          setData(formattedData)
+          // アカウント統計データを追加（エラー時でも利用可能にする）
+          const accountStats = accountResult?.data?.[0] || {}
+          const dataWithAccountStats = formattedData.map((item: any) => ({
+            ...item,
+            // アカウント統計データを追加（合計行で使用）
+            account_stats: {
+              reach: parseInt(accountStats.reach || '0'),
+              frequency: parseFloat(accountStats.frequency || '0'),
+              unique_ctr: parseFloat(accountStats.unique_ctr || '0'),
+            }
+          }))
+          setData(dataWithAccountStats)
         }
 
         setLastUpdateTime(new Date())
