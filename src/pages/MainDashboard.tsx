@@ -16,7 +16,6 @@ import {
   clearCachedData,
 } from '@/utils/localStorage'
 import { logAPI, logState, logFilter } from '../utils/debugLogger'
-import { getECForceClient } from '../services/ecforce/ecforceClient'
 
 // デバッグコマンドを読み込み（開発環境のみ）
 if (
@@ -153,29 +152,59 @@ export default function MainDashboard() {
     }
   }, [convex])
 
-  // ECForceからデータを取得
+  // ECForceからデータを取得（Convex経由）
   const fetchDataFromECForce = useCallback(
     async (startDate: string, endDate: string) => {
       try {
-        console.log('📊 ECForceからデータを取得開始', { startDate, endDate })
-        const ecforceClient = getECForceClient()
-        const ecforceMetrics = await ecforceClient.getDailyMetrics(startDate, endDate)
+        console.log('📊 ECForceからデータを取得開始（Convex）', { startDate, endDate })
 
-        console.log('✅ ECForceデータ取得完了', {
-          count: ecforceMetrics.length,
-          sample: ecforceMetrics[0]
+        // ConvexからECForceデータを取得
+        const result = await convex.query(api.ecforce.getPerformanceData, {
+          startDate,
+          endDate,
+          limit: 1000 // 十分な量のデータを取得
         })
 
-        setEcforceData(ecforceMetrics)
-        return ecforceMetrics
+        if (result && result.data) {
+          // Convexのデータ形式を統合ダッシュボード用に変換
+          const formattedData = result.data.map((item: any) => ({
+            date: item.dataDate,
+            access: item.accessCount || 0,
+            cvOrder: item.cvOrder || 0,
+            cvPayment: item.cvPayment || 0,
+            cvThanksUpsell: item.cvThanksUpsell || 0,
+            revenue: item.salesAmount || 0,
+            orderRevenue: item.orderAmount || 0,
+            upsellRevenue: (item.salesAmount || 0) - (item.orderAmount || 0),
+            cvrOrder: item.cvrOrder || 0,
+            cvrPayment: item.cvrPayment || 0,
+            offerSuccessRate: item.offerRateThanksUpsell || 0,
+            cost: item.cost || 0,
+            roas: item.roas || 0,
+            realCPA: item.realCPA || 0,
+            advertiser: item.advertiser || '',
+          }))
+
+          console.log('✅ ECForceデータ取得完了（Convex）', {
+            count: formattedData.length,
+            sample: formattedData[0]
+          })
+
+          setEcforceData(formattedData)
+          return formattedData
+        } else {
+          console.log('⚠️ ECForceデータが見つかりません')
+          setEcforceData([])
+          return []
+        }
       } catch (error) {
-        console.error('❌ ECForceデータ取得エラー', error)
+        console.error('❌ ECForceデータ取得エラー（Convex）', error)
         // エラー時は空配列をセット
         setEcforceData([])
         return []
       }
     },
-    []
+    [convex]
   )
 
   // Meta APIから過去7日分のデータを直接取得
@@ -905,7 +934,7 @@ export default function MainDashboard() {
         setIsLoading(false)
       }
     },
-    [selectedAccountId, accounts, dateRange, fetchDataFromECForce]
+    [selectedAccountId, accounts, dateRange, fetchDataFromECForce, convex]
   ) // customDateRangeを削除して無限ループを防ぐ
 
   // 初回ロード時
