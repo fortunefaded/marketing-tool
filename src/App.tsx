@@ -19,6 +19,7 @@ import { ECForceDataPage } from './features/ecforce/pages/ECForceDataPage'
 import { ECForceMappingPage } from './features/ecforce/pages/ECForceMappingPage'
 import { ECForceSync } from './features/ecforce/pages/ECForceSync'
 import { ECForceHistory } from './features/ecforce/pages/ECForceHistory'
+import { ECForcePeriodAnalysis } from './features/ecforce/pages/ECForcePeriodAnalysis'
 
 // Convex URLのフォールバック処理を追加
 const convexUrl = import.meta.env.VITE_CONVEX_URL || 'https://temporary-convex-url.convex.cloud'
@@ -76,6 +77,7 @@ function AppContent() {
             <Route path="/settings/meta-api/complete" element={<CompleteStepConvex />} />
             {/* ECForce設定ルート */}
             <Route path="/settings/ecforce" element={<ECForceMain />} />
+            <Route path="/settings/ecforce/period-analysis" element={<ECForcePeriodAnalysis />} />
             <Route path="/settings/ecforce/upload" element={<ECForceUpload />} />
             <Route path="/settings/ecforce/data" element={<ECForceDataPage />} />
             <Route path="/settings/ecforce/mapping" element={<ECForceMappingPage />} />

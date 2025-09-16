@@ -5,6 +5,7 @@ import {
   Cog6ToothIcon,
   ChevronDoubleLeftIcon,
   ChevronDoubleRightIcon,
+  PresentationChartLineIcon,
 } from '@heroicons/react/24/outline'
 import { ComponentType, useState, useEffect } from 'react'
 
@@ -45,6 +46,11 @@ export default function Sidebar() {
       name: 'ダッシュボード',
       path: '/',
       icon: Squares2X2Icon,
+    },
+    {
+      name: '期間別データ分析',
+      path: '/settings/ecforce/period-analysis',
+      icon: PresentationChartLineIcon,
     },
     {
       name: '設定・管理',

@@ -92,6 +92,103 @@ export const savePerformanceData = mutation({
   },
 })
 
+// 月別集計データ取得
+export const getMonthlyAggregatedData = query({
+  args: {
+    startDate: v.optional(v.string()),
+    endDate: v.optional(v.string()),
+    advertiser: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    // 日付範囲の設定
+    const endDate = args.endDate || new Date().toISOString().split('T')[0]
+    const startDate = args.startDate || new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+
+    // クエリ構築
+    let query = ctx.db
+      .query('ecforcePerformance')
+      .withIndex('by_date')
+      .filter((q) =>
+        q.and(
+          q.gte(q.field('dataDate'), startDate),
+          q.lte(q.field('dataDate'), endDate)
+        )
+      )
+
+    let data = await query.collect()
+
+    // 広告主フィルタ
+    if (args.advertiser) {
+      const normalizedAdvertiser = args.advertiser.toLowerCase().replace(/\s+/g, '')
+      data = data.filter((item) => item.advertiserNormalized === normalizedAdvertiser)
+    }
+
+    // 月別にグループ化
+    const monthlyMap = new Map<string, any>()
+
+    data.forEach((item) => {
+      const yearMonth = item.dataDate.substring(0, 7) // YYYY-MM形式
+      const key = `${yearMonth}_${item.advertiser}`
+
+      if (!monthlyMap.has(key)) {
+        monthlyMap.set(key, {
+          yearMonth,
+          advertiser: item.advertiser,
+          advertiserNormalized: item.advertiserNormalized,
+          orderAmount: 0,
+          salesAmount: 0,
+          cost: 0,
+          accessCount: 0,
+          cvOrder: 0,
+          cvPayment: 0,
+          cvThanksUpsell: 0,
+          dataPoints: 0, // データポイント数（日数）
+        })
+      }
+
+      const monthData = monthlyMap.get(key)
+      monthData.orderAmount += item.orderAmount || 0
+      monthData.salesAmount += item.salesAmount || 0
+      monthData.cost += item.cost || 0
+      monthData.accessCount += item.accessCount || 0
+      monthData.cvOrder += item.cvOrder || 0
+      monthData.cvPayment += item.cvPayment || 0
+      monthData.cvThanksUpsell += item.cvThanksUpsell || 0
+      monthData.dataPoints++
+    })
+
+    // 配列に変換して計算値を追加
+    const monthlyData = Array.from(monthlyMap.values()).map((month) => {
+      const cvrOrder = month.accessCount > 0 ? month.cvOrder / month.accessCount : 0
+      const cvrPayment = month.accessCount > 0 ? month.cvPayment / month.accessCount : 0
+      const paymentRate = month.cvOrder > 0 ? month.cvPayment / month.cvOrder : 0
+      const realCPA = month.cvPayment > 0 ? month.cost / month.cvPayment : 0
+      const roas = month.cost > 0 ? month.salesAmount / month.cost : 0
+
+      return {
+        ...month,
+        cvrOrder,
+        cvrPayment,
+        paymentRate,
+        realCPA,
+        roas,
+      }
+    })
+
+    // 年月でソート（新しい順）
+    monthlyData.sort((a, b) => b.yearMonth.localeCompare(a.yearMonth))
+
+    return {
+      data: monthlyData,
+      total: monthlyData.length,
+      dateRange: {
+        start: startDate,
+        end: endDate,
+      },
+    }
+  },
+})
+
 // データ取得（ページネーション対応）
 export const getPerformanceData = query({
   args: {
