@@ -523,9 +523,67 @@ export default function MainDashboard() {
 
         logAPI('MainDashboard', 'Meta API Request', requestDebugInfo)
 
-        // API呼び出し
-        const response = await fetch(url.toString())
-        const result = await response.json()
+        // API呼び出し（個別広告とアカウント統計を並列取得）
+        // 1. 個別広告データ取得用のURL
+        const adLevelUrl = url.toString()
+
+        // 2. アカウント統計データ取得用のURL（REACH、FRQ、U-CTR用）
+        const accountLevelUrl = new URL(`${baseUrl}/act_${cleanAccountId}/insights`)
+        const accountParams = {
+          access_token: account.accessToken,
+          time_range: JSON.stringify({
+            since: formatDate(startDate),
+            until: formatDate(endDate),
+          }),
+          level: 'account', // アカウント全体の統計
+          fields: 'reach,frequency,unique_ctr,impressions,clicks,spend', // 必要最小限のフィールド
+          limit: '1',
+        }
+
+        Object.entries(accountParams).forEach(([key, value]) => {
+          accountLevelUrl.searchParams.append(key, value)
+        })
+
+        // 並列でAPI呼び出し
+        console.log('🔄 Meta APIデータ取得中...')
+        const [adResponse, accountResponse] = await Promise.all([
+          fetch(adLevelUrl),
+          fetch(accountLevelUrl.toString())
+        ])
+
+        const [adResult, accountResult] = await Promise.all([
+          adResponse.json(),
+          accountResponse.json()
+        ])
+
+        // アカウント統計データをログ出力
+        if (accountResult.data && accountResult.data[0]) {
+          const accountStats = accountResult.data[0]
+          console.log('📊 アカウント統計データ取得完了:', {
+            reach: accountStats.reach,
+            frequency: accountStats.frequency,
+            unique_ctr: accountStats.unique_ctr,
+            impressions: accountStats.impressions,
+            clicks: accountStats.clicks,
+            spend: accountStats.spend
+          })
+
+          // グローバル変数に保存（デバッグ用）
+          if (typeof window !== 'undefined') {
+            (window as any).ACCOUNT_STATS = accountStats
+          }
+        }
+
+        // エラーチェック
+        if (!adResponse.ok) {
+          throw new Error(adResult.error?.message || 'Meta API Error (Ad Level)')
+        }
+        if (!accountResponse.ok) {
+          console.warn('⚠️ アカウント統計の取得に失敗:', accountResult.error?.message)
+        }
+
+        // 従来の処理（個別広告データ）
+        const result = adResult
 
         // 最大インプレッションを持つ広告を找す
         let maxImpressionsItem = null
@@ -852,7 +910,7 @@ export default function MainDashboard() {
 
           console.log('ECForce広告名別データ:', ecforceByCreativeName.size + '件のクリエイティブ')
 
-          // MetaデータにECForceデータを統合
+          // MetaデータにECForceデータとアカウント統計を統合
           // 全てのアイテムに合計値を追加（合計行で使用するため）
           const dataWithEcforce = formattedData.map((item: any) => {
             // 広告名でECForceデータを検索
@@ -860,6 +918,9 @@ export default function MainDashboard() {
               cv: 0,
               fcv: 0,
             }
+
+            // アカウント統計データも追加
+            const accountStats = accountResult?.data?.[0] || {}
 
             return {
               ...item,
@@ -871,6 +932,12 @@ export default function MainDashboard() {
               ecforce_fcv: ecforceCreativeData.fcv,
               ecforce_cpa:
                 ecforceCreativeData.fcv > 0 ? item.spend / ecforceCreativeData.fcv : null,
+              // アカウント統計データを追加（合計行で使用）
+              account_stats: {
+                reach: parseInt(accountStats.reach || '0'),
+                frequency: parseFloat(accountStats.frequency || '0'),
+                unique_ctr: parseFloat(accountStats.unique_ctr || '0'),
+              }
             }
           })
 

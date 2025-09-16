@@ -556,18 +556,34 @@ export function AggregatedFatigueTable({
             <td className="px-2 py-3 text-center text-sm text-blue-900">
               {sortedData.reduce((sum, item) => sum + item.adCount, 0)}
             </td>
-            {/* FRQ */}
+            {/* FRQ - アカウント統計データを優先使用 */}
             <td className="px-2 py-3 text-center text-sm text-blue-900">
-              {sortedData.length > 0
-                ? (
-                    sortedData.reduce((sum, item) => sum + (item.metrics.frequency || 0), 0) /
-                    sortedData.length
-                  ).toFixed(2)
-                : '-'}
+              {(() => {
+                // account_statsがあればそれを使用（正しいFRQ）
+                const accountFrequency = sortedData[0]?.metrics?.account_stats?.frequency
+                if (accountFrequency !== undefined && accountFrequency > 0) {
+                  return accountFrequency.toFixed(2)
+                }
+                // フォールバック：個別広告の平均（非推奨）
+                return sortedData.length > 0
+                  ? (
+                      sortedData.reduce((sum, item) => sum + (item.metrics.frequency || 0), 0) /
+                      sortedData.length
+                    ).toFixed(2)
+                  : '-'
+              })()}
             </td>
-            {/* REACH */}
+            {/* REACH - アカウント統計データを優先使用 */}
             <td className="px-2 py-3 text-center text-sm text-blue-900">
-              {formatNumber(sortedData.reduce((sum, item) => sum + (item.metrics.reach || 0), 0))}
+              {(() => {
+                // account_statsがあればそれを使用（正しいREACH）
+                const accountReach = sortedData[0]?.metrics?.account_stats?.reach
+                if (accountReach !== undefined && accountReach > 0) {
+                  return formatNumber(accountReach)
+                }
+                // フォールバック：個別広告の合計（非推奨 - 重複カウント）
+                return formatNumber(sortedData.reduce((sum, item) => sum + (item.metrics.reach || 0), 0))
+              })()}
             </td>
             {/* IMP */}
             <td className="px-2 py-3 text-center text-sm text-blue-900">
@@ -589,14 +605,22 @@ export function AggregatedFatigueTable({
                   ).toFixed(2) + '%'
                 : '-'}
             </td>
-            {/* U-CTR */}
+            {/* U-CTR - アカウント統計データを優先使用 */}
             <td className="px-2 py-3 text-center text-sm text-blue-900">
-              {sortedData.length > 0
-                ? (
-                    sortedData.reduce((sum, item) => sum + (item.metrics.unique_ctr || 0), 0) /
-                    sortedData.length
-                  ).toFixed(2) + '%'
-                : '-'}
+              {(() => {
+                // account_statsがあればそれを使用（正しいU-CTR）
+                const accountUctr = sortedData[0]?.metrics?.account_stats?.unique_ctr
+                if (accountUctr !== undefined && accountUctr > 0) {
+                  return accountUctr.toFixed(2) + '%'
+                }
+                // フォールバック：個別広告の平均（非推奨）
+                return sortedData.length > 0
+                  ? (
+                      sortedData.reduce((sum, item) => sum + (item.metrics.unique_ctr || 0), 0) /
+                      sortedData.length
+                    ).toFixed(2) + '%'
+                  : '-'
+              })()}
             </td>
             {/* CPC */}
             <td className="px-2 py-3 text-center text-sm text-blue-900">
