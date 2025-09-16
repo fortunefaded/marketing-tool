@@ -307,8 +307,12 @@ function calculatePeriodStats(data: any[]) {
     cvOrder: 0,
     cvPayment: 0,
     cvThanksUpsell: 0,
+    offerRateThanksUpsell: 0,
     dataPoints: data.length,
   }
+
+  let totalOfferRateSum = 0
+  let offerRateCount = 0
 
   data.forEach((item) => {
     stats.orderAmount += item.orderAmount || 0
@@ -318,24 +322,29 @@ function calculatePeriodStats(data: any[]) {
     stats.cvOrder += item.cvOrder || 0
     stats.cvPayment += item.cvPayment || 0
     stats.cvThanksUpsell += item.cvThanksUpsell || 0
+
+    // オファー成功率の平均を計算
+    if (item.offerRateThanksUpsell !== undefined && item.offerRateThanksUpsell !== null) {
+      totalOfferRateSum += item.offerRateThanksUpsell
+      offerRateCount++
+    }
   })
 
-  // 計算指標
+  // オファー成功率の平均
+  if (offerRateCount > 0) {
+    stats.offerRateThanksUpsell = totalOfferRateSum / offerRateCount
+  }
+
+  // 計算指標（CVRは保持）
   const cvrOrder = stats.accessCount > 0 ? stats.cvOrder / stats.accessCount : 0
   const cvrPayment = stats.accessCount > 0 ? stats.cvPayment / stats.accessCount : 0
-  const paymentRate = stats.cvOrder > 0 ? stats.cvPayment / stats.cvOrder : 0
-  const cpa = stats.cvPayment > 0 ? stats.cost / stats.cvPayment : 0
-  const roas = stats.cost > 0 ? stats.salesAmount / stats.cost : 0
-  const averageOrderValue = stats.cvOrder > 0 ? stats.orderAmount / stats.cvOrder : 0
+  const offerRateThanksUpsell = stats.offerRateThanksUpsell || 0
 
   return {
     ...stats,
     cvrOrder,
     cvrPayment,
-    paymentRate,
-    cpa,
-    roas,
-    averageOrderValue,
+    offerRateThanksUpsell,
   }
 }
 
@@ -353,11 +362,10 @@ function calculateChanges(oldStats: any, newStats: any) {
     accessCount: calculateChange(oldStats.accessCount, newStats.accessCount),
     cvOrder: calculateChange(oldStats.cvOrder, newStats.cvOrder),
     cvPayment: calculateChange(oldStats.cvPayment, newStats.cvPayment),
+    cvThanksUpsell: calculateChange(oldStats.cvThanksUpsell, newStats.cvThanksUpsell),
     cvrOrder: calculateChange(oldStats.cvrOrder, newStats.cvrOrder),
     cvrPayment: calculateChange(oldStats.cvrPayment, newStats.cvrPayment),
-    roas: calculateChange(oldStats.roas, newStats.roas),
-    cpa: calculateChange(oldStats.cpa, newStats.cpa),
-    averageOrderValue: calculateChange(oldStats.averageOrderValue, newStats.averageOrderValue),
+    offerRateThanksUpsell: calculateChange(oldStats.offerRateThanksUpsell, newStats.offerRateThanksUpsell),
   }
 }
 
