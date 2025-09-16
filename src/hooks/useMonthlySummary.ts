@@ -248,7 +248,7 @@ export const useMonthlySummary = (accountId: string | null, accessToken?: string
           totalSpend: parseFloat(data.spend || '0'),
           totalFcv,  // undefined（F-CVは表示しない）
           totalCv: totalCvPayment,   // ECForceのCV（決済完了）を使用
-          avgCpa: totalCvPayment > 0 ? parseFloat(data.spend || '0') / totalCvPayment : 0,  // 決済CVベースでCPA計算
+          avgCpa: totalCvOrder > 0 ? parseFloat(data.spend || '0') / totalCvOrder : 0,  // 受注CVベースでCPA計算
           avgCpm: parseFloat(data.cpm || '0'),
         }
 
@@ -271,6 +271,11 @@ export const useMonthlySummary = (accountId: string | null, accessToken?: string
             unique_actions: data.unique_actions,
           },
           整形後: fullSummaryData,
+          CPA計算詳細: {
+            totalSpend: parseFloat(data.spend || '0'),
+            totalCvOrder,
+            avgCpa: totalCvOrder > 0 ? parseFloat(data.spend || '0') / totalCvOrder : 0,
+          },
         })
 
         // Convexに保存（totalCvOrderを含む）
