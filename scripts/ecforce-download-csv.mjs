@@ -162,9 +162,10 @@ async function downloadCSVFromMogumo() {
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     await page.waitForTimeout(3000);  // 3秒待機
     
-    // 5. 期間集計を「昨日」に設定
-    console.log('📅 期間集計を設定中...');
-    
+    // 5. 日付選択をスキップ（デフォルトの期間設定を使用）
+    console.log('📅 日付選択をスキップ - デフォルトの期間設定を使用します');
+
+    /* 日付選択ロジックを無効化
     try {
       // DateRangePickerの入力フィールドを探す（期間集計の入力欄）
       // 複数のセレクタを試す
@@ -250,7 +251,15 @@ async function downloadCSVFromMogumo() {
     } catch (e) {
       console.log('⚠️ 期間集計設定エラー:', e.message);
     }
-    
+    */
+
+    // デフォルト期間設定のスクリーンショット
+    await page.screenshot({
+      path: 'screenshots/default-date-range.png',
+      fullPage: true
+    });
+    console.log('📸 デフォルト期間設定のスクリーンショット保存');
+
     // 6. 「この条件で検索する」ボタンをクリック
     console.log('🔍 検索ボタンを探しています...');
     
