@@ -195,45 +195,6 @@ export const DailySparklineCharts: React.FC<DailySparklineChartsProps> = ({
         ))}
       </div>
 
-      {/* サマリー統計 */}
-      {dailyData.summary && (
-        <div className="mt-3 pt-3 border-t border-gray-200">
-          <div className="grid grid-cols-4 gap-2 text-xs">
-            <div>
-              <span className="text-gray-500">総インプレッション:</span>
-              <span className="ml-1 font-medium">{formatValue(dailyData.summary.totalImpressions, 'large')}</span>
-            </div>
-            <div>
-              <span className="text-gray-500">総クリック:</span>
-              <span className="ml-1 font-medium">{formatValue(dailyData.summary.totalClicks, 'number')}</span>
-            </div>
-            <div>
-              <span className="text-gray-500">総費用:</span>
-              <span className="ml-1 font-medium">{formatValue(dailyData.summary.totalSpend, 'currency')}</span>
-            </div>
-            <div>
-              <span className="text-gray-500">総CV:</span>
-              <span className="ml-1 font-medium">{formatValue(dailyData.summary.totalConversions, 'number')}</span>
-            </div>
-            <div>
-              <span className="text-gray-500">平均CTR:</span>
-              <span className="ml-1 font-medium">{formatValue(dailyData.summary.avgCtr, 'percent')}</span>
-            </div>
-            <div>
-              <span className="text-gray-500">平均CPC:</span>
-              <span className="ml-1 font-medium">{formatValue(dailyData.summary.avgCpc, 'currency')}</span>
-            </div>
-            <div>
-              <span className="text-gray-500">平均CPA:</span>
-              <span className="ml-1 font-medium">{formatValue(dailyData.summary.avgCpa, 'currency')}</span>
-            </div>
-            <div>
-              <span className="text-gray-500">総リーチ:</span>
-              <span className="ml-1 font-medium">{formatValue(dailyData.summary.totalReach, 'large')}</span>
-            </div>
-          </div>
-        </div>
-      )}
       </div>
     </div>
   )
