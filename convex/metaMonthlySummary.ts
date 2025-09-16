@@ -73,6 +73,7 @@ export const generateMonthlySummary = mutation({
       totalSpend: v.number(),
       totalFcv: v.optional(v.number()),
       totalCv: v.number(),
+      totalCvOrder: v.optional(v.number()),  // 受注CV（追加）
       avgCpa: v.number(),
       avgCpm: v.number(),
     }),

@@ -12,7 +12,8 @@ interface MonthlySummaryData {
   avgCpc: number
   totalSpend: number
   totalFcv?: number
-  totalCv: number
+  totalCv: number  // 決済CV
+  totalCvOrder?: number  // 受注CV
   avgCpa: number
   avgCpm: number
   isComplete: boolean
@@ -149,10 +150,10 @@ export const MonthlySummaryTable: React.FC<MonthlySummaryTableProps> = ({
                     {data ? formatNumber(data.totalClicks, 'large') : '-'}
                   </td>
                   <td className="px-2 py-1.5 whitespace-nowrap text-xs text-gray-900 text-right">
-                    {data ? formatNumber(data.avgCtr, 'percent') : '-'}
+                    {data ? `${data.avgCtr.toFixed(2)}%` : '-'}
                   </td>
                   <td className="px-2 py-1.5 whitespace-nowrap text-xs text-gray-900 text-right">
-                    {data && data.avgUctr !== undefined ? formatNumber(data.avgUctr, 'percent') : '-'}
+                    {data && data.avgUctr !== undefined ? `${data.avgUctr.toFixed(2)}%` : '-'}
                   </td>
                   <td className="px-2 py-1.5 whitespace-nowrap text-xs text-gray-900 text-right">
                     {data ? formatNumber(data.avgCpc, 'currency') : '-'}
@@ -164,7 +165,11 @@ export const MonthlySummaryTable: React.FC<MonthlySummaryTableProps> = ({
                     {data && data.totalFcv !== undefined ? formatNumber(data.totalFcv, 'number') : '-'}
                   </td>
                   <td className="px-2 py-1.5 whitespace-nowrap text-xs text-gray-900 text-right">
-                    {data ? formatNumber(data.totalCv, 'number') : '-'}
+                    {data ? (
+                      data.totalCvOrder !== undefined ?
+                        `${formatNumber(data.totalCvOrder, 'number')}(${formatNumber(data.totalCv, 'number')})` :
+                        formatNumber(data.totalCv, 'number')
+                    ) : '-'}
                   </td>
                   <td className="px-2 py-1.5 whitespace-nowrap text-xs text-gray-900 text-right">
                     {data ? formatNumber(data.avgCpa, 'currency') : '-'}
