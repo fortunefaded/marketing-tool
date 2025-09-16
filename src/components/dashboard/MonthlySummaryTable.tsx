@@ -180,10 +180,14 @@ export const MonthlySummaryTable: React.FC<MonthlySummaryTableProps> = ({
                     {data ? (() => {
                       const cvValue = data.totalCvOrder || data.totalCv;
                       // 文字列として括弧付きで保存されている場合の処理
-                      if (typeof cvValue === 'string' && cvValue.includes('(')) {
-                        // 括弧の前の数値のみを抽出
-                        const mainValue = cvValue.split('(')[0];
-                        return mainValue;
+                      if (typeof cvValue === 'string') {
+                        const cvStr = String(cvValue);
+                        if (cvStr.includes('(')) {
+                          // 括弧の前の数値のみを抽出
+                          const mainValue = cvStr.split('(')[0];
+                          return mainValue;
+                        }
+                        return cvStr;
                       }
                       return formatNumber(cvValue, 'number');
                     })() : '-'}
