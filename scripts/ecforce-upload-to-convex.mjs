@@ -15,10 +15,13 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
 // Convexへのアップロード処理
-export async function uploadToConvex(csvPath) {
+export async function uploadToConvex(csvPath, options = {}) {
+  const { limitDays = 2 } = options; // デフォルトは2日分に制限
+
   try {
     console.log('\n📤 Convexデータベースへアップロード開始...');
     console.log(`  CSVファイル: ${csvPath}`);
+    console.log(`  インポート制限: 直近${limitDays}日分`);
     
     // Convex URLを環境変数から取得
     const convexUrl = process.env.VITE_CONVEX_URL;
@@ -90,11 +93,46 @@ export async function uploadToConvex(csvPath) {
     }
     
     // デバイス=「合計」のみフィルタリング
-    const filteredData = parseResult.data.filter(row => row['デバイス'] === '合計');
-    console.log(`  処理対象データ: ${filteredData.length}件（デバイス=合計のみ）`);
-    
+    const deviceFilteredData = parseResult.data.filter(row => row['デバイス'] === '合計');
+    console.log(`  デバイス=合計: ${deviceFilteredData.length}件`);
+
+    // 指定日数分のみに制限（Convexクエリ節約のため）
+    const today = new Date();
+    const cutoffDateObj = new Date(today);
+    cutoffDateObj.setDate(today.getDate() - limitDays);
+
+    // 日付形式を正規化（YYYY-MM-DD形式）
+    const formatDate = (date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    const cutoffDate = formatDate(cutoffDateObj);
+    console.log(`  📅 直近${limitDays}日分のみ処理（${cutoffDate}以降）`);
+
+    const filteredData = deviceFilteredData.filter(row => {
+      const dateField = row['日付'] || row['期間'];
+      if (!dateField) return false;
+
+      // 日付を正規化（YYYY-MM-DD形式に統一）
+      const normalizedDate = String(dateField).replace(/\//g, '-').split(' ')[0];
+
+      // 2024-12-25 形式または 2024-12-25形式を想定
+      const dateParts = normalizedDate.split('-');
+      if (dateParts.length === 3) {
+        const formattedDate = `${dateParts[0]}-${dateParts[1].padStart(2, '0')}-${dateParts[2].padStart(2, '0')}`;
+        return formattedDate >= cutoffDate;
+      }
+
+      return false;
+    });
+
+    console.log(`  処理対象データ: ${filteredData.length}件（直近${limitDays}日分）`);
+
     if (filteredData.length === 0) {
-      console.log('⚠️ 処理対象のデータがありません');
+      console.log(`⚠️ 処理対象のデータがありません（直近${limitDays}日分のデータが存在しない可能性があります）`);
       return false;
     }
     
