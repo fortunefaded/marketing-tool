@@ -5,6 +5,7 @@ import { FatigueDashboardPresentation } from '../features/meta-api/components/Fa
 import { AccountSelector } from '../features/meta-api/account/AccountSelector'
 import { MonthlySummaryTable } from '../components/dashboard/MonthlySummaryTable'
 import { DailySparklineCharts } from '../components/dashboard/DailySparklineCharts'
+import { IntegratedDashboard } from '../components/dashboard/IntegratedDashboard'
 import { useMonthlySummary } from '../hooks/useMonthlySummary'
 import { MetaAccount } from '@/types'
 import {
@@ -1215,6 +1216,73 @@ export default function MainDashboard() {
                   return null
               }
             })()}
+            />
+
+            {/* 統合ダッシュボード */}
+            <IntegratedDashboard
+              metaData={data}
+              ecforceData={ecforceData}
+              dateRange={(() => {
+                const today = new Date()
+                const formatDate = (date: Date) => date.toISOString().split('T')[0]
+
+                switch (dateRange) {
+                  case 'today':
+                    return { start: formatDate(today), end: formatDate(today) }
+                  case 'yesterday':
+                    const yesterday = new Date(today)
+                    yesterday.setDate(yesterday.getDate() - 1)
+                    return { start: formatDate(yesterday), end: formatDate(yesterday) }
+                  case 'last_7d':
+                    const week = new Date(today)
+                    week.setDate(week.getDate() - 7)
+                    const endWeek = new Date(today)
+                    endWeek.setDate(endWeek.getDate() - 1)
+                    return { start: formatDate(week), end: formatDate(endWeek) }
+                  case 'last_14d':
+                    const twoWeeks = new Date(today)
+                    twoWeeks.setDate(twoWeeks.getDate() - 14)
+                    const endTwoWeeks = new Date(today)
+                    endTwoWeeks.setDate(endTwoWeeks.getDate() - 1)
+                    return { start: formatDate(twoWeeks), end: formatDate(endTwoWeeks) }
+                  case 'last_28d':
+                    const fourWeeks = new Date(today)
+                    fourWeeks.setDate(fourWeeks.getDate() - 28)
+                    const endFourWeeks = new Date(today)
+                    endFourWeeks.setDate(endFourWeeks.getDate() - 1)
+                    return { start: formatDate(fourWeeks), end: formatDate(endFourWeeks) }
+                  case 'last_30d':
+                    const thirtyDays = new Date(today)
+                    thirtyDays.setDate(thirtyDays.getDate() - 30)
+                    const endThirtyDays = new Date(today)
+                    endThirtyDays.setDate(endThirtyDays.getDate() - 1)
+                    return { start: formatDate(thirtyDays), end: formatDate(endThirtyDays) }
+                  case 'last_month':
+                    const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+                    const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0)
+                    return { start: formatDate(lastMonth), end: formatDate(lastMonthEnd) }
+                  case 'this_month':
+                    const thisMonth = new Date(today.getFullYear(), today.getMonth(), 1)
+                    return { start: formatDate(thisMonth), end: formatDate(today) }
+                  case 'last_90d':
+                    const ninetyDays = new Date(today)
+                    ninetyDays.setDate(ninetyDays.getDate() - 90)
+                    const endNinetyDays = new Date(today)
+                    endNinetyDays.setDate(endNinetyDays.getDate() - 1)
+                    return { start: formatDate(ninetyDays), end: formatDate(endNinetyDays) }
+                  case 'custom':
+                    if (customDateRange) {
+                      return {
+                        start: formatDate(customDateRange.start),
+                        end: formatDate(customDateRange.end),
+                      }
+                    }
+                    return null
+                  default:
+                    return null
+                }
+              })()}
+              selectedAccountId={selectedAccountId}
             />
           </div>
         )}
