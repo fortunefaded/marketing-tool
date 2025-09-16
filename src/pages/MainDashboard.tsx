@@ -2,6 +2,10 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useConvex } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import { FatigueDashboardPresentation } from '../features/meta-api/components/FatigueDashboardPresentation'
+import { AccountSelector } from '../features/meta-api/account/AccountSelector'
+import { MonthlySummaryTable } from '../components/dashboard/MonthlySummaryTable'
+import { DailySparklineCharts } from '../components/dashboard/DailySparklineCharts'
+import { useMonthlySummary } from '../hooks/useMonthlySummary'
 import { MetaAccount } from '@/types'
 import {
   saveSelectedAccount,
@@ -312,8 +316,12 @@ export default function MainDashboard() {
             case 'last_month': {
               // 先月の初日から最終日
               const now = new Date()
-              startDate.setFullYear(now.getFullYear(), now.getMonth() - 1, 1)
-              endDate.setFullYear(now.getFullYear(), now.getMonth(), 0)
+              // 先月の初日
+              startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+              startDate.setHours(0, 0, 0, 0)
+              // 先月の最終日
+              endDate = new Date(now.getFullYear(), now.getMonth(), 0)
+              endDate.setHours(23, 59, 59, 999)
               break
             }
             case 'this_month': {
@@ -1070,68 +1078,200 @@ export default function MainDashboard() {
     [accounts, selectedAccountId, dateRange, dailyDataCache]
   ) */
 
+  // 月次サマリーフックを使用
+  const {
+    summaries: monthlySummaries,
+    isLoading: isLoadingMonthlySummary,
+    error: monthlySummaryError,
+    refetchSummary,
+  } = useMonthlySummary(
+    selectedAccountId,
+    accounts.find((acc) => acc.accountId === selectedAccountId)?.accessToken
+  )
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* エラー表示 */}
-      {error && (
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-            <div className="font-medium">エラー</div>
-            <div className="text-sm mt-1">{error}</div>
+      {/* ヘッダーを最上部に固定 */}
+      <div className="sticky top-0 z-50 bg-white border-b border-gray-200">
+        <div className="px-4 py-2">
+          <div className="flex items-center justify-between">
+            <h1 className="text-lg font-semibold text-gray-900">Marketing Dashboard</h1>
+            <div className="flex items-center gap-4">
+              <AccountSelector
+                accounts={accounts}
+                selectedAccountId={selectedAccountId}
+                onSelect={handleAccountSelect}
+                isLoading={isLoadingAccounts}
+              />
+              {lastUpdateTime && (
+                <span className="text-xs text-gray-500">
+                  最終更新: {lastUpdateTime.toLocaleTimeString()}
+                </span>
+              )}
+            </div>
           </div>
         </div>
-      )}
+      </div>
 
-      {/* FatigueDashboardPresentationを使用 */}
-      <FatigueDashboardPresentation
-        // アカウント関連
-        accounts={accounts}
-        selectedAccountId={selectedAccountId}
-        isLoadingAccounts={isLoadingAccounts}
-        onAccountSelect={handleAccountSelect}
-        // データ関連
-        data={data}
-        insights={data}
-        ecforceData={ecforceData}
-        isLoading={isLoading}
-        isRefreshing={false}
-        error={error ? new Error(error) : null}
-        // アクション
-        onRefresh={handleRefresh}
-        // メタ情報
-        dataSource="api"
-        lastUpdateTime={lastUpdateTime}
-        // 日付範囲
-        dateRange={dateRange}
-        onDateRangeChange={(range) => setDateRange(range)}
-        customDateRange={customDateRange}
-        // 認証情報（追加）
-        accessToken={accounts.find((acc) => acc.accountId === selectedAccountId)?.accessToken}
-        onCustomDateRange={(start, end) => {
-          logFilter('MainDashboard', 'Custom date range selected', {
-            start: start.toISOString(),
-            end: end.toISOString(),
-            selectedAccountId,
-          })
+      {/* メインコンテンツ */}
+      <div>
 
-          // カスタム日付範囲を設定
-          setCustomDateRange({ start, end })
-          setDateRange('custom')
-          // useEffectが自動的にデータ取得をトリガーする
-        }}
-        // 進捗情報
-        progress={undefined}
-        // フィルター関連
-        totalInsights={data.length}
-        filteredCount={filteredData?.length || data.length}
-        // 集約関連
-        enableAggregation={true}
-        aggregatedData={undefined}
-        aggregationMetrics={undefined}
-        isAggregating={false}
-        onFilterChange={() => {}}
-        sourceData={data}
-      />
+        {/* エラー表示 */}
+        {error && (
+          <div className="px-4 py-4">
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+              <div className="font-medium">エラー</div>
+              <div className="text-sm mt-1">{error}</div>
+            </div>
+          </div>
+        )}
+
+        {/* 月次サマリーエラー表示 */}
+        {monthlySummaryError && (
+          <div className="px-4 py-2">
+            <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-2 rounded-lg">
+              <div className="text-sm">{monthlySummaryError}</div>
+            </div>
+          </div>
+        )}
+
+        {/* 月次サマリーと日別グラフを縦並びに配置（全幅） */}
+        {selectedAccountId && (
+          <div className="px-4 py-4 space-y-4">
+            {/* 月次サマリー（3ヶ月分） */}
+            {monthlySummaries && (
+              <MonthlySummaryTable
+                summaries={monthlySummaries}
+                onRefresh={async (yearMonth) => {
+                  // 現在月のみ手動リフレッシュ可能
+                  const currentYearMonth = new Date().toISOString().slice(0, 7)
+                  if (yearMonth === currentYearMonth) {
+                    await refetchSummary(yearMonth)
+                  }
+                }}
+              />
+            )}
+
+            {/* 日別スパークラインチャート */}
+            <DailySparklineCharts
+            accountId={selectedAccountId}
+            dateRange={(() => {
+              const today = new Date()
+              const formatDate = (date: Date) => date.toISOString().split('T')[0]
+
+              switch (dateRange) {
+                case 'today':
+                  return { start: formatDate(today), end: formatDate(today) }
+                case 'yesterday':
+                  const yesterday = new Date(today)
+                  yesterday.setDate(yesterday.getDate() - 1)
+                  return { start: formatDate(yesterday), end: formatDate(yesterday) }
+                case 'last_7d':
+                  const week = new Date(today)
+                  week.setDate(week.getDate() - 7)
+                  const endWeek = new Date(today)
+                  endWeek.setDate(endWeek.getDate() - 1)
+                  return { start: formatDate(week), end: formatDate(endWeek) }
+                case 'last_14d':
+                  const twoWeeks = new Date(today)
+                  twoWeeks.setDate(twoWeeks.getDate() - 14)
+                  const endTwoWeeks = new Date(today)
+                  endTwoWeeks.setDate(endTwoWeeks.getDate() - 1)
+                  return { start: formatDate(twoWeeks), end: formatDate(endTwoWeeks) }
+                case 'last_28d':
+                  const fourWeeks = new Date(today)
+                  fourWeeks.setDate(fourWeeks.getDate() - 28)
+                  const endFourWeeks = new Date(today)
+                  endFourWeeks.setDate(endFourWeeks.getDate() - 1)
+                  return { start: formatDate(fourWeeks), end: formatDate(endFourWeeks) }
+                case 'last_30d':
+                  const thirtyDays = new Date(today)
+                  thirtyDays.setDate(thirtyDays.getDate() - 30)
+                  const endThirtyDays = new Date(today)
+                  endThirtyDays.setDate(endThirtyDays.getDate() - 1)
+                  return { start: formatDate(thirtyDays), end: formatDate(endThirtyDays) }
+                case 'last_month':
+                  const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+                  const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0)
+                  return { start: formatDate(lastMonth), end: formatDate(lastMonthEnd) }
+                case 'this_month':
+                  const thisMonth = new Date(today.getFullYear(), today.getMonth(), 1)
+                  return { start: formatDate(thisMonth), end: formatDate(today) }
+                case 'last_90d':
+                  const ninetyDays = new Date(today)
+                  ninetyDays.setDate(ninetyDays.getDate() - 90)
+                  const endNinetyDays = new Date(today)
+                  endNinetyDays.setDate(endNinetyDays.getDate() - 1)
+                  return { start: formatDate(ninetyDays), end: formatDate(endNinetyDays) }
+                case 'custom':
+                  if (customDateRange) {
+                    return {
+                      start: formatDate(customDateRange.start),
+                      end: formatDate(customDateRange.end),
+                    }
+                  }
+                  return null
+                default:
+                  return null
+              }
+            })()}
+            />
+          </div>
+        )}
+
+        {/* FatigueDashboardPresentationを使用（テーブルのみ表示） */}
+        <div className="px-4">
+          <FatigueDashboardPresentation
+            // アカウント関連
+            accounts={accounts}
+            selectedAccountId={selectedAccountId}
+            isLoadingAccounts={isLoadingAccounts}
+            onAccountSelect={handleAccountSelect}
+            // データ関連
+            data={data}
+            insights={data}
+            ecforceData={ecforceData}
+            isLoading={isLoading}
+            isRefreshing={false}
+            error={error ? new Error(error) : null}
+            // アクション
+            onRefresh={handleRefresh}
+            // メタ情報
+            dataSource="api"
+            lastUpdateTime={lastUpdateTime}
+            // 日付範囲
+            dateRange={dateRange}
+            onDateRangeChange={(range) => setDateRange(range)}
+            customDateRange={customDateRange}
+            // 認証情報（追加）
+            accessToken={accounts.find((acc) => acc.accountId === selectedAccountId)?.accessToken}
+            onCustomDateRange={(start, end) => {
+              logFilter('MainDashboard', 'Custom date range selected', {
+                start: start.toISOString(),
+                end: end.toISOString(),
+                selectedAccountId,
+              })
+
+              // カスタム日付範囲を設定
+              setCustomDateRange({ start, end })
+              setDateRange('custom')
+              // useEffectが自動的にデータ取得をトリガーする
+            }}
+            // 進捗情報
+            progress={undefined}
+            // フィルター関連
+            totalInsights={data.length}
+            filteredCount={filteredData?.length || data.length}
+            // 集約関連
+            enableAggregation={true}
+            aggregatedData={undefined}
+            aggregationMetrics={undefined}
+            isAggregating={false}
+            onFilterChange={() => {}}
+            sourceData={data}
+          />
+        </div>
+      </div>
     </div>
   )
 }
