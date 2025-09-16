@@ -1196,29 +1196,21 @@ export default function MainDashboard() {
           </div>
         )}
 
-        {/* 月次サマリーと日別グラフを縦並びに配置（全幅） */}
+        {/* 日別グラフと統合ダッシュボードを縦並びに配置（全幅） */}
         {selectedAccountId && (
           <div className="px-4 py-4 space-y-4">
-            {/* 月次サマリー（3ヶ月分） */}
-            {monthlySummaries && (
-              <MonthlySummaryTable
-                summaries={monthlySummaries}
-                onRefresh={async (yearMonth) => {
-                  // 現在月のみ手動リフレッシュ可能
-                  const currentYearMonth = new Date().toISOString().slice(0, 7)
-                  if (yearMonth === currentYearMonth) {
-                    await refetchSummary(yearMonth)
-                  }
-                }}
-              />
-            )}
-
             {/* 日別スパークラインチャート */}
             <DailySparklineCharts
             accountId={selectedAccountId}
             dateRange={(() => {
               const today = new Date()
-              const formatDate = (date: Date) => date.toISOString().split('T')[0]
+              // ローカルタイムゾーンで日付をフォーマット（UTCではなく）
+              const formatDate = (date: Date) => {
+                const year = date.getFullYear()
+                const month = String(date.getMonth() + 1).padStart(2, '0')
+                const day = String(date.getDate()).padStart(2, '0')
+                return `${year}-${month}-${day}`
+              }
 
               switch (dateRange) {
                 case 'today':
@@ -1284,7 +1276,13 @@ export default function MainDashboard() {
               ecforceData={ecforceData}
               dateRange={(() => {
                 const today = new Date()
-                const formatDate = (date: Date) => date.toISOString().split('T')[0]
+                // ローカルタイムゾーンで日付をフォーマット（UTCではなく）
+                const formatDate = (date: Date) => {
+                  const year = date.getFullYear()
+                  const month = String(date.getMonth() + 1).padStart(2, '0')
+                  const day = String(date.getDate()).padStart(2, '0')
+                  return `${year}-${month}-${day}`
+                }
 
                 switch (dateRange) {
                   case 'today':
@@ -1344,6 +1342,20 @@ export default function MainDashboard() {
               })()}
               selectedAccountId={selectedAccountId}
             />
+
+            {/* 月次サマリー（3ヶ月分） */}
+            {monthlySummaries && (
+              <MonthlySummaryTable
+                summaries={monthlySummaries}
+                onRefresh={async (yearMonth) => {
+                  // 現在月のみ手動リフレッシュ可能
+                  const currentYearMonth = new Date().toISOString().slice(0, 7)
+                  if (yearMonth === currentYearMonth) {
+                    await refetchSummary(yearMonth)
+                  }
+                }}
+              />
+            )}
           </div>
         )}
 

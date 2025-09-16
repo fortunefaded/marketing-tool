@@ -352,7 +352,8 @@ export default defineSchema({
     avgCpc: v.number(), // 平均CPC
     totalSpend: v.number(), // 合計費用
     totalFcv: v.optional(v.number()), // 合計F-CV
-    totalCv: v.number(), // 合計CV
+    totalCv: v.number(), // 合計CV（決済）
+    totalCvOrder: v.optional(v.number()), // 合計CV（受注）
     avgCpa: v.number(), // 平均CPA
     avgCpm: v.number(), // 平均CPM
     // メタ情報

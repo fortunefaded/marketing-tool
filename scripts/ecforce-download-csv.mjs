@@ -196,7 +196,7 @@ async function downloadCSVFromMogumo() {
         
         // 「昨日」オプションをクリック
         const yesterdayOption = await page.$('li[data-range-key="昨日"]');
-        
+
         if (yesterdayOption) {
           await yesterdayOption.click();
           console.log('✓ 「昨日」を選択しました');
