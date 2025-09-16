@@ -71,7 +71,7 @@ export const ECForceDataList: React.FC = () => {
   // 制限とページネーション状態
   const [currentPage, setCurrentPage] = useState(0)
   const [pageSize, setPageSize] = useState(5)
-  const [useMonthlyAggregates, setUseMonthlyAggregates] = useState(true)
+  const [useMonthlyAggregates, setUseMonthlyAggregates] = useState(false)
 
   // Convexからデータ取得（制限付きAPI使用）
   const performanceData = useQuery(
@@ -385,8 +385,8 @@ export const ECForceDataList: React.FC = () => {
                 }}
                 className="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
               >
-                <option value="monthly">月次集計（推奨）</option>
-                <option value="daily">日次データ（制限付き）</option>
+                <option value="daily">日次データ</option>
+                <option value="monthly">月次集計（無効）</option>
               </select>
             </div>
           </div>

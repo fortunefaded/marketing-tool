@@ -10,7 +10,7 @@ export const ECForceUploader: React.FC = () => {
   const [file, setFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
-  const [skipDuplicates, setSkipDuplicates] = useState(true)
+  const [skipDuplicates, setSkipDuplicates] = useState(false) // デフォルトは更新モード
   const [previewData, setPreviewData] = useState<{
     headers: string[]
     rows: any[]

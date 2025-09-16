@@ -21,7 +21,10 @@ import type * as cache_differentialUpdates from "../cache/differentialUpdates.js
 import type * as ecforce from "../ecforce.js";
 import type * as ecforceAggregates from "../ecforceAggregates.js";
 import type * as ecforceLimited from "../ecforceLimited.js";
+import type * as ecforceMonthlyAggregation from "../ecforceMonthlyAggregation.js";
+import type * as ecforcePeriodAnalysis from "../ecforcePeriodAnalysis.js";
 import type * as ecforceTestSync from "../ecforceTestSync.js";
+import type * as ecforceTrendOptimized from "../ecforceTrendOptimized.js";
 import type * as metaAccounts from "../metaAccounts.js";
 import type * as metaInsights from "../metaInsights.js";
 import type * as syncSettings from "../syncSettings.js";
@@ -44,7 +47,10 @@ declare const fullApi: ApiFromModules<{
   ecforce: typeof ecforce;
   ecforceAggregates: typeof ecforceAggregates;
   ecforceLimited: typeof ecforceLimited;
+  ecforceMonthlyAggregation: typeof ecforceMonthlyAggregation;
+  ecforcePeriodAnalysis: typeof ecforcePeriodAnalysis;
   ecforceTestSync: typeof ecforceTestSync;
+  ecforceTrendOptimized: typeof ecforceTrendOptimized;
   metaAccounts: typeof metaAccounts;
   metaInsights: typeof metaInsights;
   syncSettings: typeof syncSettings;

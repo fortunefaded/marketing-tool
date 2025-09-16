@@ -19,90 +19,10 @@ export const getPerformanceDataLimited = query({
       const requestedLimit = Math.min(args.limit || DEFAULT_LIMIT, MAX_LIMIT)
       const offset = args.offset || 0
 
-    // 月次集計を使用するかどうか（現在は無効化）
-    if (args.useMonthlyAggregates === true) {
-      // 明示的に有効化された場合のみ月次集計を使用
-
-      // 日付範囲を年月に変換
-      let yearMonthStart: string | undefined
-      let yearMonthEnd: string | undefined
-
-      if (args.startDate) {
-        yearMonthStart = args.startDate.substring(0, 7)
-      }
-      if (args.endDate) {
-        yearMonthEnd = args.endDate.substring(0, 7)
-      }
-
-      // 月次集計から取得
-      let results: any[]
-
-      if (yearMonthStart && yearMonthEnd) {
-        results = await ctx.db
-          .query('ecforceMonthlyAggregates')
-          .withIndex('by_year_month')
-          .filter((q) =>
-            q.and(
-              q.gte(q.field('yearMonth'), yearMonthStart!),
-              q.lte(q.field('yearMonth'), yearMonthEnd!)
-            )
-          )
-          .collect()
-      } else if (yearMonthStart) {
-        results = await ctx.db
-          .query('ecforceMonthlyAggregates')
-          .withIndex('by_year_month')
-          .filter((q) => q.eq(q.field('yearMonth'), yearMonthStart!))
-          .collect()
-      } else {
-        results = await ctx.db.query('ecforceMonthlyAggregates').collect()
-      }
-
-      if (args.advertiser) {
-        const normalizedAdvertiser = args.advertiser.toLowerCase().replace(/\s+/g, '')
-        results = results.filter((r) => r.advertiserNormalized === normalizedAdvertiser)
-      }
-
-      // ソート（新しい順）
-      results.sort((a, b) => {
-        if (a.yearMonth > b.yearMonth) return -1
-        if (a.yearMonth < b.yearMonth) return 1
-        return 0
-      })
-
-      // ページネーション
-      const paginatedResults = results.slice(offset, offset + requestedLimit)
-
-      return {
-        data: paginatedResults.map((r) => ({
-          // 月次集計データを日次データ風に変換
-          dataDate: `${r.yearMonth}-01`,
-          yearMonth: r.yearMonth,
-          advertiser: r.advertiser,
-          advertiserNormalized: r.advertiserNormalized,
-          orderAmount: r.totalOrderAmount,
-          salesAmount: r.totalSalesAmount,
-          cost: r.totalCost,
-          accessCount: r.totalAccessCount,
-          cvOrder: r.totalCvOrder,
-          cvPayment: r.totalCvPayment,
-          cvrOrder: r.avgCvrOrder,
-          cvrPayment: r.avgCvrPayment,
-          paymentRate: r.avgPaymentRate,
-          realCPA: r.avgRealCPA,
-          roas: r.avgRoas,
-          isMonthlyAggregate: true, // 月次集計データであることを示すフラグ
-          dataPoints: r.dataPoints, // 集計に使用したデータポイント数
-        })),
-        total: results.length,
-        hasMore: offset + requestedLimit < results.length,
-        limit: requestedLimit,
-        offset,
-        dataType: 'monthly', // データタイプを明示
-        message:
-          '月次集計データを表示しています。日次データが必要な場合は、useMonthlyAggregates: false を指定してください。',
-      }
-    }
+    // 月次集計機能は無効化（月次集計テーブルは使用しない）
+    // if (args.useMonthlyAggregates === true) {
+    //   // 月次集計機能は完全に無効化
+    // }
 
     // 日次データを取得（明示的に指定された場合のみ）
     // 期間指定がない場合は直近30日のみ

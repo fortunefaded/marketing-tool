@@ -85,21 +85,68 @@ export async function parseECForceCSV(file: File): Promise<ECForceParseResult> {
 
     filteredData.forEach((row: any, index: number) => {
       try {
-        // 各行から日付を取得（「日付」フィールドを優先、なければ「期間」フィールドから抽出）
-        const dateField = row['日付'] || row['期間']
+        // 各行から日付を取得（複数のパターンに対応）
+        let dateField = row['日付'] || row['期間'] || row['日時'] || row['date'] || row['Date']
+
+        // デバッグ: 利用可能なフィールドを確認
+        if (index === 0) {
+          console.log('=== CSVの最初の行のフィールド ===')
+          console.log('利用可能なフィールド:', Object.keys(row))
+          console.log('日付関連フィールドの値:', {
+            '日付': row['日付'],
+            '期間': row['期間'],
+            '日時': row['日時'],
+            'date': row['date'],
+            'Date': row['Date'],
+          })
+        }
+
         if (!dateField) {
-          throw new Error('日付または期間フィールドが設定されていません')
+          // 日付が見つからない場合は、キーから日付らしいものを探す
+          for (const key of Object.keys(row)) {
+            if (key.match(/日付|日時|期間|date/i) && row[key]) {
+              dateField = row[key]
+              console.log(`代替日付フィールド "${key}" を使用: ${dateField}`)
+              break
+            }
+          }
+        }
+
+        if (!dateField) {
+          throw new Error('日付フィールドが見つかりません')
         }
 
         // 日付フォーマットを正規化
-        let rowDataDate = String(dateField).replace(/\//g, '-')
-        if (row['日付']) {
-          // 日付フィールドの場合はそのまま使用: "2025/08/01" → "2025-08-01"
-          rowDataDate = rowDataDate.split(' ')[0] // 念のため時刻部分があれば除去
-        } else {
-          // 期間フィールドの場合は時刻部分を除去: "2025-09-09 00:00:00 - 2025-09-09 23:59:59" → "2025-09-09"
-          rowDataDate = rowDataDate.split(' ')[0]
+        let rowDataDate = String(dateField).trim()
+
+        // 複数の日付フォーマットに対応
+        // パターン1: "2025/08/01" or "2025-08-01"
+        // パターン2: "2025/08/01 00:00:00 - 2025/08/01 23:59:59"
+        // パターン3: "2025年8月1日"
+
+        // スラッシュをハイフンに変換
+        rowDataDate = rowDataDate.replace(/\//g, '-')
+
+        // 期間形式の場合、最初の日付を抽出
+        if (rowDataDate.includes(' - ')) {
+          rowDataDate = rowDataDate.split(' - ')[0]
         }
+
+        // 時刻部分を除去
+        rowDataDate = rowDataDate.split(' ')[0]
+
+        // 年月日形式を変換
+        const japaneseMatch = rowDataDate.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/)
+        if (japaneseMatch) {
+          const [, year, month, day] = japaneseMatch
+          rowDataDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+        }
+
+        // 最終的な日付形式をチェック (YYYY-MM-DD)
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(rowDataDate)) {
+          console.warn(`不正な日付形式: "${rowDataDate}" (行: ${index + 2})`)
+        }
+
         dateSet.add(rowDataDate)
 
         const transformed: any = { dataDate: rowDataDate }
@@ -291,18 +338,47 @@ export async function previewECForceCSV(
     let dateRange: { startDate: string; endDate: string; uniqueDates: string[] } | undefined
     if (allFilteredRows.length > 0) {
       const dateSet = new Set<string>()
-      allFilteredRows.forEach((row: any) => {
-        const dateField = row['日付'] || row['期間']
-        if (dateField) {
-          let normalizedDate = String(dateField).replace(/\//g, '-')
-          if (row['日付']) {
-            // 日付フィールドの場合はそのまま使用
-            normalizedDate = normalizedDate.split(' ')[0] // 念のため時刻部分があれば除去
-          } else {
-            // 期間フィールドの場合は時刻部分を除去
-            normalizedDate = normalizedDate.split(' ')[0]
+      allFilteredRows.forEach((row: any, index: number) => {
+        // 複数のパターンに対応
+        let dateField = row['日付'] || row['期間'] || row['日時'] || row['date'] || row['Date']
+
+        // デバッグ: 最初の行で利用可能なフィールドを確認
+        if (index === 0 && !dateField) {
+          console.log('プレビュー: 利用可能なフィールド:', Object.keys(row))
+        }
+
+        if (!dateField) {
+          // 日付が見つからない場合は、キーから日付らしいものを探す
+          for (const key of Object.keys(row)) {
+            if (key.match(/日付|日時|期間|date/i) && row[key]) {
+              dateField = row[key]
+              break
+            }
           }
-          dateSet.add(normalizedDate)
+        }
+
+        if (dateField) {
+          let normalizedDate = String(dateField).trim().replace(/\//g, '-')
+
+          // 期間形式の場合、最初の日付を抽出
+          if (normalizedDate.includes(' - ')) {
+            normalizedDate = normalizedDate.split(' - ')[0]
+          }
+
+          // 時刻部分を除去
+          normalizedDate = normalizedDate.split(' ')[0]
+
+          // 年月日形式を変換
+          const japaneseMatch = normalizedDate.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/)
+          if (japaneseMatch) {
+            const [, year, month, day] = japaneseMatch
+            normalizedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+          }
+
+          // 有効な日付形式のみ追加
+          if (/^\d{4}-\d{2}-\d{2}$/.test(normalizedDate)) {
+            dateSet.add(normalizedDate)
+          }
         }
       })
 

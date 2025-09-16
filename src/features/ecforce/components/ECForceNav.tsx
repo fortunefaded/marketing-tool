@@ -7,10 +7,12 @@ import {
   ChartBarIcon,
   TableCellsIcon,
   LinkIcon,
+  PresentationChartLineIcon,
 } from '@heroicons/react/24/outline'
 
 const navigation = [
   { name: 'ダッシュボード', href: '/settings/ecforce', icon: ChartBarIcon },
+  { name: '期間別データ分析', href: '/settings/ecforce/period-analysis', icon: PresentationChartLineIcon },
   { name: 'データアップロード', href: '/settings/ecforce/upload', icon: CloudArrowUpIcon },
   { name: 'データ一覧', href: '/settings/ecforce/data', icon: TableCellsIcon },
   { name: '広告主マッピング', href: '/settings/ecforce/mapping', icon: LinkIcon },
