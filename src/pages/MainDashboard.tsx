@@ -16,6 +16,7 @@ import {
   clearCachedData,
 } from '@/utils/localStorage'
 import { logAPI, logState, logFilter } from '../utils/debugLogger'
+import { getECForceClient } from '../services/ecforce/ecforceClient'
 
 // デバッグコマンドを読み込み（開発環境のみ）
 if (
@@ -151,6 +152,31 @@ export default function MainDashboard() {
       setIsLoadingAccounts(false)
     }
   }, [convex])
+
+  // ECForceからデータを取得
+  const fetchDataFromECForce = useCallback(
+    async (startDate: string, endDate: string) => {
+      try {
+        console.log('📊 ECForceからデータを取得開始', { startDate, endDate })
+        const ecforceClient = getECForceClient()
+        const ecforceMetrics = await ecforceClient.getDailyMetrics(startDate, endDate)
+
+        console.log('✅ ECForceデータ取得完了', {
+          count: ecforceMetrics.length,
+          sample: ecforceMetrics[0]
+        })
+
+        setEcforceData(ecforceMetrics)
+        return ecforceMetrics
+      } catch (error) {
+        console.error('❌ ECForceデータ取得エラー', error)
+        // エラー時は空配列をセット
+        setEcforceData([])
+        return []
+      }
+    },
+    []
+  )
 
   // Meta APIから過去7日分のデータを直接取得
   const fetchDataFromMetaAPI = useCallback(
@@ -828,6 +854,9 @@ export default function MainDashboard() {
         setLastUpdateTime(new Date())
         setCacheAge(0) // 新規取得なので経過時間はゼロ
 
+        // ECForceデータも同時に取得
+        await fetchDataFromECForce(formatDate(startDate), formatDate(endDate))
+
         // localStorageにキャッシュ（日付範囲を含めたキーで保存）
         const effectiveDateRange = customRange || customDateRange
         // 日付範囲を含めたキャッシュキーを生成
@@ -876,7 +905,7 @@ export default function MainDashboard() {
         setIsLoading(false)
       }
     },
-    [selectedAccountId, accounts, dateRange]
+    [selectedAccountId, accounts, dateRange, fetchDataFromECForce]
   ) // customDateRangeを削除して無限ループを防ぐ
 
   // 初回ロード時
