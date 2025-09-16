@@ -106,6 +106,14 @@ export function CreativeTableTab({
     return map
   }, [insights])
 
+  // account_statsを取得（dataの最初の要素から）
+  const accountStats = React.useMemo(() => {
+    if (data && Array.isArray(data) && data.length > 0 && data[0].account_stats) {
+      return data[0].account_stats
+    }
+    return null
+  }, [data])
+
   const sortedData = React.useMemo(() => {
     debugDataStructure(data, 'CreativeTableTab Input Data')
 
@@ -516,15 +524,17 @@ export function CreativeTableTab({
                   合計
                 </td>
                 <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">
-                  {sortedData.length > 0
-                    ? formatDecimal(
-                        sortedData.reduce((sum, item) => sum + (item.metrics?.frequency || 0), 0) /
-                          sortedData.length
-                      )
-                    : '-'}
+                  {accountStats?.frequency
+                    ? formatDecimal(accountStats.frequency)
+                    : sortedData.length > 0
+                      ? formatDecimal(
+                          sortedData.reduce((sum, item) => sum + (item.metrics?.frequency || 0), 0) /
+                            sortedData.length
+                        )
+                      : '-'}
                 </td>
                 <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">
-                  {formatNumber(sortedData.reduce((sum, item) => sum + (item.reach || 0), 0))}
+                  {accountStats?.reach ? formatNumber(accountStats.reach) : '-'}
                 </td>
                 <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">
                   {formatNumber(sortedData.reduce((sum, item) => sum + (item.impressions || 0), 0))}
@@ -542,12 +552,14 @@ export function CreativeTableTab({
                     : '-'}
                 </td>
                 <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">
-                  {sortedData.length > 0
-                    ? formatPercentage(
-                        sortedData.reduce((sum, item) => sum + (item.metrics?.unique_ctr || 0), 0) /
-                          sortedData.length
-                      )
-                    : '-'}
+                  {accountStats?.unique_ctr
+                    ? formatPercentage(accountStats.unique_ctr)
+                    : sortedData.length > 0
+                      ? formatPercentage(
+                          sortedData.reduce((sum, item) => sum + (item.metrics?.unique_ctr || 0), 0) /
+                            sortedData.length
+                        )
+                      : '-'}
                 </td>
                 <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">
                   ¥
