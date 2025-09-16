@@ -112,10 +112,11 @@ export const PeriodAnalysis: React.FC = () => {
   // メトリクスのカテゴリ分け
   const metricCategories = {
     amount: {
-      title: '金額',
+      title: '金額・コスト',
       metrics: [
         { value: 'salesAmount', label: '売上金額', format: 'currency', color: '#3B82F6' },
         { value: 'orderAmount', label: '受注金額', format: 'currency', color: '#8B5CF6' },
+        { value: 'cost', label: 'コスト', format: 'currency', color: '#EF4444' },
       ]
     },
     conversion: {
@@ -128,10 +129,11 @@ export const PeriodAnalysis: React.FC = () => {
       ]
     },
     rate: {
-      title: 'CVR',
+      title: 'CVR・オファー率',
       metrics: [
         { value: 'cvrOrder', label: 'CVR(受注)', format: 'percent', color: '#EC4899' },
         { value: 'cvrPayment', label: 'CVR(決済)', format: 'percent', color: '#14B8A6' },
+        { value: 'offerRateThanksUpsell', label: 'オファー成功率(サンクスアップセル)', format: 'percent', color: '#84CC16' },
       ]
     }
   }
@@ -495,6 +497,12 @@ export const PeriodAnalysis: React.FC = () => {
               format="currency"
             />
             <KPICard
+              title="コスト"
+              value={kpiSummary.current.cost}
+              change={kpiSummary.comparison?.cost}
+              format="currency"
+            />
+            <KPICard
               title="CV（決済）"
               value={kpiSummary.current.cvPayment}
               change={kpiSummary.comparison?.cvPayment}
@@ -504,12 +512,6 @@ export const PeriodAnalysis: React.FC = () => {
               title="CVR（受注）"
               value={kpiSummary.current.cvrOrder}
               change={kpiSummary.comparison?.cvrOrder}
-              format="percent"
-            />
-            <KPICard
-              title="決済率"
-              value={kpiSummary.current.paymentRate || 0}
-              change={kpiSummary.comparison?.paymentRate}
               format="percent"
             />
           </div>

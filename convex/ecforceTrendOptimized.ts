@@ -67,8 +67,6 @@ export const getTrendDataOptimized = query({
         ...month,
         cvrOrder: month.accessCount > 0 ? month.cvOrder / month.accessCount : 0,
         cvrPayment: month.accessCount > 0 ? month.cvPayment / month.accessCount : 0,
-        roas: month.cost > 0 ? month.salesAmount / month.cost : 0,
-        cpa: month.cvPayment > 0 ? month.cost / month.cvPayment : 0,
       }))
 
       // ソート
@@ -149,6 +147,9 @@ export const getTrendDataOptimized = query({
             accessCount: 0,
             cvOrder: 0,
             cvPayment: 0,
+            cvThanksUpsell: 0,
+            offerRateThanksUpsell: 0,
+            offerRateCount: 0,
           })
         }
 
@@ -165,8 +166,6 @@ export const getTrendDataOptimized = query({
         ...day,
         cvrOrder: day.accessCount > 0 ? day.cvOrder / day.accessCount : 0,
         cvrPayment: day.accessCount > 0 ? day.cvPayment / day.accessCount : 0,
-        roas: day.cost > 0 ? day.salesAmount / day.cost : 0,
-        cpa: day.cvPayment > 0 ? day.cost / day.cvPayment : 0,
       }))
 
       // 日付でソート
@@ -207,8 +206,6 @@ export const getTrendDataOptimized = query({
         ...week,
         cvrOrder: week.accessCount > 0 ? week.cvOrder / week.accessCount : 0,
         cvrPayment: week.accessCount > 0 ? week.cvPayment / week.accessCount : 0,
-        roas: week.cost > 0 ? week.salesAmount / week.cost : 0,
-        cpa: week.cvPayment > 0 ? week.cost / week.cvPayment : 0,
       }))
 
       // 週でソート
