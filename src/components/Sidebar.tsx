@@ -49,7 +49,7 @@ export default function Sidebar() {
     },
     {
       name: '期間別データ分析',
-      path: '/settings/ecforce/period-analysis',
+      path: '/period-analysis',
       icon: PresentationChartLineIcon,
     },
     {

@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react'
 import { useQuery } from 'convex/react'
 import { api } from '../../../../convex/_generated/api'
-import { ECForceLayout } from '../components/ECForceLayout'
+// LayoutはMainLayoutを使用
 import { DateRangePicker } from '@/components/DateRangePicker'
 import {
   ChartBarIcon,
@@ -25,7 +25,7 @@ import 'react-datepicker/dist/react-datepicker.css'
 
 type Granularity = 'daily' | 'weekly' | 'monthly'
 
-export const ECForcePeriodAnalysis: React.FC = () => {
+export const PeriodAnalysis: React.FC = () => {
   // 期間設定（Date型で管理）
   const [period1Start, setPeriod1Start] = useState<Date | null>(null)
   const [period1End, setPeriod1End] = useState<Date | null>(null)
@@ -395,7 +395,7 @@ export const ECForcePeriodAnalysis: React.FC = () => {
   }
 
   return (
-    <ECForceLayout>
+    <div className="container mx-auto px-4 py-8">
       <div className="space-y-6">
         {/* ヘッダー */}
         <div>
@@ -545,6 +545,6 @@ export const ECForcePeriodAnalysis: React.FC = () => {
           </>
         )}
       </div>
-    </ECForceLayout>
+    </div>
   )
 }
