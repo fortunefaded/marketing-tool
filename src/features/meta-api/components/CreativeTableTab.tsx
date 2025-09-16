@@ -563,12 +563,11 @@ export function CreativeTableTab({
                 </td>
                 <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">
                   ¥
-                  {sortedData.length > 0
-                    ? formatNumber(
-                        sortedData.reduce((sum, item) => sum + (item.metrics?.cpc || 0), 0) /
-                          sortedData.length
-                      )
-                    : '0'}
+                  {(() => {
+                    const totalSpend = sortedData.reduce((sum, item) => sum + (item.spend || 0), 0)
+                    const totalClicks = sortedData.reduce((sum, item) => sum + (item.clicks || 0), 0)
+                    return totalClicks > 0 ? formatNumber(totalSpend / totalClicks) : '0'
+                  })()}
                 </td>
                 <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">
                   ¥{formatNumber(sortedData.reduce((sum, item) => sum + (item.spend || 0), 0))}
@@ -637,12 +636,11 @@ export function CreativeTableTab({
                 </td>
                 <td className="px-2 py-3 whitespace-nowrap text-center text-sm text-blue-900">
                   ¥
-                  {sortedData.length > 0
-                    ? formatNumber(
-                        sortedData.reduce((sum, item) => sum + (item.metrics?.cpm || 0), 0) /
-                          sortedData.length
-                      )
-                    : '0'}
+                  {(() => {
+                    const totalSpend = sortedData.reduce((sum, item) => sum + (item.spend || 0), 0)
+                    const totalImpressions = sortedData.reduce((sum, item) => sum + (item.impressions || 0), 0)
+                    return totalImpressions > 0 ? formatNumber((totalSpend / totalImpressions) * 1000) : '0'
+                  })()}
                 </td>
               </tr>
 
