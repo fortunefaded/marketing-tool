@@ -33,6 +33,24 @@ export const MonthlySummaryTable: React.FC<MonthlySummaryTableProps> = ({
   summaries,
   onRefresh,
 }) => {
+  // デバッグログ
+  React.useEffect(() => {
+    if (summaries && summaries.length > 0) {
+      console.log('📊 月次サマリーテーブル データ詳細:',
+        summaries.map(s => ({
+          yearMonth: s.yearMonth,
+          totalSpend: s.data?.totalSpend,
+          totalCvOrder: s.data?.totalCvOrder,
+          totalCvOrderType: typeof s.data?.totalCvOrder,
+          totalCv: s.data?.totalCv,
+          totalCvType: typeof s.data?.totalCv,
+          avgCpa: s.data?.avgCpa,
+          計算CPA: s.data ? (s.data.totalSpend / (s.data.totalCvOrder || s.data.totalCv || 1)) : 0,
+          表示CV: s.data ? formatNumber(s.data.totalCvOrder || s.data.totalCv, 'number') : '-'
+        }))
+      )
+    }
+  }, [summaries])
   // 年月を日本語形式に変換
   const formatYearMonth = (yearMonth: string) => {
     const [year, month] = yearMonth.split('-')
@@ -159,11 +177,16 @@ export const MonthlySummaryTable: React.FC<MonthlySummaryTableProps> = ({
                     {data && data.totalFcv !== undefined ? formatNumber(data.totalFcv, 'number') : '-'}
                   </td>
                   <td className="px-2 py-1.5 whitespace-nowrap text-xs text-gray-900 text-right">
-                    {data ? (
-                      data.totalCvOrder !== undefined ?
-                        `${formatNumber(data.totalCvOrder, 'number')}(${formatNumber(data.totalCv, 'number')})` :
-                        formatNumber(data.totalCv, 'number')
-                    ) : '-'}
+                    {data ? (() => {
+                      const cvValue = data.totalCvOrder || data.totalCv;
+                      // 文字列として括弧付きで保存されている場合の処理
+                      if (typeof cvValue === 'string' && cvValue.includes('(')) {
+                        // 括弧の前の数値のみを抽出
+                        const mainValue = cvValue.split('(')[0];
+                        return mainValue;
+                      }
+                      return formatNumber(cvValue, 'number');
+                    })() : '-'}
                   </td>
                   <td className="px-2 py-1.5 whitespace-nowrap text-xs text-gray-900 text-right">
                     {data ? formatNumber(data.avgCpa, 'currency') : '-'}

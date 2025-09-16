@@ -614,6 +614,20 @@ export function CreativeTableTab({
                           (sum, item) => sum + (item.spend || 0),
                           0
                         )
+                        // デバッグログ
+                        console.log('🔍 クリエイティブテーブル CPA計算詳細:', {
+                          totalSpend,
+                          totalCV,
+                          ecforce_cv_total: sortedData[0]?.ecforce_cv_total,
+                          CPA計算結果: totalCV > 0 ? totalSpend / totalCV : 0,
+                          フォーマット後: totalCV > 0 ? formatNumber(totalSpend / totalCV) : '0',
+                          データ件数: sortedData.length,
+                          個別データ: sortedData.map(item => ({
+                            name: item.adName,
+                            spend: item.spend,
+                            cv: item.ecforce_cv || item.conversions
+                          }))
+                        })
                         return totalCV > 0 ? formatNumber(totalSpend / totalCV) : '0'
                       })()}
                     </span>
