@@ -337,6 +337,32 @@ export default defineSchema({
     .index('by_year_month_advertiser', ['yearMonth', 'advertiserNormalized'])
     .index('by_hash', ['aggregateHash']),
 
+  // === Meta月次サマリーテーブル（キャッシュ用） ===
+  metaMonthlySummary: defineTable({
+    accountId: v.string(),
+    yearMonth: v.string(), // "2020-04" 形式
+    // 集計指標
+    totalAds: v.number(), // 広告数
+    avgFrequency: v.number(), // 平均FRQ
+    totalReach: v.number(), // 合計リーチ
+    totalImpressions: v.number(), // 合計インプレッション
+    totalClicks: v.number(), // 合計クリック
+    avgCtr: v.number(), // 平均CTR
+    avgUctr: v.optional(v.number()), // 平均U-CTR（ユニークCTR）
+    avgCpc: v.number(), // 平均CPC
+    totalSpend: v.number(), // 合計費用
+    totalFcv: v.optional(v.number()), // 合計F-CV
+    totalCv: v.number(), // 合計CV
+    avgCpa: v.number(), // 平均CPA
+    avgCpm: v.number(), // 平均CPM
+    // メタ情報
+    isComplete: v.boolean(), // 月が完了しているか
+    lastUpdated: v.number(), // 最終更新日時
+    createdAt: v.number(),
+  })
+    .index("by_account_month", ["accountId", "yearMonth"])
+    .index("by_account", ["accountId"]),
+
   // === データ保持ポリシー設定 ===
   dataRetentionPolicies: defineTable({
     policyName: v.string(),
