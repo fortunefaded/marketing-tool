@@ -48,11 +48,17 @@ type SortField =
   | 'advertiser'
   | 'orderAmount'
   | 'salesAmount'
+  | 'cost'
   | 'accessCount'
   | 'cvOrder'
   | 'cvPayment'
+  | 'cvUpsell'
+  | 'cvThanksUpsell'
   | 'cvrOrder'
   | 'cvrPayment'
+  | 'paymentRate'
+  | 'realCPA'
+  | 'roas'
 type SortDirection = 'asc' | 'desc'
 
 export const ECForceDataList: React.FC = () => {
@@ -238,32 +244,44 @@ export const ECForceDataList: React.FC = () => {
         return {
           orderAmount: acc.orderAmount + (item.orderAmount || 0),
           salesAmount: acc.salesAmount + (item.salesAmount || 0),
+          cost: acc.cost + (item.cost || 0),
           accessCount: acc.accessCount + (item.accessCount || 0),
           cvOrder: acc.cvOrder + (item.cvOrder || 0),
           cvPayment: acc.cvPayment + (item.cvPayment || 0),
+          cvUpsell: acc.cvUpsell + (item.cvUpsell || 0),
           cvThanksUpsell: acc.cvThanksUpsell + (item.cvThanksUpsell || 0),
+          cvThanksCrossSell: acc.cvThanksCrossSell + (item.cvThanksCrossSell || 0),
         }
       },
       {
         orderAmount: 0,
         salesAmount: 0,
+        cost: 0,
         accessCount: 0,
         cvOrder: 0,
         cvPayment: 0,
+        cvUpsell: 0,
         cvThanksUpsell: 0,
+        cvThanksCrossSell: 0,
       }
     )
 
-    // 平均CVRを計算
+    // 平均値の計算
     const avgCvrOrder = sum.accessCount > 0 ? sum.cvOrder / sum.accessCount : 0
     const avgCvrPayment = sum.accessCount > 0 ? sum.cvPayment / sum.accessCount : 0
-    const avgOfferRate = sum.cvOrder > 0 ? sum.cvThanksUpsell / sum.cvOrder : 0
+    const avgPaymentRate = sum.cvOrder > 0 ? sum.cvPayment / sum.cvOrder : 0
+    const avgRealCPA = sum.cvPayment > 0 ? sum.cost / sum.cvPayment : 0
+    const avgRoas = sum.cost > 0 ? sum.salesAmount / sum.cost : 0
+    const avgOfferRateThanksUpsell = sum.cvOrder > 0 ? sum.cvThanksUpsell / sum.cvOrder : 0
 
     return {
       ...sum,
       avgCvrOrder,
       avgCvrPayment,
-      avgOfferRate,
+      avgPaymentRate,
+      avgRealCPA,
+      avgRoas,
+      avgOfferRateThanksUpsell,
     }
   }, [filteredAndSortedData])
 
@@ -649,6 +667,15 @@ export const ECForceDataList: React.FC = () => {
                   </th>
                   <th
                     className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 bg-gray-50"
+                    onClick={() => handleSort('cost')}
+                  >
+                    <div className="flex items-center justify-end gap-1">
+                      広告費
+                      <SortIcon field="cost" />
+                    </div>
+                  </th>
+                  <th
+                    className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 bg-gray-50"
                     onClick={() => handleSort('accessCount')}
                   >
                     <div className="flex items-center justify-end gap-1">
@@ -676,6 +703,24 @@ export const ECForceDataList: React.FC = () => {
                   </th>
                   <th
                     className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 bg-gray-50"
+                    onClick={() => handleSort('cvUpsell')}
+                  >
+                    <div className="flex items-center justify-end gap-1">
+                      アップセル
+                      <SortIcon field="cvUpsell" />
+                    </div>
+                  </th>
+                  <th
+                    className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 bg-gray-50"
+                    onClick={() => handleSort('cvThanksUpsell')}
+                  >
+                    <div className="flex items-center justify-end gap-1">
+                      サンクスUP
+                      <SortIcon field="cvThanksUpsell" />
+                    </div>
+                  </th>
+                  <th
+                    className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 bg-gray-50"
                     onClick={() => handleSort('cvrOrder')}
                   >
                     <div className="flex items-center justify-end gap-1">
@@ -690,6 +735,33 @@ export const ECForceDataList: React.FC = () => {
                     <div className="flex items-center justify-end gap-1">
                       CVR(決済)
                       <SortIcon field="cvrPayment" />
+                    </div>
+                  </th>
+                  <th
+                    className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 bg-gray-50"
+                    onClick={() => handleSort('paymentRate')}
+                  >
+                    <div className="flex items-center justify-end gap-1">
+                      決済率
+                      <SortIcon field="paymentRate" />
+                    </div>
+                  </th>
+                  <th
+                    className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 bg-gray-50"
+                    onClick={() => handleSort('realCPA')}
+                  >
+                    <div className="flex items-center justify-end gap-1">
+                      実質CPA
+                      <SortIcon field="realCPA" />
+                    </div>
+                  </th>
+                  <th
+                    className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 bg-gray-50"
+                    onClick={() => handleSort('roas')}
+                  >
+                    <div className="flex items-center justify-end gap-1">
+                      ROAS
+                      <SortIcon field="roas" />
                     </div>
                   </th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">
@@ -727,6 +799,9 @@ export const ECForceDataList: React.FC = () => {
                       ¥{formatNumber(item.salesAmount || 0)}
                     </td>
                     <td className="px-4 py-2 text-sm text-right text-gray-900">
+                      ¥{formatNumber(item.cost || 0)}
+                    </td>
+                    <td className="px-4 py-2 text-sm text-right text-gray-900">
                       {formatNumber(item.accessCount || 0)}
                     </td>
                     <td className="px-4 py-2 text-sm text-right text-gray-900">
@@ -736,10 +811,25 @@ export const ECForceDataList: React.FC = () => {
                       {item.cvPayment || 0}
                     </td>
                     <td className="px-4 py-2 text-sm text-right text-gray-900">
+                      {item.cvUpsell || 0}
+                    </td>
+                    <td className="px-4 py-2 text-sm text-right text-gray-900">
+                      {item.cvThanksUpsell || 0}
+                    </td>
+                    <td className="px-4 py-2 text-sm text-right text-gray-900">
                       {formatPercent(item.cvrOrder || 0)}
                     </td>
                     <td className="px-4 py-2 text-sm text-right text-gray-900">
                       {formatPercent(item.cvrPayment || 0)}
+                    </td>
+                    <td className="px-4 py-2 text-sm text-right text-gray-900">
+                      {formatPercent(item.paymentRate || 0)}
+                    </td>
+                    <td className="px-4 py-2 text-sm text-right text-gray-900">
+                      ¥{formatNumber(item.realCPA || 0)}
+                    </td>
+                    <td className="px-4 py-2 text-sm text-right text-gray-900">
+                      {(item.roas || 0).toFixed(2)}
                     </td>
                     <td className="px-4 py-2 text-center">
                       {!item.isMonthlyAggregate && (
@@ -768,6 +858,9 @@ export const ECForceDataList: React.FC = () => {
                     ¥{formatNumber(totals.salesAmount)}
                   </td>
                   <td className="px-4 py-2 text-sm text-right font-bold text-gray-900">
+                    ¥{formatNumber(totals.cost)}
+                  </td>
+                  <td className="px-4 py-2 text-sm text-right font-bold text-gray-900">
                     {formatNumber(totals.accessCount)}
                   </td>
                   <td className="px-4 py-2 text-sm text-right font-bold text-gray-900">
@@ -777,10 +870,25 @@ export const ECForceDataList: React.FC = () => {
                     {totals.cvPayment}
                   </td>
                   <td className="px-4 py-2 text-sm text-right font-bold text-gray-900">
+                    {totals.cvUpsell}
+                  </td>
+                  <td className="px-4 py-2 text-sm text-right font-bold text-gray-900">
+                    {totals.cvThanksUpsell}
+                  </td>
+                  <td className="px-4 py-2 text-sm text-right font-bold text-gray-900">
                     {formatPercent(totals.avgCvrOrder)}
                   </td>
                   <td className="px-4 py-2 text-sm text-right font-bold text-gray-900">
                     {formatPercent(totals.avgCvrPayment)}
+                  </td>
+                  <td className="px-4 py-2 text-sm text-right font-bold text-gray-900">
+                    {formatPercent(totals.avgPaymentRate)}
+                  </td>
+                  <td className="px-4 py-2 text-sm text-right font-bold text-gray-900">
+                    ¥{formatNumber(totals.avgRealCPA)}
+                  </td>
+                  <td className="px-4 py-2 text-sm text-right font-bold text-gray-900">
+                    {totals.avgRoas.toFixed(2)}
                   </td>
                   <td className="px-4 py-2"></td>
                 </tr>
