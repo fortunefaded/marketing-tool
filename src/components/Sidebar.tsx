@@ -6,6 +6,7 @@ import {
   ChevronDoubleLeftIcon,
   ChevronDoubleRightIcon,
   PresentationChartLineIcon,
+  ChartBarSquareIcon,
 } from '@heroicons/react/24/outline'
 import { ComponentType, useState, useEffect } from 'react'
 
@@ -42,6 +43,11 @@ export default function Sidebar() {
   }, [isCollapsed])
 
   const menuItems: MenuItem[] = [
+    {
+      name: 'KPIビュー',
+      path: '/kpi-view',
+      icon: ChartBarSquareIcon,
+    },
     {
       name: 'ダッシュボード',
       path: '/',

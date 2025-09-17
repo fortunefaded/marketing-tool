@@ -4,6 +4,8 @@ import { useEffect } from 'react'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { ConvexUsageTracker } from './utils/convex-usage-tracker'
 import MainDashboard from './pages/MainDashboard'
+import KPIView from './pages/KPIView'
+import KPIViewDashboard from './pages/KPIViewDashboard'
 import { SettingsManagement } from './pages/SettingsManagement'
 import { ConnectStepConvex } from './pages/meta-setup/ConnectStepConvex'
 import { PermissionsAndTestStep } from './pages/meta-setup/PermissionsAndTestStep'
@@ -68,6 +70,7 @@ function AppContent() {
         <main className="flex-1 overflow-auto">
           <RouteLogger />
           <Routes>
+            <Route path="/kpi-view" element={<KPIViewDashboard />} />
             <Route path="/" element={<MainDashboard />} />
             <Route path="/settings" element={<SettingsManagement />} />
             {/* Meta API設定ルート */}
