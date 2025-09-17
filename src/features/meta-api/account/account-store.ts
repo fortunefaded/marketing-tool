@@ -51,7 +51,7 @@ export class SimpleAccountStore {
         name: account.accountName || 'Unknown',
         accessToken: account.accessToken || '',
         isActive: true,
-        createdAt: account.createdAt || Date.now(),
+        createdAt: new Date(account.createdAt || Date.now()),
       } as MetaAccount
     } catch (error) {
       vibe.bad('アクティブアカウント取得失敗', { error })
