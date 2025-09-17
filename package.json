@@ -97,6 +97,7 @@
     "dexie": "^4.0.11",
     "dexie-react-hooks": "^1.1.7",
     "express": "^5.1.0",
+    "framer-motion": "^12.23.13",
     "iconv-lite": "^0.7.0",
     "jspdf": "^3.0.1",
     "jspdf-autotable": "^5.0.2",
