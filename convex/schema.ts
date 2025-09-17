@@ -365,6 +365,64 @@ export default defineSchema({
     .index("by_account", ["accountId"]),
 
   // === データ保持ポリシー設定 ===
+  // === Google Ads Configuration ===
+  googleAdsConfig: defineTable({
+    clientId: v.string(),
+    clientSecret: v.string(),
+    developerToken: v.string(),
+    customerId: v.string(),
+    managerAccountId: v.optional(v.string()),
+    refreshToken: v.optional(v.string()),
+    accessToken: v.optional(v.string()),
+    tokenExpiresAt: v.optional(v.number()),
+    isConnected: v.boolean(),
+    lastSyncedAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index('by_customer', ['customerId'])
+    .index('by_connected', ['isConnected']),
+
+  // === Google Ads Campaigns ===
+  googleAdsCampaigns: defineTable({
+    campaignId: v.string(),
+    customerId: v.string(),
+    campaignName: v.string(),
+    status: v.string(),
+    budget: v.optional(v.number()),
+    biddingStrategy: v.optional(v.string()),
+    startDate: v.optional(v.string()),
+    endDate: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index('by_campaign', ['campaignId'])
+    .index('by_customer', ['customerId'])
+    .index('by_status', ['status']),
+
+  // === Google Ads Performance ===
+  googleAdsPerformance: defineTable({
+    customerId: v.string(),
+    campaignId: v.optional(v.string()),
+    adGroupId: v.optional(v.string()),
+    date: v.string(),
+    impressions: v.number(),
+    clicks: v.number(),
+    cost: v.number(),
+    conversions: v.number(),
+    conversionValue: v.number(),
+    ctr: v.number(),
+    cpc: v.number(),
+    cpm: v.number(),
+    conversionRate: v.number(),
+    costPerConversion: v.number(),
+    fetchedAt: v.number(),
+  })
+    .index('by_date', ['date'])
+    .index('by_customer_date', ['customerId', 'date'])
+    .index('by_campaign', ['campaignId'])
+    .index('by_fetched', ['fetchedAt']),
+
   dataRetentionPolicies: defineTable({
     policyName: v.string(),
     dataType: v.string(), // 'daily' | 'monthly' | 'yearly'

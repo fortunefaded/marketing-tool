@@ -23,7 +23,7 @@ export function DateRangePicker({
   onApply,
   isLoading = false,
   maxDate = new Date(), // デフォルトは今日まで
-  minDate = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000), // デフォルトは1年前まで
+  minDate = new Date(Date.now() - 3 * 365 * 24 * 60 * 60 * 1000), // デフォルトは3年前まで（Meta APIが3年分取得可能）
   disabled = false,
   className = '',
 }: DateRangePickerProps) {

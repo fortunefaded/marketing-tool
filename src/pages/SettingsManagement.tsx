@@ -61,6 +61,38 @@ export const SettingsManagement: React.FC = () => {
         <div className="bg-white border border-gray-200 rounded-lg p-6">
           <div className="flex items-center justify-between mb-4">
             <div>
+              <h4 className="text-base font-medium text-gray-900">Google Ads API</h4>
+              <p className="text-sm text-gray-500 mt-1">
+                Google広告の効果測定データを取得するための設定
+              </p>
+            </div>
+            <Link
+              to="/settings/google-ads"
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium transition-colors"
+            >
+              設定する
+            </Link>
+          </div>
+        </div>
+
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h4 className="text-base font-medium text-gray-900">LINE Ads API</h4>
+              <p className="text-sm text-gray-500 mt-1">LINE広告のデータを取得するための設定</p>
+            </div>
+            <button
+              disabled
+              className="px-4 py-2 bg-gray-300 text-gray-500 rounded-md cursor-not-allowed text-sm font-medium"
+            >
+              準備中
+            </button>
+          </div>
+        </div>
+
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
               <h4 className="text-base font-medium text-gray-900">ECForce データ連携</h4>
               <p className="text-sm text-gray-500 mt-1">
                 ECForceの広告パフォーマンスデータをインポート・管理

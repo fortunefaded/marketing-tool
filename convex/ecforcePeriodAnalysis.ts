@@ -129,18 +129,30 @@ export const getTrendData = query({
         day.cvPayment += item.cvPayment || 0
       })
 
-      const trendData = Array.from(dailyMap.values()).map((day) => ({
-        ...day,
-        cvrOrder: day.accessCount > 0 ? day.cvOrder / day.accessCount : 0,
-        cvrPayment: day.accessCount > 0 ? day.cvPayment / day.accessCount : 0,
-        roas: day.cost > 0 ? day.salesAmount / day.cost : 0,
-        cpa: day.cvPayment > 0 ? day.cost / day.cvPayment : 0,
-      }))
+      const trendData = Array.from(dailyMap.values()).map((day) => {
+        // 日付を月/日形式にフォーマット
+        const dateObj = new Date(day.date)
+        const month = dateObj.getMonth() + 1
+        const dayNum = dateObj.getDate()
+        const label = `${month}/${dayNum}`
+
+        return {
+          ...day,
+          label, // グラフ表示用のラベル
+          cvrOrder: day.accessCount > 0 ? day.cvOrder / day.accessCount : 0,
+          cvrPayment: day.accessCount > 0 ? day.cvPayment / day.accessCount : 0,
+          roas: day.cost > 0 ? day.salesAmount / day.cost : 0,
+          cpa: day.cvPayment > 0 ? day.cost / day.cvPayment : 0,
+        }
+      })
 
       // 日付でソート
       trendData.sort((a, b) => a.date.localeCompare(b.date))
 
-      return trendData
+      return {
+        data: trendData,
+        granularity: 'daily',
+      }
     } else if (granularity === 'weekly') {
       // 週別集計
       const weeklyMap = new Map<string, any>()
@@ -172,6 +184,7 @@ export const getTrendData = query({
 
       const trendData = Array.from(weeklyMap.values()).map((week) => ({
         ...week,
+        label: week.week, // グラフ表示用のラベル
         cvrOrder: week.accessCount > 0 ? week.cvOrder / week.accessCount : 0,
         cvrPayment: week.accessCount > 0 ? week.cvPayment / week.accessCount : 0,
         roas: week.cost > 0 ? week.salesAmount / week.cost : 0,
@@ -181,7 +194,10 @@ export const getTrendData = query({
       // 週でソート
       trendData.sort((a, b) => a.week.localeCompare(b.week))
 
-      return trendData
+      return {
+        data: trendData,
+        granularity: 'weekly',
+      }
     } else {
       // 月別集計
       const monthlyMap = new Map<string, any>()
@@ -213,6 +229,7 @@ export const getTrendData = query({
 
       const trendData = Array.from(monthlyMap.values()).map((month) => ({
         ...month,
+        label: month.month, // グラフ表示用のラベル
         cvrOrder: month.accessCount > 0 ? month.cvOrder / month.accessCount : 0,
         cvrPayment: month.accessCount > 0 ? month.cvPayment / month.accessCount : 0,
         roas: month.cost > 0 ? month.salesAmount / month.cost : 0,
@@ -222,7 +239,10 @@ export const getTrendData = query({
       // 月でソート
       trendData.sort((a, b) => a.month.localeCompare(b.month))
 
-      return trendData
+      return {
+        data: trendData,
+        granularity: 'monthly',
+      }
     }
   },
 })
@@ -259,6 +279,7 @@ export const getKPISummary = query({
 
     // 前期間との比較
     let comparison = null
+    let previousStats = null
     if (args.compareWithPrevious) {
       const days = calculateDays(args.startDate, args.endDate)
       const previousStart = addDays(args.startDate, -days - 1)
@@ -281,12 +302,13 @@ export const getKPISummary = query({
         previousData = previousData.filter((item) => item.advertiserNormalized === normalizedAdvertiser)
       }
 
-      const previousStats = calculatePeriodStats(previousData)
+      previousStats = calculatePeriodStats(previousData)
       comparison = calculateChanges(previousStats, currentStats)
     }
 
     return {
       current: currentStats,
+      previous: previousStats,
       comparison,
       period: {
         startDate: args.startDate,
