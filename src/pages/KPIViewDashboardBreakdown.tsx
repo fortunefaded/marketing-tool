@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import { useConvex, useMutation } from 'convex/react'
+import { useConvex, useMutation, useAction } from 'convex/react'
 import { useQuery } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import { AccountSelector } from '../features/meta-api/account/AccountSelector'
@@ -41,6 +41,7 @@ import { logAPI, logState } from '../utils/debugLogger'
 
 export default function KPIViewDashboardBreakdown() {
   const convex = useConvex()
+  const getGoogleAdsCostSummary = useAction(api.googleAds.getCostSummary)
   const [data, setData] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -51,9 +52,10 @@ export default function KPIViewDashboardBreakdown() {
   const [ecforceData, setEcforceData] = useState<any[]>([])
   const [metaSpendData, setMetaSpendData] = useState<any>(null)
   const [dailyMetaData, setDailyMetaData] = useState<any[]>([])
+  const [googleAdsData, setGoogleAdsData] = useState<any>(null)
 
   // ブレークダウン展開状態の管理
-  const [expandedMetric, setExpandedMetric] = useState<'cv' | 'cpo' | null>(null)
+  const [expandedMetric, setExpandedMetric] = useState<'cv' | 'cpo' | 'cost' | null>(null)
 
   // ドラッグ選択用のstate（表示範囲のみ管理、データは変更しない）
   const [brushRange, setBrushRange] = useState<{ start: number; end: number } | null>(null)
@@ -403,6 +405,32 @@ export default function KPIViewDashboardBreakdown() {
     return null
   }, [accounts])
 
+  // Google Adsデータ取得
+  const fetchGoogleAdsData = useCallback(async (startDate: Date, endDate: Date) => {
+    try {
+      console.log('📊 Google Adsデータ取得開始', {
+        startDate: formatDateToISO(startDate),
+        endDate: formatDateToISO(endDate)
+      })
+
+      const result = await getGoogleAdsCostSummary({
+        startDate: formatDateToISO(startDate),
+        endDate: formatDateToISO(endDate)
+      })
+
+      if (result.success && result.data) {
+        console.log('✅ Google Adsデータ取得成功:', result.data)
+        return result.data
+      } else {
+        console.log('⚠️ Google Adsデータ取得失敗:', result.error)
+        return null
+      }
+    } catch (error) {
+      console.error('❌ Google Adsデータ取得エラー:', error)
+      return null
+    }
+  }, [getGoogleAdsCostSummary])
+
   // データの統合取得
   useEffect(() => {
     const fetchAllData = async () => {
@@ -418,6 +446,9 @@ export default function KPIViewDashboardBreakdown() {
         setDailyMetaData(dailyData)
       }
 
+      // Google Adsデータを取得
+      const googleData = await fetchGoogleAdsData(startDate, endDate)
+
       const periodDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
       const previousStart = new Date(startDate)
       previousStart.setDate(previousStart.getDate() - periodDays - 1)
@@ -426,9 +457,17 @@ export default function KPIViewDashboardBreakdown() {
 
       const previousMetaData = await fetchMetaSpendData(selectedAccountId, previousStart, previousEnd, false)
 
+      // 前期間のGoogle Adsデータも取得
+      const previousGoogleData = await fetchGoogleAdsData(previousStart, previousEnd)
+
       setMetaSpendData({
         current: metaData,
         previous: previousMetaData
+      })
+
+      setGoogleAdsData({
+        current: googleData,
+        previous: previousGoogleData
       })
 
       setLastUpdateTime(new Date())
@@ -437,7 +476,7 @@ export default function KPIViewDashboardBreakdown() {
     if (selectedAccountId && !isLoadingAccounts) {
       fetchAllData()
     }
-  }, [selectedAccountId, calculateDateRange, isLoadingAccounts, fetchDataFromECForce, fetchMetaSpendData])
+  }, [selectedAccountId, calculateDateRange, isLoadingAccounts, fetchDataFromECForce, fetchMetaSpendData, fetchGoogleAdsData])
 
   // 初回ロード時
   useEffect(() => {
@@ -651,11 +690,22 @@ export default function KPIViewDashboardBreakdown() {
 
   // KPIメトリクスの計算
   const calculateKPIMetrics = useMemo(() => {
-    const cost = metaSpendData?.current?.spend || kpiSummaryData?.current?.cost || 0
+    // Meta広告費とGoogle広告費を合算
+    const metaCost = metaSpendData?.current?.spend || 0
+    const googleCost = googleAdsData?.current?.cost || 0
+    const cost = metaCost + googleCost || kpiSummaryData?.current?.cost || 0
+
     const cv = kpiSummaryData?.current?.cvOrder || ecforceData.reduce((sum, item) => sum + item.cvOrder, 0) || 0
     const sales = kpiSummaryData?.current?.salesAmount || ecforceData.reduce((sum, item) => sum + item.salesAmount, 0) || 0
-    const clicks = metaSpendData?.current?.clicks || kpiSummaryData?.current?.accessCount || 0
-    const impressions = metaSpendData?.current?.impressions || 0
+
+    // MetaとGoogle Adsのクリック・インプレッションを合算
+    const metaClicks = metaSpendData?.current?.clicks || 0
+    const googleClicks = googleAdsData?.current?.clicks || 0
+    const clicks = metaClicks + googleClicks || kpiSummaryData?.current?.accessCount || 0
+
+    const metaImpressions = metaSpendData?.current?.impressions || 0
+    const googleImpressions = googleAdsData?.current?.impressions || 0
+    const impressions = metaImpressions + googleImpressions || 0
 
     // 計算指標
     const cpo = cv > 0 ? cost / cv : 0
@@ -666,11 +716,20 @@ export default function KPIViewDashboardBreakdown() {
     const cpm = impressions > 0 ? (cost / impressions) * 1000 : 0
 
     // 前期比較データ
-    const previousCost = metaSpendData?.previous?.spend || kpiSummaryData?.previous?.cost || 0
+    const previousMetaCost = metaSpendData?.previous?.spend || 0
+    const previousGoogleCost = googleAdsData?.previous?.cost || 0
+    const previousCost = previousMetaCost + previousGoogleCost || kpiSummaryData?.previous?.cost || 0
+
     const previousCv = kpiSummaryData?.previous?.cvOrder || 0
     const previousSales = kpiSummaryData?.previous?.salesAmount || 0
-    const previousClicks = metaSpendData?.previous?.clicks || kpiSummaryData?.previous?.accessCount || 0
-    const previousImpressions = metaSpendData?.previous?.impressions || 0
+
+    const previousMetaClicks = metaSpendData?.previous?.clicks || 0
+    const previousGoogleClicks = googleAdsData?.previous?.clicks || 0
+    const previousClicks = previousMetaClicks + previousGoogleClicks || kpiSummaryData?.previous?.accessCount || 0
+
+    const previousMetaImpressions = metaSpendData?.previous?.impressions || 0
+    const previousGoogleImpressions = googleAdsData?.previous?.impressions || 0
+    const previousImpressions = previousMetaImpressions + previousGoogleImpressions || 0
 
     const previousCpo = previousCv > 0 ? previousCost / previousCv : 0
     const previousRoas = previousCost > 0 ? previousSales / previousCost : 0
@@ -695,6 +754,8 @@ export default function KPIViewDashboardBreakdown() {
     return {
       // メイン指標
       cost,
+      metaCost,
+      googleCost,
       cv,
       cpo,
       sales,
@@ -710,7 +771,7 @@ export default function KPIViewDashboardBreakdown() {
       // 変化率
       changes
     }
-  }, [metaSpendData, kpiSummaryData, ecforceData])
+  }, [metaSpendData, googleAdsData, kpiSummaryData, ecforceData])
 
   // グラフ用データ整形（ECForceとMetaデータを統合）
   // 元のチャートデータを計算
@@ -1210,13 +1271,48 @@ export default function KPIViewDashboardBreakdown() {
           </h2>
           <div className="bg-gradient-to-r from-slate-50 to-gray-50 rounded-2xl p-8 shadow-inner">
             <div className="flex items-center justify-center gap-8">
-              <FormulaCard
-                label="広告費用"
-                value={metrics.cost}
-                change={metrics.changes.cost}
-                unit="円"
-                isPositiveGood={false}
-              />
+              <div>
+                <FormulaCard
+                  label="広告費用"
+                  value={metrics.cost}
+                  change={metrics.changes.cost}
+                  unit="円"
+                  isPositiveGood={false}
+                  isExpandable={true}
+                  isExpanded={expandedMetric === 'cost'}
+                  onClick={() => setExpandedMetric(expandedMetric === 'cost' ? null : 'cost')}
+                />
+                {/* 広告費用のブレークダウン */}
+                {expandedMetric === 'cost' && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="mt-4 space-y-3"
+                  >
+                    <div className="flex items-center justify-center gap-4">
+                      <SubFormulaCard
+                        label="Meta広告費"
+                        value={metrics.metaCost}
+                        unit="円"
+                      />
+                      <Operator symbol="+" size="sm" />
+                      <SubFormulaCard
+                        label="Google広告費"
+                        value={metrics.googleCost}
+                        unit="円"
+                      />
+                      <Operator symbol="=" size="sm" />
+                      <SubFormulaCard
+                        label="合計広告費"
+                        value={metrics.cost}
+                        unit="円"
+                        isResult
+                      />
+                    </div>
+                  </motion.div>
+                )}
+              </div>
               <Operator symbol="÷" />
               <FormulaCard
                 label="コンバージョン"

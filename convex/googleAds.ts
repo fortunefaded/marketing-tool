@@ -587,6 +587,114 @@ export const fetchPerformanceData = action({
   },
 })
 
+// 簡易的なコストサマリー取得（KPIビュー用）
+export const getCostSummary = action({
+  args: {
+    startDate: v.optional(v.string()),
+    endDate: v.optional(v.string()),
+  },
+  handler: async (ctx, args): Promise<{ success: boolean; data?: any; error?: string }> => {
+    const config = await ctx.runQuery(api.googleAds.getConfig, {})
+
+    if (!config || !config.isConnected) {
+      return { success: false, error: 'Google Ads未接続' }
+    }
+
+    try {
+      const accessToken = await ensureValidAccessToken(ctx, config)
+
+      // デフォルトで今月のデータを取得
+      const now = new Date()
+      const startDate = args.startDate || new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
+      const endDate = args.endDate || now.toISOString().split('T')[0]
+
+      // アカウントレベルのコストサマリーを取得
+      const query = `
+        SELECT
+          metrics.cost_micros,
+          metrics.impressions,
+          metrics.clicks,
+          metrics.conversions,
+          segments.date
+        FROM customer
+        WHERE segments.date BETWEEN '${startDate}' AND '${endDate}'
+        ORDER BY segments.date DESC
+      `
+
+      console.log('Fetching Google Ads cost summary:', { startDate, endDate })
+
+      const response = await fetch(
+        `${GOOGLE_ADS_API_BASE_URL}/customers/${config.customerId}/googleAds:searchStream`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'developer-token': config.developerToken,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ query }),
+        }
+      )
+
+      if (!response.ok) {
+        const error = await response.text()
+        console.error('Failed to fetch cost summary:', error)
+        return { success: false, error: `API Error: ${response.status}` }
+      }
+
+      const data = await response.json()
+
+      // データを集計
+      let totalCost = 0
+      let totalImpressions = 0
+      let totalClicks = 0
+      let totalConversions = 0
+      const dailyData = []
+
+      if (data.results) {
+        for (const result of data.results) {
+          const metrics = result.metrics || {}
+          const segments = result.segments || {}
+
+          const costInJPY = (metrics.cost_micros || 0) / 1000000
+          totalCost += costInJPY
+          totalImpressions += metrics.impressions || 0
+          totalClicks += metrics.clicks || 0
+          totalConversions += metrics.conversions || 0
+
+          dailyData.push({
+            date: segments.date,
+            cost: costInJPY,
+            impressions: metrics.impressions || 0,
+            clicks: metrics.clicks || 0,
+            conversions: metrics.conversions || 0,
+          })
+        }
+      }
+
+      console.log('Cost summary fetched:', { totalCost, dataPoints: dailyData.length })
+
+      return {
+        success: true,
+        data: {
+          totalCost,
+          totalImpressions,
+          totalClicks,
+          totalConversions,
+          dailyData,
+          period: {
+            startDate,
+            endDate,
+          }
+        }
+      }
+    } catch (error: any) {
+      console.error('Error fetching cost summary:', error)
+      return { success: false, error: error.message }
+    }
+  },
+})
+
 // 接続テスト
 export const testConnection = action({
   args: {},
