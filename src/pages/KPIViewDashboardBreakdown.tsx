@@ -424,21 +424,18 @@ export default function KPIViewDashboardBreakdown() {
 
     if (e && e.activeTooltipIndex !== undefined && e.activeTooltipIndex !== null) {
       const chartIndex = e.activeTooltipIndex
-      // brushRangeがある場合、chartDataのインデックスをfullChartDataのインデックスに変換
-      const fullIndex = brushRange ? brushRange.start + chartIndex : chartIndex
       const dataPoint = chartData[chartIndex]
 
+      // 現在の表示範囲での選択を開始（chartDataのインデックスをそのまま使用）
       console.log('✅ MouseDown詳細:', {
         chartIndex,
-        fullIndex,
         date: dataPoint?.date,
-        fullChartDataLength: fullChartData.length,
         chartDataLength: chartData.length,
-        brushRange
+        currentBrushRange: brushRange
       })
       setIsDragging(true)
-      setDragStartIndex(fullIndex)
-      setDragEndIndex(fullIndex)
+      setDragStartIndex(chartIndex)
+      setDragEndIndex(chartIndex)
     } else {
       console.log('❌ activeTooltipIndexが取得できません')
     }
@@ -447,9 +444,8 @@ export default function KPIViewDashboardBreakdown() {
   const handleChartMouseMove = (e: any) => {
     if (isDragging && e && e.activeTooltipIndex !== undefined && e.activeTooltipIndex !== null) {
       const chartIndex = e.activeTooltipIndex
-      const fullIndex = brushRange ? brushRange.start + chartIndex : chartIndex
-      console.log('MouseMove at index:', fullIndex, 'date:', chartData[chartIndex]?.date)
-      setDragEndIndex(fullIndex)
+      console.log('MouseMove at index:', chartIndex, 'date:', chartData[chartIndex]?.date)
+      setDragEndIndex(chartIndex)
     }
   }
 
@@ -458,15 +454,27 @@ export default function KPIViewDashboardBreakdown() {
       const start = Math.min(dragStartIndex, dragEndIndex)
       const end = Math.max(dragStartIndex, dragEndIndex)
 
+      // 新しい選択範囲を計算（既存のbrushRangeを考慮）
+      let newStart = start
+      let newEnd = end
+
+      if (brushRange) {
+        // すでに選択範囲がある場合、その範囲内での相対位置を絶対位置に変換
+        newStart = brushRange.start + start
+        newEnd = brushRange.start + end
+      }
+
       console.log('ドラッグ選択完了:', {
-        start,
-        end,
-        startDate: fullChartData[start]?.date,
-        endDate: fullChartData[end]?.date
+        chartIndexRange: { start, end },
+        newFullRange: { start: newStart, end: newEnd },
+        dates: {
+          start: fullChartData[newStart]?.date,
+          end: fullChartData[newEnd]?.date
+        }
       })
 
       if (start !== end) {
-        setBrushRange({ start, end })
+        setBrushRange({ start: newStart, end: newEnd })
       }
 
       setIsDragging(false)
@@ -985,27 +993,15 @@ export default function KPIViewDashboardBreakdown() {
               <Line yAxisId="right" type="monotone" dataKey="cpo" stroke="#F59E0B" strokeWidth={2} name="CPO" />
 
               {/* ドラッグ中の選択範囲を表示 */}
-              {isDragging && dragStartIndex !== null && dragEndIndex !== null && (
-                (() => {
-                  // 現在表示中のchartDataに対するインデックスに変換
-                  const displayStart = brushRange ? dragStartIndex - brushRange.start : dragStartIndex
-                  const displayEnd = brushRange ? dragEndIndex - brushRange.start : dragEndIndex
-
-                  if (displayStart >= 0 && displayEnd >= 0 &&
-                      displayStart < chartData.length && displayEnd < chartData.length &&
-                      chartData[displayStart] && chartData[displayEnd]) {
-                    return (
-                      <ReferenceArea
-                        x1={chartData[Math.min(displayStart, displayEnd)].date}
-                        x2={chartData[Math.max(displayStart, displayEnd)].date}
-                        strokeOpacity={0.3}
-                        fill="#3B82F6"
-                        fillOpacity={0.3}
-                      />
-                    )
-                  }
-                  return null
-                })()
+              {isDragging && dragStartIndex !== null && dragEndIndex !== null &&
+               chartData[dragStartIndex] && chartData[dragEndIndex] && (
+                <ReferenceArea
+                  x1={chartData[Math.min(dragStartIndex, dragEndIndex)].date}
+                  x2={chartData[Math.max(dragStartIndex, dragEndIndex)].date}
+                  strokeOpacity={0.3}
+                  fill="#3B82F6"
+                  fillOpacity={0.3}
+                />
               )}
 
             </ComposedChart>
