@@ -22,6 +22,9 @@ import { ECForceSync } from './features/ecforce/pages/ECForceSync'
 import { ECForceHistory } from './features/ecforce/pages/ECForceHistory'
 // 期間別分析（独立機能）
 import { PeriodAnalysis } from './features/period-analysis/pages/PeriodAnalysis'
+// Google Ads設定
+import { GoogleAdsSettings } from './pages/GoogleAdsSettings'
+import { GoogleAdsCallback } from './pages/GoogleAdsCallback'
 
 // Convex URLのフォールバック処理を追加
 const convexUrl = import.meta.env.VITE_CONVEX_URL || 'https://temporary-convex-url.convex.cloud'
@@ -78,6 +81,9 @@ function AppContent() {
             <Route path="/settings/meta-api/permissions" element={<PermissionsAndTestStep />} />
             <Route path="/settings/meta-api/test" element={<PermissionsAndTestStep />} />
             <Route path="/settings/meta-api/complete" element={<CompleteStepConvex />} />
+            {/* Google Ads設定ルート */}
+            <Route path="/settings/google-ads" element={<GoogleAdsSettings />} />
+            <Route path="/settings/google-ads/callback" element={<GoogleAdsCallback />} />
             {/* 期間別データ分析（独立機能） */}
             <Route path="/period-analysis" element={<PeriodAnalysis />} />
             {/* ECForce設定ルート */}
