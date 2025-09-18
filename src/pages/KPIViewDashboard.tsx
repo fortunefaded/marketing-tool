@@ -22,6 +22,8 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  ReferenceArea,
+  Brush,
 } from 'recharts'
 import {
   saveSelectedAccount,
@@ -43,6 +45,15 @@ export default function KPIViewDashboard() {
   const [ecforceData, setEcforceData] = useState<any[]>([])
   const [metaSpendData, setMetaSpendData] = useState<any>(null)
   const [dailyMetaData, setDailyMetaData] = useState<any[]>([]) // 日別Metaデータ用state
+
+  // ドラッグ選択用のstate
+  const [isDragging, setIsDragging] = useState(false)
+  const [dragStartIndex, setDragStartIndex] = useState<number | null>(null)
+  const [dragEndIndex, setDragEndIndex] = useState<number | null>(null)
+  const [selectedRange, setSelectedRange] = useState<{ start: number; end: number } | null>(null)
+
+  // シンプルなデバッグ用のstate
+  const [lastMouseEvent, setLastMouseEvent] = useState<string>('')
 
   // 期間選択の状態管理
   const [dateRange, setDateRange] = useState<DateRangeFilterType>(() => {
@@ -385,6 +396,136 @@ export default function KPIViewDashboard() {
     setCustomDateRange({ start, end })
   }
 
+  // Brush選択のハンドラー
+  const handleBrushChange = (e: any) => {
+    if (!e || (!e.startIndex && e.startIndex !== 0) || (!e.endIndex && e.endIndex !== 0)) return
+
+    const start = e.startIndex
+    const end = e.endIndex
+
+    if (start !== end && chartData[start] && chartData[end]) {
+      const startDateStr = chartData[start].originalDate
+      const endDateStr = chartData[end].originalDate
+
+      // カスタム期間として設定
+      const newStartDate = new Date(startDateStr)
+      const newEndDate = new Date(endDateStr)
+
+      setCustomDateRange({ start: newStartDate, end: newEndDate })
+      setDateRange('custom')
+      setSelectedRange({ start, end })
+
+      console.log('📅 期間選択:', {
+        start: startDateStr,
+        end: endDateStr,
+        startIndex: start,
+        endIndex: end
+      })
+    }
+  }
+
+  // マウスドラッグイベントハンドラー（DOM座標ベース）
+  const chartRef = useRef<HTMLDivElement>(null)
+
+  const getIndexFromMousePosition = useCallback((clientX: number, containerRect: DOMRect) => {
+    if (!chartData || chartData.length === 0) return -1;
+
+    // チャートエリアの実際の描画領域を計算（マージンを考慮）
+    const chartMargin = { left: 60, right: 60, top: 20, bottom: 80 }; // Brushの分も含む
+    const chartWidth = containerRect.width - chartMargin.left - chartMargin.right;
+    const relativeX = clientX - containerRect.left - chartMargin.left;
+
+    // 相対位置からインデックスを計算
+    const ratio = relativeX / chartWidth;
+    const index = Math.round(ratio * (chartData.length - 1));
+
+    return Math.max(0, Math.min(index, chartData.length - 1));
+  }, [chartData]);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    console.log('🖱️ DOM MouseDown Event triggered', { chartDataLength: chartData.length });
+
+    if (!chartData || chartData.length === 0) {
+      console.log('❌ ChartData is empty');
+      return;
+    }
+
+    if (!chartRef.current) {
+      console.log('❌ Chart ref not available');
+      return;
+    }
+
+    const rect = chartRef.current.getBoundingClientRect();
+    const index = getIndexFromMousePosition(e.clientX, rect);
+
+    console.log(`✅ Starting drag at index: ${index}, date: ${chartData[index]?.date}`);
+    setIsDragging(true);
+    setDragStartIndex(index);
+    setDragEndIndex(index);
+  }, [chartData, getIndexFromMousePosition])
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isDragging) {
+      return;
+    }
+
+    if (!chartData || chartData.length === 0 || !chartRef.current) {
+      return;
+    }
+
+    const rect = chartRef.current.getBoundingClientRect();
+    const index = getIndexFromMousePosition(e.clientX, rect);
+
+    console.log(`🔄 Moving drag to index: ${index}, date: ${chartData[index]?.date}`);
+    setDragEndIndex(index);
+  }, [isDragging, chartData, getIndexFromMousePosition])
+
+  const handleMouseUp = useCallback(() => {
+    console.log(`🖱️ MouseUp - isDragging: ${isDragging}, start: ${dragStartIndex}, end: ${dragEndIndex}`);
+
+    if (!isDragging || dragStartIndex === null || dragEndIndex === null) {
+      console.log('❌ MouseUp: Invalid state');
+      setIsDragging(false)
+      return
+    }
+
+    const start = Math.min(dragStartIndex, dragEndIndex)
+    const end = Math.max(dragStartIndex, dragEndIndex)
+
+    console.log(`📊 Selection range: ${start} to ${end}`);
+
+    if (start !== end && chartData[start] && chartData[end]) {
+      const startDateStr = chartData[start].originalDate
+      const endDateStr = chartData[end].originalDate
+
+      console.log(`📅 Setting date range: ${startDateStr} to ${endDateStr}`);
+
+      // カスタム期間として設定
+      const newStartDate = new Date(startDateStr)
+      const newEndDate = new Date(endDateStr)
+
+      setCustomDateRange({ start: newStartDate, end: newEndDate })
+      setDateRange('custom')
+      setSelectedRange({ start, end })
+
+      console.log('✅ ドラッグ期間選択完了');
+    } else {
+      console.log('❌ Invalid selection range');
+    }
+
+    setIsDragging(false)
+    setDragStartIndex(null)
+    setDragEndIndex(null)
+  }, [isDragging, dragStartIndex, dragEndIndex, chartData, setCustomDateRange, setDateRange])
+
+  // 選択をリセット
+  const handleResetSelection = () => {
+    setSelectedRange(null)
+    setIsDragging(false)
+    setDragStartIndex(null)
+    setDragEndIndex(null)
+  }
+
   // KPIサマリー取得
   const { startDate, endDate } = calculateDateRange
   const kpiSummaryData = useQuery(
@@ -442,13 +583,13 @@ export default function KPIViewDashboard() {
   // グラフ用データ整形（ECForceとMetaデータを統合）
   const chartData = useMemo(() => {
     // ECForceデータとMeta日別データを日付でマージ
-    const dataMap = new Map<string, { cv: number; spend: number }>()
+    const dataMap = new Map<string, { cv: number; spend: number; originalDate: string }>()
 
     // ECForceデータを日付ごとに集計
     ecforceData.forEach(item => {
       const dateStr = item.date
       if (!dataMap.has(dateStr)) {
-        dataMap.set(dateStr, { cv: 0, spend: 0 })
+        dataMap.set(dateStr, { cv: 0, spend: 0, originalDate: dateStr })
       }
       const existing = dataMap.get(dateStr)!
       existing.cv += item.cvOrder || 0
@@ -458,7 +599,7 @@ export default function KPIViewDashboard() {
     dailyMetaData.forEach(item => {
       const dateStr = item.date
       if (!dataMap.has(dateStr)) {
-        dataMap.set(dateStr, { cv: 0, spend: 0 })
+        dataMap.set(dateStr, { cv: 0, spend: 0, originalDate: dateStr })
       }
       const existing = dataMap.get(dateStr)!
       existing.spend += item.spend || 0
@@ -490,13 +631,15 @@ export default function KPIViewDashboard() {
 
         return {
           date: displayDate,
+          originalDate: dateStr,
           cv: data.cv,
           cpo: data.cv > 0 && data.spend > 0 ? Math.round(data.spend / data.cv) : 0,
         }
       })
 
-    // データがない場合はダミーデータを返す
+    // データがない場合はテスト用のダミーデータを返す
     if (sortedData.length === 0) {
+      console.log('📊 Using dummy data for testing');
       const days = 7
       const data = []
       const today = new Date()
@@ -504,12 +647,17 @@ export default function KPIViewDashboard() {
       for (let i = days - 1; i >= 0; i--) {
         const date = new Date(today)
         date.setDate(date.getDate() - i)
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
         data.push({
           date: `${date.getMonth() + 1}/${date.getDate()}`,
-          cv: 0,
-          cpo: 0,
+          originalDate: `${year}-${month}-${day}`,
+          cv: Math.floor(Math.random() * 20) + 5, // 5-25のランダムCV
+          cpo: Math.floor(Math.random() * 100) + 50, // 50-150のランダムCPO
         })
       }
+      console.log('📊 Generated dummy data:', data);
       return data
     }
 
@@ -592,10 +740,19 @@ export default function KPIViewDashboard() {
   )
 
   // ローディング状態
-  if ((startDate && endDate && !kpiSummaryData) || isLoadingAccounts) {
+  if (isLoadingAccounts) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center">
-        <div className="text-gray-500">データ読み込み中...</div>
+        <div className="text-gray-500">アカウント読み込み中...</div>
+      </div>
+    )
+  }
+
+  // エラー状態
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center">
+        <div className="text-red-500">エラー: {error}</div>
       </div>
     )
   }
@@ -679,20 +836,156 @@ export default function KPIViewDashboard() {
           </div>
         </div>
 
-        {/* グラフセクション */}
+        {/* グラフセクション（ドラッグ選択機能付き） */}
         <div className="mb-12 bg-white rounded-xl shadow-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-700 mb-4">CV数とCPOの推移</h3>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-700">CV数とCPOの推移</h3>
+              <p className="text-sm text-gray-500 mt-1">
+                チャート上でドラッグして期間を選択できます
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  console.log('✅ シンプルテストボタンがクリックされました')
+                  alert('テストボタンが動作しています！')
+                }}
+                className="px-3 py-1.5 text-sm bg-green-100 hover:bg-green-200 rounded-md transition-colors border border-green-300"
+              >
+                ✅ シンプルテスト
+              </button>
+              {selectedRange && (
+                <button
+                  onClick={handleResetSelection}
+                  className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+                >
+                  選択をリセット
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* シンプルな状態表示 */}
+          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm">
+            <div className="font-bold text-yellow-800 mb-2">📊 現在の状態</div>
+            <div className="space-y-1 text-yellow-700">
+              <div>データ数: {chartData?.length || 0} 件</div>
+              <div>ドラッグ中: {isDragging ? '✅ はい' : '❌ いいえ'}</div>
+              <div>最後のマウスイベント: {lastMouseEvent || '未実行'}</div>
+            </div>
+          </div>
           <ResponsiveContainer width="100%" height={300}>
-            <ComposedChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="date" />
-              <YAxis yAxisId="left" />
-              <YAxis yAxisId="right" orientation="right" />
-              <Tooltip formatter={(value: number) => formatNumber(value)} />
-              <Legend />
-              <Bar yAxisId="left" dataKey="cv" fill="#3B82F6" name="CV数" />
-              <Line yAxisId="right" type="monotone" dataKey="cpo" stroke="#F59E0B" strokeWidth={2} name="CPO" />
-            </ComposedChart>
+            <div
+              ref={chartRef}
+              onMouseDown={(e) => {
+                console.log('🖱️ シンプルマウスダウン', { clientX: e.clientX, clientY: e.clientY })
+                setLastMouseEvent('MouseDown')
+                handleMouseDown(e)
+              }}
+              onMouseMove={(e) => {
+                setLastMouseEvent('MouseMove')
+                handleMouseMove(e)
+              }}
+              onMouseUp={() => {
+                console.log('🖱️ シンプルマウスアップ')
+                setLastMouseEvent('MouseUp')
+                handleMouseUp()
+              }}
+              onMouseLeave={() => {
+                console.log('🖱️ マウスがチャートエリアを離れました')
+                setLastMouseEvent('MouseLeave')
+                setIsDragging(false)
+              }}
+              onClick={() => {
+                console.log('🖱️ チャートエリアがクリックされました')
+                setLastMouseEvent('Click')
+              }}
+              style={{
+                width: '100%',
+                height: '100%',
+                cursor: isDragging ? 'grabbing' : 'grab',
+                border: '2px solid #10b981',
+                borderRadius: '8px',
+                padding: '4px',
+                backgroundColor: isDragging ? '#f0fdf4' : '#ffffff'
+              }}
+            >
+              <ComposedChart
+                data={chartData}
+                onClick={(e) => {
+                  console.log('🖱️ Chart Click Event:', e);
+                  console.log('Chart data length:', chartData.length);
+                }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="date" />
+                <YAxis yAxisId="left" />
+                <YAxis yAxisId="right" orientation="right" />
+                <Tooltip
+                  formatter={(value: number) => formatNumber(value)}
+                  cursor={{ fill: 'rgba(59, 130, 246, 0.1)' }}
+                />
+                <Legend />
+                <Bar
+                  yAxisId="left"
+                  dataKey="cv"
+                  fill="#3B82F6"
+                  name="CV数"
+                  onClick={(data, index) => {
+                    console.log('📊 Bar clicked:', { data, index });
+                  }}
+                />
+                <Line
+                  yAxisId="right"
+                  type="monotone"
+                  dataKey="cpo"
+                  stroke="#F59E0B"
+                  strokeWidth={2}
+                  name="CPO"
+                  onClick={(data, index) => {
+                    console.log('📈 Line clicked:', { data, index });
+                  }}
+                />
+
+                {/* ドラッグ選択範囲の表示 */}
+                {isDragging && dragStartIndex !== null && dragEndIndex !== null && (
+                  <ReferenceArea
+                    yAxisId="left"
+                    x1={chartData[Math.min(dragStartIndex, dragEndIndex)]?.date}
+                    x2={chartData[Math.max(dragStartIndex, dragEndIndex)]?.date}
+                    strokeOpacity={0.3}
+                    fill="#3b82f6"
+                    fillOpacity={0.3}
+                  />
+                )}
+
+                {/* 選択済み範囲の表示（ドラッグ中でない時） */}
+                {!isDragging && selectedRange && (
+                  <ReferenceArea
+                    yAxisId="left"
+                    x1={chartData[selectedRange.start]?.date}
+                    x2={chartData[selectedRange.end]?.date}
+                    strokeOpacity={0.5}
+                    stroke="#3b82f6"
+                    fill="#3b82f6"
+                    fillOpacity={0.1}
+                  />
+                )}
+
+                {/* Brush コンポーネントを追加してドラッグ選択を有効化 */}
+                <Brush
+                  dataKey="date"
+                  height={30}
+                  stroke="#3B82F6"
+                  fill="#3B82F6"
+                  fillOpacity={0.2}
+                  onChange={handleBrushChange}
+                  startIndex={selectedRange?.start}
+                  endIndex={selectedRange?.end}
+                />
+              </ComposedChart>
+            </div>
           </ResponsiveContainer>
         </div>
 

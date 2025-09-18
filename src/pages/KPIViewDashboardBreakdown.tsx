@@ -23,6 +23,7 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  ReferenceArea,
 } from 'recharts'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -49,6 +50,15 @@ export default function KPIViewDashboardBreakdown() {
 
   // ブレークダウン展開状態の管理
   const [expandedMetric, setExpandedMetric] = useState<'cv' | 'cpo' | null>(null)
+
+  // ドラッグ選択用のstate（表示範囲のみ管理、データは変更しない）
+  const [brushRange, setBrushRange] = useState<{ start: number; end: number } | null>(null)
+  const [originalDateRange, setOriginalDateRange] = useState<DateRangeFilterType>('current_month')
+
+  // ドラッグ選択用のstate
+  const [isDragging, setIsDragging] = useState(false)
+  const [dragStartIndex, setDragStartIndex] = useState<number | null>(null)
+  const [dragEndIndex, setDragEndIndex] = useState<number | null>(null)
 
   // 期間選択の状態管理
   const [dateRange, setDateRange] = useState<DateRangeFilterType>(() => {
@@ -161,6 +171,14 @@ export default function KPIViewDashboardBreakdown() {
     const day = String(date.getDate()).padStart(2, '0')
     return `${year}-${month}-${day}`
   }
+
+  // DateRangeが変更された時に元の値を保存
+  useEffect(() => {
+    if (dateRange !== 'custom') {
+      setOriginalDateRange(dateRange)
+      console.log('元のDateRangeを保存:', dateRange)
+    }
+  }, [dateRange])
 
   // 日付範囲の計算
   const calculateDateRange = useMemo(() => {
@@ -398,6 +416,93 @@ export default function KPIViewDashboardBreakdown() {
     setCustomDateRange({ start, end })
   }
 
+
+  // グラフ上でのドラッグ選択ハンドラー
+  const handleChartMouseDown = (e: any) => {
+    console.log('🔽 MouseDown event:', e)
+    console.log('activeTooltipIndex:', e?.activeTooltipIndex)
+
+    if (e && e.activeTooltipIndex !== undefined && e.activeTooltipIndex !== null) {
+      const chartIndex = e.activeTooltipIndex
+      // brushRangeがある場合、chartDataのインデックスをfullChartDataのインデックスに変換
+      const fullIndex = brushRange ? brushRange.start + chartIndex : chartIndex
+      const dataPoint = chartData[chartIndex]
+
+      console.log('✅ MouseDown詳細:', {
+        chartIndex,
+        fullIndex,
+        date: dataPoint?.date,
+        fullChartDataLength: fullChartData.length,
+        chartDataLength: chartData.length,
+        brushRange
+      })
+      setIsDragging(true)
+      setDragStartIndex(fullIndex)
+      setDragEndIndex(fullIndex)
+    } else {
+      console.log('❌ activeTooltipIndexが取得できません')
+    }
+  }
+
+  const handleChartMouseMove = (e: any) => {
+    if (isDragging && e && e.activeTooltipIndex !== undefined && e.activeTooltipIndex !== null) {
+      const chartIndex = e.activeTooltipIndex
+      const fullIndex = brushRange ? brushRange.start + chartIndex : chartIndex
+      console.log('MouseMove at index:', fullIndex, 'date:', chartData[chartIndex]?.date)
+      setDragEndIndex(fullIndex)
+    }
+  }
+
+  const handleChartMouseUp = (e: any) => {
+    if (isDragging && dragStartIndex !== null && dragEndIndex !== null) {
+      const start = Math.min(dragStartIndex, dragEndIndex)
+      const end = Math.max(dragStartIndex, dragEndIndex)
+
+      console.log('ドラッグ選択完了:', {
+        start,
+        end,
+        startDate: fullChartData[start]?.date,
+        endDate: fullChartData[end]?.date
+      })
+
+      if (start !== end) {
+        setBrushRange({ start, end })
+      }
+
+      setIsDragging(false)
+      setDragStartIndex(null)
+      setDragEndIndex(null)
+    }
+  }
+
+  // 選択をリセット（シンプルな実装）
+  const handleResetSelection = () => {
+    console.log('Reset前:', {
+      brushRange,
+      dateRange,
+      dragStartIndex,
+      dragEndIndex
+    })
+
+    // すべての選択状態をリセット
+    setBrushRange(null)
+    setIsDragging(false)
+    setDragStartIndex(null)
+    setDragEndIndex(null)
+
+    // もしcustomに変更されていたら元の期間に戻す
+    if (dateRange === 'custom') {
+      setDateRange(originalDateRange)
+      setCustomDateRange(null)
+    }
+
+    console.log('Reset後:', {
+      brushRange: null,
+      dateRange: originalDateRange,
+      allStatesCleared: true
+    })
+  }
+
   // KPIサマリー取得
   const { startDate, endDate } = calculateDateRange
   const kpiSummaryData = useQuery(
@@ -489,7 +594,8 @@ export default function KPIViewDashboardBreakdown() {
   }, [metaSpendData, kpiSummaryData, ecforceData])
 
   // グラフ用データ整形（ECForceとMetaデータを統合）
-  const chartData = useMemo(() => {
+  // 元のチャートデータを計算
+  const fullChartData = useMemo(() => {
     const dataMap = new Map<string, { cv: number; spend: number }>()
 
     ecforceData.forEach(item => {
@@ -532,6 +638,7 @@ export default function KPIViewDashboardBreakdown() {
 
         return {
           date: displayDate,
+          originalDate: dateStr,
           cv: data.cv,
           cpo: data.cv > 0 && data.spend > 0 ? Math.round(data.spend / data.cv) : 0,
         }
@@ -545,8 +652,12 @@ export default function KPIViewDashboardBreakdown() {
       for (let i = days - 1; i >= 0; i--) {
         const date = new Date(today)
         date.setDate(date.getDate() - i)
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
         data.push({
           date: `${date.getMonth() + 1}/${date.getDate()}`,
+          originalDate: `${year}-${month}-${day}`,
           cv: 0,
           cpo: 0,
         })
@@ -556,6 +667,15 @@ export default function KPIViewDashboardBreakdown() {
 
     return sortedData
   }, [ecforceData, dailyMetaData, trendData])
+
+  // 表示用のデータ（選択範囲がある場合はフィルタリング）
+  const chartData = useMemo(() => {
+    if (brushRange && fullChartData.length > 0) {
+      console.log('選択範囲でフィルタリング:', brushRange)
+      return fullChartData.slice(brushRange.start, brushRange.end + 1)
+    }
+    return fullChartData
+  }, [fullChartData, brushRange])
 
   // 数値フォーマット
   const formatNumber = (num: number) => {
@@ -788,9 +908,73 @@ export default function KPIViewDashboardBreakdown() {
 
         {/* グラフセクション */}
         <div className="mb-12 bg-white rounded-xl shadow-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-700 mb-4">CV数とCPOの推移</h3>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-700">CV数とCPOの推移</h3>
+              <p className="text-sm text-gray-500 mt-1">
+                下部のバーをドラッグして期間を選択できます
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  console.log('✅ KPIViewDashboardBreakdown テストボタンがクリックされました！')
+                  alert('🎉 正しいファイルのテストボタンが動作しています！\nファイル: KPIViewDashboardBreakdown.tsx')
+                }}
+                className="px-3 py-1.5 text-sm bg-green-100 hover:bg-green-200 border border-green-400 rounded-md transition-colors font-bold text-green-800"
+              >
+                ✅ テスト
+              </button>
+              <button
+                onClick={() => {
+                  if (fullChartData && fullChartData.length >= 5) {
+                    const start = 2
+                    const end = Math.min(7, fullChartData.length - 1)
+                    setBrushRange({ start, end })
+                    console.log('手動選択:', { start, end })
+                  }
+                }}
+                className="px-3 py-1.5 text-sm bg-blue-100 hover:bg-blue-200 border border-blue-400 rounded-md transition-colors text-blue-800"
+              >
+                🧪 テスト選択
+              </button>
+              {brushRange && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-green-600 font-medium bg-green-50 px-2 py-1 rounded border border-green-200">
+                    📅 期間選択中: {brushRange.start} - {brushRange.end}
+                  </span>
+                  <button
+                    onClick={handleResetSelection}
+                    className="px-3 py-1.5 text-sm bg-red-100 hover:bg-red-200 border border-red-300 rounded-md transition-colors text-red-700"
+                  >
+                    🔄 選択をリセット
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* 簡単な状態表示 */}
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm">
+            <div className="font-bold text-blue-800 mb-2">📊 デバッグ情報</div>
+            <div className="space-y-1 text-blue-700">
+              <div>ファイル: KPIViewDashboardBreakdown.tsx</div>
+              <div>fullChartData数: {fullChartData?.length || 0} 件</div>
+              <div>chartData数: {chartData?.length || 0} 件</div>
+              <div>選択範囲: {brushRange ? `${brushRange.start}-${brushRange.end}` : 'なし'}</div>
+              <div>ドラッグ中: {isDragging ? `${dragStartIndex}-${dragEndIndex}` : 'なし'}</div>
+              <div>ドラッグ状態: isDragging={String(isDragging)}</div>
+              <div>現在時刻: {new Date().toLocaleTimeString()}</div>
+            </div>
+          </div>
           <ResponsiveContainer width="100%" height={300}>
-            <ComposedChart data={chartData}>
+            <ComposedChart
+              data={chartData}
+              onMouseDown={handleChartMouseDown}
+              onMouseMove={handleChartMouseMove}
+              onMouseUp={handleChartMouseUp}
+              onMouseLeave={handleChartMouseUp}
+            >
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis dataKey="date" />
               <YAxis yAxisId="left" />
@@ -799,6 +983,31 @@ export default function KPIViewDashboardBreakdown() {
               <Legend />
               <Bar yAxisId="left" dataKey="cv" fill="#3B82F6" name="CV数" />
               <Line yAxisId="right" type="monotone" dataKey="cpo" stroke="#F59E0B" strokeWidth={2} name="CPO" />
+
+              {/* ドラッグ中の選択範囲を表示 */}
+              {isDragging && dragStartIndex !== null && dragEndIndex !== null && (
+                (() => {
+                  // 現在表示中のchartDataに対するインデックスに変換
+                  const displayStart = brushRange ? dragStartIndex - brushRange.start : dragStartIndex
+                  const displayEnd = brushRange ? dragEndIndex - brushRange.start : dragEndIndex
+
+                  if (displayStart >= 0 && displayEnd >= 0 &&
+                      displayStart < chartData.length && displayEnd < chartData.length &&
+                      chartData[displayStart] && chartData[displayEnd]) {
+                    return (
+                      <ReferenceArea
+                        x1={chartData[Math.min(displayStart, displayEnd)].date}
+                        x2={chartData[Math.max(displayStart, displayEnd)].date}
+                        strokeOpacity={0.3}
+                        fill="#3B82F6"
+                        fillOpacity={0.3}
+                      />
+                    )
+                  }
+                  return null
+                })()
+              )}
+
             </ComposedChart>
           </ResponsiveContainer>
         </div>
