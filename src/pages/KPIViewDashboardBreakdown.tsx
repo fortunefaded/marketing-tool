@@ -24,6 +24,7 @@ import {
   Legend,
   ResponsiveContainer,
   ReferenceArea,
+  ReferenceLine,
 } from 'recharts'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -59,6 +60,17 @@ export default function KPIViewDashboardBreakdown() {
   const [isDragging, setIsDragging] = useState(false)
   const [dragStartIndex, setDragStartIndex] = useState<number | null>(null)
   const [dragEndIndex, setDragEndIndex] = useState<number | null>(null)
+
+  // 目標値設定用のstate
+  const [showTargetModal, setShowTargetModal] = useState(false)
+  const [targetCV, setTargetCV] = useState<number | null>(() => {
+    const saved = localStorage.getItem('targetCV')
+    return saved ? Number(saved) : null
+  })
+  const [targetCPO, setTargetCPO] = useState<number | null>(() => {
+    const saved = localStorage.getItem('targetCPO')
+    return saved ? Number(saved) : null
+  })
 
   // 期間選択の状態管理
   const [dateRange, setDateRange] = useState<DateRangeFilterType>(() => {
@@ -483,6 +495,28 @@ export default function KPIViewDashboardBreakdown() {
     }
   }
 
+  // 目標値を保存
+  const handleSaveTargets = (cv: number | null, cpo: number | null) => {
+    setTargetCV(cv)
+    setTargetCPO(cpo)
+
+    // LocalStorageに保存
+    if (cv !== null) {
+      localStorage.setItem('targetCV', cv.toString())
+    } else {
+      localStorage.removeItem('targetCV')
+    }
+
+    if (cpo !== null) {
+      localStorage.setItem('targetCPO', cpo.toString())
+    } else {
+      localStorage.removeItem('targetCPO')
+    }
+
+    setShowTargetModal(false)
+    console.log('目標値を保存:', { cv, cpo })
+  }
+
   // 選択をリセット（シンプルな実装）
   const handleResetSelection = () => {
     console.log('Reset前:', {
@@ -837,6 +871,75 @@ export default function KPIViewDashboardBreakdown() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
+      {/* 目標設定モーダル */}
+      {showTargetModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-bold text-gray-800 mb-4">📊 目標値の設定</h3>
+
+            <div className="space-y-4">
+              {/* CV目標 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  CV目標（件数）
+                </label>
+                <input
+                  type="number"
+                  placeholder="例: 100"
+                  defaultValue={targetCV || ''}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  id="target-cv-input"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  目標とするコンバージョン件数を入力
+                </p>
+              </div>
+
+              {/* CPO目標 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  CPO目標（円）
+                </label>
+                <input
+                  type="number"
+                  placeholder="例: 10000"
+                  defaultValue={targetCPO || ''}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  id="target-cpo-input"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  目標とする獲得単価（CPO）を入力
+                </p>
+              </div>
+            </div>
+
+            {/* ボタン */}
+            <div className="flex gap-2 mt-6">
+              <button
+                onClick={() => {
+                  const cvInput = document.getElementById('target-cv-input') as HTMLInputElement
+                  const cpoInput = document.getElementById('target-cpo-input') as HTMLInputElement
+
+                  const cv = cvInput.value ? Number(cvInput.value) : null
+                  const cpo = cpoInput.value ? Number(cpoInput.value) : null
+
+                  handleSaveTargets(cv, cpo)
+                }}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              >
+                保存
+              </button>
+              <button
+                onClick={() => setShowTargetModal(false)}
+                className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
+              >
+                キャンセル
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ヘッダー部分 */}
       <div className="sticky top-0 z-50 bg-white shadow-sm border-b border-gray-200">
         <div className="w-full px-4 sm:px-6 lg:px-8 py-4">
@@ -925,27 +1028,28 @@ export default function KPIViewDashboardBreakdown() {
             </div>
             <div className="flex items-center gap-2">
               <button
-                onClick={() => {
-                  console.log('✅ KPIViewDashboardBreakdown テストボタンがクリックされました！')
-                  alert('🎉 正しいファイルのテストボタンが動作しています！\nファイル: KPIViewDashboardBreakdown.tsx')
-                }}
-                className="px-3 py-1.5 text-sm bg-green-100 hover:bg-green-200 border border-green-400 rounded-md transition-colors font-bold text-green-800"
+                onClick={() => setShowTargetModal(true)}
+                className="px-4 py-1.5 text-sm bg-amber-100 hover:bg-amber-200 border border-amber-400 rounded-md transition-colors font-semibold text-amber-800 flex items-center gap-2"
               >
-                ✅ テスト
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                目標設定
               </button>
-              <button
-                onClick={() => {
-                  if (fullChartData && fullChartData.length >= 5) {
-                    const start = 2
-                    const end = Math.min(7, fullChartData.length - 1)
-                    setBrushRange({ start, end })
-                    console.log('手動選択:', { start, end })
-                  }
-                }}
-                className="px-3 py-1.5 text-sm bg-blue-100 hover:bg-blue-200 border border-blue-400 rounded-md transition-colors text-blue-800"
-              >
-                🧪 テスト選択
-              </button>
+              {(targetCV !== null || targetCPO !== null) && (
+                <div className="flex items-center gap-2 text-xs text-gray-600">
+                  {targetCV !== null && (
+                    <span className="bg-blue-50 px-2 py-1 rounded border border-blue-200">
+                      CV目標: {targetCV}件
+                    </span>
+                  )}
+                  {targetCPO !== null && (
+                    <span className="bg-orange-50 px-2 py-1 rounded border border-orange-200">
+                      CPO目標: ¥{targetCPO.toLocaleString()}
+                    </span>
+                  )}
+                </div>
+              )}
               {brushRange && (
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-green-600 font-medium bg-green-50 px-2 py-1 rounded border border-green-200">
@@ -991,6 +1095,28 @@ export default function KPIViewDashboardBreakdown() {
               <Legend />
               <Bar yAxisId="left" dataKey="cv" fill="#3B82F6" name="CV数" />
               <Line yAxisId="right" type="monotone" dataKey="cpo" stroke="#F59E0B" strokeWidth={2} name="CPO" />
+
+              {/* 目標線の表示 */}
+              {targetCV !== null && (
+                <ReferenceLine
+                  yAxisId="left"
+                  y={targetCV}
+                  stroke="#3B82F6"
+                  strokeDasharray="5 5"
+                  strokeWidth={2}
+                  label={{ value: `CV目標: ${targetCV}件`, position: 'left', fill: '#3B82F6' }}
+                />
+              )}
+              {targetCPO !== null && (
+                <ReferenceLine
+                  yAxisId="right"
+                  y={targetCPO}
+                  stroke="#F59E0B"
+                  strokeDasharray="5 5"
+                  strokeWidth={2}
+                  label={{ value: `CPO目標: ¥${targetCPO.toLocaleString()}`, position: 'right', fill: '#F59E0B' }}
+                />
+              )}
 
               {/* ドラッグ中の選択範囲を表示 */}
               {isDragging && dragStartIndex !== null && dragEndIndex !== null &&
