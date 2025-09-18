@@ -594,9 +594,13 @@ export const getCostSummary = action({
     endDate: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<{ success: boolean; data?: any; error?: string }> => {
+    console.log('[getCostSummary] 開始:', { args })
+
     const config = await ctx.runQuery(api.googleAds.getConfig, {})
+    console.log('[getCostSummary] 設定取得:', { config: config ? '存在' : 'なし', isConnected: config?.isConnected })
 
     if (!config || !config.isConnected) {
+      console.log('[getCostSummary] 未接続のため終了')
       return { success: false, error: 'Google Ads未接続' }
     }
 
@@ -621,28 +625,43 @@ export const getCostSummary = action({
         ORDER BY segments.date DESC
       `
 
-      console.log('Fetching Google Ads cost summary:', { startDate, endDate })
+      console.log('[getCostSummary] API呼び出し準備:', {
+        startDate,
+        endDate,
+        customerId: config.customerId,
+        hasToken: !!accessToken,
+        hasDeveloperToken: !!config.developerToken
+      })
 
-      const response = await fetch(
-        `${GOOGLE_ADS_API_BASE_URL}/customers/${config.customerId}/googleAds:searchStream`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'developer-token': config.developerToken,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ query }),
-        }
-      )
+      const apiUrl = `${GOOGLE_ADS_API_BASE_URL}/customers/${config.customerId}/googleAds:searchStream`
+      console.log('[getCostSummary] API URL:', apiUrl)
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'developer-token': config.developerToken,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query }),
+      })
+
+      console.log('[getCostSummary] API応答:', {
+        status: response.status,
+        ok: response.ok
+      })
 
       if (!response.ok) {
         const error = await response.text()
-        console.error('Failed to fetch cost summary:', error)
-        return { success: false, error: `API Error: ${response.status}` }
+        console.error('[getCostSummary] APIエラー詳細:', error)
+        return { success: false, error: `API Error: ${response.status} - ${error.substring(0, 200)}` }
       }
 
       const data = await response.json()
+      console.log('[getCostSummary] API応答データ:', {
+        hasResults: !!data.results,
+        resultCount: data.results?.length || 0
+      })
 
       // データを集計
       let totalCost = 0
@@ -652,6 +671,7 @@ export const getCostSummary = action({
       const dailyData = []
 
       if (data.results) {
+        console.log('[getCostSummary] 結果処理中:', data.results.length, '件')
         for (const result of data.results) {
           const metrics = result.metrics || {}
           const segments = result.segments || {}
@@ -672,25 +692,43 @@ export const getCostSummary = action({
         }
       }
 
-      console.log('Cost summary fetched:', { totalCost, dataPoints: dailyData.length })
+      console.log('[getCostSummary] 集計完了:', {
+        totalCost,
+        totalImpressions,
+        totalClicks,
+        totalConversions,
+        dataPoints: dailyData.length
+      })
+
+      const resultData = {
+        cost: totalCost,  // KPIビューで使用される名前に合わせる
+        totalCost,
+        impressions: totalImpressions,
+        totalImpressions,
+        clicks: totalClicks,
+        totalClicks,
+        conversions: totalConversions,
+        totalConversions,
+        dailyData,
+        period: {
+          startDate,
+          endDate,
+        }
+      }
+
+      console.log('[getCostSummary] 返却データ:', resultData)
 
       return {
         success: true,
-        data: {
-          totalCost,
-          totalImpressions,
-          totalClicks,
-          totalConversions,
-          dailyData,
-          period: {
-            startDate,
-            endDate,
-          }
-        }
+        data: resultData
       }
     } catch (error: any) {
-      console.error('Error fetching cost summary:', error)
-      return { success: false, error: error.message }
+      console.error('[getCostSummary] エラー発生:', {
+        message: error.message,
+        stack: error.stack,
+        error
+      })
+      return { success: false, error: `エラー: ${error.message}` }
     }
   },
 })

@@ -447,7 +447,9 @@ export default function KPIViewDashboardBreakdown() {
       }
 
       // Google Adsデータを取得
+      console.log('🔄 Google Adsデータ取得前')
       const googleData = await fetchGoogleAdsData(startDate, endDate)
+      console.log('📊 Google Adsデータ取得結果:', googleData)
 
       const periodDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
       const previousStart = new Date(startDate)
@@ -465,6 +467,10 @@ export default function KPIViewDashboardBreakdown() {
         previous: previousMetaData
       })
 
+      console.log('💾 Google Adsデータを状態に設定:', {
+        current: googleData,
+        previous: previousGoogleData
+      })
       setGoogleAdsData({
         current: googleData,
         previous: previousGoogleData
@@ -693,6 +699,12 @@ export default function KPIViewDashboardBreakdown() {
     // Meta広告費とGoogle広告費を合算
     const metaCost = metaSpendData?.current?.spend || 0
     const googleCost = googleAdsData?.current?.cost || 0
+    console.log('💰 広告費計算:', {
+      metaCost,
+      googleCost,
+      googleAdsData: googleAdsData?.current,
+      total: metaCost + googleCost
+    })
     const cost = metaCost + googleCost || kpiSummaryData?.current?.cost || 0
 
     const cv = kpiSummaryData?.current?.cvOrder || ecforceData.reduce((sum, item) => sum + item.cvOrder, 0) || 0
