@@ -4,15 +4,15 @@ import { mutation, query } from './_generated/server'
 // API設定の取得
 export const getConfig = query({
   args: {
-    key: v.string(), // 設定のキー
+    key: v.string(),
   },
   handler: async (ctx, args) => {
     const config = await ctx.db
       .query('apiConfig')
       .withIndex('by_key', (q) => q.eq('key', args.key))
       .first()
-    
-    return config ? config.value : null
+
+    return config?.value || null
   },
 })
 
@@ -23,13 +23,13 @@ export const getConfigs = query({
   },
   handler: async (ctx, args) => {
     let configs = ctx.db.query('apiConfig')
-    
+
     const results = await configs.collect()
-    
+
     if (args.keys) {
       return results.filter(config => args.keys?.includes(config.key))
     }
-    
+
     return results
   },
 })
@@ -86,11 +86,11 @@ export const deleteConfig = mutation({
 export const clearAllConfigs = mutation({
   handler: async (ctx) => {
     const configs = await ctx.db.query('apiConfig').collect()
-    
+
     for (const config of configs) {
       await ctx.db.delete(config._id)
     }
-    
+
     return { action: 'cleared', count: configs.length }
   },
 })
@@ -105,7 +105,7 @@ export const hasConfig = query({
       .query('apiConfig')
       .withIndex('by_key', (q) => q.eq('key', args.key))
       .first()
-    
+
     return config !== null
   },
 })
@@ -120,7 +120,8 @@ export const batchSaveConfigs = mutation({
   },
   handler: async (ctx, args) => {
     const results = []
-    
+    const now = Date.now()
+
     for (const config of args.configs) {
       const existing = await ctx.db
         .query('apiConfig')
@@ -130,7 +131,7 @@ export const batchSaveConfigs = mutation({
       const data = {
         key: config.key,
         value: config.value,
-        updatedAt: Date.now(),
+        updatedAt: now,
       }
 
       if (existing) {
@@ -141,7 +142,7 @@ export const batchSaveConfigs = mutation({
         results.push({ action: 'created', key: config.key })
       }
     }
-    
+
     return results
   },
 })

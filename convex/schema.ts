@@ -435,4 +435,17 @@ export default defineSchema({
   })
     .index('by_policy_name', ['policyName'])
     .index('by_data_type', ['dataType']),
+
+  // === 期間レポート保存機能（シンプル版） ===
+  kpiSnapshots: defineTable({
+    name: v.string(), // 自動生成される期間名
+    startIndex: v.number(), // 選択開始インデックス
+    endIndex: v.number(), // 選択終了インデックス
+    startDate: v.string(), // 開始日
+    endDate: v.string(), // 終了日
+    originalDateRange: v.string(), // 元の期間設定（'last_7d'など）
+    createdAt: v.number(),
+  })
+    .index('by_createdAt', ['createdAt'])
+    .index('by_name', ['name']),
 })

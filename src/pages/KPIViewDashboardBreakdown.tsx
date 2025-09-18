@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import { useConvex } from 'convex/react'
+import { useConvex, useMutation } from 'convex/react'
 import { useQuery } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import { AccountSelector } from '../features/meta-api/account/AccountSelector'
@@ -12,7 +12,10 @@ import {
   ArrowTrendingUpIcon,
   ArrowTrendingDownIcon,
   ChevronDownIcon,
+  CameraIcon,
+  BookmarkIcon,
 } from '@heroicons/react/24/outline'
+import { BookmarkIcon as BookmarkSolidIcon } from '@heroicons/react/24/solid'
 import {
   ComposedChart,
   Bar,
@@ -71,6 +74,12 @@ export default function KPIViewDashboardBreakdown() {
     const saved = localStorage.getItem('targetCPO')
     return saved ? Number(saved) : null
   })
+
+  // 期間レポート保存用のstate
+  const [showSnapshotList, setShowSnapshotList] = useState(false)
+  const saveSnapshotMutation = useMutation(api.kpiSnapshots.saveSnapshot)
+  const deleteSnapshotMutation = useMutation(api.kpiSnapshots.deleteSnapshot)
+  const snapshots = useQuery(api.kpiSnapshots.listSnapshots, { limit: 20 })
 
   // 期間選択の状態管理
   const [dateRange, setDateRange] = useState<DateRangeFilterType>(() => {
@@ -212,6 +221,12 @@ export default function KPIViewDashboardBreakdown() {
         endDate = new Date(startDate)
         endDate.setHours(23, 59, 59, 999)
         break
+      case 'last_3d':
+        startDate = new Date(today)
+        startDate.setDate(startDate.getDate() - 2)
+        startDate.setHours(0, 0, 0, 0)
+        endDate = today
+        break
       case 'last_7d':
         startDate = new Date(today)
         startDate.setDate(startDate.getDate() - 6)
@@ -230,6 +245,18 @@ export default function KPIViewDashboardBreakdown() {
         startDate.setHours(0, 0, 0, 0)
         endDate = today
         break
+      case 'last_60d':
+        startDate = new Date(today)
+        startDate.setDate(startDate.getDate() - 59)
+        startDate.setHours(0, 0, 0, 0)
+        endDate = today
+        break
+      case 'last_90d':
+        startDate = new Date(today)
+        startDate.setDate(startDate.getDate() - 89)
+        startDate.setHours(0, 0, 0, 0)
+        endDate = today
+        break
       case 'this_month':
         startDate = new Date(today.getFullYear(), today.getMonth(), 1)
         startDate.setHours(0, 0, 0, 0)
@@ -240,6 +267,12 @@ export default function KPIViewDashboardBreakdown() {
         startDate.setHours(0, 0, 0, 0)
         endDate = new Date(today.getFullYear(), today.getMonth(), 0)
         endDate.setHours(23, 59, 59, 999)
+        break
+      case 'last_3_months':
+        startDate = new Date(today)
+        startDate.setMonth(startDate.getMonth() - 3)
+        startDate.setHours(0, 0, 0, 0)
+        endDate = today
         break
       case 'custom':
         if (customDateRange) {
@@ -572,6 +605,50 @@ export default function KPIViewDashboardBreakdown() {
       : 'skip'
   )
 
+  // 比較期間のラベルを取得
+  const getComparisonLabel = useMemo(() => {
+    switch (dateRange) {
+      case 'today':
+        return '前日比'
+      case 'yesterday':
+        return '前日比'
+      case 'last_3d':
+        return '前3日比'
+      case 'last_7d':
+        return '前週比'
+      case 'last_14d':
+        return '前2週比'
+      case 'last_28d':
+        return '前28日比'
+      case 'last_30d':
+        return '前30日比'
+      case 'last_60d':
+        return '前60日比'
+      case 'last_90d':
+        return '前90日比'
+      case 'this_week':
+        return '先週比'
+      case 'last_week':
+        return '前週比'
+      case 'this_month':
+        return '先月比'
+      case 'last_month':
+        return '前月比'
+      case 'last_3_months':
+        return '前3ヶ月比'
+      case 'custom':
+        if (customDateRange) {
+          const days = Math.ceil(
+            (customDateRange.end.getTime() - customDateRange.start.getTime()) / (1000 * 60 * 60 * 24)
+          )
+          return `前${days}日比`
+        }
+        return '前期比'
+      default:
+        return '前期比'
+    }
+  }, [dateRange, customDateRange])
+
   // KPIメトリクスの計算
   const calculateKPIMetrics = useMemo(() => {
     const cost = metaSpendData?.current?.spend || kpiSummaryData?.current?.cost || 0
@@ -741,7 +818,9 @@ export default function KPIViewDashboardBreakdown() {
         ) : (
           <ArrowTrendingDownIcon className="w-4 h-4" />
         )}
-        <span>{Math.abs(Math.round(value))}%</span>
+        <span>
+          {getComparisonLabel} {isPositive ? '+' : ''}{Math.abs(Math.round(value))}%
+        </span>
       </div>
     )
   }
@@ -858,6 +937,43 @@ export default function KPIViewDashboardBreakdown() {
     </div>
   )
 
+  // 期間レポートを保存する処理
+  const handleSaveSnapshot = async () => {
+    // ドラッグ選択中の期間を保存
+    if (!brushRange) {
+      alert('保存する期間をドラッグで選択してください')
+      return
+    }
+
+    const startData = fullChartData[brushRange.start]
+    const endData = fullChartData[brushRange.end]
+
+    if (!startData || !endData) {
+      alert('選択期間のデータが取得できません')
+      return
+    }
+
+    // レポート名を自動生成（期間から）
+    const reportName = `${startData.originalDate || startData.date} 〜 ${endData.originalDate || endData.date}`
+
+    try {
+      await saveSnapshotMutation({
+        name: reportName,
+        startIndex: brushRange.start,
+        endIndex: brushRange.end,
+        startDate: startData.originalDate || startData.date,
+        endDate: endData.originalDate || endData.date,
+        originalDateRange: originalDateRange,
+      })
+
+      console.log('✅ 期間レポート保存完了:', reportName)
+      alert(`期間レポート「${reportName}」を保存しました`)
+    } catch (error) {
+      console.error('期間レポート保存エラー:', error)
+      alert('期間レポートの保存に失敗しました')
+    }
+  }
+
   // ローディング状態
   if ((startDate && endDate && !kpiSummaryData) || isLoadingAccounts) {
     return (
@@ -935,6 +1051,109 @@ export default function KPIViewDashboardBreakdown() {
               >
                 キャンセル
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {/* 保存済み期間レポート一覧モーダル */}
+      {showSnapshotList && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg p-6 max-w-3xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-800">📚 保存済み期間レポート</h3>
+              <button
+                onClick={() => setShowSnapshotList(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </button>
+            </div>
+
+            {snapshots && snapshots.length > 0 ? (
+              <div className="space-y-3">
+                {snapshots.map((snapshot) => (
+                  <div key={snapshot._id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-gray-900">{snapshot.name}</h4>
+                        {snapshot.description && (
+                          <p className="text-sm text-gray-600 mt-1">{snapshot.description}</p>
+                        )}
+                        <div className="flex items-center gap-4 text-xs text-gray-500 mt-2">
+                          <span className="flex items-center gap-1">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            期間: {snapshot.startDate} 〜 {snapshot.endDate}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                            </svg>
+                            範囲: インデックス {snapshot.startIndex} - {snapshot.endIndex}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            保存日: {new Date(snapshot.createdAt).toLocaleDateString('ja-JP')}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          className="text-blue-600 hover:text-blue-700 text-sm font-medium px-3 py-1 bg-blue-50 hover:bg-blue-100 rounded transition-colors"
+                          onClick={() => {
+                            // カスタム期間として設定
+                            const startDate = new Date(snapshot.startDate)
+                            const endDate = new Date(snapshot.endDate)
+
+                            // DateRangeFilterをカスタムモードに切り替えて期間を設定
+                            setDateRange('custom')
+                            setCustomDateRange({ start: startDate, end: endDate })
+                            handleCustomDateRange(startDate, endDate)
+
+                            // モーダルを閉じる
+                            setShowSnapshotList(false)
+
+                            console.log('📊 期間レポートから詳細分析:', snapshot.name)
+                          }}
+                        >
+                          詳細分析
+                        </button>
+                        <button
+                          className="text-red-500 hover:text-red-700 text-sm"
+                          onClick={async () => {
+                            if (confirm('この期間レポートを削除しますか？')) {
+                              try {
+                                await deleteSnapshotMutation({ id: snapshot._id })
+                                console.log('✅ 期間レポート削除完了')
+                              } catch (error) {
+                                console.error('削除エラー:', error)
+                                alert('削除に失敗しました')
+                              }
+                            }
+                          }}
+                        >
+                          削除
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                保存済みの期間レポートはありません
+              </div>
+            )}
+
+            <div className="mt-6">
+              <p className="text-sm text-gray-500 text-center">
+                「詳細分析」をクリックすると、保存した期間のデータが表示されます
+              </p>
             </div>
           </div>
         </div>
@@ -1036,20 +1255,24 @@ export default function KPIViewDashboardBreakdown() {
                 </svg>
                 目標設定
               </button>
-              {(targetCV !== null || targetCPO !== null) && (
-                <div className="flex items-center gap-2 text-xs text-gray-600">
-                  {targetCV !== null && (
-                    <span className="bg-blue-50 px-2 py-1 rounded border border-blue-200">
-                      CV目標: {targetCV}件
-                    </span>
-                  )}
-                  {targetCPO !== null && (
-                    <span className="bg-orange-50 px-2 py-1 rounded border border-orange-200">
-                      CPO目標: ¥{targetCPO.toLocaleString()}
-                    </span>
-                  )}
-                </div>
+
+              {brushRange && (
+                <button
+                  onClick={handleSaveSnapshot}
+                  className="px-4 py-1.5 text-sm bg-blue-100 hover:bg-blue-200 border border-blue-400 rounded-md transition-colors font-semibold text-blue-800 flex items-center gap-2"
+                >
+                  <CameraIcon className="w-4 h-4" />
+                  選択期間を保存
+                </button>
               )}
+
+              <button
+                onClick={() => setShowSnapshotList(true)}
+                className="px-4 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 border border-gray-400 rounded-md transition-colors font-semibold text-gray-800 flex items-center gap-2"
+              >
+                <BookmarkIcon className="w-4 h-4" />
+                保存済みレポート ({snapshots?.length || 0})
+              </button>
               {brushRange && (
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-green-600 font-medium bg-green-50 px-2 py-1 rounded border border-green-200">
@@ -1092,11 +1315,42 @@ export default function KPIViewDashboardBreakdown() {
               <YAxis yAxisId="left" />
               <YAxis yAxisId="right" orientation="right" />
               <Tooltip formatter={(value: number) => formatNumber(value)} />
-              <Legend />
+              <Legend
+                content={(props) => {
+                  const { payload } = props;
+                  return (
+                    <div className="flex items-center justify-center gap-6 mt-4">
+                      {/* 通常の凡例項目 */}
+                      {payload?.map((entry, index) => (
+                        <span key={`item-${index}`} className="flex items-center gap-2">
+                          <span
+                            className={entry.dataKey === 'cv' ? 'w-4 h-3 bg-blue-500' : 'w-4 h-1 bg-orange-500'}
+                            style={{ backgroundColor: entry.color }}
+                          />
+                          <span className="text-sm text-gray-600">{entry.value}</span>
+                        </span>
+                      ))}
+                      {/* 目標値の凡例 */}
+                      {targetCV !== null && (
+                        <span className="flex items-center gap-2">
+                          <span className="w-4 h-0 border-t-2 border-dashed border-blue-500" />
+                          <span className="text-sm text-blue-600">CV目標: {targetCV}件</span>
+                        </span>
+                      )}
+                      {targetCPO !== null && (
+                        <span className="flex items-center gap-2">
+                          <span className="w-4 h-0 border-t-2 border-dashed border-orange-500" />
+                          <span className="text-sm text-orange-600">CPO目標: ¥{targetCPO.toLocaleString()}</span>
+                        </span>
+                      )}
+                    </div>
+                  );
+                }}
+              />
               <Bar yAxisId="left" dataKey="cv" fill="#3B82F6" name="CV数" />
               <Line yAxisId="right" type="monotone" dataKey="cpo" stroke="#F59E0B" strokeWidth={2} name="CPO" />
 
-              {/* 目標線の表示 */}
+              {/* 目標線の表示（ラベルなし） */}
               {targetCV !== null && (
                 <ReferenceLine
                   yAxisId="left"
@@ -1104,7 +1358,6 @@ export default function KPIViewDashboardBreakdown() {
                   stroke="#3B82F6"
                   strokeDasharray="5 5"
                   strokeWidth={2}
-                  label={{ value: `CV目標: ${targetCV}件`, position: 'left', fill: '#3B82F6' }}
                 />
               )}
               {targetCPO !== null && (
@@ -1114,7 +1367,6 @@ export default function KPIViewDashboardBreakdown() {
                   stroke="#F59E0B"
                   strokeDasharray="5 5"
                   strokeWidth={2}
-                  label={{ value: `CPO目標: ¥${targetCPO.toLocaleString()}`, position: 'right', fill: '#F59E0B' }}
                 />
               )}
 
@@ -1137,7 +1389,7 @@ export default function KPIViewDashboardBreakdown() {
         {/* Meta専用セクション with ブレークダウン */}
         <div className="mb-12">
           <h2 className="text-lg font-semibold text-gray-700 mb-6 flex items-center gap-2">
-            <span className="text-2xl">📊</span> Meta広告 CPO（注文獲得単価）
+            <span className="text-2xl">📊</span> Meta広告
           </h2>
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-8 shadow-inner">
             <div className="flex items-center justify-center gap-8">
@@ -1269,78 +1521,98 @@ export default function KPIViewDashboardBreakdown() {
             </AnimatePresence>
           </div>
 
-          {/* Meta Breakdown テーブル */}
-          <div className="mt-8">
-            <MetaCampaignBreakdown
-              accountId={selectedAccountId}
-              startDate={startDate}
-              endDate={endDate}
-              accounts={accounts}
-              ecforceData={ecforceData}
-            />
-          </div>
         </div>
 
-        {/* その他の数式 */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* ROAS */}
-          <div>
-            <h3 className="text-lg font-semibold text-gray-700 mb-6 flex items-center gap-2">
-              <span className="text-2xl">📈</span> ROAS（広告費用対効果）
-            </h3>
-            <div className="bg-gradient-to-r from-slate-50 to-gray-50 rounded-2xl p-8 shadow-inner">
-              <div className="flex items-center justify-center gap-8">
-                <FormulaCard
-                  label="売上"
-                  value={metrics.sales}
-                  change={metrics.changes.sales}
-                  unit="円"
-                />
-                <Operator symbol="÷" />
-                <FormulaCard
-                  label="広告費"
-                  value={metrics.cost}
-                  change={metrics.changes.cost}
-                  unit="円"
-                  isPositiveGood={false}
-                />
-                <Operator symbol="=" />
-                <FormulaCard
-                  label="ROAS"
-                  value={metrics.roas}
-                  change={metrics.changes.roas}
-                  isResult
-                />
+        {/* Google広告 CPO（注文獲得単価） */}
+        <div className="mb-12">
+          <h2 className="text-lg font-semibold text-gray-700 mb-6 flex items-center gap-2">
+            <span className="text-2xl">
+              <svg className="w-6 h-6 inline" viewBox="0 0 24 24" fill="none">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+              </svg>
+            </span> Google広告
+          </h2>
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-8 shadow-inner">
+            <div className="flex items-center justify-center gap-8">
+              <FormulaCard
+                label="Google広告費"
+                value={0}
+                unit="円"
+                isPositiveGood={false}
+              />
+              <Operator symbol="÷" />
+              <FormulaCard
+                label="ECForce CV"
+                value={0}
+              />
+              <Operator symbol="=" />
+              <FormulaCard
+                label="Google CPO"
+                value={0}
+                unit="円"
+                isResult
+                isPositiveGood={false}
+              />
+            </div>
+
+            {/* 連携準備中メッセージ */}
+            <div className="mt-6 pt-6 border-t border-green-200 text-center">
+              <p className="text-sm text-green-600">
+                Google Ads API連携準備中
+              </p>
+              <div className="mt-2 flex justify-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-blue-400"></span>
+                <span className="w-2 h-2 rounded-full bg-red-400"></span>
+                <span className="w-2 h-2 rounded-full bg-yellow-400"></span>
+                <span className="w-2 h-2 rounded-full bg-green-400"></span>
               </div>
             </div>
           </div>
+        </div>
 
-          {/* CVR */}
-          <div>
-            <h3 className="text-lg font-semibold text-gray-700 mb-6 flex items-center gap-2">
-              <span className="text-2xl">🎯</span> CVR（コンバージョン率）
-            </h3>
-            <div className="bg-gradient-to-r from-slate-50 to-gray-50 rounded-2xl p-8 shadow-inner">
-              <div className="flex items-center justify-center gap-8">
-                <FormulaCard
-                  label="CV"
-                  value={metrics.cv}
-                  change={metrics.changes.cv}
-                />
-                <Operator symbol="÷" />
-                <FormulaCard
-                  label="クリック"
-                  value={metrics.clicks}
-                  change={metrics.changes.clicks}
-                />
-                <Operator symbol="=" />
-                <FormulaCard
-                  label="CVR"
-                  value={metrics.cvr}
-                  change={metrics.changes.cvr}
-                  unit="%"
-                  isResult
-                />
+        {/* Yahoo広告 CPO（注文獲得単価） */}
+        <div className="mb-12">
+          <h2 className="text-lg font-semibold text-gray-700 mb-6 flex items-center gap-2">
+            <span className="text-2xl">
+              <svg className="w-6 h-6 inline" viewBox="0 0 24 24" fill="none">
+                <path d="M3 3h18v18H3V3z" fill="#FF0033"/>
+                <path d="M11.5 7.5L9 15h1.5l.5-2h2l.5 2H15l-2.5-7.5h-1zm.5 4l.5-2 .5 2h-1z" fill="white"/>
+              </svg>
+            </span> Yahoo!広告
+          </h2>
+          <div className="bg-gradient-to-r from-purple-50 to-fuchsia-50 rounded-2xl p-8 shadow-inner">
+            <div className="flex items-center justify-center gap-8">
+              <FormulaCard
+                label="Yahoo!広告費"
+                value={0}
+                unit="円"
+                isPositiveGood={false}
+              />
+              <Operator symbol="÷" />
+              <FormulaCard
+                label="ECForce CV"
+                value={0}
+              />
+              <Operator symbol="=" />
+              <FormulaCard
+                label="Yahoo! CPO"
+                value={0}
+                unit="円"
+                isResult
+                isPositiveGood={false}
+              />
+            </div>
+
+            {/* 連携準備中メッセージ */}
+            <div className="mt-6 pt-6 border-t border-purple-200 text-center">
+              <p className="text-sm text-purple-600">
+                Yahoo!広告 API連携準備中
+              </p>
+              <div className="mt-2 flex justify-center">
+                <div className="w-12 h-2 bg-gradient-to-r from-red-400 to-purple-400 rounded-full"></div>
               </div>
             </div>
           </div>

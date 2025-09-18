@@ -54,6 +54,15 @@ export function DateRangeFilter({
         yesterdayEnd.setHours(23, 59, 59, 999)
         return { start: yesterday, end: yesterdayEnd }
 
+      case 'last_3d':
+        const threeDaysAgo = new Date(today)
+        threeDaysAgo.setDate(threeDaysAgo.getDate() - 3)
+        threeDaysAgo.setHours(0, 0, 0, 0)
+        const yesterday3d = new Date(today)
+        yesterday3d.setDate(yesterday3d.getDate() - 1)
+        yesterday3d.setHours(23, 59, 59, 999)
+        return { start: threeDaysAgo, end: yesterday3d }
+
       case 'last_7d':
         const sevenDaysAgo = new Date(today)
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
@@ -89,6 +98,24 @@ export function DateRangeFilter({
         yesterday30d.setDate(yesterday30d.getDate() - 1)
         yesterday30d.setHours(23, 59, 59, 999)
         return { start: thirtyDaysAgo, end: yesterday30d }
+
+      case 'last_60d':
+        const sixtyDaysAgo = new Date(today)
+        sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60)
+        sixtyDaysAgo.setHours(0, 0, 0, 0)
+        const yesterday60d = new Date(today)
+        yesterday60d.setDate(yesterday60d.getDate() - 1)
+        yesterday60d.setHours(23, 59, 59, 999)
+        return { start: sixtyDaysAgo, end: yesterday60d }
+
+      case 'last_90d':
+        const ninetyDaysAgo = new Date(today)
+        ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
+        ninetyDaysAgo.setHours(0, 0, 0, 0)
+        const yesterday90d = new Date(today)
+        yesterday90d.setDate(yesterday90d.getDate() - 1)
+        yesterday90d.setHours(23, 59, 59, 999)
+        return { start: ninetyDaysAgo, end: yesterday90d }
 
       case 'this_week':
         // 今週（日曜始まり）
@@ -139,6 +166,15 @@ export function DateRangeFilter({
         lastMonthStart.setHours(0, 0, 0, 0)
         return { start: lastMonthStart, end: lastMonthEnd }
 
+      case 'last_3_months':
+        const threeMonthsAgo = new Date(today)
+        threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3)
+        threeMonthsAgo.setHours(0, 0, 0, 0)
+        const yesterday3m = new Date(today)
+        yesterday3m.setDate(yesterday3m.getDate() - 1)
+        yesterday3m.setHours(23, 59, 59, 999)
+        return { start: threeMonthsAgo, end: yesterday3m }
+
       case 'all':
         const allStart = new Date(2020, 0, 1) // 適当な過去の日付
         return { start: allStart, end: today }
@@ -154,14 +190,18 @@ export function DateRangeFilter({
   const presetOptions = [
     { label: '今日', value: 'today' as DateRangeFilter },
     { label: '昨日', value: 'yesterday' as DateRangeFilter },
+    { label: '過去3日間', value: 'last_3d' as DateRangeFilter },
     { label: '過去7日間', value: 'last_7d' as DateRangeFilter },
     { label: '過去14日間', value: 'last_14d' as DateRangeFilter },
     { label: '過去28日間', value: 'last_28d' as DateRangeFilter },
     { label: '過去30日間', value: 'last_30d' as DateRangeFilter },
+    { label: '過去60日間', value: 'last_60d' as DateRangeFilter },
+    { label: '過去90日間', value: 'last_90d' as DateRangeFilter },
     { label: '今週', value: 'this_week' as DateRangeFilter },
     { label: '先週', value: 'last_week' as DateRangeFilter },
     { label: '今月', value: 'this_month' as DateRangeFilter },
     { label: '先月', value: 'last_month' as DateRangeFilter },
+    { label: '過去3ヶ月', value: 'last_3_months' as DateRangeFilter },
   ]
 
   return (

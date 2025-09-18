@@ -6,15 +6,18 @@
 export type DateRangePreset =
   | 'today'
   | 'yesterday'
+  | 'last_3d'
   | 'last_7d'
   | 'last_14d'
   | 'last_28d'
   | 'last_30d'
+  | 'last_60d'
+  | 'last_90d'
   | 'last_month'
   | 'this_week'
   | 'last_week'
   | 'this_month'
-  | 'last_90d'
+  | 'last_3_months'
   | 'all'
 
 export interface DateRangeInfo {
@@ -54,6 +57,21 @@ export function getDateRangeInfo(preset: DateRangePreset): DateRangeInfo {
         isCustomRange: false,
         daysCount: 1,
         displayName: '昨日',
+      }
+    }
+
+    case 'last_3d': {
+      const startDate = new Date(today)
+      startDate.setDate(startDate.getDate() - 3)
+      const endDate = new Date(today)
+      endDate.setDate(endDate.getDate() - 1)
+      return {
+        preset,
+        startDate,
+        endDate,
+        isCustomRange: false,
+        daysCount: 3,
+        displayName: '過去3日間',
       }
     }
 
@@ -117,6 +135,21 @@ export function getDateRangeInfo(preset: DateRangePreset): DateRangeInfo {
       }
     }
 
+    case 'last_60d': {
+      const startDate = new Date(today)
+      startDate.setDate(startDate.getDate() - 60)
+      const endDate = new Date(today)
+      endDate.setDate(endDate.getDate() - 1)
+      return {
+        preset,
+        startDate,
+        endDate,
+        isCustomRange: false,
+        daysCount: 60,
+        displayName: '過去60日間',
+      }
+    }
+
     case 'last_month': {
       const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
       const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0)
@@ -145,6 +178,21 @@ export function getDateRangeInfo(preset: DateRangePreset): DateRangeInfo {
       }
     }
 
+    case 'last_3_months': {
+      const startDate = new Date(today)
+      startDate.setMonth(startDate.getMonth() - 3)
+      const endDate = new Date(today)
+      endDate.setDate(endDate.getDate() - 1)
+      return {
+        preset,
+        startDate,
+        endDate,
+        isCustomRange: false,
+        daysCount: 90,
+        displayName: '過去3ヶ月',
+      }
+    }
+
     case 'all':
     default:
       return {
@@ -160,7 +208,7 @@ export function getDateRangeInfo(preset: DateRangePreset): DateRangeInfo {
  * 日付範囲が短期間かどうか判定
  */
 export function isShortTermRange(preset: DateRangePreset | string): boolean {
-  const shortTermPatterns = ['today', 'yesterday', 'last_7d']
+  const shortTermPatterns = ['today', 'yesterday', 'last_3d', 'last_7d']
   return shortTermPatterns.includes(preset)
 }
 
@@ -208,15 +256,18 @@ export function isValidDateRangePreset(preset: string): preset is DateRangePrese
   const validPresets: DateRangePreset[] = [
     'today',
     'yesterday',
+    'last_3d',
     'last_7d',
     'last_14d',
     'last_28d',
     'last_30d',
+    'last_60d',
+    'last_90d',
     'last_month',
     'this_week',
     'last_week',
     'this_month',
-    'last_90d',
+    'last_3_months',
     'all',
   ]
   return validPresets.includes(preset as DateRangePreset)
@@ -229,16 +280,19 @@ export function getDateRangePriority(preset: DateRangePreset): number {
   const priorities: Record<DateRangePreset, number> = {
     today: 1,
     yesterday: 2,
-    last_7d: 3,
+    last_3d: 3,
+    last_7d: 4,
     last_14d: 5,
     last_28d: 6,
     last_30d: 7,
-    this_week: 8,
-    last_week: 9,
-    this_month: 10,
-    last_month: 11,
-    last_90d: 12,
-    all: 13,
+    last_60d: 8,
+    last_90d: 9,
+    this_week: 10,
+    last_week: 11,
+    this_month: 12,
+    last_month: 13,
+    last_3_months: 14,
+    all: 15,
   }
 
   return priorities[preset] || 9
