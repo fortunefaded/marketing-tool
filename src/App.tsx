@@ -72,8 +72,9 @@ function AppContent() {
         <main className="flex-1 overflow-auto">
           <RouteLogger />
           <Routes>
-            <Route path="/kpi-view" element={<KPIViewDashboard />} />
-            <Route path="/" element={<MainDashboard />} />
+            <Route path="/" element={<KPIViewDashboard />} />
+            <Route path="/meta-analysis" element={<MainDashboard />} />
+            <Route path="/google-ads-analysis" element={<div className="p-6"><h1 className="text-2xl font-bold">Google Ads分析</h1><p className="mt-2 text-gray-600">準備中...</p></div>} />
             <Route path="/settings" element={<SettingsManagement />} />
             {/* Meta API設定ルート */}
             <Route path="/settings/meta-api" element={<ConnectStepConvex />} />

@@ -45,13 +45,18 @@ export default function Sidebar() {
   const menuItems: MenuItem[] = [
     {
       name: 'KPIビュー',
-      path: '/kpi-view',
+      path: '/',
       icon: ChartBarSquareIcon,
     },
     {
-      name: 'ダッシュボード',
-      path: '/',
+      name: 'Meta詳細分析',
+      path: '/meta-analysis',
       icon: Squares2X2Icon,
+    },
+    {
+      name: 'Google Ads分析',
+      path: '/google-ads-analysis',
+      icon: PresentationChartLineIcon,
     },
     {
       name: '期間別データ分析',
