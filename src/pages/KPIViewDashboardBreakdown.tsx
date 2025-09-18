@@ -30,6 +30,9 @@ import {
   ReferenceLine,
 } from 'recharts'
 import { motion, AnimatePresence } from 'framer-motion'
+import { generateYahooAdsData } from '../utils/mockData/yahooAds'
+import { generateGoogleAdsData } from '../utils/mockData/googleAds'
+import { generateMetaAdsData } from '../utils/mockData/metaAds'
 import {
   saveSelectedAccount,
   getSelectedAccount,
@@ -41,7 +44,8 @@ import { logAPI, logState } from '../utils/debugLogger'
 
 export default function KPIViewDashboardBreakdown() {
   const convex = useConvex()
-  const getGoogleAdsCostSummary = useAction(api.googleAds.getCostSummary)
+  // const getGoogleAdsCostSummary = useAction(api.googleAds.getCostSummary)
+  // const getGoogleAdsTestData = useAction(api.googleAdsTestData.getRealisticTestData)
   const [data, setData] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -53,6 +57,7 @@ export default function KPIViewDashboardBreakdown() {
   const [metaSpendData, setMetaSpendData] = useState<any>(null)
   const [dailyMetaData, setDailyMetaData] = useState<any[]>([])
   const [googleAdsData, setGoogleAdsData] = useState<any>(null)
+  const [yahooAdsData, setYahooAdsData] = useState<any>(null)
 
   // ブレークダウン展開状態の管理
   const [expandedMetric, setExpandedMetric] = useState<'cv' | 'cpo' | 'cost' | null>(null)
@@ -269,6 +274,12 @@ export default function KPIViewDashboardBreakdown() {
         startDate.setHours(0, 0, 0, 0)
         endDate = new Date(today.getFullYear(), today.getMonth(), 0)
         endDate.setHours(23, 59, 59, 999)
+        console.log('📅 先月の範囲計算:', {
+          today: today.toISOString(),
+          month: today.getMonth(),
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString()
+        })
         break
       case 'last_3_months':
         startDate = new Date(today)
@@ -287,49 +298,47 @@ export default function KPIViewDashboardBreakdown() {
     return { startDate, endDate }
   }, [dateRange, customDateRange])
 
-  // ECForceからデータを取得（Convex経由）
-  const fetchDataFromECForce = useCallback(
-    async (startDate: string, endDate: string) => {
-      try {
-        console.log('📊 ECForceからデータを取得開始', { startDate, endDate })
+  // ECForceデータを生成（Google/YahooのCV数を使用）
+  const generateECForceFromAds = useCallback(
+    (googleData: any, yahooData: any) => {
+      const ecforceData: any[] = []
+      const dateMap = new Map<string, number>()
 
-        const result = await convex.query(api.ecforce.getPerformanceData, {
-          startDate,
-          endDate,
-          limit: 1000
+      // GoogleとYahooのCV数を日付ごとに集計
+      if (googleData?.dailyData) {
+        googleData.dailyData.forEach((item: any) => {
+          const existing = dateMap.get(item.date) || 0
+          dateMap.set(item.date, existing + (item.conversions || 0))
+        })
+      }
+
+      if (yahooData?.dailyData) {
+        yahooData.dailyData.forEach((item: any) => {
+          const existing = dateMap.get(item.date) || 0
+          dateMap.set(item.date, existing + (item.conversions || 0))
+        })
+      }
+
+      // 日付順にソートしてECForceデータ形式に変換
+      Array.from(dateMap.entries())
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .forEach(([date, cvCount]) => {
+          ecforceData.push({
+            date,
+            access: Math.floor(5000 + Math.random() * 2000), // 5000-7000のランダムアクセス
+            cvOrder: cvCount,
+            cvPayment: Math.floor(cvCount * 0.9), // 支払い完了は90%
+            salesAmount: cvCount * (8000 + Math.random() * 4000), // 客単価8000-12000円
+            orderAmount: cvCount * (8000 + Math.random() * 4000),
+            cost: 0, // 広告費は各媒体で管理
+            roas: 0,
+            advertiser: 'ECForce'
+          })
         })
 
-        if (result && result.data) {
-          const formattedData = result.data.map((item: any) => ({
-            date: item.dataDate,
-            access: item.accessCount || 0,
-            cvOrder: item.cvOrder || 0,
-            cvPayment: item.cvPayment || 0,
-            salesAmount: item.salesAmount || 0,
-            orderAmount: item.orderAmount || 0,
-            cost: item.cost || 0,
-            roas: item.roas || 0,
-            advertiser: item.advertiser || '',
-          }))
-
-          console.log('✅ ECForceデータ取得完了', {
-            count: formattedData.length,
-          })
-
-          setEcforceData(formattedData)
-          return formattedData
-        } else {
-          console.log('⚠️ ECForceデータが見つかりません')
-          setEcforceData([])
-          return []
-        }
-      } catch (error) {
-        console.error('❌ ECForceデータ取得エラー', error)
-        setEcforceData([])
-        return []
-      }
+      return ecforceData
     },
-    [convex]
+    []
   )
 
   // Meta APIから広告費を取得
@@ -367,7 +376,12 @@ export default function KPIViewDashboardBreakdown() {
         url.searchParams.append(key, value)
       })
 
-      console.log('📊 Meta APIからデータ取得中...', { withDailyData })
+      console.log('📊 Meta APIからデータ取得中...', {
+        withDailyData,
+        since: formatDateToISO(startDate),
+        until: formatDateToISO(endDate),
+        url: url.toString()
+      })
       const response = await fetch(url.toString())
       const result = await response.json()
 
@@ -405,84 +419,90 @@ export default function KPIViewDashboardBreakdown() {
     return null
   }, [accounts])
 
-  // Google Adsデータ取得
-  const fetchGoogleAdsData = useCallback(async (startDate: Date, endDate: Date) => {
-    try {
-      console.log('📊 Google Adsデータ取得開始', {
-        startDate: formatDateToISO(startDate),
-        endDate: formatDateToISO(endDate)
-      })
-
-      const result = await getGoogleAdsCostSummary({
-        startDate: formatDateToISO(startDate),
-        endDate: formatDateToISO(endDate)
-      })
-
-      if (result.success && result.data) {
-        console.log('✅ Google Adsデータ取得成功:', result.data)
-        return result.data
-      } else {
-        console.log('⚠️ Google Adsデータ取得失敗:', result.error)
-        return null
-      }
-    } catch (error) {
-      console.error('❌ Google Adsデータ取得エラー:', error)
-      return null
-    }
-  }, [getGoogleAdsCostSummary])
 
   // データの統合取得
   useEffect(() => {
     const fetchAllData = async () => {
       const { startDate, endDate } = calculateDateRange
-      if (!startDate || !endDate || !selectedAccountId) return
+      if (!startDate || !endDate) return
 
-      await fetchDataFromECForce(formatDateToISO(startDate), formatDateToISO(endDate))
+      console.log('📆 データ取得期間:', {
+        startDate: formatDateToISO(startDate),
+        endDate: formatDateToISO(endDate),
+        dateRange,
+        selectedAccountId
+      })
 
-      const metaData = await fetchMetaSpendData(selectedAccountId, startDate, endDate, false)
-
-      const dailyData = await fetchMetaSpendData(selectedAccountId, startDate, endDate, true)
-      if (dailyData && Array.isArray(dailyData)) {
-        setDailyMetaData(dailyData)
+      // Google Adsデータを取得（モック） - アカウント選択不要
+      const googleData = generateGoogleAdsData(startDate, endDate)
+      console.log('🔵 Google Adsモックデータ生成結果:', googleData)
+      console.log('🔵 Google totalCost:', googleData.totalCost)
+      console.log('🔵 Google totalConversions:', googleData.totalConversions)
+      // データ構造を統一（currentフィールドを含む形式に）
+      const googleAdsDataToSet = {
+        ...googleData,
+        cost: googleData.totalCost,
+        impressions: googleData.totalImpressions,
+        clicks: googleData.totalClicks,
+        conversions: googleData.totalConversions,
+        data: googleData.current // 互換性のため
       }
+      console.log('🔵 Setting googleAdsData:', googleAdsDataToSet)
+      setGoogleAdsData(googleAdsDataToSet)
 
-      // Google Adsデータを取得
-      console.log('🔄 Google Adsデータ取得前')
-      const googleData = await fetchGoogleAdsData(startDate, endDate)
-      console.log('📊 Google Adsデータ取得結果:', googleData)
-
-      const periodDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
-      const previousStart = new Date(startDate)
-      previousStart.setDate(previousStart.getDate() - periodDays - 1)
-      const previousEnd = new Date(startDate)
-      previousEnd.setDate(previousEnd.getDate() - 1)
-
-      const previousMetaData = await fetchMetaSpendData(selectedAccountId, previousStart, previousEnd, false)
-
-      // 前期間のGoogle Adsデータも取得
-      const previousGoogleData = await fetchGoogleAdsData(previousStart, previousEnd)
-
-      setMetaSpendData({
-        current: metaData,
-        previous: previousMetaData
+      // Yahoo Adsデータを取得（モック）
+      const yahooData = generateYahooAdsData(startDate, endDate)
+      console.log('🔴 Yahoo Adsデータ生成結果:', yahooData)
+      setYahooAdsData({
+        ...yahooData,
+        cost: yahooData.totalCost,
+        impressions: yahooData.totalImpressions,
+        clicks: yahooData.totalClicks,
+        conversions: yahooData.totalConversions,
+        data: yahooData.current || {}
       })
 
-      console.log('💾 Google Adsデータを状態に設定:', {
-        current: googleData,
-        previous: previousGoogleData
-      })
-      setGoogleAdsData({
-        current: googleData,
-        previous: previousGoogleData
-      })
+      // ECForceデータをGoogle/Yahooから生成
+      const ecforceData = generateECForceFromAds(googleData, yahooData)
+      console.log('📊 ECForceデータ生成完了:', ecforceData.length, '件')
+      setEcforceData(ecforceData)
+
+      // Meta広告データ取得（アカウント選択時のみ）
+      if (selectedAccountId) {
+        const metaData = await fetchMetaSpendData(selectedAccountId, startDate, endDate, false)
+
+        const dailyData = await fetchMetaSpendData(selectedAccountId, startDate, endDate, true)
+        console.log('📡 fetchMetaSpendData結果 (daily):', dailyData)
+        if (dailyData && Array.isArray(dailyData)) {
+          console.log('✅ dailyMetaDataにセット:', dailyData.length, '日分')
+          setDailyMetaData(dailyData)
+        } else {
+          console.warn('⚠️ dailyMetaDataは空または無効:', dailyData)
+          setDailyMetaData([])
+        }
+
+        const periodDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
+        const previousStart = new Date(startDate)
+        previousStart.setDate(previousStart.getDate() - periodDays - 1)
+        const previousEnd = new Date(startDate)
+        previousEnd.setDate(previousEnd.getDate() - 1)
+
+        const previousMetaData = await fetchMetaSpendData(selectedAccountId, previousStart, previousEnd, false)
+
+        setMetaSpendData({
+          current: metaData,
+          previous: previousMetaData
+        })
+      }
 
       setLastUpdateTime(new Date())
     }
 
-    if (selectedAccountId && !isLoadingAccounts) {
+    // Google/Yahooモックデータは常に取得、Metaはアカウント選択時のみ
+    if (!isLoadingAccounts) {
       fetchAllData()
     }
-  }, [selectedAccountId, calculateDateRange, isLoadingAccounts, fetchDataFromECForce, fetchMetaSpendData, fetchGoogleAdsData])
+  }, [selectedAccountId, dateRange, customDateRange, isLoadingAccounts])
 
   // 初回ロード時
   useEffect(() => {
@@ -495,7 +515,15 @@ export default function KPIViewDashboardBreakdown() {
     saveSelectedAccount(accountId)
     const { startDate, endDate } = calculateDateRange
     if (startDate && endDate) {
-      await fetchDataFromECForce(formatDateToISO(startDate), formatDateToISO(endDate))
+      // Google/Yahooモックデータを生成
+      const googleData = generateGoogleAdsData(startDate, endDate)
+      const yahooData = generateYahooAdsData(startDate, endDate)
+
+      // ECForceデータを生成
+      const ecforceData = generateECForceFromAds(googleData, yahooData)
+      setEcforceData(ecforceData)
+
+      // Metaデータを取得
       const metaData = await fetchMetaSpendData(accountId, startDate, endDate, false)
       setMetaSpendData({ current: metaData, previous: null })
     }
@@ -696,27 +724,30 @@ export default function KPIViewDashboardBreakdown() {
 
   // KPIメトリクスの計算
   const calculateKPIMetrics = useMemo(() => {
-    // Meta広告費とGoogle広告費を合算
+    // Meta広告費、Google広告費、Yahoo広告費を合算
     const metaCost = metaSpendData?.current?.spend || 0
-    const googleCost = googleAdsData?.current?.cost || 0
+    const googleCost = googleAdsData?.cost || 0  // 直接costを参照
+    const yahooCost = yahooAdsData?.cost || 0
     console.log('💰 広告費計算:', {
       metaCost,
       googleCost,
-      googleAdsData: googleAdsData?.current,
-      total: metaCost + googleCost
+      yahooCost,
+      googleAdsData,
+      yahooAdsData,
+      total: metaCost + googleCost + yahooCost
     })
-    const cost = metaCost + googleCost || kpiSummaryData?.current?.cost || 0
+    const cost = metaCost + googleCost + yahooCost || kpiSummaryData?.current?.cost || 0
 
     const cv = kpiSummaryData?.current?.cvOrder || ecforceData.reduce((sum, item) => sum + item.cvOrder, 0) || 0
     const sales = kpiSummaryData?.current?.salesAmount || ecforceData.reduce((sum, item) => sum + item.salesAmount, 0) || 0
 
     // MetaとGoogle Adsのクリック・インプレッションを合算
     const metaClicks = metaSpendData?.current?.clicks || 0
-    const googleClicks = googleAdsData?.current?.clicks || 0
+    const googleClicks = googleAdsData?.clicks || 0  // 直接clicksを参照
     const clicks = metaClicks + googleClicks || kpiSummaryData?.current?.accessCount || 0
 
     const metaImpressions = metaSpendData?.current?.impressions || 0
-    const googleImpressions = googleAdsData?.current?.impressions || 0
+    const googleImpressions = googleAdsData?.impressions || 0  // 直接impressionsを参照
     const impressions = metaImpressions + googleImpressions || 0
 
     // 計算指標
@@ -763,11 +794,38 @@ export default function KPIViewDashboardBreakdown() {
       cpc: previousCpc > 0 ? ((cpc - previousCpc) / previousCpc) * 100 : 0,
     }
 
+    // Google広告のCV数を計算
+    const googleConversions = googleAdsData?.conversions || 0
+    const googleCPO = googleConversions > 0 ? googleCost / googleConversions : 0
+    console.log('🔵 Google CV計算:', {
+      googleAdsData,
+      conversions: googleAdsData?.conversions,
+      googleConversions,
+      googleCost,
+      googleCPO
+    })
+
+    // Yahoo広告のCV数を計算
+    const yahooConversions = yahooAdsData?.conversions || 0
+    const yahooCPO = yahooConversions > 0 ? yahooCost / yahooConversions : 0
+    console.log('🔴 Yahoo CV計算:', {
+      yahooAdsData,
+      conversions: yahooAdsData?.conversions,
+      yahooConversions,
+      yahooCost,
+      yahooCPO
+    })
+
     return {
       // メイン指標
       cost,
       metaCost,
       googleCost,
+      yahooCost,
+      googleConversions,
+      googleCPO,
+      yahooConversions,
+      yahooCPO,
       cv,
       cpo,
       sales,
@@ -783,30 +841,61 @@ export default function KPIViewDashboardBreakdown() {
       // 変化率
       changes
     }
-  }, [metaSpendData, googleAdsData, kpiSummaryData, ecforceData])
+  }, [metaSpendData, googleAdsData, yahooAdsData, kpiSummaryData, ecforceData])
 
-  // グラフ用データ整形（ECForceとMetaデータを統合）
+  // グラフ用データ整形（ECForce、Meta、Google Ads、Yahoo Adsデータを統合）
   // 元のチャートデータを計算
   const fullChartData = useMemo(() => {
-    const dataMap = new Map<string, { cv: number; spend: number }>()
+    const dataMap = new Map<string, { cv: number; spend: number; metaSpend: number; googleSpend: number; yahooSpend: number }>()
 
     ecforceData.forEach(item => {
       const dateStr = item.date
       if (!dataMap.has(dateStr)) {
-        dataMap.set(dateStr, { cv: 0, spend: 0 })
+        dataMap.set(dateStr, { cv: 0, spend: 0, metaSpend: 0, googleSpend: 0, yahooSpend: 0 })
       }
       const existing = dataMap.get(dateStr)!
       existing.cv += item.cvOrder || 0
     })
 
+    // Meta広告費の日別集計
+    console.log('🔍 dailyMetaData確認:', dailyMetaData)
     dailyMetaData.forEach(item => {
       const dateStr = item.date
       if (!dataMap.has(dateStr)) {
-        dataMap.set(dateStr, { cv: 0, spend: 0 })
+        dataMap.set(dateStr, { cv: 0, spend: 0, metaSpend: 0, googleSpend: 0, yahooSpend: 0 })
       }
       const existing = dataMap.get(dateStr)!
-      existing.spend += item.spend || 0
+      const spendValue = item.spend || 0
+      console.log(`💵 ${dateStr}: Meta広告費 = ¥${spendValue}`)
+      existing.metaSpend += spendValue
+      existing.spend += spendValue
     })
+
+    // Google Adsデータの日別集計を追加
+    if (googleAdsData?.dailyData) {
+      googleAdsData.dailyData.forEach((item: any) => {
+        const dateStr = item.date
+        if (!dataMap.has(dateStr)) {
+          dataMap.set(dateStr, { cv: 0, spend: 0, metaSpend: 0, googleSpend: 0, yahooSpend: 0 })
+        }
+        const existing = dataMap.get(dateStr)!
+        existing.googleSpend += item.cost || 0
+        existing.spend += item.cost || 0
+      })
+    }
+
+    // Yahoo Adsデータの日別集計を追加
+    if (yahooAdsData?.dailyData) {
+      yahooAdsData.dailyData.forEach((item: any) => {
+        const dateStr = item.date
+        if (!dataMap.has(dateStr)) {
+          dataMap.set(dateStr, { cv: 0, spend: 0, metaSpend: 0, googleSpend: 0, yahooSpend: 0 })
+        }
+        const existing = dataMap.get(dateStr)!
+        existing.yahooSpend += item.cost || 0
+        existing.spend += item.cost || 0
+      })
+    }
 
     if (trendData?.data) {
       trendData.data.forEach((item: any) => {
@@ -828,12 +917,22 @@ export default function KPIViewDashboardBreakdown() {
           ? `${parseInt(dateParts[1])}/${parseInt(dateParts[2])}`
           : dateStr
 
-        return {
+        const result = {
           date: displayDate,
           originalDate: dateStr,
           cv: data.cv,
           cpo: data.cv > 0 && data.spend > 0 ? Math.round(data.spend / data.cv) : 0,
+          totalSpend: Math.round(data.spend),
+          metaSpend: Math.round(data.metaSpend),
+          googleSpend: Math.round(data.googleSpend),
+          yahooSpend: Math.round(data.yahooSpend),
         }
+
+        if (data.metaSpend > 0 || data.googleSpend > 0) {
+          console.log(`📊 ${dateStr}: Meta=¥${result.metaSpend}, Google=¥${result.googleSpend}, 合計=¥${result.totalSpend}`)
+        }
+
+        return result
       })
 
     if (sortedData.length === 0) {
@@ -852,13 +951,17 @@ export default function KPIViewDashboardBreakdown() {
           originalDate: `${year}-${month}-${day}`,
           cv: 0,
           cpo: 0,
+          totalSpend: 0,
+          metaSpend: 0,
+          googleSpend: 0,
+          yahooSpend: 0,
         })
       }
       return data
     }
 
     return sortedData
-  }, [ecforceData, dailyMetaData, trendData])
+  }, [ecforceData, dailyMetaData, trendData, googleAdsData, yahooAdsData])
 
   // 表示用のデータ（選択範囲がある場合はフィルタリング）
   const chartData = useMemo(() => {
@@ -1422,7 +1525,14 @@ export default function KPIViewDashboardBreakdown() {
               <XAxis dataKey="date" />
               <YAxis yAxisId="left" />
               <YAxis yAxisId="right" orientation="right" />
-              <Tooltip formatter={(value: number) => formatNumber(value)} />
+              <Tooltip
+                formatter={(value: number, name: string) => {
+                  if (name === 'CPO' || name === '広告費用 (日別)') {
+                    return `¥${formatNumber(value)}`;
+                  }
+                  return formatNumber(value);
+                }}
+              />
               <Legend
                 content={(props) => {
                   const { payload } = props;
@@ -1490,6 +1600,27 @@ export default function KPIViewDashboardBreakdown() {
                 />
               )}
 
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* 広告費用トレンドグラフ */}
+        <div className="mb-12 bg-white rounded-2xl p-8 shadow-lg">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold text-gray-800">💰 広告費用トレンド</h2>
+          </div>
+          <ResponsiveContainer width="100%" height={300}>
+            <ComposedChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis dataKey="date" />
+              <YAxis />
+              <Tooltip
+                formatter={(value: number, name: string) => `¥${formatNumber(value)}`}
+              />
+              <Legend />
+              <Bar dataKey="metaSpend" stackId="spend" fill="#4267B2" name="Meta広告費" />
+              <Bar dataKey="googleSpend" stackId="spend" fill="#4285F4" name="Google広告費" />
+              <Bar dataKey="yahooSpend" stackId="spend" fill="#FF1A00" name="Yahoo!広告費" />
             </ComposedChart>
           </ResponsiveContainer>
         </div>
@@ -1647,30 +1778,41 @@ export default function KPIViewDashboardBreakdown() {
             <div className="flex items-center justify-center gap-8">
               <FormulaCard
                 label="Google広告費"
-                value={0}
+                value={metrics.googleCost}
                 unit="円"
                 isPositiveGood={false}
               />
               <Operator symbol="÷" />
               <FormulaCard
                 label="ECForce CV"
-                value={0}
+                value={metrics.googleConversions}
               />
               <Operator symbol="=" />
               <FormulaCard
                 label="Google CPO"
-                value={0}
+                value={metrics.googleCPO}
                 unit="円"
                 isResult
                 isPositiveGood={false}
               />
             </div>
 
-            {/* 連携準備中メッセージ */}
+            {/* データソース表示 */}
             <div className="mt-6 pt-6 border-t border-green-200 text-center">
-              <p className="text-sm text-green-600">
-                Google Ads API連携準備中
-              </p>
+              {googleAdsData?.current?.isTestData ? (
+                <div>
+                  <p className="text-sm text-green-600">
+                    テストデータを表示中
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Developer Token承認後、実データが表示されます
+                  </p>
+                </div>
+              ) : (
+                <p className="text-sm text-green-600">
+                  Google Ads APIから取得
+                </p>
+              )}
               <div className="mt-2 flex justify-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-blue-400"></span>
                 <span className="w-2 h-2 rounded-full bg-red-400"></span>
@@ -1695,19 +1837,19 @@ export default function KPIViewDashboardBreakdown() {
             <div className="flex items-center justify-center gap-8">
               <FormulaCard
                 label="Yahoo!広告費"
-                value={0}
+                value={metrics.yahooCost}
                 unit="円"
                 isPositiveGood={false}
               />
               <Operator symbol="÷" />
               <FormulaCard
                 label="ECForce CV"
-                value={0}
+                value={metrics.yahooConversions}
               />
               <Operator symbol="=" />
               <FormulaCard
                 label="Yahoo! CPO"
-                value={0}
+                value={metrics.yahooCPO}
                 unit="円"
                 isResult
                 isPositiveGood={false}
