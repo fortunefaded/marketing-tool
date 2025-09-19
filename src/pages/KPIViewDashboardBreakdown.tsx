@@ -14,6 +14,7 @@ import {
   ChevronDownIcon,
   CameraIcon,
   BookmarkIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline'
 import { BookmarkIcon as BookmarkSolidIcon } from '@heroicons/react/24/solid'
 import {
@@ -53,7 +54,6 @@ export default function KPIViewDashboardBreakdown() {
   const [accounts, setAccounts] = useState<MetaAccount[]>([])
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
   const [isLoadingAccounts, setIsLoadingAccounts] = useState(true)
-  const [ecforceData, setEcforceData] = useState<any[]>([])
   const [metaSpendData, setMetaSpendData] = useState<any>(null)
   const [dailyMetaData, setDailyMetaData] = useState<any[]>([])
   const [googleAdsData, setGoogleAdsData] = useState<any>(null)
@@ -70,6 +70,12 @@ export default function KPIViewDashboardBreakdown() {
   const [isDragging, setIsDragging] = useState(false)
   const [dragStartIndex, setDragStartIndex] = useState<number | null>(null)
   const [dragEndIndex, setDragEndIndex] = useState<number | null>(null)
+
+  // 媒体別表示用のstate
+  const [showMeta, setShowMeta] = useState(true)
+  const [showGoogle, setShowGoogle] = useState(true)
+  const [showYahoo, setShowYahoo] = useState(true)
+  const [showStackedCv, setShowStackedCv] = useState(true) // true: 積み上げ表示, false: 合計表示
 
   // 目標値設定用のstate
   const [showTargetModal, setShowTargetModal] = useState(false)
@@ -298,48 +304,6 @@ export default function KPIViewDashboardBreakdown() {
     return { startDate, endDate }
   }, [dateRange, customDateRange])
 
-  // ECForceデータを生成（Google/YahooのCV数を使用）
-  const generateECForceFromAds = useCallback(
-    (googleData: any, yahooData: any) => {
-      const ecforceData: any[] = []
-      const dateMap = new Map<string, number>()
-
-      // GoogleとYahooのCV数を日付ごとに集計
-      if (googleData?.dailyData) {
-        googleData.dailyData.forEach((item: any) => {
-          const existing = dateMap.get(item.date) || 0
-          dateMap.set(item.date, existing + (item.conversions || 0))
-        })
-      }
-
-      if (yahooData?.dailyData) {
-        yahooData.dailyData.forEach((item: any) => {
-          const existing = dateMap.get(item.date) || 0
-          dateMap.set(item.date, existing + (item.conversions || 0))
-        })
-      }
-
-      // 日付順にソートしてECForceデータ形式に変換
-      Array.from(dateMap.entries())
-        .sort((a, b) => a[0].localeCompare(b[0]))
-        .forEach(([date, cvCount]) => {
-          ecforceData.push({
-            date,
-            access: Math.floor(5000 + Math.random() * 2000), // 5000-7000のランダムアクセス
-            cvOrder: cvCount,
-            cvPayment: Math.floor(cvCount * 0.9), // 支払い完了は90%
-            salesAmount: cvCount * (8000 + Math.random() * 4000), // 客単価8000-12000円
-            orderAmount: cvCount * (8000 + Math.random() * 4000),
-            cost: 0, // 広告費は各媒体で管理
-            roas: 0,
-            advertiser: 'ECForce'
-          })
-        })
-
-      return ecforceData
-    },
-    []
-  )
 
   // Meta APIから広告費を取得
   const fetchMetaSpendData = useCallback(async (
@@ -364,7 +328,7 @@ export default function KPIViewDashboardBreakdown() {
           until: formatDateToISO(endDate),
         }),
         level: 'account',
-        fields: 'spend,impressions,clicks,actions,ctr,cpm,cpc,date_start,date_stop',
+        fields: 'spend,impressions,clicks,actions,ctr,cpm,cpc,date_start,date_stop,account_currency',
         limit: withDailyData ? '500' : '1',
       }
 
@@ -399,6 +363,7 @@ export default function KPIViewDashboardBreakdown() {
         console.log('✅ Meta API日別データ取得完了:', dailyData.length, '日分')
         return dailyData
       } else if (result.data?.[0]) {
+        console.log('🔍 Meta API生データ:', result.data[0])
         const metaData = {
           spend: parseFloat(result.data[0].spend || '0'),
           impressions: parseInt(result.data[0].impressions || '0'),
@@ -462,22 +427,33 @@ export default function KPIViewDashboardBreakdown() {
         data: yahooData.current || {}
       })
 
-      // ECForceデータをGoogle/Yahooから生成
-      const ecforceData = generateECForceFromAds(googleData, yahooData)
-      console.log('📊 ECForceデータ生成完了:', ecforceData.length, '件')
-      setEcforceData(ecforceData)
+      // ECForceデータは実データ（Convex）を使用するため、ここでは生成しない
+      // Meta CVはConvexのECForce実データから取得する
 
       // Meta広告データ取得（アカウント選択時のみ）
       if (selectedAccountId) {
         const metaData = await fetchMetaSpendData(selectedAccountId, startDate, endDate, false)
+        console.log('🔷 Meta広告費取得結果:', {
+          dateRange,
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString(),
+          metaData,
+          spend: metaData?.spend
+        })
 
-        const dailyData = await fetchMetaSpendData(selectedAccountId, startDate, endDate, true)
-        console.log('📡 fetchMetaSpendData結果 (daily):', dailyData)
-        if (dailyData && Array.isArray(dailyData)) {
-          console.log('✅ dailyMetaDataにセット:', dailyData.length, '日分')
-          setDailyMetaData(dailyData)
-        } else {
-          console.warn('⚠️ dailyMetaDataは空または無効:', dailyData)
+        // 日別データを取得（エラーが発生してもdailyMetaDataは更新する）
+        try {
+          const dailyData = await fetchMetaSpendData(selectedAccountId, startDate, endDate, true)
+          console.log('📡 fetchMetaSpendData結果 (daily):', dailyData)
+          if (dailyData && Array.isArray(dailyData)) {
+            console.log('✅ dailyMetaDataにセット:', dailyData.length, '日分', '最初のデータ:', dailyData[0])
+            setDailyMetaData(dailyData)
+          } else {
+            console.warn('⚠️ dailyMetaDataは空または無効:', dailyData)
+            setDailyMetaData([])
+          }
+        } catch (error) {
+          console.error('❌ 日別Meta広告データ取得エラー:', error)
           setDailyMetaData([])
         }
 
@@ -488,6 +464,12 @@ export default function KPIViewDashboardBreakdown() {
         previousEnd.setDate(previousEnd.getDate() - 1)
 
         const previousMetaData = await fetchMetaSpendData(selectedAccountId, previousStart, previousEnd, false)
+        console.log('🔷 前期間Meta広告費取得結果:', {
+          previousStart: previousStart.toISOString(),
+          previousEnd: previousEnd.toISOString(),
+          previousMetaData,
+          spend: previousMetaData?.spend
+        })
 
         setMetaSpendData({
           current: metaData,
@@ -519,9 +501,7 @@ export default function KPIViewDashboardBreakdown() {
       const googleData = generateGoogleAdsData(startDate, endDate)
       const yahooData = generateYahooAdsData(startDate, endDate)
 
-      // ECForceデータを生成
-      const ecforceData = generateECForceFromAds(googleData, yahooData)
-      setEcforceData(ecforceData)
+      // ECForceデータは実データ（Convex）を使用するため、ここでは生成しない
 
       // Metaデータを取得
       const metaData = await fetchMetaSpendData(accountId, startDate, endDate, false)
@@ -539,9 +519,24 @@ export default function KPIViewDashboardBreakdown() {
   const handleChartMouseDown = (e: any) => {
     console.log('🔽 MouseDown event:', e)
     console.log('activeTooltipIndex:', e?.activeTooltipIndex)
+    console.log('activeLabel:', e?.activeLabel)
+    console.log('activePayload:', e?.activePayload)
 
-    if (e && e.activeTooltipIndex !== undefined && e.activeTooltipIndex !== null) {
-      const chartIndex = e.activeTooltipIndex
+    // Rechartsの新しいバージョンではactiveTooltipIndexが存在しない場合がある
+    // activeLabelを使ってインデックスを取得
+    if ((e && e.activeTooltipIndex !== undefined && e.activeTooltipIndex !== null) ||
+        (e && e.activeLabel)) {
+      // activeTooltipIndexが無い場合、activeLabelから探す
+      let chartIndex = e.activeTooltipIndex
+      if (chartIndex === undefined && e.activeLabel) {
+        chartIndex = chartData.findIndex(item => item.date === e.activeLabel)
+      }
+
+      if (chartIndex === undefined || chartIndex === -1) {
+        console.log('⚠️ インデックスが見つかりません')
+        return
+      }
+
       const dataPoint = chartData[chartIndex]
 
       // 現在の表示範囲での選択を開始（chartDataのインデックスをそのまま使用）
@@ -560,10 +555,16 @@ export default function KPIViewDashboardBreakdown() {
   }
 
   const handleChartMouseMove = (e: any) => {
-    if (isDragging && e && e.activeTooltipIndex !== undefined && e.activeTooltipIndex !== null) {
-      const chartIndex = e.activeTooltipIndex
-      console.log('MouseMove at index:', chartIndex, 'date:', chartData[chartIndex]?.date)
-      setDragEndIndex(chartIndex)
+    if (isDragging && e) {
+      let chartIndex = e.activeTooltipIndex
+      if (chartIndex === undefined && e.activeLabel) {
+        chartIndex = chartData.findIndex(item => item.date === e.activeLabel)
+      }
+
+      if (chartIndex !== undefined && chartIndex !== -1) {
+        console.log('MouseMove at index:', chartIndex, 'date:', chartData[chartIndex]?.date)
+        setDragEndIndex(chartIndex)
+      }
     }
   }
 
@@ -725,6 +726,12 @@ export default function KPIViewDashboardBreakdown() {
   // KPIメトリクスの計算
   const calculateKPIMetrics = useMemo(() => {
     // Meta広告費、Google広告費、Yahoo広告費を合算
+    console.log('📊 メトリクス計算:', {
+      selectedAccountId,
+      metaSpendData: metaSpendData?.current,
+      metaSpend: metaSpendData?.current?.spend,
+      dateRange
+    })
     const metaCost = metaSpendData?.current?.spend || 0
     const googleCost = googleAdsData?.cost || 0  // 直接costを参照
     const yahooCost = yahooAdsData?.cost || 0
@@ -738,8 +745,14 @@ export default function KPIViewDashboardBreakdown() {
     })
     const cost = metaCost + googleCost + yahooCost || kpiSummaryData?.current?.cost || 0
 
-    const cv = kpiSummaryData?.current?.cvOrder || ecforceData.reduce((sum, item) => sum + item.cvOrder, 0) || 0
-    const sales = kpiSummaryData?.current?.salesAmount || ecforceData.reduce((sum, item) => sum + item.salesAmount, 0) || 0
+    // 各媒体のCV数を計算（Meta CVはConvexの実データから取得）
+    const metaConversions = kpiSummaryData?.current?.cvOrder || 0
+    const googleConversionsValue = googleAdsData?.conversions || 0
+    const yahooConversionsValue = yahooAdsData?.conversions || 0
+
+    // 全体のCV数（各媒体のCVを合算）
+    const cv = metaConversions + googleConversionsValue + yahooConversionsValue
+    const sales = kpiSummaryData?.current?.salesAmount || 0
 
     // MetaとGoogle Adsのクリック・インプレッションを合算
     const metaClicks = metaSpendData?.current?.clicks || 0
@@ -794,8 +807,11 @@ export default function KPIViewDashboardBreakdown() {
       cpc: previousCpc > 0 ? ((cpc - previousCpc) / previousCpc) * 100 : 0,
     }
 
-    // Google広告のCV数を計算
-    const googleConversions = googleAdsData?.conversions || 0
+    // Meta広告のCPOを計算
+    const metaCPO = metaConversions > 0 ? metaCost / metaConversions : 0
+
+    // Google広告のCV数とCPOを計算
+    const googleConversions = googleConversionsValue  // 上で計算済みの値を使用
     const googleCPO = googleConversions > 0 ? googleCost / googleConversions : 0
     console.log('🔵 Google CV計算:', {
       googleAdsData,
@@ -805,8 +821,8 @@ export default function KPIViewDashboardBreakdown() {
       googleCPO
     })
 
-    // Yahoo広告のCV数を計算
-    const yahooConversions = yahooAdsData?.conversions || 0
+    // Yahoo広告のCV数とCPOを計算
+    const yahooConversions = yahooConversionsValue  // 上で計算済みの値を使用
     const yahooCPO = yahooConversions > 0 ? yahooCost / yahooConversions : 0
     console.log('🔴 Yahoo CV計算:', {
       yahooAdsData,
@@ -822,6 +838,8 @@ export default function KPIViewDashboardBreakdown() {
       metaCost,
       googleCost,
       yahooCost,
+      metaConversions,
+      metaCPO,
       googleConversions,
       googleCPO,
       yahooConversions,
@@ -841,28 +859,47 @@ export default function KPIViewDashboardBreakdown() {
       // 変化率
       changes
     }
-  }, [metaSpendData, googleAdsData, yahooAdsData, kpiSummaryData, ecforceData])
+  }, [metaSpendData, googleAdsData, yahooAdsData, kpiSummaryData])
 
   // グラフ用データ整形（ECForce、Meta、Google Ads、Yahoo Adsデータを統合）
   // 元のチャートデータを計算
   const fullChartData = useMemo(() => {
-    const dataMap = new Map<string, { cv: number; spend: number; metaSpend: number; googleSpend: number; yahooSpend: number }>()
+    const dataMap = new Map<string, {
+      cv: number;
+      metaCv: number;
+      googleCv: number;
+      yahooCv: number;
+      spend: number;
+      metaSpend: number;
+      googleSpend: number;
+      yahooSpend: number
+    }>()
 
-    ecforceData.forEach(item => {
-      const dateStr = item.date
-      if (!dataMap.has(dateStr)) {
-        dataMap.set(dateStr, { cv: 0, spend: 0, metaSpend: 0, googleSpend: 0, yahooSpend: 0 })
-      }
-      const existing = dataMap.get(dateStr)!
-      existing.cv += item.cvOrder || 0
-    })
+    // ConvexのECForce実データ（Meta CV）を集計
+    if (trendData?.data) {
+      trendData.data.forEach((item: any) => {
+        const dateStr = item.date
+        if (!dataMap.has(dateStr)) {
+          dataMap.set(dateStr, { cv: 0, metaCv: 0, googleCv: 0, yahooCv: 0, spend: 0, metaSpend: 0, googleSpend: 0, yahooSpend: 0 })
+        }
+        const existing = dataMap.get(dateStr)!
+        // ECForce実データのCVをMeta CVとして扱う
+        const metaCvCount = item.cv || item.cvOrder || 0
+        existing.metaCv += metaCvCount
+        existing.cv += metaCvCount
+      })
+    }
 
     // Meta広告費の日別集計
-    console.log('🔍 dailyMetaData確認:', dailyMetaData)
+    console.log('🔍 dailyMetaData確認:', {
+      データ数: dailyMetaData.length,
+      最初のデータ: dailyMetaData[0],
+      dailyMetaData
+    })
     dailyMetaData.forEach(item => {
       const dateStr = item.date
       if (!dataMap.has(dateStr)) {
-        dataMap.set(dateStr, { cv: 0, spend: 0, metaSpend: 0, googleSpend: 0, yahooSpend: 0 })
+        dataMap.set(dateStr, { cv: 0, metaCv: 0, googleCv: 0, yahooCv: 0, spend: 0, metaSpend: 0, googleSpend: 0, yahooSpend: 0 })
       }
       const existing = dataMap.get(dateStr)!
       const spendValue = item.spend || 0
@@ -876,11 +913,13 @@ export default function KPIViewDashboardBreakdown() {
       googleAdsData.dailyData.forEach((item: any) => {
         const dateStr = item.date
         if (!dataMap.has(dateStr)) {
-          dataMap.set(dateStr, { cv: 0, spend: 0, metaSpend: 0, googleSpend: 0, yahooSpend: 0 })
+          dataMap.set(dateStr, { cv: 0, metaCv: 0, googleCv: 0, yahooCv: 0, spend: 0, metaSpend: 0, googleSpend: 0, yahooSpend: 0 })
         }
         const existing = dataMap.get(dateStr)!
         existing.googleSpend += item.cost || 0
         existing.spend += item.cost || 0
+        existing.googleCv += item.conversions || 0
+        existing.cv += item.conversions || 0
       })
     }
 
@@ -889,25 +928,16 @@ export default function KPIViewDashboardBreakdown() {
       yahooAdsData.dailyData.forEach((item: any) => {
         const dateStr = item.date
         if (!dataMap.has(dateStr)) {
-          dataMap.set(dateStr, { cv: 0, spend: 0, metaSpend: 0, googleSpend: 0, yahooSpend: 0 })
+          dataMap.set(dateStr, { cv: 0, metaCv: 0, googleCv: 0, yahooCv: 0, spend: 0, metaSpend: 0, googleSpend: 0, yahooSpend: 0 })
         }
         const existing = dataMap.get(dateStr)!
         existing.yahooSpend += item.cost || 0
         existing.spend += item.cost || 0
+        existing.yahooCv += item.conversions || 0
+        existing.cv += item.conversions || 0
       })
     }
 
-    if (trendData?.data) {
-      trendData.data.forEach((item: any) => {
-        const dateStr = item.date
-        if (dataMap.has(dateStr)) {
-          const existing = dataMap.get(dateStr)!
-          if (item.cost && !existing.spend) {
-            existing.spend = item.cost
-          }
-        }
-      })
-    }
 
     const sortedData = Array.from(dataMap.entries())
       .sort((a, b) => a[0].localeCompare(b[0]))
@@ -921,6 +951,9 @@ export default function KPIViewDashboardBreakdown() {
           date: displayDate,
           originalDate: dateStr,
           cv: data.cv,
+          metaCv: data.metaCv,
+          googleCv: data.googleCv,
+          yahooCv: data.yahooCv,
           cpo: data.cv > 0 && data.spend > 0 ? Math.round(data.spend / data.cv) : 0,
           totalSpend: Math.round(data.spend),
           metaSpend: Math.round(data.metaSpend),
@@ -950,6 +983,9 @@ export default function KPIViewDashboardBreakdown() {
           date: `${date.getMonth() + 1}/${date.getDate()}`,
           originalDate: `${year}-${month}-${day}`,
           cv: 0,
+          metaCv: 0,
+          googleCv: 0,
+          yahooCv: 0,
           cpo: 0,
           totalSpend: 0,
           metaSpend: 0,
@@ -961,16 +997,45 @@ export default function KPIViewDashboardBreakdown() {
     }
 
     return sortedData
-  }, [ecforceData, dailyMetaData, trendData, googleAdsData, yahooAdsData])
+  }, [dailyMetaData, trendData, googleAdsData, yahooAdsData])
 
-  // 表示用のデータ（選択範囲がある場合はフィルタリング）
+  // 表示用のデータ（選択範囲がある場合はフィルタリング + チェックボックスに応じた動的計算）
   const chartData = useMemo(() => {
+    let data = fullChartData
     if (brushRange && fullChartData.length > 0) {
       console.log('選択範囲でフィルタリング:', brushRange)
-      return fullChartData.slice(brushRange.start, brushRange.end + 1)
+      data = fullChartData.slice(brushRange.start, brushRange.end + 1)
     }
-    return fullChartData
-  }, [fullChartData, brushRange])
+
+    // チェックボックスの状態に応じてCPOを再計算
+    return data.map(item => {
+      // 選択された媒体のみのCV数と広告費を計算
+      const selectedCv =
+        (showMeta ? item.metaCv : 0) +
+        (showGoogle ? item.googleCv : 0) +
+        (showYahoo ? item.yahooCv : 0)
+
+      const selectedSpend =
+        (showMeta ? item.metaSpend : 0) +
+        (showGoogle ? item.googleSpend : 0) +
+        (showYahoo ? item.yahooSpend : 0)
+
+      // 選択された媒体のみのCPOを計算
+      const selectedCpo = selectedCv > 0 && selectedSpend > 0
+        ? Math.round(selectedSpend / selectedCv)
+        : 0
+
+      return {
+        ...item,
+        // 動的に計算した値を追加（グラフ表示用）
+        displayCv: selectedCv,
+        displaySpend: selectedSpend,
+        displayCpo: selectedCpo,
+        // 元のcpoを動的計算値で上書き（Line chartで使用）
+        cpo: selectedCpo
+      }
+    })
+  }, [fullChartData, brushRange, showMeta, showGoogle, showYahoo])
 
   // 数値フォーマット
   const formatNumber = (num: number) => {
@@ -1012,6 +1077,7 @@ export default function KPIViewDashboardBreakdown() {
     isExpandable = false,
     isExpanded = false,
     onClick,
+    breakdown,
   }: {
     label: string
     value: number | string
@@ -1022,58 +1088,115 @@ export default function KPIViewDashboardBreakdown() {
     isExpandable?: boolean
     isExpanded?: boolean
     onClick?: () => void
-  }) => (
-    <div
-      className={`
-        relative rounded-xl p-6 transition-all duration-200 min-w-[180px]
-        ${isResult
-          ? 'bg-gradient-to-br from-yellow-50 to-amber-50 border-2 border-amber-300 shadow-lg'
-          : 'bg-white border border-gray-200 shadow-md'
-        }
-        ${isExpandable
-          ? 'cursor-pointer hover:shadow-lg hover:scale-105'
-          : ''
-        }
-        ${isExpanded
-          ? 'ring-2 ring-blue-500 transform scale-105'
-          : ''
-        }
-      `}
-      onClick={onClick}
-    >
-      <div className={`text-xs font-medium tracking-wider mb-2 ${
-        label.includes('Meta') || label.includes('ECForce') ? 'text-gray-500' : 'text-gray-500 uppercase'
-      }`}>
-        {label}
+    breakdown?: React.ReactNode
+  }) => {
+    // 広告費用、コンバージョン、CPOの場合の特別な横長レイアウト
+    if ((label === '広告費用' || label === 'コンバージョン' || label === 'CPO') && isExpanded && breakdown) {
+      const borderColor = label === '広告費用' ? 'border-blue-500' : label === 'コンバージョン' ? 'border-green-500' : 'border-orange-500'
+      const bgGradient = label === '広告費用' ? 'from-blue-50 to-white' : label === 'コンバージョン' ? 'from-green-50 to-white' : 'from-orange-50 to-white'
+
+      return (
+        <div
+          className={`relative rounded-xl p-6 shadow-2xl transform scale-105 z-50 bg-white border-2 ${borderColor} bg-gradient-to-br ${bgGradient} cursor-pointer transition-all duration-300`}
+          onClick={onClick}
+          style={{ minWidth: 'max-content' }}
+        >
+          <div className="flex items-center gap-6">
+            {/* 左側：メイン値 */}
+            <div>
+              <div className="text-xs text-gray-500 font-medium tracking-wider mb-2">{label}</div>
+              <div className="text-4xl font-bold text-gray-900">
+                {typeof value === 'number' ?
+                  (label === 'CPO' || label === '広告費用' ? formatCurrency(value) : formatNumber(value))
+                  : value}
+              </div>
+              {change !== undefined && (
+                <div className="mt-2">
+                  <ChangeIndicator value={change} isPositiveGood={isPositiveGood} />
+                </div>
+              )}
+            </div>
+
+            {/* 中央：演算子 */}
+            <div className="text-3xl text-gray-400">=</div>
+
+            {/* 右側：内訳 */}
+            {breakdown}
+          </div>
+        </div>
+      )
+    }
+
+    // 通常のカードレイアウト
+    return (
+      <div
+        className={`
+          relative rounded-xl transition-all duration-300
+          ${isExpanded
+            ? 'p-8 min-w-[600px] shadow-2xl transform scale-110 z-50 bg-white'
+            : 'p-6 min-w-[180px] shadow-md'
+          }
+          ${isResult && !isExpanded
+            ? 'bg-gradient-to-br from-orange-50 to-orange-100 border-2 border-orange-300'
+            : isExpanded
+            ? 'border-2 border-blue-500 bg-gradient-to-br from-blue-50 to-white'
+            : 'bg-white border border-gray-200'
+          }
+          ${isExpandable
+            ? 'cursor-pointer hover:shadow-lg hover:scale-105'
+            : ''
+          }
+        `}
+        onClick={onClick}
+      >
+        <div className={`font-medium tracking-wider mb-2 ${
+          isExpanded ? 'text-lg text-blue-700' : 'text-xs text-gray-500'
+        } ${
+          label.includes('Meta') || label.includes('ECForce') ? '' : 'uppercase'
+        }`}>
+          {label}
+        </div>
+        <div className={`font-bold ${
+          isExpanded ? 'text-5xl' : 'text-3xl'
+        } ${isResult && !isExpanded ? 'text-orange-900' : 'text-gray-900'}`}>
+          {typeof value === 'number'
+            ? (unit === '¥' || unit === '円' ? formatCurrency(value) : formatNumber(value))
+            : value
+          }
+          {unit && unit !== '¥' && unit !== '円' && <span className={`${isExpanded ? 'text-3xl' : 'text-xl'} ml-1`}>{unit}</span>}
+        </div>
+        {change !== undefined && (
+          <div className={`${isExpanded ? 'mt-4' : 'mt-2'}`}>
+            <ChangeIndicator value={change} isPositiveGood={isPositiveGood} />
+          </div>
+        )}
+        {isExpandable && !isExpanded && (
+          <div className="absolute bottom-2 right-2">
+            <ChevronDownIcon
+              className="w-4 h-4 text-gray-400"
+            />
+          </div>
+        )}
+        {isExpandable && isExpanded && (
+          <div className="absolute top-2 right-2">
+            <XMarkIcon
+              className="w-6 h-6 text-gray-400 hover:text-gray-600"
+            />
+          </div>
+        )}
+        {isResult && !isExpanded && (
+          <div className="absolute -top-2 -right-2 bg-orange-400 text-orange-900 text-xs font-bold px-2 py-1 rounded-full">
+            結果
+          </div>
+        )}
+        {breakdown && isExpanded && label !== '広告費用' && (
+          <div className="mt-6 pt-6 border-t-2 border-gray-200">
+            {breakdown}
+          </div>
+        )}
       </div>
-      <div className={`text-3xl font-bold ${isResult ? 'text-amber-900' : 'text-gray-900'}`}>
-        {typeof value === 'number'
-          ? (unit === '¥' || unit === '円' ? formatCurrency(value) : formatNumber(value))
-          : value
-        }
-        {unit && unit !== '¥' && unit !== '円' && <span className="text-xl ml-1">{unit}</span>}
-      </div>
-      {change !== undefined && (
-        <div className="mt-2">
-          <ChangeIndicator value={change} isPositiveGood={isPositiveGood} />
-        </div>
-      )}
-      {isExpandable && (
-        <div className="absolute bottom-2 right-2">
-          <ChevronDownIcon
-            className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
-              isExpanded ? 'rotate-180' : ''
-            }`}
-          />
-        </div>
-      )}
-      {isResult && (
-        <div className="absolute -top-2 -right-2 bg-amber-400 text-amber-900 text-xs font-bold px-2 py-1 rounded-full">
-          結果
-        </div>
-      )}
-    </div>
-  )
+    )
+  }
 
   // サブフォーミュラカード（ブレークダウン用の小さいカード）
   const SubFormulaCard = ({
@@ -1385,54 +1508,74 @@ export default function KPIViewDashboardBreakdown() {
             <span className="text-2xl">📐</span> CPO（注文獲得単価）- 全媒体合算
           </h2>
           <div className="bg-gradient-to-r from-slate-50 to-gray-50 rounded-2xl p-8 shadow-inner">
+            {/* メイン数式 */}
             <div className="flex items-center justify-center gap-8">
-              <div>
-                <FormulaCard
-                  label="広告費用"
-                  value={metrics.cost}
-                  change={metrics.changes.cost}
-                  unit="円"
-                  isPositiveGood={false}
-                  isExpandable={true}
-                  isExpanded={expandedMetric === 'cost'}
-                  onClick={() => setExpandedMetric(expandedMetric === 'cost' ? null : 'cost')}
-                />
-                {/* 広告費用のブレークダウン */}
-                {expandedMetric === 'cost' && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="mt-4 space-y-3"
-                  >
-                    <div className="flex items-center justify-center gap-4">
-                      <SubFormulaCard
-                        label="Meta広告費"
-                        value={metrics.metaCost}
-                        unit="円"
-                      />
-                      <Operator symbol="+" size="sm" />
-                      <SubFormulaCard
-                        label="Google広告費"
-                        value={metrics.googleCost}
-                        unit="円"
-                      />
-                      <Operator symbol="=" size="sm" />
-                      <SubFormulaCard
-                        label="合計広告費"
-                        value={metrics.cost}
-                        unit="円"
-                        isResult
-                      />
+              <FormulaCard
+                label="広告費用"
+                value={metrics.cost}
+                change={metrics.changes.cost}
+                unit="円"
+                isPositiveGood={false}
+                isExpandable={true}
+                isExpanded={expandedMetric === 'cost'}
+                onClick={() => setExpandedMetric(expandedMetric === 'cost' ? null : 'cost')}
+                breakdown={
+                  <div className="flex items-center gap-3">
+                    <div className="text-center px-4 py-3 bg-blue-50 rounded-lg min-w-[120px]">
+                      <div className="text-xs text-gray-400 mb-1">Meta</div>
+                      <div className="text-2xl font-semibold text-gray-500">
+                        ¥{formatNumber(metrics.metaCost)}
+                      </div>
                     </div>
-                  </motion.div>
-                )}
-              </div>
+                    <div className="text-xl text-gray-400">+</div>
+                    <div className="text-center px-4 py-3 bg-yellow-50 rounded-lg min-w-[120px]">
+                      <div className="text-xs text-gray-400 mb-1">Google</div>
+                      <div className="text-2xl font-semibold text-gray-500">
+                        ¥{formatNumber(metrics.googleCost)}
+                      </div>
+                    </div>
+                    <div className="text-xl text-gray-400">+</div>
+                    <div className="text-center px-4 py-3 bg-red-50 rounded-lg min-w-[120px]">
+                      <div className="text-xs text-gray-400 mb-1">Yahoo</div>
+                      <div className="text-2xl font-semibold text-gray-500">
+                        ¥{formatNumber(metrics.yahooCost)}
+                      </div>
+                    </div>
+                  </div>
+                }
+              />
               <Operator symbol="÷" />
               <FormulaCard
                 label="コンバージョン"
                 value={metrics.cv}
                 change={metrics.changes.cv}
+                isExpandable={true}
+                isExpanded={expandedMetric === 'cv'}
+                onClick={() => setExpandedMetric(expandedMetric === 'cv' ? null : 'cv')}
+                breakdown={
+                  <div className="flex items-center gap-3">
+                    <div className="text-center px-4 py-3 bg-blue-50 rounded-lg min-w-[100px]">
+                      <div className="text-xs text-gray-400 mb-1">Meta</div>
+                      <div className="text-2xl font-semibold text-gray-500">
+                        {formatNumber(metrics.metaConversions)}
+                      </div>
+                    </div>
+                    <div className="text-xl text-gray-400">+</div>
+                    <div className="text-center px-4 py-3 bg-yellow-50 rounded-lg min-w-[100px]">
+                      <div className="text-xs text-gray-400 mb-1">Google</div>
+                      <div className="text-2xl font-semibold text-gray-500">
+                        {formatNumber(metrics.googleConversions)}
+                      </div>
+                    </div>
+                    <div className="text-xl text-gray-400">+</div>
+                    <div className="text-center px-4 py-3 bg-red-50 rounded-lg min-w-[100px]">
+                      <div className="text-xs text-gray-400 mb-1">Yahoo</div>
+                      <div className="text-2xl font-semibold text-gray-500">
+                        {formatNumber(metrics.yahooConversions)}
+                      </div>
+                    </div>
+                  </div>
+                }
               />
               <Operator symbol="=" />
               <FormulaCard
@@ -1442,8 +1585,44 @@ export default function KPIViewDashboardBreakdown() {
                 unit="円"
                 isResult
                 isPositiveGood={false}
+                isExpandable={true}
+                isExpanded={expandedMetric === 'cpo'}
+                onClick={() => setExpandedMetric(expandedMetric === 'cpo' ? null : 'cpo')}
+                breakdown={
+                  <div className="flex items-center gap-4">
+                    <div className="text-sm text-gray-600 font-semibold">媒体別</div>
+                    <div className="text-center px-4 py-3 bg-blue-50 rounded-lg min-w-[140px]">
+                      <div className="text-xs text-gray-400 mb-1">Meta CPO</div>
+                      <div className="text-2xl font-semibold text-gray-500">
+                        ¥{formatNumber(metrics.metaCPO)}
+                      </div>
+                      <div className="text-xs text-gray-400 mt-1">
+                        {formatNumber(metrics.metaCost)}円 ÷ {formatNumber(metrics.metaConversions)}件
+                      </div>
+                    </div>
+                    <div className="text-center px-4 py-3 bg-yellow-50 rounded-lg min-w-[140px]">
+                      <div className="text-xs text-gray-400 mb-1">Google CPO</div>
+                      <div className="text-2xl font-semibold text-gray-500">
+                        ¥{formatNumber(metrics.googleCPO)}
+                      </div>
+                      <div className="text-xs text-gray-400 mt-1">
+                        {formatNumber(metrics.googleCost)}円 ÷ {formatNumber(metrics.googleConversions)}件
+                      </div>
+                    </div>
+                    <div className="text-center px-4 py-3 bg-red-50 rounded-lg min-w-[140px]">
+                      <div className="text-xs text-gray-400 mb-1">Yahoo CPO</div>
+                      <div className="text-2xl font-semibold text-gray-500">
+                        ¥{formatNumber(metrics.yahooCPO)}
+                      </div>
+                      <div className="text-xs text-gray-400 mt-1">
+                        {formatNumber(metrics.yahooCost)}円 ÷ {formatNumber(metrics.yahooConversions)}件
+                      </div>
+                    </div>
+                  </div>
+                }
               />
             </div>
+
           </div>
         </div>
 
@@ -1456,7 +1635,56 @@ export default function KPIViewDashboardBreakdown() {
                 下部のバーをドラッグして期間を選択できます
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col gap-2">
+              {/* 媒体別チェックボックス */}
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-1 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={showStackedCv}
+                    onChange={(e) => setShowStackedCv(e.target.checked)}
+                    className="cursor-pointer"
+                  />
+                  <span className="text-sm text-gray-600">積み上げ表示</span>
+                </label>
+                <label className="flex items-center gap-1 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={showMeta}
+                    onChange={(e) => setShowMeta(e.target.checked)}
+                    className="cursor-pointer"
+                  />
+                  <span className="text-sm text-gray-600">
+                    <span className="inline-block w-3 h-3 bg-[#4267B2] rounded-sm mr-1"></span>
+                    Meta
+                  </span>
+                </label>
+                <label className="flex items-center gap-1 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={showGoogle}
+                    onChange={(e) => setShowGoogle(e.target.checked)}
+                    className="cursor-pointer"
+                  />
+                  <span className="text-sm text-gray-600">
+                    <span className="inline-block w-3 h-3 bg-[#FFC107] rounded-sm mr-1"></span>
+                    Google
+                  </span>
+                </label>
+                <label className="flex items-center gap-1 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={showYahoo}
+                    onChange={(e) => setShowYahoo(e.target.checked)}
+                    className="cursor-pointer"
+                  />
+                  <span className="text-sm text-gray-600">
+                    <span className="inline-block w-3 h-3 bg-[#FF1A00] rounded-sm mr-1"></span>
+                    Yahoo!
+                  </span>
+                </label>
+              </div>
+              <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowTargetModal(true)}
                 className="px-4 py-1.5 text-sm bg-amber-100 hover:bg-amber-200 border border-amber-400 rounded-md transition-colors font-semibold text-amber-800 flex items-center gap-2"
@@ -1497,6 +1725,7 @@ export default function KPIViewDashboardBreakdown() {
                   </button>
                 </div>
               )}
+              </div>
             </div>
           </div>
 
@@ -1513,7 +1742,7 @@ export default function KPIViewDashboardBreakdown() {
               <div>現在時刻: {new Date().toLocaleTimeString()}</div>
             </div>
           </div>
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={450}>
             <ComposedChart
               data={chartData}
               onMouseDown={handleChartMouseDown}
@@ -1542,7 +1771,11 @@ export default function KPIViewDashboardBreakdown() {
                       {payload?.map((entry, index) => (
                         <span key={`item-${index}`} className="flex items-center gap-2">
                           <span
-                            className={entry.dataKey === 'cv' ? 'w-4 h-3 bg-blue-500' : 'w-4 h-1 bg-orange-500'}
+                            className={
+                              entry.dataKey === 'cpo'
+                                ? 'w-4 h-1 bg-orange-500'
+                                : 'w-4 h-3'
+                            }
                             style={{ backgroundColor: entry.color }}
                           />
                           <span className="text-sm text-gray-600">{entry.value}</span>
@@ -1565,7 +1798,17 @@ export default function KPIViewDashboardBreakdown() {
                   );
                 }}
               />
-              <Bar yAxisId="left" dataKey="cv" fill="#3B82F6" name="CV数" />
+              {/* 積み上げ表示の場合 */}
+              {showStackedCv ? (
+                <>
+                  {showMeta && <Bar yAxisId="left" dataKey="metaCv" stackId="cv" fill="#4267B2" name="Meta CV" />}
+                  {showGoogle && <Bar yAxisId="left" dataKey="googleCv" stackId="cv" fill="#FFC107" name="Google CV" />}
+                  {showYahoo && <Bar yAxisId="left" dataKey="yahooCv" stackId="cv" fill="#FF1A00" name="Yahoo! CV" />}
+                </>
+              ) : (
+                /* 合計表示の場合 */
+                <Bar yAxisId="left" dataKey="cv" fill="#3B82F6" name="CV数（合計）" />
+              )}
               <Line yAxisId="right" type="monotone" dataKey="cpo" stroke="#F59E0B" strokeWidth={2} name="CPO" />
 
               {/* 目標線の表示（ラベルなし） */}
@@ -1607,7 +1850,29 @@ export default function KPIViewDashboardBreakdown() {
         {/* 広告費用トレンドグラフ */}
         <div className="mb-12 bg-white rounded-2xl p-8 shadow-lg">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold text-gray-800">💰 広告費用トレンド</h2>
+            <div>
+              <h2 className="text-xl font-bold text-gray-800">💰 広告費用トレンド</h2>
+              <div className="mt-2 flex items-center gap-4">
+                <span className="text-sm text-gray-600">
+                  期間総額:
+                  <span className="ml-2 font-bold text-lg text-gray-900">
+                    ¥{formatNumber(chartData.reduce((sum, item) => sum + (item.totalSpend || 0), 0))}
+                  </span>
+                </span>
+                <span className="text-sm text-gray-600">
+                  内訳:
+                  <span className="ml-2 text-[#4267B2] font-medium">
+                    Meta ¥{formatNumber(chartData.reduce((sum, item) => sum + (item.metaSpend || 0), 0))}
+                  </span>
+                  <span className="ml-2 text-[#FFC107] font-medium">
+                    Google ¥{formatNumber(chartData.reduce((sum, item) => sum + (item.googleSpend || 0), 0))}
+                  </span>
+                  <span className="ml-2 text-[#FF1A00] font-medium">
+                    Yahoo! ¥{formatNumber(chartData.reduce((sum, item) => sum + (item.yahooSpend || 0), 0))}
+                  </span>
+                </span>
+              </div>
+            </div>
           </div>
           <ResponsiveContainer width="100%" height={300}>
             <ComposedChart data={chartData}>
@@ -1619,11 +1884,12 @@ export default function KPIViewDashboardBreakdown() {
               />
               <Legend />
               <Bar dataKey="metaSpend" stackId="spend" fill="#4267B2" name="Meta広告費" />
-              <Bar dataKey="googleSpend" stackId="spend" fill="#4285F4" name="Google広告費" />
+              <Bar dataKey="googleSpend" stackId="spend" fill="#FFC107" name="Google広告費" />
               <Bar dataKey="yahooSpend" stackId="spend" fill="#FF1A00" name="Yahoo!広告費" />
             </ComposedChart>
           </ResponsiveContainer>
         </div>
+
 
         {/* Meta専用セクション with ブレークダウン */}
         <div className="mb-12">
@@ -1644,7 +1910,7 @@ export default function KPIViewDashboardBreakdown() {
               <Operator symbol="÷" />
               <FormulaCard
                 label="ECForce CV"
-                value={metrics.cv}
+                value={metrics.metaConversions}
                 change={metrics.changes.cv}
                 isExpandable={true}
                 isExpanded={expandedMetric === 'cv'}
@@ -1653,10 +1919,7 @@ export default function KPIViewDashboardBreakdown() {
               <Operator symbol="=" />
               <FormulaCard
                 label="Meta CPO"
-                value={(() => {
-                  const metaCost = metaSpendData?.current?.spend || 0
-                  return metrics.cv > 0 ? metaCost / metrics.cv : 0
-                })()}
+                value={metrics.metaCPO}
                 unit="円"
                 isResult
                 isPositiveGood={false}
@@ -1774,7 +2037,7 @@ export default function KPIViewDashboardBreakdown() {
               </svg>
             </span> Google広告
           </h2>
-          <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-8 shadow-inner">
+          <div className="bg-gradient-to-r from-yellow-50 to-amber-50 rounded-2xl p-8 shadow-inner">
             <div className="flex items-center justify-center gap-8">
               <FormulaCard
                 label="Google広告費"
@@ -1798,10 +2061,10 @@ export default function KPIViewDashboardBreakdown() {
             </div>
 
             {/* データソース表示 */}
-            <div className="mt-6 pt-6 border-t border-green-200 text-center">
+            <div className="mt-6 pt-6 border-t border-yellow-200 text-center">
               {googleAdsData?.current?.isTestData ? (
                 <div>
-                  <p className="text-sm text-green-600">
+                  <p className="text-sm text-yellow-600">
                     テストデータを表示中
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
@@ -1809,7 +2072,7 @@ export default function KPIViewDashboardBreakdown() {
                   </p>
                 </div>
               ) : (
-                <p className="text-sm text-green-600">
+                <p className="text-sm text-yellow-600">
                   Google Ads APIから取得
                 </p>
               )}

@@ -52,8 +52,6 @@ export default function KPIViewDashboard() {
   const [dragEndIndex, setDragEndIndex] = useState<number | null>(null)
   const [selectedRange, setSelectedRange] = useState<{ start: number; end: number } | null>(null)
 
-  // シンプルなデバッグ用のstate
-  const [lastMouseEvent, setLastMouseEvent] = useState<string>('')
 
   // 期間選択の状態管理
   const [dateRange, setDateRange] = useState<DateRangeFilterType>(() => {
@@ -845,79 +843,37 @@ export default function KPIViewDashboard() {
                 チャート上でドラッグして期間を選択できます
               </p>
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => {
-                  console.log('✅ シンプルテストボタンがクリックされました')
-                  alert('テストボタンが動作しています！')
-                }}
-                className="px-3 py-1.5 text-sm bg-green-100 hover:bg-green-200 rounded-md transition-colors border border-green-300"
-              >
-                ✅ シンプルテスト
-              </button>
-              {selectedRange && (
+            {selectedRange && (
+              <div className="flex items-center gap-2">
+
                 <button
                   onClick={handleResetSelection}
                   className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
                 >
                   選択をリセット
                 </button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
-          {/* シンプルな状態表示 */}
-          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm">
-            <div className="font-bold text-yellow-800 mb-2">📊 現在の状態</div>
-            <div className="space-y-1 text-yellow-700">
-              <div>データ数: {chartData?.length || 0} 件</div>
-              <div>ドラッグ中: {isDragging ? '✅ はい' : '❌ いいえ'}</div>
-              <div>最後のマウスイベント: {lastMouseEvent || '未実行'}</div>
-            </div>
-          </div>
           <ResponsiveContainer width="100%" height={300}>
             <div
               ref={chartRef}
-              onMouseDown={(e) => {
-                console.log('🖱️ シンプルマウスダウン', { clientX: e.clientX, clientY: e.clientY })
-                setLastMouseEvent('MouseDown')
-                handleMouseDown(e)
-              }}
-              onMouseMove={(e) => {
-                setLastMouseEvent('MouseMove')
-                handleMouseMove(e)
-              }}
-              onMouseUp={() => {
-                console.log('🖱️ シンプルマウスアップ')
-                setLastMouseEvent('MouseUp')
-                handleMouseUp()
-              }}
-              onMouseLeave={() => {
-                console.log('🖱️ マウスがチャートエリアを離れました')
-                setLastMouseEvent('MouseLeave')
-                setIsDragging(false)
-              }}
-              onClick={() => {
-                console.log('🖱️ チャートエリアがクリックされました')
-                setLastMouseEvent('Click')
-              }}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={() => setIsDragging(false)}
               style={{
                 width: '100%',
                 height: '100%',
                 cursor: isDragging ? 'grabbing' : 'grab',
-                border: '2px solid #10b981',
+                border: isDragging ? '2px solid #3b82f6' : 'none',
                 borderRadius: '8px',
                 padding: '4px',
-                backgroundColor: isDragging ? '#f0fdf4' : '#ffffff'
+                backgroundColor: 'transparent'
               }}
             >
-              <ComposedChart
-                data={chartData}
-                onClick={(e) => {
-                  console.log('🖱️ Chart Click Event:', e);
-                  console.log('Chart data length:', chartData.length);
-                }}
-              >
+              <ComposedChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="date" />
                 <YAxis yAxisId="left" />
@@ -932,9 +888,6 @@ export default function KPIViewDashboard() {
                   dataKey="cv"
                   fill="#3B82F6"
                   name="CV数"
-                  onClick={(data, index) => {
-                    console.log('📊 Bar clicked:', { data, index });
-                  }}
                 />
                 <Line
                   yAxisId="right"
@@ -943,9 +896,6 @@ export default function KPIViewDashboard() {
                   stroke="#F59E0B"
                   strokeWidth={2}
                   name="CPO"
-                  onClick={(data, index) => {
-                    console.log('📈 Line clicked:', { data, index });
-                  }}
                 />
 
                 {/* ドラッグ選択範囲の表示 */}
