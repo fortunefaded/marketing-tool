@@ -364,65 +364,6 @@ export default defineSchema({
     .index("by_account_month", ["accountId", "yearMonth"])
     .index("by_account", ["accountId"]),
 
-  // === データ保持ポリシー設定 ===
-  // === Google Ads Configuration ===
-  googleAdsConfig: defineTable({
-    clientId: v.string(),
-    clientSecret: v.string(),
-    developerToken: v.string(),
-    customerId: v.string(),
-    managerAccountId: v.optional(v.string()),
-    refreshToken: v.optional(v.string()),
-    accessToken: v.optional(v.string()),
-    tokenExpiresAt: v.optional(v.number()),
-    isConnected: v.boolean(),
-    lastSyncedAt: v.optional(v.number()),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  })
-    .index('by_customer', ['customerId'])
-    .index('by_connected', ['isConnected']),
-
-  // === Google Ads Campaigns ===
-  googleAdsCampaigns: defineTable({
-    campaignId: v.string(),
-    customerId: v.string(),
-    campaignName: v.string(),
-    status: v.string(),
-    budget: v.optional(v.number()),
-    biddingStrategy: v.optional(v.string()),
-    startDate: v.optional(v.string()),
-    endDate: v.optional(v.string()),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  })
-    .index('by_campaign', ['campaignId'])
-    .index('by_customer', ['customerId'])
-    .index('by_status', ['status']),
-
-  // === Google Ads Performance ===
-  googleAdsPerformance: defineTable({
-    customerId: v.string(),
-    campaignId: v.optional(v.string()),
-    adGroupId: v.optional(v.string()),
-    date: v.string(),
-    impressions: v.number(),
-    clicks: v.number(),
-    cost: v.number(),
-    conversions: v.number(),
-    conversionValue: v.number(),
-    ctr: v.number(),
-    cpc: v.number(),
-    cpm: v.number(),
-    conversionRate: v.number(),
-    costPerConversion: v.number(),
-    fetchedAt: v.number(),
-  })
-    .index('by_date', ['date'])
-    .index('by_customer_date', ['customerId', 'date'])
-    .index('by_campaign', ['campaignId'])
-    .index('by_fetched', ['fetchedAt']),
-
   dataRetentionPolicies: defineTable({
     policyName: v.string(),
     dataType: v.string(), // 'daily' | 'monthly' | 'yearly'
@@ -448,4 +389,68 @@ export default defineSchema({
   })
     .index('by_createdAt', ['createdAt'])
     .index('by_name', ['name']),
+
+  // === 月次目標設定 ===
+  monthlyTargets: defineTable({
+    yearMonth: v.string(), // "YYYY-MM"形式
+    budget: v.number(), // 広告予算（円）
+    cvTarget: v.number(), // CV目標（件数）
+    cpoTarget: v.number(), // CPO目標（円）
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index('by_yearMonth', ['yearMonth'])
+    .index('by_createdAt', ['createdAt']),
+
+  // 目標変更履歴
+  targetHistory: defineTable({
+    targetId: v.id('monthlyTargets'),
+    yearMonth: v.string(),
+    previousValues: v.object({
+      budget: v.number(),
+      cvTarget: v.number(),
+      cpoTarget: v.number(),
+    }),
+    newValues: v.object({
+      budget: v.number(),
+      cvTarget: v.number(),
+      cpoTarget: v.number(),
+    }),
+    changedAt: v.number(),
+  })
+    .index('by_targetId', ['targetId'])
+    .index('by_yearMonth', ['yearMonth'])
+    .index('by_changedAt', ['changedAt']),
+
+  // === Google Ads API ===
+  googleAdsConfig: defineTable({
+    clientId: v.string(),
+    clientSecret: v.string(),
+    refreshToken: v.optional(v.string()),
+    accessToken: v.optional(v.string()), // 既存のフィールドをサポート
+    tokenExpiresAt: v.optional(v.number()), // 既存のフィールドをサポート
+    developerId: v.optional(v.string()), // 古いデータとの互換性のためオプショナルに
+    developerToken: v.optional(v.string()), // 既存のフィールドをサポート
+    customerId: v.string(),
+    managerAccountId: v.optional(v.string()), // 既存のフィールドをサポート
+    isConnected: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }),
+
+  googleAdsPerformance: defineTable({
+    date: v.string(), // YYYY-MM-DD
+    campaignName: v.string(),
+    campaignId: v.string(),
+    impressions: v.number(),
+    clicks: v.number(),
+    cost: v.number(), // マイクロ単位（1,000,000 = 1円）
+    conversions: v.number(),
+    conversionValue: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index('by_date', ['date'])
+    .index('by_campaign', ['campaignId'])
+    .index('by_date_campaign', ['date', 'campaignId']),
 })

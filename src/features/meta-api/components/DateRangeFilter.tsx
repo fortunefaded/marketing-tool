@@ -175,6 +175,24 @@ export function DateRangeFilter({
         yesterday3m.setHours(23, 59, 59, 999)
         return { start: threeMonthsAgo, end: yesterday3m }
 
+      case 'last_6_months':
+        const sixMonthsAgo = new Date(today)
+        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6)
+        sixMonthsAgo.setHours(0, 0, 0, 0)
+        const yesterday6m = new Date(today)
+        yesterday6m.setDate(yesterday6m.getDate() - 1)
+        yesterday6m.setHours(23, 59, 59, 999)
+        return { start: sixMonthsAgo, end: yesterday6m }
+
+      case 'last_12_months':
+        const twelveMonthsAgo = new Date(today)
+        twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12)
+        twelveMonthsAgo.setHours(0, 0, 0, 0)
+        const yesterday12m = new Date(today)
+        yesterday12m.setDate(yesterday12m.getDate() - 1)
+        yesterday12m.setHours(23, 59, 59, 999)
+        return { start: twelveMonthsAgo, end: yesterday12m }
+
       case 'all':
         const allStart = new Date(2020, 0, 1) // 適当な過去の日付
         return { start: allStart, end: today }
@@ -202,6 +220,8 @@ export function DateRangeFilter({
     { label: '今月', value: 'this_month' as DateRangeFilter },
     { label: '先月', value: 'last_month' as DateRangeFilter },
     { label: '過去3ヶ月', value: 'last_3_months' as DateRangeFilter },
+    { label: '過去6ヶ月', value: 'last_6_months' as DateRangeFilter },
+    { label: '過去1年', value: 'last_12_months' as DateRangeFilter },
   ]
 
   return (

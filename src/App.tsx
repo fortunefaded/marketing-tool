@@ -26,6 +26,10 @@ import { PeriodAnalysis } from './features/period-analysis/pages/PeriodAnalysis'
 import { GoogleAdsSettings } from './pages/GoogleAdsSettings'
 import { GoogleAdsCallback } from './pages/GoogleAdsCallback'
 import { GoogleAdsAnalysis } from './pages/GoogleAdsAnalysis'
+// 月次目標設定
+import { MonthlyTargets } from './pages/MonthlyTargets'
+// 予実管理
+import BudgetActualManagement from './pages/BudgetActualManagement'
 
 // Convex URLのフォールバック処理を追加
 const convexUrl = import.meta.env.VITE_CONVEX_URL || 'https://temporary-convex-url.convex.cloud'
@@ -77,6 +81,8 @@ function AppContent() {
             <Route path="/meta-analysis" element={<MainDashboard />} />
             <Route path="/google-ads-analysis" element={<GoogleAdsAnalysis />} />
             <Route path="/settings" element={<SettingsManagement />} />
+            {/* 月次目標設定 */}
+            <Route path="/settings/targets" element={<MonthlyTargets />} />
             {/* Meta API設定ルート */}
             <Route path="/settings/meta-api" element={<ConnectStepConvex />} />
             <Route path="/settings/meta-api/connect" element={<ConnectStepConvex />} />
@@ -88,6 +94,8 @@ function AppContent() {
             <Route path="/settings/google-ads/callback" element={<GoogleAdsCallback />} />
             {/* 期間別データ分析（独立機能） */}
             <Route path="/period-analysis" element={<PeriodAnalysis />} />
+            {/* 予実管理 */}
+            <Route path="/budget-actual" element={<BudgetActualManagement />} />
             {/* ECForce設定ルート */}
             <Route path="/settings/ecforce" element={<ECForceMain />} />
             <Route path="/settings/ecforce/upload" element={<ECForceUpload />} />

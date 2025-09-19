@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useAction } from 'convex/react'
 import { api } from '../../convex/_generated/api'
-import { ChevronDownIcon, ChevronRightIcon, InformationCircleIcon } from '@heroicons/react/24/outline'
+import { ChevronDownIcon, ChevronRightIcon, InformationCircleIcon, ArrowPathIcon, CalendarIcon } from '@heroicons/react/24/outline'
+import { format, subDays, startOfMonth, endOfMonth } from 'date-fns'
 
 interface DataSection {
   title: string
@@ -21,10 +22,20 @@ interface Field {
 export function GoogleAdsAnalysis() {
   const config = useQuery(api.googleAds.getConfig)
   const testConnectionAction = useAction(api.googleAds.testConnection)
+  const fetchPerformanceDataAction = useAction(api.googleAds.fetchPerformanceData)
+  const performanceData = useQuery(api.googleAds.getPerformanceData)
+  const getCostSummaryAction = useAction(api.googleAds.getCostSummary)
 
   const [isConnected, setIsConnected] = useState(false)
   const [isTestingConnection, setIsTestingConnection] = useState(false)
   const [connectionMessage, setConnectionMessage] = useState('')
+  const [isFetchingData, setIsFetchingData] = useState(false)
+  const [dateRange, setDateRange] = useState({
+    startDate: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
+    endDate: format(endOfMonth(new Date()), 'yyyy-MM-dd')
+  })
+  const [costSummary, setCostSummary] = useState<any[]>([])
+  const [activeTab, setActiveTab] = useState<'reference' | 'performance'>('reference')
   const [dataSections, setDataSections] = useState<DataSection[]>([
     {
       title: '📋 基本情報',
@@ -201,6 +212,56 @@ export function GoogleAdsAnalysis() {
     }
   }
 
+  const fetchData = async () => {
+    if (!isConnected) return
+
+    setIsFetchingData(true)
+    try {
+      // パフォーマンスデータを取得
+      await fetchPerformanceDataAction(dateRange)
+
+      // コストサマリーを取得
+      const summary = await getCostSummaryAction(dateRange)
+      setCostSummary(summary)
+    } catch (error) {
+      console.error('データ取得エラー:', error)
+    } finally {
+      setIsFetchingData(false)
+    }
+  }
+
+  // 日付範囲のプリセット
+  const setDatePreset = (preset: 'last7days' | 'last30days' | 'thisMonth' | 'lastMonth') => {
+    const today = new Date()
+    let start: Date
+    let end: Date
+
+    switch (preset) {
+      case 'last7days':
+        start = subDays(today, 6)
+        end = today
+        break
+      case 'last30days':
+        start = subDays(today, 29)
+        end = today
+        break
+      case 'thisMonth':
+        start = startOfMonth(today)
+        end = endOfMonth(today)
+        break
+      case 'lastMonth':
+        const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+        start = startOfMonth(lastMonth)
+        end = endOfMonth(lastMonth)
+        break
+    }
+
+    setDateRange({
+      startDate: format(start, 'yyyy-MM-dd'),
+      endDate: format(end, 'yyyy-MM-dd')
+    })
+  }
+
   useEffect(() => {
     if (config?.isConnected) {
       setIsConnected(true)
@@ -249,21 +310,201 @@ export function GoogleAdsAnalysis() {
         )}
       </div>
 
-      {/* API情報 */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-        <div className="flex items-start gap-2">
-          <InformationCircleIcon className="w-5 h-5 text-blue-600 mt-0.5" />
-          <div className="text-sm text-blue-800">
-            <p className="font-semibold mb-1">Google Ads API v21 について</p>
-            <ul className="space-y-1">
-              <li>• エンドポイント: https://googleads.googleapis.com/v21/</li>
-              <li>• 認証: OAuth 2.0 + Developer Token</li>
-              <li>• クエリ言語: Google Ads Query Language (GAQL)</li>
-              <li>• データ形式: JSON (REST) / Protocol Buffers (gRPC)</li>
-            </ul>
-          </div>
-        </div>
+      {/* タブナビゲーション */}
+      <div className="flex gap-2 mb-6">
+        <button
+          onClick={() => setActiveTab('reference')}
+          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+            activeTab === 'reference'
+              ? 'bg-blue-600 text-white'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+          APIリファレンス
+        </button>
+        <button
+          onClick={() => setActiveTab('performance')}
+          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+            activeTab === 'performance'
+              ? 'bg-blue-600 text-white'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+          パフォーマンスデータ
+        </button>
       </div>
+
+      {activeTab === 'performance' ? (
+        <>
+          {/* 日付範囲選択 */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">期間選択</h2>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setDatePreset('last7days')}
+                  className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+                >
+                  過去7日間
+                </button>
+                <button
+                  onClick={() => setDatePreset('last30days')}
+                  className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+                >
+                  過去30日間
+                </button>
+                <button
+                  onClick={() => setDatePreset('thisMonth')}
+                  className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+                >
+                  今月
+                </button>
+                <button
+                  onClick={() => setDatePreset('lastMonth')}
+                  className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+                >
+                  先月
+                </button>
+              </div>
+            </div>
+            <div className="flex gap-4 items-center">
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">開始日</label>
+                <input
+                  type="date"
+                  value={dateRange.startDate}
+                  onChange={(e) => setDateRange(prev => ({ ...prev, startDate: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">終了日</label>
+                <input
+                  type="date"
+                  value={dateRange.endDate}
+                  onChange={(e) => setDateRange(prev => ({ ...prev, endDate: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <button
+                onClick={fetchData}
+                disabled={isFetchingData || !isConnected}
+                className="mt-6 px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {isFetchingData ? (
+                  <>
+                    <ArrowPathIcon className="w-4 h-4 animate-spin" />
+                    取得中...
+                  </>
+                ) : (
+                  <>
+                    <CalendarIcon className="w-4 h-4" />
+                    データ取得
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* パフォーマンスサマリー */}
+          {costSummary.length > 0 && (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">日別パフォーマンス</h2>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">日付</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">広告費</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">インプレッション</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">クリック</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">CTR</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">CPC</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">コンバージョン</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {costSummary.map((row: any, index: number) => {
+                      const ctr = row.impressions > 0 ? (row.clicks / row.impressions * 100).toFixed(2) : '0.00'
+                      const cpc = row.clicks > 0 ? (row.cost / row.clicks).toFixed(0) : '0'
+
+                      return (
+                        <tr key={index} className="hover:bg-gray-50">
+                          <td className="px-4 py-2 text-sm text-gray-900">{row.date}</td>
+                          <td className="px-4 py-2 text-sm text-right text-gray-900">¥{row.cost.toLocaleString()}</td>
+                          <td className="px-4 py-2 text-sm text-right text-gray-900">{row.impressions.toLocaleString()}</td>
+                          <td className="px-4 py-2 text-sm text-right text-gray-900">{row.clicks.toLocaleString()}</td>
+                          <td className="px-4 py-2 text-sm text-right text-gray-900">{ctr}%</td>
+                          <td className="px-4 py-2 text-sm text-right text-gray-900">¥{cpc}</td>
+                          <td className="px-4 py-2 text-sm text-right text-gray-900">{row.conversions}</td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* キャンペーン別データ */}
+          {performanceData && performanceData.length > 0 && (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">キャンペーン別パフォーマンス</h2>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">日付</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">キャンペーン</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">広告費</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">インプレッション</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">クリック</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">コンバージョン</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">CV値</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {performanceData.map((row: any, index: number) => (
+                      <tr key={index} className="hover:bg-gray-50">
+                        <td className="px-4 py-2 text-sm text-gray-900">{row.date}</td>
+                        <td className="px-4 py-2 text-sm text-gray-900">{row.campaignName}</td>
+                        <td className="px-4 py-2 text-sm text-right text-gray-900">¥{row.cost.toLocaleString()}</td>
+                        <td className="px-4 py-2 text-sm text-right text-gray-900">{row.impressions.toLocaleString()}</td>
+                        <td className="px-4 py-2 text-sm text-right text-gray-900">{row.clicks.toLocaleString()}</td>
+                        <td className="px-4 py-2 text-sm text-right text-gray-900">{row.conversions}</td>
+                        <td className="px-4 py-2 text-sm text-right text-gray-900">¥{row.conversionValue.toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* データがない場合 */}
+          {!isFetchingData && (!performanceData || performanceData.length === 0) && (
+            <div className="bg-gray-50 rounded-lg p-8 text-center">
+              <p className="text-gray-600">データを取得するには、上記の「データ取得」ボタンをクリックしてください。</p>
+            </div>
+          )}
+        </>
+      ) : (
+        <>
+          {/* API情報 */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <div className="flex items-start gap-2">
+              <InformationCircleIcon className="w-5 h-5 text-blue-600 mt-0.5" />
+              <div className="text-sm text-blue-800">
+                <p className="font-semibold mb-1">Google Ads API v21 について</p>
+                <ul className="space-y-1">
+                  <li>• エンドポイント: https://googleads.googleapis.com/v21/</li>
+                  <li>• 認証: OAuth 2.0 + Developer Token</li>
+                  <li>• クエリ言語: Google Ads Query Language (GAQL)</li>
+                  <li>• データ形式: JSON (REST) / Protocol Buffers (gRPC)</li>
+                </ul>
+              </div>
+            </div>
+          </div>
 
       {/* データセクション */}
       <div className="space-y-4">
@@ -360,13 +601,13 @@ export function GoogleAdsAnalysis() {
         ))}
       </div>
 
-      {/* サンプルクエリ */}
-      <div className="mt-8 bg-gray-50 rounded-lg p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">サンプルGAQLクエリ</h2>
-        <div className="space-y-4">
-          <div>
-            <p className="text-sm text-gray-600 mb-2">キャンペーンのパフォーマンスデータ取得：</p>
-            <pre className="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto text-sm">
+          {/* サンプルクエリ */}
+          <div className="mt-8 bg-gray-50 rounded-lg p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">サンプルGAQLクエリ</h2>
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm text-gray-600 mb-2">キャンペーンのパフォーマンスデータ取得：</p>
+                <pre className="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto text-sm">
 {`SELECT
   campaign.id,
   campaign.name,
@@ -379,10 +620,12 @@ FROM campaign
 WHERE segments.date DURING LAST_30_DAYS
   AND campaign.status = 'ENABLED'
 ORDER BY metrics.impressions DESC`}
-            </pre>
+                </pre>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+        </>
+      )}
     </div>
   )
 }

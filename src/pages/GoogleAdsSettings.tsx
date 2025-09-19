@@ -63,6 +63,7 @@ export function GoogleAdsSettings() {
         developerToken,
         customerId: cleanedCustomerId,
         managerAccountId: cleanedManagerAccountId,
+        isConnected: existingConfig?.isConnected || false, // 既存の接続状態を保持
       })
 
       setMessage({ type: 'success', text: '設定を保存しました' })

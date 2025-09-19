@@ -38,7 +38,17 @@ export const ECForceUploader: React.FC = () => {
     // プレビュー生成
     const preview = await previewECForceCSV(selectedFile)
     if (preview.error) {
-      setErrors([preview.error])
+      console.error('CSVプレビューエラー:', preview.error)
+      // エラーメッセージをより詳細に
+      if (preview.error.includes('日付')) {
+        setErrors([
+          preview.error,
+          'CSVファイルに日付フィールドが見つかりません。',
+          '「日付」「期間」「購入日」などのヘッダーが含まれているか確認してください。'
+        ])
+      } else {
+        setErrors([preview.error])
+      }
       return
     }
 
@@ -61,7 +71,14 @@ export const ECForceUploader: React.FC = () => {
     }
 
     if (!previewData?.dateRange) {
-      setErrors(['CSV内に有効な日付データが見つかりません'])
+      console.error('dateRange が見つかりません:', previewData)
+      setErrors([
+        'CSV内に有効な日付データが見つかりません',
+        'プレビューデータ:',
+        `- ヘッダー数: ${previewData?.headers?.length || 0}`,
+        `- 行数: ${previewData?.rows?.length || 0}`,
+        `- dateRange: ${JSON.stringify(previewData?.dateRange || 'undefined')}`
+      ])
       return
     }
 

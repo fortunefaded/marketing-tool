@@ -7,6 +7,7 @@ import {
   ChevronDoubleRightIcon,
   PresentationChartLineIcon,
   ChartBarSquareIcon,
+  DocumentChartBarIcon,
 } from '@heroicons/react/24/outline'
 import { ComponentType, useState, useEffect } from 'react'
 
@@ -47,6 +48,11 @@ export default function Sidebar() {
       name: 'KPIビュー',
       path: '/',
       icon: ChartBarSquareIcon,
+    },
+    {
+      name: '予実管理',
+      path: '/budget-actual',
+      icon: DocumentChartBarIcon,
     },
     {
       name: 'Meta詳細分析',

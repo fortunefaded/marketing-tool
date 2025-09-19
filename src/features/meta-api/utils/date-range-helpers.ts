@@ -18,6 +18,8 @@ export type DateRangePreset =
   | 'last_week'
   | 'this_month'
   | 'last_3_months'
+  | 'last_6_months'
+  | 'last_12_months'
   | 'all'
 
 export interface DateRangeInfo {
@@ -190,6 +192,36 @@ export function getDateRangeInfo(preset: DateRangePreset): DateRangeInfo {
         isCustomRange: false,
         daysCount: 90,
         displayName: '過去3ヶ月',
+      }
+    }
+
+    case 'last_6_months': {
+      const startDate = new Date(today)
+      startDate.setMonth(startDate.getMonth() - 6)
+      const endDate = new Date(today)
+      endDate.setDate(endDate.getDate() - 1)
+      return {
+        preset,
+        startDate,
+        endDate,
+        isCustomRange: false,
+        daysCount: 180,
+        displayName: '過去6ヶ月',
+      }
+    }
+
+    case 'last_12_months': {
+      const startDate = new Date(today)
+      startDate.setMonth(startDate.getMonth() - 12)
+      const endDate = new Date(today)
+      endDate.setDate(endDate.getDate() - 1)
+      return {
+        preset,
+        startDate,
+        endDate,
+        isCustomRange: false,
+        daysCount: 365,
+        displayName: '過去1年',
       }
     }
 

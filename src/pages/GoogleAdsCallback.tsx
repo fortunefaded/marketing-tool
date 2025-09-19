@@ -47,12 +47,14 @@ export function GoogleAdsCallback() {
         return
       }
 
-      // Customer IDを取得
+      // 必要な設定を取得
       const customerId = existingConfig?.customerId
+      const clientId = existingConfig?.clientId
+      const clientSecret = existingConfig?.clientSecret
 
-      if (!customerId) {
+      if (!customerId || !clientId || !clientSecret) {
         setStatus('error')
-        setErrorMessage('Customer IDが設定されていません。設定画面で入力してください。')
+        setErrorMessage('Google Ads API設定が不完全です。設定画面で必要な情報を入力してください。')
         setTimeout(() => navigate('/settings/google-ads'), 3000)
         return
       }
@@ -64,6 +66,8 @@ export function GoogleAdsCallback() {
         // OAuth認証を処理
         await handleOAuthCallbackAction({
           code,
+          clientId,
+          clientSecret,
           customerId: cleanCustomerId(customerId),
         })
 

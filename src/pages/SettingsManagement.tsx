@@ -33,10 +33,33 @@ export const SettingsManagement: React.FC = () => {
 
   const renderContent = () => {
     return (
-      <div className="space-y-6">
-        <h3 className="text-lg font-medium text-gray-900">API連携設定</h3>
+      <div className="space-y-8">
+        {/* 月次目標設定セクション */}
+        <div>
+          <h3 className="text-lg font-medium text-gray-900 mb-4">目標管理</h3>
+          <div className="bg-white border border-gray-200 rounded-lg p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h4 className="text-base font-medium text-gray-900">月次目標設定</h4>
+                <p className="text-sm text-gray-500 mt-1">
+                  月ごとの広告予算、CV目標、CPO目標を設定・管理
+                </p>
+              </div>
+              <Link
+                to="/settings/targets"
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium transition-colors"
+              >
+                設定する
+              </Link>
+            </div>
+          </div>
+        </div>
 
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
+        {/* API連携設定セクション */}
+        <div>
+          <h3 className="text-lg font-medium text-gray-900 mb-4">API連携設定</h3>
+          <div className="space-y-4">
+            <div className="bg-white border border-gray-200 rounded-lg p-6">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h4 className="text-base font-medium text-gray-900">Meta (Facebook) API</h4>
@@ -104,6 +127,8 @@ export const SettingsManagement: React.FC = () => {
             >
               設定を開く
             </Link>
+          </div>
+        </div>
           </div>
         </div>
       </div>
