@@ -1090,10 +1090,20 @@ export default function KPIViewDashboardBreakdown() {
     onClick?: () => void
     breakdown?: React.ReactNode
   }) => {
-    // 広告費用、コンバージョン、CPOの場合の特別な横長レイアウト
-    if ((label === '広告費用' || label === 'コンバージョン' || label === 'CPO') && isExpanded && breakdown) {
-      const borderColor = label === '広告費用' ? 'border-blue-500' : label === 'コンバージョン' ? 'border-green-500' : 'border-orange-500'
-      const bgGradient = label === '広告費用' ? 'from-blue-50 to-white' : label === 'コンバージョン' ? 'from-green-50 to-white' : 'from-orange-50 to-white'
+    // 広告費用、コンバージョン、CPO、ECForce CV、Meta CPOの場合の特別な横長レイアウト
+    if ((label === '広告費用' || label === 'コンバージョン' || label === 'CPO' || label === 'ECForce CV' || label === 'Meta CPO') && isExpanded && breakdown) {
+      const borderColor =
+        label === '広告費用' ? 'border-blue-500' :
+        label === 'コンバージョン' ? 'border-green-500' :
+        label === 'ECForce CV' ? 'border-blue-500' :
+        label === 'Meta CPO' ? 'border-orange-500' :
+        'border-orange-500'
+      const bgGradient =
+        label === '広告費用' ? 'from-blue-50 to-white' :
+        label === 'コンバージョン' ? 'from-green-50 to-white' :
+        label === 'ECForce CV' ? 'from-blue-50 to-white' :
+        label === 'Meta CPO' ? 'from-orange-50 to-white' :
+        'from-orange-50 to-white'
 
       return (
         <div
@@ -1107,7 +1117,7 @@ export default function KPIViewDashboardBreakdown() {
               <div className="text-xs text-gray-500 font-medium tracking-wider mb-2">{label}</div>
               <div className="text-4xl font-bold text-gray-900">
                 {typeof value === 'number' ?
-                  (label === 'CPO' || label === '広告費用' ? formatCurrency(value) : formatNumber(value))
+                  (label === 'CPO' || label === 'Meta CPO' || label === '広告費用' ? formatCurrency(value) : formatNumber(value))
                   : value}
               </div>
               {change !== undefined && (
@@ -1494,12 +1504,34 @@ export default function KPIViewDashboardBreakdown() {
 
         {/* 期間選択UI */}
         <div className="mb-8 bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <DateRangeFilter
-            value={dateRange}
-            onChange={setDateRange}
-            onCustomDateRange={handleCustomDateRange}
-            customDateRange={customDateRange}
-          />
+          <div className="flex items-center justify-between">
+            <DateRangeFilter
+              value={dateRange}
+              onChange={setDateRange}
+              onCustomDateRange={handleCustomDateRange}
+              customDateRange={customDateRange}
+            />
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowTargetModal(true)}
+                className="px-4 py-1.5 text-sm bg-amber-100 hover:bg-amber-200 border border-amber-400 rounded-md transition-colors font-semibold text-amber-800 flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                目標設定
+              </button>
+
+              <button
+                onClick={() => setShowSnapshotList(true)}
+                className="px-4 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 border border-gray-400 rounded-md transition-colors font-semibold text-gray-800 flex items-center gap-2"
+              >
+                <BookmarkIcon className="w-4 h-4" />
+                保存済みレポート ({snapshots?.length || 0})
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* メイン数式（CPO）- 全媒体合算 */}
@@ -1637,93 +1669,28 @@ export default function KPIViewDashboardBreakdown() {
             </div>
             <div className="flex flex-col gap-2">
               {/* 媒体別チェックボックス */}
-              <div className="flex items-center gap-4">
-                <label className="flex items-center gap-1 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={showStackedCv}
-                    onChange={(e) => setShowStackedCv(e.target.checked)}
-                    className="cursor-pointer"
-                  />
-                  <span className="text-sm text-gray-600">積み上げ表示</span>
-                </label>
-                <label className="flex items-center gap-1 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={showMeta}
-                    onChange={(e) => setShowMeta(e.target.checked)}
-                    className="cursor-pointer"
-                  />
-                  <span className="text-sm text-gray-600">
-                    <span className="inline-block w-3 h-3 bg-[#4267B2] rounded-sm mr-1"></span>
-                    Meta
-                  </span>
-                </label>
-                <label className="flex items-center gap-1 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={showGoogle}
-                    onChange={(e) => setShowGoogle(e.target.checked)}
-                    className="cursor-pointer"
-                  />
-                  <span className="text-sm text-gray-600">
-                    <span className="inline-block w-3 h-3 bg-[#FFC107] rounded-sm mr-1"></span>
-                    Google
-                  </span>
-                </label>
-                <label className="flex items-center gap-1 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={showYahoo}
-                    onChange={(e) => setShowYahoo(e.target.checked)}
-                    className="cursor-pointer"
-                  />
-                  <span className="text-sm text-gray-600">
-                    <span className="inline-block w-3 h-3 bg-[#FF1A00] rounded-sm mr-1"></span>
-                    Yahoo!
-                  </span>
-                </label>
-              </div>
               <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowTargetModal(true)}
-                className="px-4 py-1.5 text-sm bg-amber-100 hover:bg-amber-200 border border-amber-400 rounded-md transition-colors font-semibold text-amber-800 flex items-center gap-2"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-                目標設定
-              </button>
-
               {brushRange && (
-                <button
-                  onClick={handleSaveSnapshot}
-                  className="px-4 py-1.5 text-sm bg-blue-100 hover:bg-blue-200 border border-blue-400 rounded-md transition-colors font-semibold text-blue-800 flex items-center gap-2"
-                >
-                  <CameraIcon className="w-4 h-4" />
-                  選択期間を保存
-                </button>
-              )}
-
-              <button
-                onClick={() => setShowSnapshotList(true)}
-                className="px-4 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 border border-gray-400 rounded-md transition-colors font-semibold text-gray-800 flex items-center gap-2"
-              >
-                <BookmarkIcon className="w-4 h-4" />
-                保存済みレポート ({snapshots?.length || 0})
-              </button>
-              {brushRange && (
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-green-600 font-medium bg-green-50 px-2 py-1 rounded border border-green-200">
-                    📅 期間選択中: {brushRange.start} - {brushRange.end}
-                  </span>
+                <>
                   <button
-                    onClick={handleResetSelection}
-                    className="px-3 py-1.5 text-sm bg-red-100 hover:bg-red-200 border border-red-300 rounded-md transition-colors text-red-700"
+                    onClick={handleSaveSnapshot}
+                    className="px-4 py-1.5 text-sm bg-blue-100 hover:bg-blue-200 border border-blue-400 rounded-md transition-colors font-semibold text-blue-800 flex items-center gap-2"
                   >
-                    🔄 選択をリセット
+                    <CameraIcon className="w-4 h-4" />
+                    選択期間を保存
                   </button>
-                </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-green-600 font-medium bg-green-50 px-2 py-1 rounded border border-green-200">
+                      📅 期間選択中: {brushRange.start} - {brushRange.end}
+                    </span>
+                    <button
+                      onClick={handleResetSelection}
+                      className="px-3 py-1.5 text-sm bg-red-100 hover:bg-red-200 border border-red-300 rounded-md transition-colors text-red-700"
+                    >
+                      🔄 選択をリセット
+                    </button>
+                  </div>
+                </>
               )}
               </div>
             </div>
@@ -1766,34 +1733,85 @@ export default function KPIViewDashboardBreakdown() {
                 content={(props) => {
                   const { payload } = props;
                   return (
-                    <div className="flex items-center justify-center gap-6 mt-4">
-                      {/* 通常の凡例項目 */}
-                      {payload?.map((entry, index) => (
-                        <span key={`item-${index}`} className="flex items-center gap-2">
-                          <span
-                            className={
-                              entry.dataKey === 'cpo'
-                                ? 'w-4 h-1 bg-orange-500'
-                                : 'w-4 h-3'
-                            }
-                            style={{ backgroundColor: entry.color }}
+                    <div className="flex items-center justify-between mt-4 px-4">
+                      <div className="flex items-center gap-6">
+                        {/* 通常の凡例項目 */}
+                        {payload?.map((entry, index) => (
+                          <span key={`item-${index}`} className="flex items-center gap-2">
+                            <span
+                              className={
+                                entry.dataKey === 'cpo'
+                                  ? 'w-4 h-1 bg-orange-500'
+                                  : 'w-4 h-3'
+                              }
+                              style={{ backgroundColor: entry.color }}
+                            />
+                            <span className="text-sm text-gray-600">{entry.value}</span>
+                          </span>
+                        ))}
+                        {/* 目標値の凡例 */}
+                        {targetCV !== null && (
+                          <span className="flex items-center gap-2">
+                            <span className="w-4 h-0 border-t-2 border-dashed border-blue-500" />
+                            <span className="text-sm text-blue-600">CV目標: {targetCV}件</span>
+                          </span>
+                        )}
+                        {targetCPO !== null && (
+                          <span className="flex items-center gap-2">
+                            <span className="w-4 h-0 border-t-2 border-dashed border-orange-500" />
+                            <span className="text-sm text-orange-600">CPO目標: ¥{targetCPO.toLocaleString()}</span>
+                          </span>
+                        )}
+                      </div>
+
+                      {/* チェックボックス - 右側 */}
+                      <div className="flex items-center gap-4">
+                        <label className="flex items-center gap-1 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={showStackedCv}
+                            onChange={(e) => setShowStackedCv(e.target.checked)}
+                            className="cursor-pointer"
                           />
-                          <span className="text-sm text-gray-600">{entry.value}</span>
-                        </span>
-                      ))}
-                      {/* 目標値の凡例 */}
-                      {targetCV !== null && (
-                        <span className="flex items-center gap-2">
-                          <span className="w-4 h-0 border-t-2 border-dashed border-blue-500" />
-                          <span className="text-sm text-blue-600">CV目標: {targetCV}件</span>
-                        </span>
-                      )}
-                      {targetCPO !== null && (
-                        <span className="flex items-center gap-2">
-                          <span className="w-4 h-0 border-t-2 border-dashed border-orange-500" />
-                          <span className="text-sm text-orange-600">CPO目標: ¥{targetCPO.toLocaleString()}</span>
-                        </span>
-                      )}
+                          <span className="text-sm text-gray-600">積み上げ表示</span>
+                        </label>
+                        <label className="flex items-center gap-1 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={showMeta}
+                            onChange={(e) => setShowMeta(e.target.checked)}
+                            className="cursor-pointer"
+                          />
+                          <span className="text-sm text-gray-600">
+                            <span className="inline-block w-3 h-3 bg-[#4267B2] rounded-sm mr-1"></span>
+                            Meta
+                          </span>
+                        </label>
+                        <label className="flex items-center gap-1 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={showGoogle}
+                            onChange={(e) => setShowGoogle(e.target.checked)}
+                            className="cursor-pointer"
+                          />
+                          <span className="text-sm text-gray-600">
+                            <span className="inline-block w-3 h-3 bg-[#FFC107] rounded-sm mr-1"></span>
+                            Google
+                          </span>
+                        </label>
+                        <label className="flex items-center gap-1 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={showYahoo}
+                            onChange={(e) => setShowYahoo(e.target.checked)}
+                            className="cursor-pointer"
+                          />
+                          <span className="text-sm text-gray-600">
+                            <span className="inline-block w-3 h-3 bg-[#FF1A00] rounded-sm mr-1"></span>
+                            Yahoo!
+                          </span>
+                        </label>
+                      </div>
                     </div>
                   );
                 }}
@@ -1915,38 +1933,9 @@ export default function KPIViewDashboardBreakdown() {
                 isExpandable={true}
                 isExpanded={expandedMetric === 'cv'}
                 onClick={() => toggleMetricExpansion('cv')}
-              />
-              <Operator symbol="=" />
-              <FormulaCard
-                label="Meta CPO"
-                value={metrics.metaCPO}
-                unit="円"
-                isResult
-                isPositiveGood={false}
-                isExpandable={true}
-                isExpanded={expandedMetric === 'cpo'}
-                onClick={() => toggleMetricExpansion('cpo')}
-              />
-            </div>
-
-            {/* Meta CVブレークダウン */}
-            <AnimatePresence>
-              {expandedMetric === 'cv' && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.3, ease: 'easeInOut' }}
-                  className="overflow-hidden"
-                >
-                  <div className="mt-8 pt-8 border-t border-blue-200">
-                    <p className="text-sm text-gray-600 mb-2 text-center">
-                      CV = IMP × CTR × CVR (Meta広告経由)
-                    </p>
-                    <p className="text-xs text-gray-500 mb-4 text-center">
-                      ※CVはECForceの実際の注文数、CVRは逆算値（CV ÷ クリック数）
-                    </p>
-                    <div className="flex items-center justify-center gap-3">
+                breakdown={
+                  expandedMetric === 'cv' ? (
+                    <div className="flex items-center gap-3">
                       <SubFormulaCard
                         label="Meta IMP"
                         value={metaSpendData?.current?.impressions || 0}
@@ -1964,37 +1953,23 @@ export default function KPIViewDashboardBreakdown() {
                         value={metrics.cvr}
                         unit="%"
                       />
-                      <Operator symbol="=" size="sm" />
-                      <SubFormulaCard
-                        label="ECForce CV"
-                        value={metrics.cv}
-                        unit=""
-                        isResult={true}
-                      />
                     </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Meta CPOブレークダウン */}
-            <AnimatePresence>
-              {expandedMetric === 'cpo' && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.3, ease: 'easeInOut' }}
-                  className="overflow-hidden"
-                >
-                  <div className="mt-8 pt-8 border-t border-blue-200">
-                    <p className="text-sm text-gray-600 mb-2 text-center">
-                      Meta CPO = Meta CPC ÷ CVR
-                    </p>
-                    <p className="text-xs text-gray-500 mb-4 text-center">
-                      ※CVRはECForceのCVとMetaのクリック数から算出
-                    </p>
-                    <div className="flex items-center justify-center gap-3">
+                  ) : undefined
+                }
+              />
+              <Operator symbol="=" />
+              <FormulaCard
+                label="Meta CPO"
+                value={metrics.metaCPO}
+                unit="円"
+                isResult
+                isPositiveGood={false}
+                isExpandable={true}
+                isExpanded={expandedMetric === 'cpo'}
+                onClick={() => toggleMetricExpansion('cpo')}
+                breakdown={
+                  expandedMetric === 'cpo' ? (
+                    <div className="flex items-center gap-3">
                       <SubFormulaCard
                         label="Meta CPC"
                         value={metaSpendData?.current?.cpc || 0}
@@ -2006,21 +1981,13 @@ export default function KPIViewDashboardBreakdown() {
                         value={metrics.cvr}
                         unit="%"
                       />
-                      <Operator symbol="=" size="sm" />
-                      <SubFormulaCard
-                        label="Meta CPO"
-                        value={(() => {
-                          const metaCost = metaSpendData?.current?.spend || 0
-                          return metrics.cv > 0 ? metaCost / metrics.cv : 0
-                        })()}
-                        unit="円"
-                        isResult={true}
-                      />
                     </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                  ) : undefined
+                }
+              />
+            </div>
+
+
           </div>
 
         </div>
