@@ -8,6 +8,7 @@ import {
   PresentationChartLineIcon,
   ChartBarSquareIcon,
   DocumentChartBarIcon,
+  BookOpenIcon,
 } from '@heroicons/react/24/outline'
 import { ComponentType, useState, useEffect } from 'react'
 
@@ -63,6 +64,11 @@ export default function Sidebar() {
       name: 'Google Ads分析',
       path: '/google-ads-analysis',
       icon: PresentationChartLineIcon,
+    },
+    {
+      name: 'Google Ads APIリファレンス',
+      path: '/google-ads-api-reference',
+      icon: BookOpenIcon,
     },
     {
       name: '期間別データ分析',

@@ -26,6 +26,8 @@ import { PeriodAnalysis } from './features/period-analysis/pages/PeriodAnalysis'
 import { GoogleAdsSettings } from './pages/GoogleAdsSettings'
 import { GoogleAdsCallback } from './pages/GoogleAdsCallback'
 import { GoogleAdsAnalysis } from './pages/GoogleAdsAnalysis'
+import { GoogleAdsAPIReference } from './pages/GoogleAdsAPIReference'
+import { TestOAuthCallback } from './pages/TestOAuthCallback'
 // 月次目標設定
 import { MonthlyTargets } from './pages/MonthlyTargets'
 // 予実管理
@@ -80,6 +82,7 @@ function AppContent() {
             <Route path="/" element={<KPIViewDashboard />} />
             <Route path="/meta-analysis" element={<MainDashboard />} />
             <Route path="/google-ads-analysis" element={<GoogleAdsAnalysis />} />
+            <Route path="/google-ads-api-reference" element={<GoogleAdsAPIReference />} />
             <Route path="/settings" element={<SettingsManagement />} />
             {/* 月次目標設定 */}
             <Route path="/settings/targets" element={<MonthlyTargets />} />
@@ -92,6 +95,7 @@ function AppContent() {
             {/* Google Ads設定ルート */}
             <Route path="/settings/google-ads" element={<GoogleAdsSettings />} />
             <Route path="/settings/google-ads/callback" element={<GoogleAdsCallback />} />
+            <Route path="/test-oauth" element={<TestOAuthCallback />} />
             {/* 期間別データ分析（独立機能） */}
             <Route path="/period-analysis" element={<PeriodAnalysis />} />
             {/* 予実管理 */}

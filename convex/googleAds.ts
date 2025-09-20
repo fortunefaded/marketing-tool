@@ -295,13 +295,7 @@ export const fetchPerformanceData = action({
       if (!response.ok) {
         const error = await response.text()
         console.error('Google Ads API error:', error)
-
-        // エラー時はモックデータを返す（開発中）
-        const mockData = generateMockData(args.startDate, args.endDate)
-        for (const data of mockData) {
-          await ctx.runMutation(api.googleAds.savePerformanceData, data)
-        }
-        return mockData
+        throw new Error(`Google Ads API error: ${error}`)
       }
 
       const result = await response.json()
@@ -322,59 +316,19 @@ export const fetchPerformanceData = action({
           }
 
           performanceData.push(data)
-          await ctx.runMutation(api.googleAds.savePerformanceData, data)
+          // データの保存は行わない（許可なしで保存しない）
+          // await ctx.runMutation(api.googleAds.savePerformanceData, data)
         }
       }
 
       return performanceData
     } catch (error) {
       console.error('Error fetching Google Ads data:', error)
-
-      // エラー時はモックデータを返す
-      const mockData = generateMockData(args.startDate, args.endDate)
-      for (const data of mockData) {
-        await ctx.runMutation(api.googleAds.savePerformanceData, data)
-      }
-      return mockData
+      throw error
     }
   },
 })
 
-// モックデータ生成ヘルパー
-function generateMockData(startDate: string, endDate: string) {
-  const start = new Date(startDate)
-  const end = new Date(endDate)
-  const data = []
-
-  const campaigns = [
-    { id: '123456789', name: 'ブランド認知キャンペーン' },
-    { id: '987654321', name: 'コンバージョン重視キャンペーン' },
-    { id: '456789123', name: 'リマーケティングキャンペーン' },
-  ]
-
-  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-    for (const campaign of campaigns) {
-      const baseImpressions = 1000 + Math.floor(Math.random() * 2000)
-      const ctr = 0.02 + Math.random() * 0.03
-      const clicks = Math.floor(baseImpressions * ctr)
-      const cpc = 50 + Math.random() * 100
-      const conversionRate = 0.01 + Math.random() * 0.04
-
-      data.push({
-        date: d.toISOString().split('T')[0],
-        campaignName: campaign.name,
-        campaignId: campaign.id,
-        impressions: baseImpressions,
-        clicks: clicks,
-        cost: clicks * cpc,
-        conversions: Math.floor(clicks * conversionRate),
-        conversionValue: Math.floor(clicks * conversionRate * 10000),
-      })
-    }
-  }
-
-  return data
-}
 
 // コストサマリーを取得
 export const getCostSummary = action({
@@ -383,29 +337,87 @@ export const getCostSummary = action({
     endDate: v.string(),
   },
   handler: async (ctx, args) => {
-    const data = await ctx.runQuery(api.googleAds.getPerformanceData, {
-      startDate: args.startDate,
-      endDate: args.endDate,
-    })
+    try {
+      // 最新のデータを取得
+      const freshData = await ctx.runAction(api.googleAds.fetchPerformanceData, {
+        startDate: args.startDate,
+        endDate: args.endDate,
+      })
+
+      // 日付ごとに集計
+      const dailyMap = new Map()
+
+      freshData.forEach((item: any) => {
+        const existing = dailyMap.get(item.date) || {
+          date: item.date,
+          cost: 0,
+          impressions: 0,
+          clicks: 0,
+          conversions: 0,
+          campaignName: '',
+        }
+
+        dailyMap.set(item.date, {
+          ...existing,
+          cost: existing.cost + item.cost,
+          impressions: existing.impressions + item.impressions,
+          clicks: existing.clicks + item.clicks,
+          conversions: existing.conversions + item.conversions,
+          campaignName: item.campaignName || existing.campaignName,
+        })
+      })
+
+      return Array.from(dailyMap.values()).sort((a, b) => a.date.localeCompare(b.date))
+    } catch (error) {
+      console.error('Error in getCostSummary:', error)
+      // エラー時は空配列を返す
+      return []
+    }
+  },
+})
+
+// 日別サマリーデータを取得（DailySparklineCharts用）
+export const getDailySummaries = query({
+  args: {
+    accountId: v.string(),
+    startDate: v.string(),
+    endDate: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Google Ads用の日別データを返す
+    // 現時点では保存されたデータから取得
+    const data = await ctx.db
+      .query('googleAdsPerformance')
+      .collect()
+
+    const filteredData = data.filter(item =>
+      item.date >= args.startDate &&
+      item.date <= args.endDate
+    )
 
     // 日付ごとに集計
     const dailyMap = new Map()
 
-    data.forEach((item: any) => {
+    filteredData.forEach(item => {
       const existing = dailyMap.get(item.date) || {
         date: item.date,
-        cost: 0,
+        spend: 0,
         impressions: 0,
         clicks: 0,
         conversions: 0,
+        conversionValue: 0,
       }
 
       dailyMap.set(item.date, {
         ...existing,
-        cost: existing.cost + item.cost,
+        spend: existing.spend + item.cost,
         impressions: existing.impressions + item.impressions,
         clicks: existing.clicks + item.clicks,
         conversions: existing.conversions + item.conversions,
+        conversionValue: existing.conversionValue + item.conversionValue,
+        cpa: existing.conversions > 0 ? (existing.spend + item.cost) / (existing.conversions + item.conversions) : 0,
+        ctr: existing.impressions > 0 ? ((existing.clicks + item.clicks) / (existing.impressions + item.impressions)) * 100 : 0,
+        cpc: existing.clicks > 0 ? (existing.spend + item.cost) / (existing.clicks + item.clicks) : 0,
       })
     })
 
@@ -453,6 +465,12 @@ export const handleOAuthCallback = action({
     data?: any
   }> => {
     try {
+      console.log('OAuth callback started with args:', {
+        code: args.code?.substring(0, 10) + '...',
+        clientId: args.clientId,
+        customerId: args.customerId
+      })
+
       // Google OAuth2トークンエンドポイント
       const tokenUrl = 'https://oauth2.googleapis.com/token'
       const redirectUri = args.redirectUri || `${process.env.VITE_APP_URL || 'http://localhost:3000'}/settings/google-ads/callback`
@@ -478,19 +496,28 @@ export const handleOAuthCallback = action({
       }
 
       const tokens = await tokenResponse.json()
+      console.log('Tokens received:', {
+        access_token: tokens.access_token ? 'present' : 'missing',
+        refresh_token: tokens.refresh_token ? 'present' : 'missing',
+        expires_in: tokens.expires_in
+      })
 
       // 既存の設定を取得
       const existingConfig = await ctx.runQuery(api.googleAds.getConfig) as any
+      console.log('Existing config found:', existingConfig ? 'yes' : 'no')
 
       if (existingConfig) {
-        // 既存の設定を更新
-        await ctx.runMutation(api.googleAds.saveConfig, {
-          ...existingConfig,
+        // 既存の設定を更新（_creationTimeと_idを除外）
+        const { _creationTime, _id, createdAt, updatedAt, ...configData } = existingConfig
+        const updateData = {
+          ...configData,
           refreshToken: tokens.refresh_token || existingConfig.refreshToken,
           accessToken: tokens.access_token,
           tokenExpiresAt: Date.now() + (tokens.expires_in * 1000),
           isConnected: true,
-        })
+        }
+        console.log('Updating config with new tokens')
+        await ctx.runMutation(api.googleAds.saveConfig, updateData)
       }
 
       return {
@@ -521,6 +548,8 @@ export const testConnection = action({
     data?: {
       customerId: string
       developerId: string
+      hasAuth?: boolean
+      authStatus?: string
     }
   }> => {
     const config = await ctx.runQuery(api.googleAds.getConfig) as any
@@ -532,21 +561,117 @@ export const testConnection = action({
       }
     }
 
-    if (!config.isConnected) {
+    // 設定の詳細チェック
+    const hasBasicConfig = config.clientId && config.clientSecret && config.customerId
+    const hasDeveloperToken = config.developerToken || config.developerId
+    const hasOAuthTokens = config.refreshToken && config.accessToken
+
+    // 基本設定がない場合
+    if (!hasBasicConfig || !hasDeveloperToken) {
       return {
         success: false,
-        message: 'Google Ads APIが設定されていません',
+        message: '基本設定が不完全です。Client ID、Client Secret、Customer ID、Developer Tokenを確認してください。',
+        data: {
+          customerId: config.customerId || '',
+          developerId: config.developerId || config.developerToken || '',
+        }
       }
     }
 
-    // TODO: 実際のAPI接続テストを実装
-    // 現時点では設定の存在確認のみ
-    return {
-      success: true,
-      message: 'Google Ads APIに接続されています',
-      data: {
-        customerId: config.customerId,
-        developerId: config.developerId || config.developerToken || '',
+    // OAuth認証が未完了の場合
+    if (!hasOAuthTokens || !config.isConnected) {
+      return {
+        success: false,
+        message: 'OAuth認証が完了していません。「Googleアカウントと連携」ボタンから認証を行ってください。',
+        data: {
+          customerId: config.customerId,
+          developerId: config.developerId || config.developerToken || '',
+          hasAuth: false,
+          authStatus: 'OAuth認証が必要です'
+        }
+      }
+    }
+
+    // トークンの有効期限をチェック
+    if (config.tokenExpiresAt && config.tokenExpiresAt < Date.now()) {
+      // トークンリフレッシュを試行
+      try {
+        const refreshResult = await ctx.runAction(api.googleAds.refreshAccessToken)
+        if (!refreshResult.success) {
+          return {
+            success: false,
+            message: 'アクセストークンの更新に失敗しました。再度認証が必要です。',
+            data: {
+              customerId: config.customerId,
+              developerId: config.developerId || config.developerToken || '',
+              hasAuth: true,
+              authStatus: 'トークン更新失敗'
+            }
+          }
+        }
+      } catch (error) {
+        return {
+          success: false,
+          message: 'トークンの更新中にエラーが発生しました。',
+          data: {
+            customerId: config.customerId,
+            developerId: config.developerId || config.developerToken || '',
+            hasAuth: true,
+            authStatus: 'トークン更新エラー'
+          }
+        }
+      }
+    }
+
+    // 実際のAPI接続テスト
+    try {
+      // 簡単なテストクエリを実行
+      const testQuery = {
+        startDate: new Date().toISOString().split('T')[0],
+        endDate: new Date().toISOString().split('T')[0]
+      }
+
+      // パフォーマンスデータ取得を試行（1日分のみ）
+      await ctx.runAction(api.googleAds.fetchPerformanceData, testQuery)
+
+      return {
+        success: true,
+        message: 'Google Ads APIに正常に接続されています',
+        data: {
+          customerId: config.customerId,
+          developerId: config.developerId || config.developerToken || '',
+          hasAuth: true,
+          authStatus: '認証済み・接続確認済み'
+        }
+      }
+    } catch (error: any) {
+      // API呼び出しが失敗した場合は、認証も失敗とする
+      const errorMessage = error.message || 'Unknown error'
+
+      // 401エラーの場合
+      if (errorMessage.includes('401') || errorMessage.includes('UNAUTHENTICATED')) {
+        return {
+          success: false,
+          message: '認証エラー: アクセストークンが無効です。再度OAuth認証を行ってください。',
+          data: {
+            customerId: config.customerId,
+            developerId: config.developerId || config.developerToken || '',
+            hasAuth: false,
+            authStatus: '認証失敗 - 401エラー'
+          }
+        }
+      }
+
+      // その他のエラー
+      return {
+        success: false,
+        message: `API接続エラー: ${errorMessage}`,
+        data: {
+          customerId: config.customerId,
+          developerId: config.developerId || config.developerToken || '',
+          hasAuth: true,
+          authStatus: 'API呼び出しエラー'
+        }
       }
     }
   },

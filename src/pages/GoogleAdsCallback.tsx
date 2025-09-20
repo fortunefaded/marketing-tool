@@ -18,34 +18,51 @@ export function GoogleAdsCallback() {
     return id.replace(/-/g, '')
   }
 
+  // 処理実行のトリガーを単純化
   useEffect(() => {
+    const code = searchParams.get('code')
+    const error = searchParams.get('error')
+
+    console.log('GoogleAdsCallback mounted:', {
+      code: code ? 'present' : 'missing',
+      error,
+      url: window.location.href,
+      existingConfig: existingConfig ? 'loaded' : 'loading',
+      isProcessing
+    })
+
+    // エラーがある場合
+    if (error) {
+      setStatus('error')
+      setErrorMessage(`認証エラー: ${error}`)
+      setTimeout(() => navigate('/settings/google-ads'), 3000)
+      return
+    }
+
+    // コードがない場合
+    if (!code) {
+      setStatus('error')
+      setErrorMessage('認証コードが取得できませんでした')
+      setTimeout(() => navigate('/settings/google-ads'), 3000)
+      return
+    }
+
+    // 設定がまだ読み込まれていない場合は待つ
+    if (existingConfig === undefined) {
+      return
+    }
+
+    // 既に処理中の場合はスキップ
+    if (isProcessing) {
+      return
+    }
+
     const processCallback = async () => {
-      // 既に処理中の場合はスキップ
-      if (isProcessing) return
-
-      const code = searchParams.get('code')
-      const error = searchParams.get('error')
-
-      // エラーがある場合
-      if (error) {
-        setStatus('error')
-        setErrorMessage(`認証エラー: ${error}`)
-        setTimeout(() => navigate('/settings/google-ads'), 3000)
-        return
-      }
-
-      // コードがない場合
-      if (!code) {
-        setStatus('error')
-        setErrorMessage('認証コードが取得できませんでした')
-        setTimeout(() => navigate('/settings/google-ads'), 3000)
-        return
-      }
-
-      // Convexデータがまだ読み込まれていない場合は待つ
-      if (existingConfig === undefined) {
-        return
-      }
+      console.log('GoogleAdsCallback: Starting processing', {
+        code: code ? 'present' : 'missing',
+        error,
+        url: window.location.href
+      })
 
       // 必要な設定を取得
       const customerId = existingConfig?.customerId
@@ -63,25 +80,35 @@ export function GoogleAdsCallback() {
       setIsProcessing(true)
 
       try {
+        console.log('Calling handleOAuthCallback with:', {
+          clientId,
+          customerId: cleanCustomerId(customerId),
+          code: code.substring(0, 10) + '...'
+        })
+
         // OAuth認証を処理
-        await handleOAuthCallbackAction({
+        const result = await handleOAuthCallbackAction({
           code,
           clientId,
           clientSecret,
           customerId: cleanCustomerId(customerId),
         })
 
+        console.log('OAuth callback result:', result)
+
         setStatus('success')
         setTimeout(() => navigate('/settings/google-ads'), 2000)
       } catch (error: any) {
+        console.error('OAuth callback error:', error)
         setStatus('error')
         setErrorMessage(error.message || '認証処理に失敗しました')
         setTimeout(() => navigate('/settings/google-ads'), 3000)
       }
     }
 
+    // 実際に処理を実行
     processCallback()
-  }, [searchParams, handleOAuthCallbackAction, existingConfig, navigate, isProcessing])
+  }, [searchParams, existingConfig, isProcessing]) // 依存関係を最小限に
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
