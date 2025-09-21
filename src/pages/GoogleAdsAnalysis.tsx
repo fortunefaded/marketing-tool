@@ -242,7 +242,48 @@ export function GoogleAdsAnalysis() {
       <div className="sticky top-0 z-50 bg-white border-b border-gray-200">
         <div className="px-4 py-2">
           <div className="flex items-center justify-between">
-            <h1 className="text-lg font-semibold text-gray-900">Google Ads Analysis</h1>
+            <div className="flex items-center gap-4">
+              <h1 className="text-lg font-semibold text-gray-900">Google Ads Analysis</h1>
+              {/* 期間選択ボタン */}
+              <div className="flex items-center gap-2 bg-gray-100 rounded-md p-1">
+                <button
+                  onClick={() => setDateRange('today')}
+                  className={`px-3 py-1 text-sm rounded ${dateRange === 'today' ? 'bg-white shadow-sm' : 'hover:bg-gray-50'}`}
+                >
+                  今日
+                </button>
+                <button
+                  onClick={() => setDateRange('yesterday')}
+                  className={`px-3 py-1 text-sm rounded ${dateRange === 'yesterday' ? 'bg-white shadow-sm' : 'hover:bg-gray-50'}`}
+                >
+                  昨日
+                </button>
+                <button
+                  onClick={() => setDateRange('last_7d')}
+                  className={`px-3 py-1 text-sm rounded ${dateRange === 'last_7d' ? 'bg-white shadow-sm' : 'hover:bg-gray-50'}`}
+                >
+                  過去7日間
+                </button>
+                <button
+                  onClick={() => setDateRange('last_14d')}
+                  className={`px-3 py-1 text-sm rounded ${dateRange === 'last_14d' ? 'bg-white shadow-sm' : 'hover:bg-gray-50'}`}
+                >
+                  過去14日間
+                </button>
+                <button
+                  onClick={() => setDateRange('last_30d')}
+                  className={`px-3 py-1 text-sm rounded ${dateRange === 'last_30d' ? 'bg-white shadow-sm' : 'hover:bg-gray-50'}`}
+                >
+                  過去30日間
+                </button>
+                <button
+                  onClick={() => setDateRange('this_month')}
+                  className={`px-3 py-1 text-sm rounded ${dateRange === 'this_month' ? 'bg-white shadow-sm' : 'hover:bg-gray-50'}`}
+                >
+                  今月
+                </button>
+              </div>
+            </div>
             <div className="flex items-center gap-4">
               <GoogleAdsAccountSelector
                 accounts={accounts}
@@ -276,6 +317,48 @@ export function GoogleAdsAnalysis() {
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
               <div className="font-medium">エラー</div>
               <div className="text-sm mt-1">{error}</div>
+              {error.includes('接続されていません') && (
+                <a
+                  href="/settings/google-ads"
+                  className="inline-block mt-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm"
+                >
+                  設定画面へ
+                </a>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ローディング表示 */}
+        {isLoading && (
+          <div className="px-4 py-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">データを取得中...</h3>
+              <p className="text-gray-600">
+                Google Ads APIからデータを取得しています。しばらくお待ちください。
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* データ取得ボタン（データがない場合） */}
+        {!isLoading && config?.isConnected && data.length === 0 && !error && (
+          <div className="px-4 py-4">
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
+              <svg className="mx-auto h-12 w-12 text-yellow-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+              </svg>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">データを取得してください</h3>
+              <p className="text-gray-600 mb-4">
+                選択した期間のGoogle Adsデータを取得するには、下のボタンをクリックしてください。
+              </p>
+              <button
+                onClick={() => fetchDataFromGoogleAdsAPI(true)}
+                className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium"
+              >
+                データを取得
+              </button>
             </div>
           </div>
         )}
