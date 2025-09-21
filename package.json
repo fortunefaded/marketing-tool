@@ -96,6 +96,7 @@
     "date-fns": "^4.1.0",
     "dexie": "^4.0.11",
     "dexie-react-hooks": "^1.1.7",
+    "encoding-japanese": "^2.2.0",
     "express": "^5.1.0",
     "framer-motion": "^12.23.13",
     "iconv-lite": "^0.7.0",

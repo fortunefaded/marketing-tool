@@ -3,15 +3,12 @@ import { useConvex, useMutation, useAction } from 'convex/react'
 import { useQuery } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import { AccountSelector } from '../features/meta-api/account/AccountSelector'
-import { DateRangeFilter } from '../features/meta-api/components/DateRangeFilter'
 import type { DateRangeFilter as DateRangeFilterType } from '../features/meta-api/hooks/useAdFatigueSimplified'
+import { MonthSelector } from '../components/MonthSelector'
+import { useGetMonthlyTarget, getCurrentYearMonth, formatNumber } from '../hooks/useMonthlyTargets'
 import { MetaAccount } from '@/types'
+import { Link } from 'react-router-dom'
 import { MetaCampaignBreakdown } from '../components/MetaCampaignBreakdown'
-import { GoogleAdsBreakdown } from '../components/dashboard/GoogleAdsBreakdown'
-import { GoogleAdsBreakdownFormula } from '../components/dashboard/GoogleAdsBreakdownFormula'
-import { MetaAdsBreakdownFormula } from '../components/dashboard/MetaAdsBreakdownFormula'
-import { YahooAdsBreakdownFormula } from '../components/dashboard/YahooAdsBreakdownFormula'
-import { PlatformKPIFormula } from '../components/dashboard/PlatformKPIFormula'
 import {
   ChartBarSquareIcon,
   ArrowTrendingUpIcon,
@@ -37,7 +34,7 @@ import {
 } from 'recharts'
 import { motion, AnimatePresence } from 'framer-motion'
 import { generateYahooAdsData } from '../utils/mockData/yahooAds'
-// import { generateGoogleAdsData } from '../utils/mockData/googleAds'  // 実データのみ使用するため無効化
+import { generateGoogleAdsData } from '../utils/mockData/googleAds'
 import { generateMetaAdsData } from '../utils/mockData/metaAds'
 import {
   saveSelectedAccount,
@@ -47,15 +44,11 @@ import {
   clearCachedData,
 } from '@/utils/localStorage'
 import { logAPI, logState } from '../utils/debugLogger'
-import { testGoogleAdsDirectly } from '../utils/testGoogleAdsApi'
 
-export default function KPIViewDashboardBreakdown() {
+export default function BudgetActualManagement() {
   const convex = useConvex()
-  const convexAction = useAction  // Convex Action呼び出し用
-  const getGoogleAdsCostSummary = useAction(api.googleAds.getCostSummary)
-  const fetchGoogleAdsDirectData = useAction(api.googleAds.fetchDirectApiData)
-  const getGoogleAdsConfig = useQuery(api.googleAds.getConfig)
-  const getAllGoogleAdsCampaigns = useAction(api.googleAds.getAllCampaigns)
+  // const getGoogleAdsCostSummary = useAction(api.googleAds.getCostSummary)
+  // const getGoogleAdsTestData = useAction(api.googleAdsTestData.getRealisticTestData)
   const [data, setData] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -67,12 +60,6 @@ export default function KPIViewDashboardBreakdown() {
   const [dailyMetaData, setDailyMetaData] = useState<any[]>([])
   const [googleAdsData, setGoogleAdsData] = useState<any>(null)
   const [yahooAdsData, setYahooAdsData] = useState<any>(null)
-  const [googleAdsDebugInfo, setGoogleAdsDebugInfo] = useState<any>(null)
-
-  // Google Ads API直接呼び出し用のstate
-  const [googleAdsSpendData, setGoogleAdsSpendData] = useState<any>(null)
-  const [googleAdsConfigState, setGoogleAdsConfigState] = useState<any>(null)
-  const [dailyGoogleAdsData, setDailyGoogleAdsData] = useState<any[]>([])
 
   // ブレークダウン展開状態の管理
   const [expandedMetric, setExpandedMetric] = useState<'cv' | 'cpo' | 'cost' | null>(null)
@@ -80,6 +67,61 @@ export default function KPIViewDashboardBreakdown() {
   // ドラッグ選択用のstate（表示範囲のみ管理、データは変更しない）
   const [brushRange, setBrushRange] = useState<{ start: number; end: number } | null>(null)
   const [originalDateRange, setOriginalDateRange] = useState<DateRangeFilterType>('current_month')
+
+  // 月選択用のstate（先月・今月・来月）
+  const [selectedMonth, setSelectedMonth] = useState<'last' | 'current' | 'next'>('current')
+
+  // 月次目標データを取得
+  const getTargetYearMonth = () => {
+    const now = new Date()
+    let targetDate = new Date(now)
+
+    switch (selectedMonth) {
+      case 'last':
+        targetDate.setMonth(now.getMonth() - 1)
+        break
+      case 'next':
+        targetDate.setMonth(now.getMonth() + 1)
+        break
+    }
+
+    const year = targetDate.getFullYear()
+    const month = String(targetDate.getMonth() + 1).padStart(2, '0')
+    return `${year}-${month}`
+  }
+
+  const targetYearMonth = getTargetYearMonth()
+  const monthlyTarget = useGetMonthlyTarget(targetYearMonth)
+
+  // 日別目標を計算
+  const getDailyTargets = () => {
+    if (!monthlyTarget) return { dailyCV: null, dailyCPO: null }
+
+    // 選択された月の日数を取得
+    const now = new Date()
+    let targetDate = new Date(now)
+
+    switch (selectedMonth) {
+      case 'last':
+        targetDate.setMonth(now.getMonth() - 1)
+        break
+      case 'next':
+        targetDate.setMonth(now.getMonth() + 1)
+        break
+    }
+
+    // その月の日数を取得
+    const year = targetDate.getFullYear()
+    const month = targetDate.getMonth()
+    const daysInMonth = new Date(year, month + 1, 0).getDate()
+
+    return {
+      dailyCV: monthlyTarget.cvTarget ? Math.round(monthlyTarget.cvTarget / daysInMonth) : null,
+      dailyCPO: monthlyTarget.cpoTarget || null
+    }
+  }
+
+  const { dailyCV: dailyCVTarget, dailyCPO: dailyCPOTarget } = getDailyTargets()
 
   // ドラッグ選択用のstate
   const [isDragging, setIsDragging] = useState(false)
@@ -92,19 +134,13 @@ export default function KPIViewDashboardBreakdown() {
   const [showYahoo, setShowYahoo] = useState(true)
   const [showStackedCv, setShowStackedCv] = useState(true) // true: 積み上げ表示, false: 合計表示
 
-  // 日足/週足/月足切り替え用のstate
-  const [viewMode, setViewMode] = useState<'daily' | 'weekly' | 'monthly'>('weekly') // デフォルトは週足
-
-  // 目標値設定用のstate
+  // 目標値設定用のstate（月次目標から取得）
   const [showTargetModal, setShowTargetModal] = useState(false)
-  const [targetCV, setTargetCV] = useState<number | null>(() => {
-    const saved = localStorage.getItem('targetCV')
-    return saved ? Number(saved) : null
-  })
-  const [targetCPO, setTargetCPO] = useState<number | null>(() => {
-    const saved = localStorage.getItem('targetCPO')
-    return saved ? Number(saved) : null
-  })
+  const targetCV = dailyCVTarget  // グラフ用の日別目標
+  const targetCPO = dailyCPOTarget  // グラフ用のCPO目標
+  const targetBudget = monthlyTarget?.budget || null
+  const monthlyTargetCV = monthlyTarget?.cvTarget || null  // 達成率計算用の月次CV目標
+  const monthlyTargetCPO = monthlyTarget?.cpoTarget || null  // 達成率計算用の月次CPO目標
 
   // 期間レポート保存用のstate
   const [showSnapshotList, setShowSnapshotList] = useState(false)
@@ -112,27 +148,9 @@ export default function KPIViewDashboardBreakdown() {
   const deleteSnapshotMutation = useMutation(api.kpiSnapshots.deleteSnapshot)
   const snapshots = useQuery(api.kpiSnapshots.listSnapshots, { limit: 20 })
 
-  // 期間選択の状態管理
-  const [dateRange, setDateRange] = useState<DateRangeFilterType>(() => {
-    const savedDateRange = localStorage.getItem('selectedDateRange')
-    return (savedDateRange as DateRangeFilterType) || 'last_7d'
-  })
-
-  const [customDateRange, setCustomDateRange] = useState<{ start: Date; end: Date } | null>(() => {
-    const savedCustomRange = localStorage.getItem('customDateRange')
-    if (savedCustomRange) {
-      try {
-        const parsed = JSON.parse(savedCustomRange)
-        return {
-          start: new Date(parsed.start),
-          end: new Date(parsed.end),
-        }
-      } catch (e) {
-        return null
-      }
-    }
-    return null
-  })
+  // 期間選択の状態管理（予実管理では月単位固定）
+  const [dateRange, setDateRange] = useState<DateRangeFilterType>('current_month')
+  const [customDateRange, setCustomDateRange] = useState<{ start: Date; end: Date } | null>(null)
 
   const [filteredData] = useState<any>(null)
   const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null)
@@ -215,20 +233,6 @@ export default function KPIViewDashboardBreakdown() {
     }
   }, [convex])
 
-  // Google Ads設定を取得
-  useEffect(() => {
-    const loadGoogleAdsConfig = async () => {
-      try {
-        const config = await convex.query(api.googleAds.getConfig)
-        setGoogleAdsConfigState(config)
-        console.log('✅ Google Ads設定取得完了:', config?.isConnected ? '接続済み' : '未接続')
-      } catch (error) {
-        console.error('❌ Google Ads設定取得エラー:', error)
-      }
-    }
-    loadGoogleAdsConfig()
-  }, [convex])
-
   // 日付フォーマット関数
   const formatDateToISO = (date: Date | null) => {
     if (!date) return ''
@@ -306,6 +310,12 @@ export default function KPIViewDashboardBreakdown() {
         startDate = new Date(today.getFullYear(), today.getMonth(), 1)
         startDate.setHours(0, 0, 0, 0)
         endDate = today
+        break
+      case 'current_month':
+        // 今月の場合、月初から今日までをデータ取得用に設定
+        startDate = new Date(today.getFullYear(), today.getMonth(), 1)
+        startDate.setHours(0, 0, 0, 0)
+        endDate = today  // データ取得は今日まで
         break
       case 'last_month':
         startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1)
@@ -405,6 +415,7 @@ export default function KPIViewDashboardBreakdown() {
           actions: item.actions || [],
         }))
         console.log('✅ Meta API日別データ取得完了:', dailyData.length, '日分')
+        console.log('📈 Meta広告費データ:', dailyData.map(d => ({ date: d.date, spend: d.spend })))
         return dailyData
       } else if (result.data?.[0]) {
         console.log('🔍 Meta API生データ:', result.data[0])
@@ -428,66 +439,6 @@ export default function KPIViewDashboardBreakdown() {
     return null
   }, [accounts])
 
-  // Google Ads APIから広告費を取得（Convex経由でCORS回避）
-  const fetchGoogleAdsSpendData = useCallback(async (
-    startDate: Date,
-    endDate: Date,
-    withDailyData: boolean = false
-  ) => {
-    if (!googleAdsConfigState?.isConnected) {
-      console.log('Google Ads未接続')
-      return null
-    }
-
-    try {
-      console.log('📊 Google Ads APIからデータ取得中（Convex経由）...', {
-        withDailyData,
-        since: formatDateToISO(startDate),
-        until: formatDateToISO(endDate)
-      })
-
-      // ConvexのActionを呼び出し（CORS回避）
-      const result = await fetchGoogleAdsDirectData({
-        startDate: formatDateToISO(startDate),
-        endDate: formatDateToISO(endDate),
-        withDailyData
-      })
-
-      console.log('📥 Convex Action結果:', result)
-
-      if (!result || !result.success) {
-        console.error('Google Ads API エラー:', result?.error || 'Unknown error')
-        return null
-      }
-
-      if (!result.data) {
-        console.log('⚠️ Google Ads APIレスポンスにデータなし')
-        return null
-      }
-
-      if (withDailyData && result.data.dailyData) {
-        console.log('✅ Google Ads日別データ取得完了:', result.data.dailyData.length, '日分')
-        return result.data.dailyData
-      } else {
-        const googleAdsData = {
-          spend: result.data.totalSpend || 0,
-          clicks: result.data.totalClicks || 0,
-          impressions: result.data.totalImpressions || 0,
-          conversions: result.data.totalConversions || 0,
-          ctr: result.data.ctr || 0,
-          cpc: result.data.cpc || 0,
-          cpa: result.data.cpa || 0,
-          campaignTypeBreakdown: result.data.campaignTypeBreakdown || null,
-        }
-        console.log('✅ Google Ads集計データ取得完了:', googleAdsData)
-        return googleAdsData
-      }
-    } catch (error) {
-      console.error('Google Ads API取得エラー:', error)
-      return null
-    }
-  }, [googleAdsConfigState, formatDateToISO, fetchGoogleAdsDirectData])
-
 
   // データの統合取得
   useEffect(() => {
@@ -502,108 +453,22 @@ export default function KPIViewDashboardBreakdown() {
         selectedAccountId
       })
 
-      // Google Adsデータを取得（実データのみ、モックデータは使用しない）
-      const debugInfo = {
-        config: {
-          isConnected: getGoogleAdsConfig?.isConnected,
-          hasAccessToken: !!getGoogleAdsConfig?.accessToken,
-          customerId: getGoogleAdsConfig?.customerId,
-          tokenExpiresAt: getGoogleAdsConfig?.tokenExpiresAt
-        },
-        request: {
-          startDate: formatDateToISO(startDate),
-          endDate: formatDateToISO(endDate)
-        },
-        response: null as any,
-        error: null as any,
-        timestamp: new Date().toISOString()
+      // Google Adsデータを取得（モック） - アカウント選択不要
+      const googleData = generateGoogleAdsData(startDate, endDate)
+      console.log('🔵 Google Adsモックデータ生成結果:', googleData)
+      console.log('🔵 Google totalCost:', googleData.totalCost)
+      console.log('🔵 Google totalConversions:', googleData.totalConversions)
+      // データ構造を統一（currentフィールドを含む形式に）
+      const googleAdsDataToSet = {
+        ...googleData,
+        cost: googleData.totalCost,
+        impressions: googleData.totalImpressions,
+        clicks: googleData.totalClicks,
+        conversions: googleData.totalConversions,
+        data: googleData.current // 互換性のため
       }
-
-      if (getGoogleAdsConfig?.isConnected) {
-        try {
-          debugInfo.request.status = 'API呼び出し中...'
-          setGoogleAdsDebugInfo(debugInfo)
-
-          const googleSummary = await getGoogleAdsCostSummary({
-            startDate: formatDateToISO(startDate),
-            endDate: formatDateToISO(endDate)
-          })
-
-          debugInfo.response = {
-            dataCount: googleSummary.length,
-            rawData: googleSummary,
-            firstItem: googleSummary[0] || null
-          }
-
-          // APIデータを集計
-          const totalCost = googleSummary.reduce((sum: number, item: any) => sum + (item.cost || 0), 0)
-          const totalImpressions = googleSummary.reduce((sum: number, item: any) => sum + (item.impressions || 0), 0)
-          const totalClicks = googleSummary.reduce((sum: number, item: any) => sum + (item.clicks || 0), 0)
-          const totalConversions = googleSummary.reduce((sum: number, item: any) => sum + (item.conversions || 0), 0)
-
-          const googleAdsDataToSet = {
-            totalCost,
-            totalImpressions,
-            totalClicks,
-            totalConversions,
-            cost: totalCost,
-            impressions: totalImpressions,
-            clicks: totalClicks,
-            conversions: totalConversions,
-            current: googleSummary,
-            data: googleSummary
-          }
-
-          debugInfo.response.aggregated = {
-            totalCost,
-            totalImpressions,
-            totalClicks,
-            totalConversions
-          }
-          debugInfo.request.status = 'API呼び出し成功'
-          setGoogleAdsDebugInfo(debugInfo)
-          setGoogleAdsData(googleAdsDataToSet)
-        } catch (error: any) {
-          debugInfo.error = {
-            message: error.message || 'Unknown error',
-            stack: error.stack,
-            timestamp: new Date().toISOString()
-          }
-          debugInfo.request.status = 'API呼び出し失敗'
-          setGoogleAdsDebugInfo(debugInfo)
-
-          // エラー時は実データがないことを明示（モックデータは使用しない）
-          setGoogleAdsData({
-            totalCost: 0,
-            totalImpressions: 0,
-            totalClicks: 0,
-            totalConversions: 0,
-            cost: 0,
-            impressions: 0,
-            clicks: 0,
-            conversions: 0,
-            current: [],
-            data: []
-          })
-        }
-      } else {
-        debugInfo.request.status = 'Google Ads未接続'
-        setGoogleAdsDebugInfo(debugInfo)
-
-        // 未接続時は実データがないことを明示（モックデータは使用しない）
-        setGoogleAdsData({
-          totalCost: 0,
-          totalImpressions: 0,
-          totalClicks: 0,
-          totalConversions: 0,
-          cost: 0,
-          impressions: 0,
-          clicks: 0,
-          conversions: 0,
-          current: [],
-          data: []
-        })
-      }
+      console.log('🔵 Setting googleAdsData:', googleAdsDataToSet)
+      setGoogleAdsData(googleAdsDataToSet)
 
       // Yahoo Adsデータを取得（モック）
       const yahooData = generateYahooAdsData(startDate, endDate)
@@ -667,56 +532,6 @@ export default function KPIViewDashboardBreakdown() {
         })
       }
 
-      // Google Adsデータを取得（直接API呼び出し）
-      if (googleAdsConfigState?.isConnected) {
-        // 集計データを取得
-        const googleAdsData = await fetchGoogleAdsSpendData(startDate, endDate, false)
-        console.log('🔷 Google Ads広告費取得結果:', {
-          dateRange,
-          startDate: startDate.toISOString(),
-          endDate: endDate.toISOString(),
-          googleAdsData,
-          spend: googleAdsData?.spend
-        })
-
-        // 日別データを取得
-        try {
-          const dailyGoogleAds = await fetchGoogleAdsSpendData(startDate, endDate, true)
-          console.log('📡 fetchGoogleAdsSpendData結果 (daily):', dailyGoogleAds)
-          if (dailyGoogleAds && Array.isArray(dailyGoogleAds)) {
-            console.log('✅ dailyGoogleAdsDataにセット:', dailyGoogleAds.length, '日分')
-            setDailyGoogleAdsData(dailyGoogleAds)
-          } else {
-            console.warn('⚠️ dailyGoogleAdsDataは空または無効:', dailyGoogleAds)
-            setDailyGoogleAdsData([])
-          }
-        } catch (error) {
-          console.error('❌ 日別Google Adsデータ取得エラー:', error)
-          setDailyGoogleAdsData([])
-        }
-
-        // 前期間のGoogle Adsデータも取得
-        const periodDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
-        const previousStart = new Date(startDate)
-        previousStart.setDate(previousStart.getDate() - periodDays - 1)
-        const previousEnd = new Date(startDate)
-        previousEnd.setDate(previousEnd.getDate() - 1)
-
-        const previousGoogleAdsData = await fetchGoogleAdsSpendData(previousStart, previousEnd, false)
-        console.log('🔷 前期間Google Ads広告費取得結果:', {
-          previousStart: previousStart.toISOString(),
-          previousEnd: previousEnd.toISOString(),
-          previousGoogleAdsData,
-          spend: previousGoogleAdsData?.spend
-        })
-
-        // Google Adsデータを保存
-        setGoogleAdsSpendData({
-          current: googleAdsData,
-          previous: previousGoogleAdsData
-        })
-      }
-
       setLastUpdateTime(new Date())
     }
 
@@ -737,10 +552,10 @@ export default function KPIViewDashboardBreakdown() {
     saveSelectedAccount(accountId)
     const { startDate, endDate } = calculateDateRange
     if (startDate && endDate) {
-      // Yahooモックデータを生成
+      // Google/Yahooモックデータを生成
+      const googleData = generateGoogleAdsData(startDate, endDate)
       const yahooData = generateYahooAdsData(startDate, endDate)
 
-      // Google Adsは実データのみ使用（モックデータは生成しない）
       // ECForceデータは実データ（Convex）を使用するため、ここでは生成しない
 
       // Metaデータを取得
@@ -969,231 +784,6 @@ export default function KPIViewDashboardBreakdown() {
 
   // KPIメトリクスの計算
   // 月足データ集約関数
-  const aggregateToMonthly = (dailyData: any[]) => {
-    if (!dailyData || dailyData.length === 0) return []
-
-    // データを月ごとにグループ化
-    const monthlyMap = new Map<string, {
-      startDate: string
-      endDate: string
-      cv: number
-      metaCv: number
-      googleCv: number
-      yahooCv: number
-      spend: number
-      metaSpend: number
-      googleSpend: number
-      yahooSpend: number
-      totalSpend: number
-      displayCv: number
-      displaySpend: number
-      displayCpo: number
-      cpo: number
-    }>()
-
-    dailyData.forEach(day => {
-      // originalDateまたはdateから日付を取得
-      const dateStr = day.originalDate || day.date
-      if (!dateStr || dateStr === 'Invalid date') return
-
-      // 既に集約されたデータ（週足形式など）の場合はスキップ
-      if (dateStr.includes('週') || dateStr.includes('月')) return
-
-      // 日付をパース（YYYY-MM-DD形式のみ処理）
-      const dateParts = dateStr.split('-')
-      if (dateParts.length !== 3) return
-
-      // 数値に変換できるか確認
-      const year = parseInt(dateParts[0])
-      const month = parseInt(dateParts[1])
-      const dayNum = parseInt(dateParts[2])
-
-      if (isNaN(year) || isNaN(month) || isNaN(dayNum)) return
-
-      const date = new Date(year, month - 1, dayNum)
-
-      // 月のキーを生成（YYYY-MM形式）
-      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-
-      if (!monthlyMap.has(monthKey)) {
-        monthlyMap.set(monthKey, {
-          startDate: dateStr,
-          endDate: dateStr,
-          cv: 0,
-          metaCv: 0,
-          googleCv: 0,
-          yahooCv: 0,
-          spend: 0,
-          metaSpend: 0,
-          googleSpend: 0,
-          yahooSpend: 0,
-          totalSpend: 0,
-          displayCv: 0,
-          displaySpend: 0,
-          displayCpo: 0,
-          cpo: 0
-        })
-      }
-
-      const monthData = monthlyMap.get(monthKey)!
-
-      // 日付範囲を更新
-      if (dateStr < monthData.startDate) monthData.startDate = dateStr
-      if (dateStr > monthData.endDate) monthData.endDate = dateStr
-
-      // データを累積
-      monthData.cv += day.cv || 0
-      monthData.metaCv += day.metaCv || 0
-      monthData.googleCv += day.googleCv || 0
-      monthData.yahooCv += day.yahooCv || 0
-      monthData.spend += day.spend || 0
-      monthData.metaSpend += day.metaSpend || 0
-      monthData.googleSpend += day.googleSpend || 0
-      monthData.yahooSpend += day.yahooSpend || 0
-      monthData.totalSpend += day.totalSpend || 0
-
-      // display用の値も集計（チェックボックスでフィルタされた値）
-      monthData.displayCv += day.displayCv || 0
-      monthData.displaySpend += day.displaySpend || 0
-    })
-
-    // 月ごとのCPOを計算してソート
-    return Array.from(monthlyMap.entries())
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([monthKey, monthData]) => {
-        const monthParts = monthKey.split('-')
-        if (monthParts.length < 2) return null
-
-        const [year, monthNum] = monthParts
-        const displayDate = `${parseInt(year)}/${parseInt(monthNum)}月`
-
-        // 月のCPOを再計算
-        const monthCpo = monthData.displayCv > 0 ? Math.round(monthData.displaySpend / monthData.displayCv) : 0
-
-        return {
-          ...monthData,
-          date: displayDate,
-          originalDate: monthData.startDate,
-          displayCpo: monthCpo,
-          cpo: monthCpo
-        }
-      })
-      .filter(item => item !== null)
-  }
-
-  // 週足データ集約関数
-  const aggregateToWeekly = (dailyData: any[]) => {
-    if (!dailyData || dailyData.length === 0) return []
-
-    // データを週ごとにグループ化（月曜日を週の開始日とする）
-    const weeklyMap = new Map<string, {
-      startDate: string
-      endDate: string
-      cv: number
-      metaCv: number
-      googleCv: number
-      yahooCv: number
-      spend: number
-      metaSpend: number
-      googleSpend: number
-      yahooSpend: number
-      totalSpend: number
-      displayCv: number
-      displaySpend: number
-      displayCpo: number
-      cpo: number
-    }>()
-
-    dailyData.forEach(day => {
-      // originalDateまたはdateから日付を取得
-      const dateStr = day.originalDate || day.date
-      if (!dateStr || dateStr === 'Invalid date') return
-
-      // 既に集約されたデータ（週足・月足形式など）の場合はスキップ
-      if (dateStr.includes('週') || dateStr.includes('月')) return
-
-      // 日付をパース（YYYY-MM-DD形式のみ処理）
-      const dateParts = dateStr.split('-')
-      if (dateParts.length !== 3) return
-
-      // 数値に変換できるか確認
-      const year = parseInt(dateParts[0])
-      const month = parseInt(dateParts[1])
-      const dayNum = parseInt(dateParts[2])
-
-      if (isNaN(year) || isNaN(month) || isNaN(dayNum)) return
-
-      const date = new Date(year, month - 1, dayNum)
-
-      // 月曜日を週の開始日として週のキーを作成
-      const dayOfWeek = date.getDay()
-      const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1 // 日曜日の場合は6日前、それ以外はdayOfWeek - 1日前が月曜日
-      const monday = new Date(date)
-      monday.setDate(date.getDate() - diff)
-
-      const weekKey = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`
-
-      if (!weeklyMap.has(weekKey)) {
-        const sunday = new Date(monday)
-        sunday.setDate(monday.getDate() + 6)
-
-        weeklyMap.set(weekKey, {
-          startDate: weekKey,
-          endDate: `${sunday.getFullYear()}-${String(sunday.getMonth() + 1).padStart(2, '0')}-${String(sunday.getDate()).padStart(2, '0')}`,
-          cv: 0,
-          metaCv: 0,
-          googleCv: 0,
-          yahooCv: 0,
-          spend: 0,
-          metaSpend: 0,
-          googleSpend: 0,
-          yahooSpend: 0,
-          totalSpend: 0,
-          displayCv: 0,
-          displaySpend: 0,
-          displayCpo: 0,
-          cpo: 0
-        })
-      }
-
-      const week = weeklyMap.get(weekKey)!
-
-      // データを累積
-      week.cv += day.cv || 0
-      week.metaCv += day.metaCv || 0
-      week.googleCv += day.googleCv || 0
-      week.yahooCv += day.yahooCv || 0
-      week.spend += day.spend || 0
-      week.metaSpend += day.metaSpend || 0
-      week.googleSpend += day.googleSpend || 0
-      week.yahooSpend += day.yahooSpend || 0
-      week.totalSpend += day.totalSpend || 0
-
-      // display用の値も集計（チェックボックスでフィルタされた値）
-      week.displayCv += day.displayCv || 0
-      week.displaySpend += day.displaySpend || 0
-    })
-
-    // 週ごとのCPOを計算してソート
-    return Array.from(weeklyMap.entries())
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([weekKey, week]) => {
-        const weekStartParts = week.startDate.split('-')
-        const displayDate = `${parseInt(weekStartParts[1])}/${parseInt(weekStartParts[2])}週`
-
-        // 週のCPOを再計算
-        const weekCpo = week.displayCv > 0 ? Math.round(week.displaySpend / week.displayCv) : 0
-
-        return {
-          ...week,
-          date: displayDate,
-          originalDate: week.startDate,
-          displayCpo: weekCpo,
-          cpo: weekCpo
-        }
-      })
-  }
-
   const calculateKPIMetrics = useMemo(() => {
     // Meta広告費、Google広告費、Yahoo広告費を合算
     console.log('📊 メトリクス計算:', {
@@ -1203,12 +793,11 @@ export default function KPIViewDashboardBreakdown() {
       dateRange
     })
     const metaCost = metaSpendData?.current?.spend || 0
-    const googleCost = googleAdsSpendData?.current?.spend || googleAdsData?.cost || 0  // API直接呼び出しデータを優先
+    const googleCost = googleAdsData?.cost || 0  // 直接costを参照
     const yahooCost = yahooAdsData?.cost || 0
     console.log('💰 広告費計算:', {
       metaCost,
       googleCost,
-      googleAdsSpendData: googleAdsSpendData?.current,
       yahooCost,
       googleAdsData,
       yahooAdsData,
@@ -1216,29 +805,23 @@ export default function KPIViewDashboardBreakdown() {
     })
     const cost = metaCost + googleCost + yahooCost || kpiSummaryData?.current?.cost || 0
 
-    // クリック数も統合
-    const metaClicks = metaSpendData?.current?.clicks || 0
-    const googleAdsClicks = googleAdsSpendData?.current?.clicks || googleAdsData?.clicks || 0
-    const yahooClicks = yahooAdsData?.clicks || 0
-    const totalClicks = metaClicks + googleAdsClicks + yahooClicks
-
     // 各媒体のCV数を計算（Meta CVはConvexの実データから取得）
     const metaConversions = kpiSummaryData?.current?.cvOrder || 0
-    const googleConversionsValue = googleAdsSpendData?.current?.conversions || googleAdsData?.conversions || 0
+    const googleConversionsValue = googleAdsData?.conversions || 0
     const yahooConversionsValue = yahooAdsData?.conversions || 0
 
     // 全体のCV数（各媒体のCVを合算）
     const cv = metaConversions + googleConversionsValue + yahooConversionsValue
     const sales = kpiSummaryData?.current?.salesAmount || 0
 
-    // クリック数はすでに上で計算済み（totalClicks）
-    const clicks = totalClicks || kpiSummaryData?.current?.accessCount || 0
+    // MetaとGoogle Adsのクリック・インプレッションを合算
+    const metaClicks = metaSpendData?.current?.clicks || 0
+    const googleClicks = googleAdsData?.clicks || 0  // 直接clicksを参照
+    const clicks = metaClicks + googleClicks || kpiSummaryData?.current?.accessCount || 0
 
-    // インプレッションを合算
     const metaImpressions = metaSpendData?.current?.impressions || 0
-    const googleImpressions = googleAdsSpendData?.current?.impressions || googleAdsData?.impressions || 0
-    const yahooImpressions = yahooAdsData?.impressions || 0
-    const impressions = metaImpressions + googleImpressions + yahooImpressions || 0
+    const googleImpressions = googleAdsData?.impressions || 0  // 直接impressionsを参照
+    const impressions = metaImpressions + googleImpressions || 0
 
     // 計算指標
     const cpo = cv > 0 ? cost / cv : 0
@@ -1250,17 +833,15 @@ export default function KPIViewDashboardBreakdown() {
 
     // 前期比較データ
     const previousMetaCost = metaSpendData?.previous?.spend || 0
-    const previousGoogleCost = googleAdsSpendData?.previous?.spend || googleAdsData?.previous?.cost || 0
-    const previousYahooCost = 0  // Yahooの前期データは今回は扱わない
-    const previousCost = previousMetaCost + previousGoogleCost + previousYahooCost || kpiSummaryData?.previous?.cost || 0
+    const previousGoogleCost = googleAdsData?.previous?.cost || 0
+    const previousCost = previousMetaCost + previousGoogleCost || kpiSummaryData?.previous?.cost || 0
 
     const previousCv = kpiSummaryData?.previous?.cvOrder || 0
     const previousSales = kpiSummaryData?.previous?.salesAmount || 0
 
     const previousMetaClicks = metaSpendData?.previous?.clicks || 0
-    const previousGoogleClicks = googleAdsSpendData?.previous?.clicks || googleAdsData?.previous?.clicks || 0
-    const previousYahooClicks = 0  // Yahooの前期データは今回は扱わない
-    const previousClicks = previousMetaClicks + previousGoogleClicks + previousYahooClicks || kpiSummaryData?.previous?.accessCount || 0
+    const previousGoogleClicks = googleAdsData?.previous?.clicks || 0
+    const previousClicks = previousMetaClicks + previousGoogleClicks || kpiSummaryData?.previous?.accessCount || 0
 
     const previousMetaImpressions = metaSpendData?.previous?.impressions || 0
     const previousGoogleImpressions = googleAdsData?.previous?.impressions || 0
@@ -1311,6 +892,11 @@ export default function KPIViewDashboardBreakdown() {
       yahooCPO
     })
 
+    // 予実管理用の追加計算（月次目標を使用）
+    const budgetUsageRate = targetBudget > 0 ? (cost / targetBudget) * 100 : 0
+    const cvAchievementRate = monthlyTargetCV > 0 ? (cv / monthlyTargetCV) * 100 : 0
+    const cpoAchievementRate = monthlyTargetCPO > 0 ? (monthlyTargetCPO / cpo) * 100 : 0 // CPOは低いほど良いので逆数
+
     return {
       // メイン指標
       cost,
@@ -1327,6 +913,13 @@ export default function KPIViewDashboardBreakdown() {
       cpo,
       sales,
       roas,
+      // 予実管理指標
+      budgetUsageRate,
+      cvAchievementRate,
+      cpoAchievementRate,
+      targetBudget,
+      targetCV,
+      targetCPO,
       // CVブレークダウン要素
       impressions,
       ctr,
@@ -1338,7 +931,7 @@ export default function KPIViewDashboardBreakdown() {
       // 変化率
       changes
     }
-  }, [metaSpendData, googleAdsData, yahooAdsData, kpiSummaryData])
+  }, [metaSpendData, googleAdsData, yahooAdsData, kpiSummaryData, monthlyTargetCV, monthlyTargetCPO, targetBudget])
 
   // グラフ用データ整形（ECForce、Meta、Google Ads、Yahoo Adsデータを統合）
   // 元のチャートデータを計算
@@ -1351,10 +944,12 @@ export default function KPIViewDashboardBreakdown() {
       spend: number;
       metaSpend: number;
       googleSpend: number;
-      yahooSpend: number
+      yahooSpend: number;
+      isPrediction?: boolean;
     }>()
 
-    // ConvexのECForce実データ（Meta CV）を集計
+    // ConvexのECForce実データ（実際の注文データ）をMeta CVとして使用
+    // ECForceのデータが正確なコンバージョン数
     if (trendData?.data) {
       trendData.data.forEach((item: any) => {
         const dateStr = item.date
@@ -1364,12 +959,12 @@ export default function KPIViewDashboardBreakdown() {
         const existing = dataMap.get(dateStr)!
         // ECForce実データのCVをMeta CVとして扱う
         const metaCvCount = item.cv || item.cvOrder || 0
-        existing.metaCv += metaCvCount
+        existing.metaCv = metaCvCount  // 上書きで設定（重複を避ける）
         existing.cv += metaCvCount
       })
     }
 
-    // Meta広告費の日別集計
+    // Meta広告費の日別集計（CVはECForceから取得するのでここでは追加しない）
     console.log('🔍 dailyMetaData確認:', {
       データ数: dailyMetaData.length,
       最初のデータ: dailyMetaData[0],
@@ -1382,34 +977,14 @@ export default function KPIViewDashboardBreakdown() {
       }
       const existing = dataMap.get(dateStr)!
       const spendValue = item.spend || 0
+      // Meta APIのCVは広告のCVであり、実際の注文とは異なる可能性があるので使用しない
       console.log(`💵 ${dateStr}: Meta広告費 = ¥${spendValue}`)
       existing.metaSpend += spendValue
       existing.spend += spendValue
     })
 
-    // Google Ads API直接呼び出しの日別データを追加（優先）
-    console.log('🔍 dailyGoogleAdsData確認:', {
-      データ数: dailyGoogleAdsData.length,
-      最初のデータ: dailyGoogleAdsData[0],
-      dailyGoogleAdsData
-    })
-    if (dailyGoogleAdsData.length > 0) {
-      dailyGoogleAdsData.forEach(item => {
-        const dateStr = item.date
-        if (!dataMap.has(dateStr)) {
-          dataMap.set(dateStr, { cv: 0, metaCv: 0, googleCv: 0, yahooCv: 0, spend: 0, metaSpend: 0, googleSpend: 0, yahooSpend: 0 })
-        }
-        const existing = dataMap.get(dateStr)!
-        const spendValue = item.spend || 0
-        console.log(`💵 ${dateStr}: Google Ads広告費(API直接) = ¥${spendValue}`)
-        existing.googleSpend += spendValue
-        existing.spend += spendValue
-        existing.googleCv += item.conversions || 0
-        existing.cv += item.conversions || 0
-      })
-    }
-    // Google Adsデータの日別集計を追加（フォールバック）
-    else if (googleAdsData?.dailyData) {
+    // Google Adsデータの日別集計を追加
+    if (googleAdsData?.dailyData) {
       googleAdsData.dailyData.forEach((item: any) => {
         const dateStr = item.date
         if (!dataMap.has(dateStr)) {
@@ -1439,6 +1014,64 @@ export default function KPIViewDashboardBreakdown() {
     }
 
 
+    // 予測値の追加（今月選択時のみ）
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    if (selectedMonth === 'current' && dateRange === 'current_month') {
+      // 月末までの日付を生成
+      const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0)
+
+      // 過去データから平均値を計算
+      const existingData = Array.from(dataMap.values())
+      const avgCv = existingData.length > 0
+        ? Math.round(existingData.reduce((sum, d) => sum + d.cv, 0) / existingData.length)
+        : 0
+      const avgMetaCv = existingData.length > 0
+        ? Math.round(existingData.reduce((sum, d) => sum + d.metaCv, 0) / existingData.length)
+        : 0
+      const avgGoogleCv = existingData.length > 0
+        ? Math.round(existingData.reduce((sum, d) => sum + d.googleCv, 0) / existingData.length)
+        : 0
+      const avgYahooCv = existingData.length > 0
+        ? Math.round(existingData.reduce((sum, d) => sum + d.yahooCv, 0) / existingData.length)
+        : 0
+      const avgMetaSpend = existingData.length > 0
+        ? Math.round(existingData.reduce((sum, d) => sum + d.metaSpend, 0) / existingData.length)
+        : 0
+      const avgGoogleSpend = existingData.length > 0
+        ? Math.round(existingData.reduce((sum, d) => sum + d.googleSpend, 0) / existingData.length)
+        : 0
+      const avgYahooSpend = existingData.length > 0
+        ? Math.round(existingData.reduce((sum, d) => sum + d.yahooSpend, 0) / existingData.length)
+        : 0
+
+      // 今日以降から月末までの予測値を追加
+      const tomorrow = new Date(today)
+      tomorrow.setDate(tomorrow.getDate() + 1)
+
+      for (let date = new Date(tomorrow); date <= monthEnd; date.setDate(date.getDate() + 1)) {
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        const dateStr = `${year}-${month}-${day}`
+
+        if (!dataMap.has(dateStr)) {
+          dataMap.set(dateStr, {
+            cv: avgCv,
+            metaCv: avgMetaCv,
+            googleCv: avgGoogleCv,
+            yahooCv: avgYahooCv,
+            spend: avgMetaSpend + avgGoogleSpend + avgYahooSpend,
+            metaSpend: avgMetaSpend,
+            googleSpend: avgGoogleSpend,
+            yahooSpend: avgYahooSpend,
+            isPrediction: true
+          })
+        }
+      }
+    }
+
     const sortedData = Array.from(dataMap.entries())
       .sort((a, b) => a[0].localeCompare(b[0]))
       .map(([dateStr, data]) => {
@@ -1459,10 +1092,11 @@ export default function KPIViewDashboardBreakdown() {
           metaSpend: Math.round(data.metaSpend),
           googleSpend: Math.round(data.googleSpend),
           yahooSpend: Math.round(data.yahooSpend),
+          isPrediction: data.isPrediction || false,
         }
 
         if (data.metaSpend > 0 || data.googleSpend > 0) {
-          console.log(`📊 ${dateStr}: Meta=¥${result.metaSpend}, Google=¥${result.googleSpend}, 合計=¥${result.totalSpend}`)
+          console.log(`📊 ${dateStr}: Meta=¥${result.metaSpend}, Google=¥${result.googleSpend}, 合計=¥${result.totalSpend}${data.isPrediction ? ' (予測)' : ''}`)
         }
 
         return result
@@ -1536,15 +1170,9 @@ export default function KPIViewDashboardBreakdown() {
       }
     })
 
-    // 表示モードに応じてデータを集約
-    if (viewMode === 'weekly') {
-      return aggregateToWeekly(processedData)
-    } else if (viewMode === 'monthly') {
-      return aggregateToMonthly(processedData)
-    }
-
+    // 日足のみ返す（週足・月足は削除）
     return processedData
-  }, [fullChartData, brushRange, showMeta, showGoogle, showYahoo, viewMode])
+  }, [fullChartData, brushRange, showMeta, showGoogle, showYahoo])
 
   // 数値フォーマット
   const formatNumber = (num: number) => {
@@ -1984,8 +1612,8 @@ export default function KPIViewDashboardBreakdown() {
             <div className="flex items-center gap-3">
               <ChartBarSquareIcon className="w-8 h-8 text-[#f6d856]" />
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">KPIビュー</h1>
-                <p className="text-sm text-gray-600 mt-0.5">数式で見る広告パフォーマンス</p>
+                <h1 className="text-2xl font-bold text-gray-900">予実管理</h1>
+                <p className="text-sm text-gray-600 mt-0.5">目標と実績の比較分析</p>
               </div>
             </div>
 
@@ -2011,27 +1639,26 @@ export default function KPIViewDashboardBreakdown() {
           </div>
         )}
 
-        {/* 期間選択UI */}
+        {/* 月選択UI */}
         <div className="mb-8 bg-white rounded-lg shadow-sm border border-gray-200 p-4">
           <div className="flex items-center justify-between">
-            <DateRangeFilter
-              value={dateRange}
-              onChange={setDateRange}
-              onCustomDateRange={handleCustomDateRange}
-              customDateRange={customDateRange}
+            <MonthSelector
+              selectedMonth={selectedMonth}
+              onChange={(month) => {
+                setSelectedMonth(month)
+                // 選択された月に応じてdateRangeを更新
+                if (month === 'current') {
+                  setDateRange('current_month')
+                } else if (month === 'last') {
+                  setDateRange('last_month')
+                } else {
+                  // 来月の場合は適切な処理を追加
+                  setDateRange('current_month')
+                }
+              }}
             />
 
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowTargetModal(true)}
-                className="px-4 py-1.5 text-sm bg-amber-100 hover:bg-amber-200 border border-amber-400 rounded-md transition-colors font-semibold text-amber-800 flex items-center gap-2"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-                目標設定
-              </button>
-
               <button
                 onClick={() => setShowSnapshotList(true)}
                 className="px-4 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 border border-gray-400 rounded-md transition-colors font-semibold text-gray-800 flex items-center gap-2"
@@ -2043,128 +1670,118 @@ export default function KPIViewDashboardBreakdown() {
           </div>
         </div>
 
-        {/* メイン数式（CPO）- 全媒体合算 */}
+        {/* 予実管理メトリクス */}
         <div className="mb-12">
           <h2 className="text-lg font-semibold text-gray-700 mb-6 flex items-center gap-2">
-            <span className="text-2xl">📐</span> CPO（注文獲得単価）- 全媒体合算
+            <span className="text-2xl">📊</span> 予実管理 - 目標達成状況
           </h2>
-          <div className="bg-gradient-to-r from-slate-50 to-gray-50 rounded-2xl p-8 shadow-inner">
-            {/* メイン数式 */}
-            <div className="flex items-center justify-center gap-8">
-              <FormulaCard
-                label="広告費用"
-                value={metrics.cost}
-                change={metrics.changes.cost}
-                unit="円"
-                isPositiveGood={false}
-                isExpandable={true}
-                isExpanded={expandedMetric === 'cost'}
-                onClick={() => setExpandedMetric(expandedMetric === 'cost' ? null : 'cost')}
-                breakdown={
-                  <div className="flex items-center gap-3">
-                    <div className="text-center px-4 py-3 bg-blue-50 rounded-lg min-w-[120px]">
-                      <div className="text-xs text-gray-400 mb-1">Meta</div>
-                      <div className="text-2xl font-semibold text-gray-500">
-                        ¥{formatNumber(metrics.metaCost)}
-                      </div>
-                    </div>
-                    <div className="text-xl text-gray-400">+</div>
-                    <div className="text-center px-4 py-3 bg-yellow-50 rounded-lg min-w-[120px]">
-                      <div className="text-xs text-gray-400 mb-1">Google</div>
-                      <div className="text-2xl font-semibold text-gray-500">
-                        ¥{formatNumber(metrics.googleCost)}
-                      </div>
-                    </div>
-                    <div className="text-xl text-gray-400">+</div>
-                    <div className="text-center px-4 py-3 bg-red-50 rounded-lg min-w-[120px]">
-                      <div className="text-xs text-gray-400 mb-1">Yahoo</div>
-                      <div className="text-2xl font-semibold text-gray-500">
-                        ¥{formatNumber(metrics.yahooCost)}
-                      </div>
-                    </div>
-                  </div>
-                }
-              />
-              <Operator symbol="÷" />
-              <FormulaCard
-                label="コンバージョン"
-                value={metrics.cv}
-                change={metrics.changes.cv}
-                isExpandable={true}
-                isExpanded={expandedMetric === 'cv'}
-                onClick={() => setExpandedMetric(expandedMetric === 'cv' ? null : 'cv')}
-                breakdown={
-                  <div className="flex items-center gap-3">
-                    <div className="text-center px-4 py-3 bg-blue-50 rounded-lg min-w-[100px]">
-                      <div className="text-xs text-gray-400 mb-1">Meta</div>
-                      <div className="text-2xl font-semibold text-gray-500">
-                        {formatNumber(metrics.metaConversions)}
-                      </div>
-                    </div>
-                    <div className="text-xl text-gray-400">+</div>
-                    <div className="text-center px-4 py-3 bg-yellow-50 rounded-lg min-w-[100px]">
-                      <div className="text-xs text-gray-400 mb-1">Google</div>
-                      <div className="text-2xl font-semibold text-gray-500">
-                        {formatNumber(metrics.googleConversions)}
-                      </div>
-                    </div>
-                    <div className="text-xl text-gray-400">+</div>
-                    <div className="text-center px-4 py-3 bg-red-50 rounded-lg min-w-[100px]">
-                      <div className="text-xs text-gray-400 mb-1">Yahoo</div>
-                      <div className="text-2xl font-semibold text-gray-500">
-                        {formatNumber(metrics.yahooConversions)}
-                      </div>
-                    </div>
-                  </div>
-                }
-              />
-              <Operator symbol="=" />
-              <FormulaCard
-                label="CPO"
-                value={metrics.cpo}
-                change={metrics.changes.cpo}
-                unit="円"
-                isResult
-                isPositiveGood={false}
-                isExpandable={true}
-                isExpanded={expandedMetric === 'cpo'}
-                onClick={() => setExpandedMetric(expandedMetric === 'cpo' ? null : 'cpo')}
-                breakdown={
-                  <div className="flex items-center gap-4">
-                    <div className="text-sm text-gray-600 font-semibold">媒体別</div>
-                    <div className="text-center px-4 py-3 bg-blue-50 rounded-lg min-w-[140px]">
-                      <div className="text-xs text-gray-400 mb-1">Meta CPO</div>
-                      <div className="text-2xl font-semibold text-gray-500">
-                        ¥{formatNumber(metrics.metaCPO)}
-                      </div>
-                      <div className="text-xs text-gray-400 mt-1">
-                        {formatNumber(metrics.metaCost)}円 ÷ {formatNumber(metrics.metaConversions)}件
-                      </div>
-                    </div>
-                    <div className="text-center px-4 py-3 bg-yellow-50 rounded-lg min-w-[140px]">
-                      <div className="text-xs text-gray-400 mb-1">Google CPO</div>
-                      <div className="text-2xl font-semibold text-gray-500">
-                        ¥{formatNumber(metrics.googleCPO)}
-                      </div>
-                      <div className="text-xs text-gray-400 mt-1">
-                        {formatNumber(metrics.googleCost)}円 ÷ {formatNumber(metrics.googleConversions)}件
-                      </div>
-                    </div>
-                    <div className="text-center px-4 py-3 bg-red-50 rounded-lg min-w-[140px]">
-                      <div className="text-xs text-gray-400 mb-1">Yahoo CPO</div>
-                      <div className="text-2xl font-semibold text-gray-500">
-                        ¥{formatNumber(metrics.yahooCPO)}
-                      </div>
-                      <div className="text-xs text-gray-400 mt-1">
-                        {formatNumber(metrics.yahooCost)}円 ÷ {formatNumber(metrics.yahooConversions)}件
-                      </div>
-                    </div>
-                  </div>
-                }
-              />
-            </div>
 
-          </div>
+          {monthlyTarget ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* 予算消化率 */}
+              <div className="bg-gradient-to-br from-blue-50 to-white rounded-xl p-6 border border-blue-200">
+                <div className="mb-4">
+                  <h3 className="text-sm font-medium text-gray-600">予算消化率</h3>
+                  <div className="mt-2 flex items-baseline gap-2">
+                    <span className="text-3xl font-bold text-blue-600">
+                      {formatNumber(metrics.budgetUsageRate)}%
+                    </span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">実績</span>
+                    <span className="font-medium">¥{formatNumber(metrics.cost)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">目標</span>
+                    <span className="font-medium">¥{formatNumber(targetBudget || 0)}</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
+                    <div
+                      className={`h-2 rounded-full ${
+                        metrics.budgetUsageRate > 100 ? 'bg-red-500' :
+                        metrics.budgetUsageRate > 80 ? 'bg-yellow-500' : 'bg-blue-500'
+                      }`}
+                      style={{ width: `${Math.min(metrics.budgetUsageRate, 100)}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* CV達成率 */}
+              <div className="bg-gradient-to-br from-green-50 to-white rounded-xl p-6 border border-green-200">
+                <div className="mb-4">
+                  <h3 className="text-sm font-medium text-gray-600">CV達成率</h3>
+                  <div className="mt-2 flex items-baseline gap-2">
+                    <span className="text-3xl font-bold text-green-600">
+                      {formatNumber(metrics.cvAchievementRate)}%
+                    </span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">実績</span>
+                    <span className="font-medium">{formatNumber(metrics.cv)}件</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">目標</span>
+                    <span className="font-medium">{formatNumber(monthlyTargetCV || 0)}件</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
+                    <div
+                      className={`h-2 rounded-full ${
+                        metrics.cvAchievementRate >= 100 ? 'bg-green-500' :
+                        metrics.cvAchievementRate >= 80 ? 'bg-yellow-500' : 'bg-orange-500'
+                      }`}
+                      style={{ width: `${Math.min(metrics.cvAchievementRate, 100)}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* CPO達成率 */}
+              <div className="bg-gradient-to-br from-orange-50 to-white rounded-xl p-6 border border-orange-200">
+                <div className="mb-4">
+                  <h3 className="text-sm font-medium text-gray-600">CPO達成率</h3>
+                  <div className="mt-2 flex items-baseline gap-2">
+                    <span className="text-3xl font-bold text-orange-600">
+                      {formatNumber(metrics.cpoAchievementRate)}%
+                    </span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">実績</span>
+                    <span className="font-medium">¥{formatNumber(metrics.cpo)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">目標</span>
+                    <span className="font-medium">¥{formatNumber(monthlyTargetCPO || 0)}</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
+                    <div
+                      className={`h-2 rounded-full ${
+                        metrics.cpoAchievementRate >= 100 ? 'bg-green-500' :
+                        metrics.cpoAchievementRate >= 80 ? 'bg-yellow-500' : 'bg-orange-500'
+                      }`}
+                      style={{ width: `${Math.min(metrics.cpoAchievementRate, 100)}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-gray-50 rounded-xl p-8 text-center">
+              <p className="text-gray-600 mb-4">選択された月の目標が設定されていません</p>
+              <Link
+                to="/settings/targets"
+                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                目標を設定する
+              </Link>
+            </div>
+          )}
         </div>
 
         {/* グラフセクション */}
@@ -2172,43 +1789,10 @@ export default function KPIViewDashboardBreakdown() {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-4">
               <div>
-                <h3 className="text-lg font-semibold text-gray-700">CV数とCPOの推移</h3>
+                <h3 className="text-lg font-semibold text-gray-700">CV数とCPOの推移（日別）</h3>
                 <p className="text-sm text-gray-500 mt-1">
                   下部のバーをドラッグして期間を選択できます
                 </p>
-              </div>
-              {/* 日足/週足/月足切り替えボタン */}
-              <div className="flex bg-gray-100 rounded-lg p-1">
-                <button
-                  onClick={() => setViewMode('daily')}
-                  className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
-                    viewMode === 'daily'
-                      ? 'bg-white text-gray-900 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  日足
-                </button>
-                <button
-                  onClick={() => setViewMode('weekly')}
-                  className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
-                    viewMode === 'weekly'
-                      ? 'bg-white text-gray-900 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  週足
-                </button>
-                <button
-                  onClick={() => setViewMode('monthly')}
-                  className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
-                    viewMode === 'monthly'
-                      ? 'bg-white text-gray-900 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  月足
-                </button>
               </div>
             </div>
             <div className="flex flex-col gap-2">
@@ -2297,7 +1881,7 @@ export default function KPIViewDashboardBreakdown() {
                         {targetCV !== null && (
                           <span className="flex items-center gap-2">
                             <span className="w-4 h-0 border-t-2 border-dashed border-blue-500" />
-                            <span className="text-sm text-blue-600">CV目標: {targetCV}件</span>
+                            <span className="text-sm text-blue-600">CV目標: {targetCV}件/日</span>
                           </span>
                         )}
                         {targetCPO !== null && (
@@ -2363,15 +1947,68 @@ export default function KPIViewDashboardBreakdown() {
               {/* 積み上げ表示の場合 */}
               {showStackedCv ? (
                 <>
-                  {showMeta && <Bar yAxisId="left" dataKey="metaCv" stackId="cv" fill="#4267B2" name="Meta CV" />}
-                  {showGoogle && <Bar yAxisId="left" dataKey="googleCv" stackId="cv" fill="#FFC107" name="Google CV" />}
-                  {showYahoo && <Bar yAxisId="left" dataKey="yahooCv" stackId="cv" fill="#FF1A00" name="Yahoo! CV" />}
+                  {showMeta && (
+                    <Bar
+                      yAxisId="left"
+                      dataKey="metaCv"
+                      stackId="cv"
+                      fill="#4267B2"
+                      name="Meta CV"
+                      shape={(props: any) => {
+                        const opacity = props.payload.isPrediction ? 0.4 : 1
+                        return <rect {...props} fillOpacity={opacity} />
+                      }}
+                    />
+                  )}
+                  {showGoogle && (
+                    <Bar
+                      yAxisId="left"
+                      dataKey="googleCv"
+                      stackId="cv"
+                      fill="#FFC107"
+                      name="Google CV"
+                      shape={(props: any) => {
+                        const opacity = props.payload.isPrediction ? 0.4 : 1
+                        return <rect {...props} fillOpacity={opacity} />
+                      }}
+                    />
+                  )}
+                  {showYahoo && (
+                    <Bar
+                      yAxisId="left"
+                      dataKey="yahooCv"
+                      stackId="cv"
+                      fill="#FF1A00"
+                      name="Yahoo! CV"
+                      shape={(props: any) => {
+                        const opacity = props.payload.isPrediction ? 0.4 : 1
+                        return <rect {...props} fillOpacity={opacity} />
+                      }}
+                    />
+                  )}
                 </>
               ) : (
                 /* 合計表示の場合 */
-                <Bar yAxisId="left" dataKey="cv" fill="#3B82F6" name="CV数（合計）" />
+                <Bar
+                  yAxisId="left"
+                  dataKey="cv"
+                  fill="#3B82F6"
+                  name="CV数（合計）"
+                  shape={(props: any) => {
+                    const opacity = props.payload.isPrediction ? 0.4 : 1
+                    return <rect {...props} fillOpacity={opacity} />
+                  }}
+                />
               )}
-              <Line yAxisId="right" type="monotone" dataKey="cpo" stroke="#F59E0B" strokeWidth={2} name="CPO" />
+              <Line
+                yAxisId="right"
+                type="monotone"
+                dataKey="cpo"
+                stroke="#F59E0B"
+                strokeWidth={2}
+                name="CPO"
+                strokeDasharray={(data: any) => data.isPrediction ? "5 5" : "0"}
+              />
 
               {/* 目標線の表示（ラベルなし） */}
               {targetCV !== null && (
@@ -2409,94 +2046,87 @@ export default function KPIViewDashboardBreakdown() {
           </ResponsiveContainer>
         </div>
 
-        {/* 広告費用トレンドグラフ */}
-        <div className="mb-12 bg-white rounded-2xl p-8 shadow-lg">
-          <div className="flex justify-between items-center mb-4">
-            <div>
-              <h2 className="text-xl font-bold text-gray-800">💰 広告費用トレンド</h2>
-              <div className="mt-2 flex items-center gap-4">
-                <span className="text-sm text-gray-600">
-                  期間総額:
-                  <span className="ml-2 font-bold text-lg text-gray-900">
-                    ¥{formatNumber(chartData.reduce((sum, item) => sum + (item.totalSpend || 0), 0))}
-                  </span>
-                </span>
-                <span className="text-sm text-gray-600">
-                  内訳:
-                  <span className="ml-2 text-[#4267B2] font-medium">
-                    Meta ¥{formatNumber(chartData.reduce((sum, item) => sum + (item.metaSpend || 0), 0))}
-                  </span>
-                  <span className="ml-2 text-[#FFC107] font-medium">
-                    Google ¥{formatNumber(chartData.reduce((sum, item) => sum + (item.googleSpend || 0), 0))}
-                  </span>
-                  <span className="ml-2 text-[#FF1A00] font-medium">
-                    Yahoo! ¥{formatNumber(chartData.reduce((sum, item) => sum + (item.yahooSpend || 0), 0))}
-                  </span>
-                </span>
-              </div>
-            </div>
-          </div>
-          <ResponsiveContainer width="100%" height={300}>
-            <ComposedChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="date" />
-              <YAxis />
-              <Tooltip
-                formatter={(value: number, name: string) => `¥${formatNumber(value)}`}
-              />
-              <Legend />
-              <Bar dataKey="metaSpend" stackId="spend" fill="#4267B2" name="Meta広告費" />
-              <Bar dataKey="googleSpend" stackId="spend" fill="#FFC107" name="Google広告費" />
-              <Bar dataKey="yahooSpend" stackId="spend" fill="#FF1A00" name="Yahoo!広告費" />
-            </ComposedChart>
-          </ResponsiveContainer>
-        </div>
-
-
         {/* Meta専用セクション with ブレークダウン */}
         <div className="mb-12">
           <h2 className="text-lg font-semibold text-gray-700 mb-6 flex items-center gap-2">
             <span className="text-2xl">📊</span> Meta広告
           </h2>
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-8 shadow-inner overflow-x-auto">
-            <PlatformKPIFormula
-              platformName="Meta"
-              platformConfig={{
-                color: 'blue',
-                bgGradient: 'from-blue-50 to-indigo-50'
-              }}
-              data={{
-                adSpend: {
-                  total: metaSpendData?.current?.spend || 0,
-                  breakdown: [
-                    {
-                      label: 'Facebook',
-                      value: (metaSpendData?.current?.spend || 0) * 0.6,
-                      color: 'blue'
-                    },
-                    {
-                      label: 'Instagram',
-                      value: (metaSpendData?.current?.spend || 0) * 0.35,
-                      color: 'pink'
-                    },
-                    {
-                      label: 'Audience Network',
-                      value: (metaSpendData?.current?.spend || 0) * 0.05,
-                      color: 'purple'
-                    }
-                  ]
-                },
-                conversions: metrics.metaConversions,
-                cpo: metrics.metaCPO,
-                impressions: metaSpendData?.current?.impressions,
-                clicks: metaSpendData?.current?.clicks,
-                ctr: metaSpendData?.current?.ctr,
-                cvr: metrics.cvr,
-                cpc: metaSpendData?.current?.cpc
-              }}
-              isLoading={false}
-            />
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-8 shadow-inner">
+            <div className="flex items-center justify-center gap-8">
+              <FormulaCard
+                label="Meta広告費"
+                value={metaSpendData?.current?.spend || 0}
+                change={metaSpendData?.previous?.spend
+                  ? ((metaSpendData.current.spend - metaSpendData.previous.spend) / metaSpendData.previous.spend) * 100
+                  : undefined}
+                unit="円"
+                isPositiveGood={false}
+              />
+              <Operator symbol="÷" />
+              <FormulaCard
+                label="ECForce CV"
+                value={metrics.metaConversions}
+                change={metrics.changes.cv}
+                isExpandable={true}
+                isExpanded={expandedMetric === 'cv'}
+                onClick={() => toggleMetricExpansion('cv')}
+                breakdown={
+                  expandedMetric === 'cv' ? (
+                    <div className="flex items-center gap-3">
+                      <SubFormulaCard
+                        label="Meta IMP"
+                        value={metaSpendData?.current?.impressions || 0}
+                        unit=""
+                      />
+                      <Operator symbol="×" size="sm" />
+                      <SubFormulaCard
+                        label="Meta CTR"
+                        value={metaSpendData?.current?.ctr || 0}
+                        unit="%"
+                      />
+                      <Operator symbol="×" size="sm" />
+                      <SubFormulaCard
+                        label="CVR（逆算）"
+                        value={metrics.cvr}
+                        unit="%"
+                      />
+                    </div>
+                  ) : undefined
+                }
+              />
+              <Operator symbol="=" />
+              <FormulaCard
+                label="Meta CPO"
+                value={metrics.metaCPO}
+                unit="円"
+                isResult
+                isPositiveGood={false}
+                isExpandable={true}
+                isExpanded={expandedMetric === 'cpo'}
+                onClick={() => toggleMetricExpansion('cpo')}
+                breakdown={
+                  expandedMetric === 'cpo' ? (
+                    <div className="flex items-center gap-3">
+                      <SubFormulaCard
+                        label="Meta CPC"
+                        value={metaSpendData?.current?.cpc || 0}
+                        unit="円"
+                      />
+                      <Operator symbol="÷" size="sm" />
+                      <SubFormulaCard
+                        label="CVR（ECForce基準）"
+                        value={metrics.cvr}
+                        unit="%"
+                      />
+                    </div>
+                  ) : undefined
+                }
+              />
+            </div>
+
+
           </div>
+
         </div>
 
         {/* Google広告 CPO（注文獲得単価） */}
@@ -2511,385 +2141,44 @@ export default function KPIViewDashboardBreakdown() {
               </svg>
             </span> Google広告
           </h2>
-          <div className="bg-gradient-to-r from-yellow-50 to-amber-50 rounded-2xl p-8 shadow-inner overflow-x-auto">
-            <PlatformKPIFormula
-              platformName="Google"
-              platformConfig={{
-                color: 'yellow',
-                bgGradient: 'from-yellow-50 to-amber-50'
-              }}
-              data={{
-                adSpend: {
-                  total: metrics.googleCost,
-                  breakdown: googleAdsSpendData?.current?.campaignTypeBreakdown ? [
-                    {
-                      label: 'P-Max',
-                      value: googleAdsSpendData.current.campaignTypeBreakdown.pmax?.reduce((sum: number, item: any) => sum + item.spend, 0) || 0,
-                      color: 'blue'
-                    },
-                    {
-                      label: 'Demand Gen',
-                      value: googleAdsSpendData.current.campaignTypeBreakdown.demandgen?.reduce((sum: number, item: any) => sum + item.spend, 0) || 0,
-                      color: 'green'
-                    },
-                    {
-                      label: '一般',
-                      value: googleAdsSpendData.current.campaignTypeBreakdown.general?.reduce((sum: number, item: any) => sum + item.spend, 0) || 0,
-                      color: 'gray'
-                    }
-                  ] : [
-                    { label: 'P-Max', value: 0, color: 'blue' },
-                    { label: 'Demand Gen', value: 0, color: 'green' },
-                    { label: '一般', value: 0, color: 'gray' }
-                  ]
-                },
-                conversions: metrics.googleConversions,
-                cpo: metrics.googleCPO,
-                impressions: googleAdsSpendData?.current?.impressions || googleAdsData?.impressions,
-                clicks: googleAdsSpendData?.current?.clicks || googleAdsData?.clicks,
-                ctr: (googleAdsSpendData?.current?.clicks && googleAdsSpendData?.current?.impressions)
-                  ? (googleAdsSpendData.current.clicks / googleAdsSpendData.current.impressions * 100)
-                  : (googleAdsData?.clicks && googleAdsData?.impressions)
-                  ? (googleAdsData.clicks / googleAdsData.impressions * 100)
-                  : undefined,
-                cvr: metrics.cvr,
-                cpc: metrics.googleCost && (googleAdsSpendData?.current?.clicks || googleAdsData?.clicks)
-                  ? metrics.googleCost / (googleAdsSpendData?.current?.clicks || googleAdsData?.clicks)
-                  : undefined
-              }}
-              isLoading={false}
-            />
+          <div className="bg-gradient-to-r from-yellow-50 to-amber-50 rounded-2xl p-8 shadow-inner">
+            <div className="flex items-center justify-center gap-8">
+              <FormulaCard
+                label="Google広告費"
+                value={metrics.googleCost}
+                unit="円"
+                isPositiveGood={false}
+              />
+              <Operator symbol="÷" />
+              <FormulaCard
+                label="ECForce CV"
+                value={metrics.googleConversions}
+              />
+              <Operator symbol="=" />
+              <FormulaCard
+                label="Google CPO"
+                value={metrics.googleCPO}
+                unit="円"
+                isResult
+                isPositiveGood={false}
+              />
+            </div>
 
-          {/* データソース表示 */}
-          <div className="mt-6 pt-6 border-t border-yellow-200">
-              {getGoogleAdsConfig?.isConnected ? (
+            {/* データソース表示 */}
+            <div className="mt-6 pt-6 border-t border-yellow-200 text-center">
+              {googleAdsData?.current?.isTestData ? (
                 <div>
-                  <p className="text-sm text-yellow-600 text-center">
-                    Google Ads APIから取得
-                  </p>
-
-                  {/* APIレスポンス詳細表示 */}
-                  <div className="mt-4 bg-white/50 rounded-lg p-4 text-left">
-                    <h4 className="text-sm font-semibold text-gray-700 mb-2">APIレスポンス詳細:</h4>
-                    <div className="space-y-2 text-xs">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">接続状態:</span>
-                        <span className="text-green-600 font-medium">
-                          {getGoogleAdsConfig?.isConnected ? '✓ 接続済み' : '✗ 未接続'}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Customer ID:</span>
-                        <span className="font-mono">{getGoogleAdsConfig?.customerId || 'N/A'}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">データ件数:</span>
-                        <span>{googleAdsData?.data?.length || 0}件</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">取得期間:</span>
-                        <span>{formatDateToISO(calculateDateRange.startDate)} ~ {formatDateToISO(calculateDateRange.endDate)}</span>
-                      </div>
-
-                      {/* デバッグ情報表示 */}
-                      {googleAdsDebugInfo && (
-                        <div className="mt-3 p-3 bg-gray-50 rounded-md border border-gray-200">
-                          <h5 className="text-xs font-semibold text-gray-700 mb-2">📊 デバッグ情報</h5>
-
-                          {/* リクエスト情報 */}
-                          <div className="mb-2">
-                            <p className="text-xs font-medium text-gray-600">リクエスト:</p>
-                            <div className="ml-2 text-xs text-gray-500">
-                              <p>状態: <span className={googleAdsDebugInfo.request?.status === 'API呼び出し成功' ? 'text-green-600' : 'text-yellow-600'}>{googleAdsDebugInfo.request?.status}</span></p>
-                              <p>期間: {googleAdsDebugInfo.request?.startDate} ~ {googleAdsDebugInfo.request?.endDate}</p>
-                            </div>
-                          </div>
-
-                          {/* レスポンス情報 */}
-                          {googleAdsDebugInfo.response && (
-                            <div className="mb-2">
-                              <p className="text-xs font-medium text-gray-600">レスポンス:</p>
-                              <div className="ml-2 text-xs text-gray-500">
-                                <p>データ件数: {googleAdsDebugInfo.response.dataCount}件</p>
-                                {googleAdsDebugInfo.response.aggregated && (
-                                  <>
-                                    <p>合計費用: ¥{googleAdsDebugInfo.response.aggregated.totalCost.toLocaleString()}</p>
-                                    <p>合計インプレッション: {googleAdsDebugInfo.response.aggregated.totalImpressions.toLocaleString()}</p>
-                                    <p>合計クリック: {googleAdsDebugInfo.response.aggregated.totalClicks.toLocaleString()}</p>
-                                  </>
-                                )}
-                              </div>
-
-                              {/* 生データプレビュー */}
-                              {googleAdsDebugInfo.response.rawData && googleAdsDebugInfo.response.rawData.length > 0 && (
-                                <div className="mt-2">
-                                  <p className="text-xs font-medium text-gray-600">生データ (最初の3件):</p>
-                                  <pre className="ml-2 mt-1 p-2 bg-white rounded text-xs overflow-x-auto max-h-40">
-{JSON.stringify(googleAdsDebugInfo.response.rawData.slice(0, 3), null, 2)}
-                                  </pre>
-                                </div>
-                              )}
-                            </div>
-                          )}
-
-                          {/* エラー情報 */}
-                          {googleAdsDebugInfo.error && (
-                            <div className="mb-2">
-                              <p className="text-xs font-medium text-red-600">エラー:</p>
-                              <div className="ml-2 text-xs text-red-500">
-                                <p>{googleAdsDebugInfo.error.message}</p>
-                                {googleAdsDebugInfo.error.stack && (
-                                  <details className="mt-1">
-                                    <summary className="cursor-pointer text-xs text-gray-500">スタックトレース</summary>
-                                    <pre className="mt-1 p-2 bg-white rounded text-xs overflow-x-auto max-h-32">
-{googleAdsDebugInfo.error.stack}
-                                    </pre>
-                                  </details>
-                                )}
-                              </div>
-                            </div>
-                          )}
-
-                          <p className="text-xs text-gray-400 mt-2">更新時刻: {googleAdsDebugInfo.timestamp}</p>
-                        </div>
-                      )}
-
-                      {/* ボタン群 */}
-                      <div className="mt-3 flex gap-2">
-                        {/* 全キャンペーン確認ボタン */}
-                        <button
-                          onClick={async () => {
-                            const campaignDebugInfo = {
-                              ...googleAdsDebugInfo,
-                              campaignCheck: {
-                                status: 'キャンペーン確認中...',
-                                campaigns: null as any,
-                                error: null as any
-                              },
-                              timestamp: new Date().toISOString()
-                            }
-                            setGoogleAdsDebugInfo(campaignDebugInfo)
-
-                            try {
-                              const result = await getAllGoogleAdsCampaigns()
-                              console.log('Campaign check result:', result)
-
-                              // 新しいオブジェクトを作成して状態を更新
-                              setGoogleAdsDebugInfo({
-                                ...campaignDebugInfo,
-                                campaignCheck: {
-                                  status: 'キャンペーン確認完了',
-                                  campaigns: result.campaigns,
-                                  totalCount: result.totalCount || result.campaigns?.length || 0
-                                },
-                                timestamp: new Date().toISOString()
-                              })
-                            } catch (error: any) {
-                              console.error('Campaign check error:', error)
-                              // 新しいオブジェクトを作成して状態を更新
-                              setGoogleAdsDebugInfo({
-                                ...campaignDebugInfo,
-                                campaignCheck: {
-                                  status: 'キャンペーン確認失敗',
-                                  campaigns: null,
-                                  error: error.message || 'Unknown error'
-                                },
-                                timestamp: new Date().toISOString()
-                              })
-                            }
-                          }}
-                          className="px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition-colors"
-                        >
-                          全キャンペーン確認
-                        </button>
-
-                        {/* 直接APIテストボタン */}
-                        <button
-                          onClick={async () => {
-                            if (!getGoogleAdsConfig?.accessToken || !getGoogleAdsConfig?.developerToken) {
-                              alert('認証情報がありません')
-                              return
-                            }
-
-                            const apiUrl = `https://googleads.googleapis.com/v21/customers/${getGoogleAdsConfig.customerId.replace(/-/g, '')}/googleAds:searchStream`
-
-                            const query = `
-                              SELECT
-                                campaign.id,
-                                campaign.name,
-                                campaign.status,
-                                segments.date,
-                                metrics.impressions,
-                                metrics.clicks,
-                                metrics.cost_micros
-                              FROM campaign
-                              WHERE segments.date BETWEEN '${formatDateToISO(calculateDateRange.startDate)}' AND '${formatDateToISO(calculateDateRange.endDate)}'
-                            `
-
-                            console.log('🚀 直接API呼び出し:', {
-                              url: apiUrl,
-                              query: query.trim(),
-                              customerId: getGoogleAdsConfig.customerId,
-                              hasToken: !!getGoogleAdsConfig.accessToken
-                            })
-
-                            try {
-                              const response = await fetch(apiUrl, {
-                                method: 'POST',
-                                headers: {
-                                  'Authorization': `Bearer ${getGoogleAdsConfig.accessToken}`,
-                                  'developer-token': getGoogleAdsConfig.developerToken || getGoogleAdsConfig.developerId,
-                                  'Content-Type': 'application/json',
-                                },
-                                body: JSON.stringify({ query }),
-                              })
-
-                              const responseText = await response.text()
-                              console.log('📥 直接APIレスポンス:', {
-                                status: response.status,
-                                ok: response.ok,
-                                responseText: responseText.substring(0, 1000)
-                              })
-
-                              if (!response.ok) {
-                                console.error('APIエラー:', responseText)
-                                alert(`APIエラー (${response.status}): ${responseText.substring(0, 200)}`)
-                              } else {
-                                const data = JSON.parse(responseText)
-                                console.log('✅ 成功! データ:', data)
-                                alert(`成功! データ件数: ${data.results?.length || 0}件\n\n詳細はコンソールを確認してください`)
-                              }
-                            } catch (error: any) {
-                              console.error('リクエストエラー:', error)
-                              alert(`リクエストエラー: ${error.message}`)
-                            }
-                          }}
-                          className="px-3 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600 transition-colors"
-                        >
-                          直接APIテスト
-                        </button>
-
-                        {/* API再テストボタン */}
-                        <button
-                          onClick={async () => {
-                            const testDebugInfo = {
-                              config: {
-                                isConnected: getGoogleAdsConfig?.isConnected,
-                                hasAccessToken: !!getGoogleAdsConfig?.accessToken,
-                                customerId: getGoogleAdsConfig?.customerId,
-                              },
-                              request: {
-                                startDate: formatDateToISO(calculateDateRange.startDate),
-                                endDate: formatDateToISO(calculateDateRange.endDate),
-                                status: 'API呼び出し中...'
-                              },
-                              response: null as any,
-                              error: null as any,
-                              timestamp: new Date().toISOString()
-                            }
-                            setGoogleAdsDebugInfo(testDebugInfo)
-
-                            // API再取得テスト
-                            if (getGoogleAdsConfig?.isConnected) {
-                              try {
-                                const testData = await getGoogleAdsCostSummary({
-                                  startDate: formatDateToISO(calculateDateRange.startDate),
-                                  endDate: formatDateToISO(calculateDateRange.endDate)
-                                })
-
-                                testDebugInfo.response = {
-                                  dataCount: testData.length,
-                                  rawData: testData,
-                                  firstItem: testData[0] || null
-                                }
-                                testDebugInfo.request.status = 'API呼び出し成功'
-                                setGoogleAdsDebugInfo(testDebugInfo)
-                              } catch (error: any) {
-                                testDebugInfo.error = {
-                                  message: error.message || 'Unknown error',
-                                  stack: error.stack
-                                }
-                                testDebugInfo.request.status = 'API呼び出し失敗'
-                                setGoogleAdsDebugInfo(testDebugInfo)
-                              }
-                            }
-                          }}
-                          className="px-3 py-1 bg-yellow-500 text-white text-xs rounded hover:bg-yellow-600 transition-colors"
-                        >
-                          API再テスト実行
-                        </button>
-                      </div>
-
-                      {/* キャンペーン確認結果の表示 */}
-                      {googleAdsDebugInfo?.campaignCheck && (
-                        <div className="mt-3 p-3 bg-blue-50 rounded-md border border-blue-200">
-                          <h5 className="text-xs font-semibold text-blue-700 mb-2">📋 キャンペーン確認結果</h5>
-                          <p className="text-xs text-blue-600">
-                            状態: {googleAdsDebugInfo.campaignCheck.status}
-                          </p>
-                          {googleAdsDebugInfo.campaignCheck.totalCount !== undefined && (
-                            <p className="text-xs text-blue-600">
-                              キャンペーン総数: {googleAdsDebugInfo.campaignCheck.totalCount}件
-                            </p>
-                          )}
-                          {googleAdsDebugInfo.campaignCheck.campaigns && googleAdsDebugInfo.campaignCheck.campaigns.length > 0 && (
-                            <div className="mt-2">
-                              <p className="text-xs font-medium text-blue-700">キャンペーン一覧:</p>
-                              <div className="mt-1 max-h-32 overflow-y-auto">
-                                {googleAdsDebugInfo.campaignCheck.campaigns.map((campaign: any, idx: number) => (
-                                  <div key={idx} className="text-xs text-blue-600 ml-2 py-1 border-b border-blue-100 last:border-b-0">
-                                    <p className="font-medium">{campaign.campaign?.name || 'Unknown'}</p>
-                                    <p className="text-blue-500">
-                                      ID: {campaign.campaign?.id} |
-                                      Status: {campaign.campaign?.status} |
-                                      Start: {campaign.campaign?.start_date || campaign.campaign?.startDate || 'N/A'} |
-                                      End: {campaign.campaign?.end_date || campaign.campaign?.endDate || 'N/A'}
-                                    </p>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          {googleAdsDebugInfo.campaignCheck.error && (
-                            <p className="text-xs text-red-600 mt-2">
-                              エラー: {googleAdsDebugInfo.campaignCheck.error}
-                            </p>
-                          )}
-                        </div>
-                      )}
-                      {googleAdsData?.data?.length === 0 && (
-                        <div className="mt-3 p-3 bg-yellow-50 rounded-md">
-                          <p className="text-yellow-800 font-medium">データが取得できていません</p>
-                          <p className="text-yellow-700 text-xs mt-1">
-                            考えられる原因:
-                          </p>
-                          <ul className="text-yellow-600 text-xs mt-1 ml-4 list-disc">
-                            <li>指定期間にキャンペーンが存在しない</li>
-                            <li>アカウントに有効なキャンペーンがない</li>
-                            <li>APIアクセス権限が不足している</li>
-                          </ul>
-                        </div>
-                      )}
-                      {googleAdsData?.data?.length > 0 && (
-                        <div className="mt-3 p-2 bg-gray-50 rounded max-h-40 overflow-y-auto">
-                          <p className="text-xs font-medium text-gray-700 mb-1">取得データ:</p>
-                          <pre className="text-xs text-gray-600 whitespace-pre-wrap">
-                            {JSON.stringify(googleAdsData.data.slice(0, 3), null, 2)}
-                          </pre>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center">
                   <p className="text-sm text-yellow-600">
-                    Google Ads APIが未接続です
+                    テストデータを表示中
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
-                    設定画面から接続してください
+                    Developer Token承認後、実データが表示されます
                   </p>
                 </div>
+              ) : (
+                <p className="text-sm text-yellow-600">
+                  Google Ads APIから取得
+                </p>
               )}
               <div className="mt-2 flex justify-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-blue-400"></span>
@@ -2911,48 +2200,28 @@ export default function KPIViewDashboardBreakdown() {
               </svg>
             </span> Yahoo!広告
           </h2>
-          <div className="bg-gradient-to-r from-purple-50 to-fuchsia-50 rounded-2xl p-8 shadow-inner overflow-x-auto">
-            <PlatformKPIFormula
-              platformName="Yahoo!"
-              platformConfig={{
-                color: 'purple',
-                bgGradient: 'from-purple-50 to-fuchsia-50'
-              }}
-              data={{
-                adSpend: {
-                  total: metrics.yahooCost,
-                  breakdown: [
-                    {
-                      label: '検索広告',
-                      value: metrics.yahooCost * 0.7,
-                      color: 'red'
-                    },
-                    {
-                      label: 'ディスプレイ広告',
-                      value: metrics.yahooCost * 0.25,
-                      color: 'orange'
-                    },
-                    {
-                      label: 'その他',
-                      value: metrics.yahooCost * 0.05,
-                      color: 'gray'
-                    }
-                  ]
-                },
-                conversions: metrics.yahooConversions,
-                cpo: metrics.yahooCPO,
-                impressions: yahooAdsData?.impressions,
-                clicks: yahooAdsData?.clicks,
-                ctr: yahooAdsData?.clicks && yahooAdsData?.impressions
-                  ? (yahooAdsData.clicks / yahooAdsData.impressions * 100)
-                  : undefined,
-                cvr: metrics.cvr,
-                cpc: metrics.yahooCost && yahooAdsData?.clicks
-                  ? metrics.yahooCost / yahooAdsData.clicks
-                  : undefined
-              }}
-              isLoading={false}
-            />
+          <div className="bg-gradient-to-r from-purple-50 to-fuchsia-50 rounded-2xl p-8 shadow-inner">
+            <div className="flex items-center justify-center gap-8">
+              <FormulaCard
+                label="Yahoo!広告費"
+                value={metrics.yahooCost}
+                unit="円"
+                isPositiveGood={false}
+              />
+              <Operator symbol="÷" />
+              <FormulaCard
+                label="ECForce CV"
+                value={metrics.yahooConversions}
+              />
+              <Operator symbol="=" />
+              <FormulaCard
+                label="Yahoo! CPO"
+                value={metrics.yahooCPO}
+                unit="円"
+                isResult
+                isPositiveGood={false}
+              />
+            </div>
 
             {/* 連携準備中メッセージ */}
             <div className="mt-6 pt-6 border-t border-purple-200 text-center">

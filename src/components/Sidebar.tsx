@@ -7,6 +7,8 @@ import {
   ChevronDoubleRightIcon,
   PresentationChartLineIcon,
   ChartBarSquareIcon,
+  DocumentChartBarIcon,
+  BookOpenIcon,
 } from '@heroicons/react/24/outline'
 import { ComponentType, useState, useEffect } from 'react'
 
@@ -45,13 +47,28 @@ export default function Sidebar() {
   const menuItems: MenuItem[] = [
     {
       name: 'KPIビュー',
-      path: '/kpi-view',
+      path: '/',
       icon: ChartBarSquareIcon,
     },
     {
-      name: 'ダッシュボード',
-      path: '/',
+      name: '予実管理',
+      path: '/budget-actual',
+      icon: DocumentChartBarIcon,
+    },
+    {
+      name: 'Meta詳細分析',
+      path: '/meta-analysis',
       icon: Squares2X2Icon,
+    },
+    {
+      name: 'Google Ads分析',
+      path: '/google-ads-analysis',
+      icon: PresentationChartLineIcon,
+    },
+    {
+      name: 'Google Ads APIリファレンス',
+      path: '/google-ads-api-reference',
+      icon: BookOpenIcon,
     },
     {
       name: '期間別データ分析',

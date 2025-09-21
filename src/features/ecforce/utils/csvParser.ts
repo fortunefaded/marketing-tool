@@ -1,4 +1,5 @@
 import { parse as papaParse, ParseResult } from 'papaparse'
+import * as Encoding from 'encoding-japanese'
 
 // CSVヘッダーマッピング
 const HEADER_MAPPING: Record<string, string> = {
@@ -56,15 +57,33 @@ export async function parseECForceCSV(file: File): Promise<ECForceParseResult> {
   const errors: Array<{ row: number; message: string }> = []
 
   try {
-    // Shift-JIS → UTF-8変換
+    // ファイルをバイト配列として読み込み
     const buffer = await file.arrayBuffer()
-    const decoder = new TextDecoder('shift-jis')
-    const text = decoder.decode(buffer)
+    const uint8Array = new Uint8Array(buffer)
+
+    // encoding-japaneseでエンコーディングを自動検出して変換
+    const detectedEncoding = Encoding.detect(uint8Array)
+    console.log('🔍 検出されたエンコーディング:', detectedEncoding)
+
+    // UTF-8に変換
+    const unicodeArray = Encoding.convert(uint8Array, {
+      to: 'UNICODE',
+      from: detectedEncoding || 'SJIS', // 検出できない場合はShift-JISと仮定
+    })
+
+    // UTF-8文字列に変換
+    const text = Encoding.codeToString(unicodeArray)
+
+    // エンコーディング変換後の最初の数行を確認
+    const lines = text.split('\n').slice(0, 3)
+    console.log('📄 変換後のCSV最初の3行:')
+    lines.forEach((line, i) => console.log(`  ${i + 1}: ${line.substring(0, 100)}...`))
 
     // CSV解析
     const result: ParseResult<any> = papaParse(text, {
       header: true,
       skipEmptyLines: true,
+      encoding: 'UTF-8', // Shift-JISはすでにUTF-8に変換済み
     })
 
     if (result.errors && result.errors.length > 0) {
@@ -79,41 +98,85 @@ export async function parseECForceCSV(file: File): Promise<ECForceParseResult> {
     // デバイス=「合計」のみフィルタリング
     const filteredData = result.data.filter((row: any) => row['デバイス'] === '合計')
 
+    // フィルタ結果を確認
+    console.log(`📊 CSVデータ: 全${result.data.length}行中、デバイス="合計"は${filteredData.length}行`)
+
+    // デバイス列の値を確認（デバッグ用）
+    if (result.data.length > 0) {
+      const deviceValues = new Set(result.data.map((row: any) => row['デバイス']))
+      console.log('📱 デバイス列の値:', Array.from(deviceValues))
+    }
+
+    // 「合計」行が存在しない場合、すべての行を使用
+    const dataToProcess = filteredData.length > 0 ? filteredData : result.data
+
+    if (filteredData.length === 0) {
+      console.log('⚠️ デバイス="合計"の行が見つかりません。すべての行を処理します。')
+    }
+
     // データ変換
     const transformedData: ECForceRecord[] = []
     const dateSet = new Set<string>() // 日付の種類を収集
 
-    filteredData.forEach((row: any, index: number) => {
+    dataToProcess.forEach((row: any, index: number) => {
       try {
+        // デバッグ: 利用可能なフィールドを確認
+        if (index === 0) {
+          console.log('=== 🔍 ECForce CSVパース デバッグ情報 ===')
+          console.log('📋 利用可能なすべてのフィールド:')
+          Object.keys(row).forEach(key => {
+            console.log(`  - "${key}": "${row[key]}"`)
+          })
+          console.log('=====================================')
+        }
+
         // 各行から日付を取得（複数のパターンに対応）
         let dateField = row['日付'] || row['期間'] || row['日時'] || row['date'] || row['Date']
 
-        // デバッグ: 利用可能なフィールドを確認
-        if (index === 0) {
-          console.log('=== CSVの最初の行のフィールド ===')
-          console.log('利用可能なフィールド:', Object.keys(row))
-          console.log('日付関連フィールドの値:', {
-            '日付': row['日付'],
-            '期間': row['期間'],
-            '日時': row['日時'],
-            'date': row['date'],
-            'Date': row['Date'],
-          })
-        }
+        // より多くのパターンをチェック
+        const datePatterns = [
+          '日付', '期間', '日時', 'date', 'Date', 'DATE',
+          '購入日', '注文日', '作成日', '登録日',
+          '受注日', '決済日', '出荷日', '配送日',
+          'order_date', 'purchase_date', 'created_at',
+          'timestamp', 'datetime', 'DateTime'
+        ]
 
         if (!dateField) {
+          console.log('⚠️ 標準的な日付フィールドが見つかりません。拡張パターンで検索中...')
+
           // 日付が見つからない場合は、キーから日付らしいものを探す
           for (const key of Object.keys(row)) {
-            if (key.match(/日付|日時|期間|date/i) && row[key]) {
-              dateField = row[key]
-              console.log(`代替日付フィールド "${key}" を使用: ${dateField}`)
-              break
+            const lowerKey = key.toLowerCase()
+            for (const pattern of datePatterns) {
+              if (lowerKey.includes(pattern.toLowerCase()) && row[key]) {
+                dateField = row[key]
+                console.log(`✅ 日付フィールド発見: "${key}" = "${dateField}"`)
+                break
+              }
+            }
+            if (dateField) break
+          }
+
+          // それでも見つからない場合は、日付形式のデータを探す
+          if (!dateField) {
+            console.log('⚠️ 日付フィールド名が見つかりません。データ形式から日付を検索中...')
+            for (const key of Object.keys(row)) {
+              const value = String(row[key] || '').trim()
+              // YYYY/MM/DD, YYYY-MM-DD, YYYY年MM月DD日 のパターンを検出
+              if (value.match(/^\d{4}[-\/年]\d{1,2}[-\/月]\d{1,2}[日]?/)) {
+                dateField = value
+                console.log(`✅ 日付データ発見: "${key}" = "${dateField}"`)
+                break
+              }
             }
           }
         }
 
         if (!dateField) {
-          throw new Error('日付フィールドが見つかりません')
+          console.error('❌ 日付フィールドが見つかりません')
+          console.error('利用可能なフィールド:', Object.keys(row))
+          throw new Error(`日付フィールドが見つかりません。利用可能なフィールド: ${Object.keys(row).join(', ')}`)
         }
 
         // 日付フォーマットを正規化
@@ -296,15 +359,33 @@ export async function previewECForceCSV(
   filteredRows: number
 }> {
   try {
-    // Shift-JIS → UTF-8変換
+    // ファイルをバイト配列として読み込み
     const buffer = await file.arrayBuffer()
-    const decoder = new TextDecoder('shift-jis')
-    const text = decoder.decode(buffer)
+    const uint8Array = new Uint8Array(buffer)
+
+    // encoding-japaneseでエンコーディングを自動検出して変換
+    const detectedEncoding = Encoding.detect(uint8Array)
+    console.log('🔍 プレビュー: 検出されたエンコーディング:', detectedEncoding)
+
+    // UTF-8に変換
+    const unicodeArray = Encoding.convert(uint8Array, {
+      to: 'UNICODE',
+      from: detectedEncoding || 'SJIS', // 検出できない場合はShift-JISと仮定
+    })
+
+    // UTF-8文字列に変換
+    const text = Encoding.codeToString(unicodeArray)
+
+    // エンコーディング変換後の最初の数行を確認
+    const lines = text.split('\n').slice(0, 3)
+    console.log('📄 プレビュー: 変換後のCSV最初の3行:')
+    lines.forEach((line, i) => console.log(`  ${i + 1}: ${line.substring(0, 100)}...`))
 
     // 全データを解析（統計情報用）
     const fullResult: ParseResult<any> = papaParse(text, {
       header: true,
       skipEmptyLines: true,
+      encoding: 'UTF-8', // Shift-JISはすでにUTF-8に変換済み
     })
 
     // プレビュー用に件数を制限
@@ -331,28 +412,76 @@ export async function previewECForceCSV(
     const allFilteredRows = fullResult.data.filter((row: any) => row['デバイス'] === '合計')
     const filteredRowsCount = allFilteredRows.length
 
-    // プレビュー用のデータを制限（デバイス=合計のみ、最大10件）
-    const filteredRows = rows.filter((row: any) => row['デバイス'] === '合計').slice(0, limit)
+    console.log(`📊 プレビュー: 全${totalRows}行中、デバイス="合計"は${filteredRowsCount}行`)
 
-    // 日付範囲の抽出（全データから）
+    // デバイス列の値を確認（デバッグ用）
+    if (fullResult.data.length > 0) {
+      const deviceValues = new Set(fullResult.data.map((row: any) => row['デバイス']))
+      console.log('📱 プレビュー: デバイス列の値:', Array.from(deviceValues))
+    }
+
+    // プレビュー用のデータを制限（デバイス=合計がある場合はそれを、ない場合は全データを使用）
+    const previewData = filteredRowsCount > 0 ?
+      rows.filter((row: any) => row['デバイス'] === '合計').slice(0, limit) :
+      rows.slice(0, limit)
+
+    const dataForDateExtraction = filteredRowsCount > 0 ? allFilteredRows : fullResult.data
+
+    if (filteredRowsCount === 0) {
+      console.log('⚠️ プレビュー: デバイス="合計"の行が見つかりません。すべての行を使用します。')
+    }
+
+    // 日付範囲の抽出（適切なデータから）
     let dateRange: { startDate: string; endDate: string; uniqueDates: string[] } | undefined
-    if (allFilteredRows.length > 0) {
+    if (dataForDateExtraction.length > 0) {
       const dateSet = new Set<string>()
-      allFilteredRows.forEach((row: any, index: number) => {
+      dataForDateExtraction.forEach((row: any, index: number) => {
+        // デバッグ: 最初の行で利用可能なフィールドを確認
+        if (index === 0) {
+          console.log('=== 📊 プレビュー: ECForce CSV フィールド確認 ===')
+          console.log('利用可能なフィールド:', Object.keys(row))
+        }
+
         // 複数のパターンに対応
         let dateField = row['日付'] || row['期間'] || row['日時'] || row['date'] || row['Date']
 
-        // デバッグ: 最初の行で利用可能なフィールドを確認
-        if (index === 0 && !dateField) {
-          console.log('プレビュー: 利用可能なフィールド:', Object.keys(row))
-        }
+        // より多くのパターンをチェック
+        const datePatterns = [
+          '日付', '期間', '日時', 'date', 'Date', 'DATE',
+          '購入日', '注文日', '作成日', '登録日',
+          '受注日', '決済日', '出荷日', '配送日',
+          'order_date', 'purchase_date', 'created_at',
+          'timestamp', 'datetime', 'DateTime'
+        ]
 
         if (!dateField) {
           // 日付が見つからない場合は、キーから日付らしいものを探す
           for (const key of Object.keys(row)) {
-            if (key.match(/日付|日時|期間|date/i) && row[key]) {
-              dateField = row[key]
-              break
+            const lowerKey = key.toLowerCase()
+            for (const pattern of datePatterns) {
+              if (lowerKey.includes(pattern.toLowerCase()) && row[key]) {
+                dateField = row[key]
+                if (index === 0) {
+                  console.log(`✅ プレビュー: 日付フィールド発見: "${key}"`)
+                }
+                break
+              }
+            }
+            if (dateField) break
+          }
+
+          // それでも見つからない場合は、日付形式のデータを探す
+          if (!dateField) {
+            for (const key of Object.keys(row)) {
+              const value = String(row[key] || '').trim()
+              // YYYY/MM/DD, YYYY-MM-DD, YYYY年MM月DD日 のパターンを検出
+              if (value.match(/^\d{4}[-\/年]\d{1,2}[-\/月]\d{1,2}[日]?/)) {
+                dateField = value
+                if (index === 0) {
+                  console.log(`✅ プレビュー: 日付データ発見: "${key}" = "${dateField}"`)
+                }
+                break
+              }
             }
           }
         }
@@ -393,7 +522,7 @@ export async function previewECForceCSV(
     }
 
     // プレビュー用のrows（制限付き）を返す
-    return { headers, rows: filteredRows, dateRange, totalRows, filteredRows: filteredRowsCount }
+    return { headers, rows: previewData, dateRange, totalRows, filteredRows: filteredRowsCount }
   } catch (error) {
     return {
       headers: [],

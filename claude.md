@@ -7,6 +7,8 @@
 ## 開発内容
 
 ## API VERSION
+
+### Meta Graph API
 **必須：Meta Graph API v23.0を使用すること**
 
 - APIバージョン: **v23.0** (固定)
@@ -16,6 +18,24 @@
 参考ドキュメント：
 - https://developers.facebook.com/docs/graph-api/changelog/version23.0/
 - https://developers.facebook.com/blog/post/2025/05/29/introducing-graph-api-v23-and-marketing-api-v23/
+
+### Google Ads API
+**必須：Google Ads API v21を使用すること**
+
+- APIバージョン: **v21** (最新版)
+- リリース日: 2025年8月
+- APIエンドポイント例: `https://googleads.googleapis.com/v21/`
+- 主要機能:
+  - AI Max for Searchキャンペーン対応
+  - Performance Max透明性向上
+  - キャンペーンレベル検索語句ビュー
+
+**注意事項:**
+- v18は2025年8月20日に廃止済み
+- v23は存在しない（Meta APIと混同しないこと）
+- 新規実装にはv21を使用すること
+- OAuth 2.0認証が必要
+- Developer Tokenの取得が必要
 
 ## 重要な制限事項
 - **time_increment**パラメータと**breakdowns**パラメータは同時使用不可
