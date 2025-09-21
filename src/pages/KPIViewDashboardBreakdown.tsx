@@ -92,8 +92,24 @@ export default function KPIViewDashboardBreakdown() {
   const [showYahoo, setShowYahoo] = useState(true)
   const [showStackedCv, setShowStackedCv] = useState(true) // true: 積み上げ表示, false: 合計表示
 
-  // 日足/週足/月足切り替え用のstate
-  const [viewMode, setViewMode] = useState<'daily' | 'weekly' | 'monthly'>('weekly') // デフォルトは週足
+  // 日足/週足/月足切り替え用のstate（localStorage保持 + 期間に応じたデフォルト値）
+  const [viewMode, setViewMode] = useState<'daily' | 'weekly' | 'monthly'>(() => {
+    // localStorageから保存された値を取得
+    const savedMode = localStorage.getItem('viewMode')
+    if (savedMode === 'daily' || savedMode === 'weekly' || savedMode === 'monthly') {
+      return savedMode
+    }
+
+    // 保存値がない場合、期間に応じてデフォルト値を設定（初回のみ）
+    const { startDate, endDate } = calculateDateRange
+    if (startDate && endDate) {
+      const diffInDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
+      // 3ヶ月（約90日）未満の場合は日足、それ以上は週足をデフォルトに
+      return diffInDays < 90 ? 'daily' : 'weekly'
+    }
+
+    return 'daily' // デフォルトは日足
+  })
 
   // 目標値設定用のstate
   const [showTargetModal, setShowTargetModal] = useState(false)
@@ -2232,7 +2248,10 @@ export default function KPIViewDashboardBreakdown() {
               {/* 日足/週足/月足切り替えボタン */}
               <div className="flex bg-gray-100 rounded-lg p-1">
                 <button
-                  onClick={() => setViewMode('daily')}
+                  onClick={() => {
+                    setViewMode('daily')
+                    localStorage.setItem('viewMode', 'daily')
+                  }}
                   className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
                     viewMode === 'daily'
                       ? 'bg-white text-gray-900 shadow-sm'
@@ -2242,7 +2261,10 @@ export default function KPIViewDashboardBreakdown() {
                   日足
                 </button>
                 <button
-                  onClick={() => setViewMode('weekly')}
+                  onClick={() => {
+                    setViewMode('weekly')
+                    localStorage.setItem('viewMode', 'weekly')
+                  }}
                   className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
                     viewMode === 'weekly'
                       ? 'bg-white text-gray-900 shadow-sm'
@@ -2252,7 +2274,10 @@ export default function KPIViewDashboardBreakdown() {
                   週足
                 </button>
                 <button
-                  onClick={() => setViewMode('monthly')}
+                  onClick={() => {
+                    setViewMode('monthly')
+                    localStorage.setItem('viewMode', 'monthly')
+                  }}
                   className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
                     viewMode === 'monthly'
                       ? 'bg-white text-gray-900 shadow-sm'

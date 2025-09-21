@@ -892,7 +892,7 @@ export const fetchDirectApiData = action({
             name: r.campaign?.name,
             type: r.campaign?.advertisingChannelType,
             subType: r.campaign?.advertisingChannelSubType
-          })).filter(c => c.name)
+          })).filter((c: any) => c.name)
         })
 
         aggregateData.results.forEach((row: any) => {
