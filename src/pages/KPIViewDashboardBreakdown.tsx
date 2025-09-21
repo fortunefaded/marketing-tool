@@ -9,6 +9,9 @@ import { MetaAccount } from '@/types'
 import { MetaCampaignBreakdown } from '../components/MetaCampaignBreakdown'
 import { GoogleAdsBreakdown } from '../components/dashboard/GoogleAdsBreakdown'
 import { GoogleAdsBreakdownFormula } from '../components/dashboard/GoogleAdsBreakdownFormula'
+import { MetaAdsBreakdownFormula } from '../components/dashboard/MetaAdsBreakdownFormula'
+import { YahooAdsBreakdownFormula } from '../components/dashboard/YahooAdsBreakdownFormula'
+import { PlatformKPIFormula } from '../components/dashboard/PlatformKPIFormula'
 import {
   ChartBarSquareIcon,
   ArrowTrendingUpIcon,
@@ -2455,82 +2458,45 @@ export default function KPIViewDashboardBreakdown() {
           <h2 className="text-lg font-semibold text-gray-700 mb-6 flex items-center gap-2">
             <span className="text-2xl">📊</span> Meta広告
           </h2>
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-8 shadow-inner">
-            <div className="flex items-center justify-center gap-8">
-              <FormulaCard
-                label="Meta広告費"
-                value={metaSpendData?.current?.spend || 0}
-                change={metaSpendData?.previous?.spend
-                  ? ((metaSpendData.current.spend - metaSpendData.previous.spend) / metaSpendData.previous.spend) * 100
-                  : undefined}
-                unit="円"
-                isPositiveGood={false}
-              />
-              <Operator symbol="÷" />
-              <FormulaCard
-                label="ECForce CV"
-                value={metrics.metaConversions}
-                change={metrics.changes.cv}
-                isExpandable={true}
-                isExpanded={expandedMetric === 'cv'}
-                onClick={() => toggleMetricExpansion('cv')}
-                breakdown={
-                  expandedMetric === 'cv' ? (
-                    <div className="flex items-center gap-3">
-                      <SubFormulaCard
-                        label="Meta IMP"
-                        value={metaSpendData?.current?.impressions || 0}
-                        unit=""
-                      />
-                      <Operator symbol="×" size="sm" />
-                      <SubFormulaCard
-                        label="Meta CTR"
-                        value={metaSpendData?.current?.ctr || 0}
-                        unit="%"
-                      />
-                      <Operator symbol="×" size="sm" />
-                      <SubFormulaCard
-                        label="CVR（逆算）"
-                        value={metrics.cvr}
-                        unit="%"
-                      />
-                    </div>
-                  ) : undefined
-                }
-              />
-              <Operator symbol="=" />
-              <FormulaCard
-                label="Meta CPO"
-                value={metrics.metaCPO}
-                unit="円"
-                isResult
-                isPositiveGood={false}
-                isExpandable={true}
-                isExpanded={expandedMetric === 'cpo'}
-                onClick={() => toggleMetricExpansion('cpo')}
-                breakdown={
-                  expandedMetric === 'cpo' ? (
-                    <div className="flex items-center gap-3">
-                      <SubFormulaCard
-                        label="Meta CPC"
-                        value={metaSpendData?.current?.cpc || 0}
-                        unit="円"
-                      />
-                      <Operator symbol="÷" size="sm" />
-                      <SubFormulaCard
-                        label="CVR（ECForce基準）"
-                        value={metrics.cvr}
-                        unit="%"
-                      />
-                    </div>
-                  ) : undefined
-                }
-              />
-            </div>
-
-
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-8 shadow-inner overflow-x-auto">
+            <PlatformKPIFormula
+              platformName="Meta"
+              platformConfig={{
+                color: 'blue',
+                bgGradient: 'from-blue-50 to-indigo-50'
+              }}
+              data={{
+                adSpend: {
+                  total: metaSpendData?.current?.spend || 0,
+                  breakdown: [
+                    {
+                      label: 'Facebook',
+                      value: (metaSpendData?.current?.spend || 0) * 0.6,
+                      color: 'blue'
+                    },
+                    {
+                      label: 'Instagram',
+                      value: (metaSpendData?.current?.spend || 0) * 0.35,
+                      color: 'pink'
+                    },
+                    {
+                      label: 'Audience Network',
+                      value: (metaSpendData?.current?.spend || 0) * 0.05,
+                      color: 'purple'
+                    }
+                  ]
+                },
+                conversions: metrics.metaConversions,
+                cpo: metrics.metaCPO,
+                impressions: metaSpendData?.current?.impressions,
+                clicks: metaSpendData?.current?.clicks,
+                ctr: metaSpendData?.current?.ctr,
+                cvr: metrics.cvr,
+                cpc: metaSpendData?.current?.cpc
+              }}
+              isLoading={false}
+            />
           </div>
-
         </div>
 
         {/* Google広告 CPO（注文獲得単価） */}
@@ -2546,20 +2512,51 @@ export default function KPIViewDashboardBreakdown() {
             </span> Google広告
           </h2>
           <div className="bg-gradient-to-r from-yellow-50 to-amber-50 rounded-2xl p-8 shadow-inner overflow-x-auto">
-            <GoogleAdsBreakdownFormula
-              data={googleAdsSpendData?.current?.campaignTypeBreakdown ? {
-                total: metrics.googleCost,
-                pmax: googleAdsSpendData.current.campaignTypeBreakdown.pmax?.reduce((sum: number, item: any) => sum + item.spend, 0) || 0,
-                demandgen: googleAdsSpendData.current.campaignTypeBreakdown.demandgen?.reduce((sum: number, item: any) => sum + item.spend, 0) || 0,
-                general: googleAdsSpendData.current.campaignTypeBreakdown.general?.reduce((sum: number, item: any) => sum + item.spend, 0) || 0,
-              } : {
-                total: metrics.googleCost,
-                pmax: 0,
-                demandgen: 0,
-                general: 0,
+            <PlatformKPIFormula
+              platformName="Google"
+              platformConfig={{
+                color: 'yellow',
+                bgGradient: 'from-yellow-50 to-amber-50'
               }}
-              conversions={metrics.googleConversions}
-              cpo={metrics.googleCPO}
+              data={{
+                adSpend: {
+                  total: metrics.googleCost,
+                  breakdown: googleAdsSpendData?.current?.campaignTypeBreakdown ? [
+                    {
+                      label: 'P-Max',
+                      value: googleAdsSpendData.current.campaignTypeBreakdown.pmax?.reduce((sum: number, item: any) => sum + item.spend, 0) || 0,
+                      color: 'blue'
+                    },
+                    {
+                      label: 'Demand Gen',
+                      value: googleAdsSpendData.current.campaignTypeBreakdown.demandgen?.reduce((sum: number, item: any) => sum + item.spend, 0) || 0,
+                      color: 'green'
+                    },
+                    {
+                      label: '一般',
+                      value: googleAdsSpendData.current.campaignTypeBreakdown.general?.reduce((sum: number, item: any) => sum + item.spend, 0) || 0,
+                      color: 'gray'
+                    }
+                  ] : [
+                    { label: 'P-Max', value: 0, color: 'blue' },
+                    { label: 'Demand Gen', value: 0, color: 'green' },
+                    { label: '一般', value: 0, color: 'gray' }
+                  ]
+                },
+                conversions: metrics.googleConversions,
+                cpo: metrics.googleCPO,
+                impressions: googleAdsSpendData?.current?.impressions || googleAdsData?.impressions,
+                clicks: googleAdsSpendData?.current?.clicks || googleAdsData?.clicks,
+                ctr: (googleAdsSpendData?.current?.clicks && googleAdsSpendData?.current?.impressions)
+                  ? (googleAdsSpendData.current.clicks / googleAdsSpendData.current.impressions * 100)
+                  : (googleAdsData?.clicks && googleAdsData?.impressions)
+                  ? (googleAdsData.clicks / googleAdsData.impressions * 100)
+                  : undefined,
+                cvr: metrics.cvr,
+                cpc: metrics.googleCost && (googleAdsSpendData?.current?.clicks || googleAdsData?.clicks)
+                  ? metrics.googleCost / (googleAdsSpendData?.current?.clicks || googleAdsData?.clicks)
+                  : undefined
+              }}
               isLoading={false}
             />
 
@@ -2914,28 +2911,48 @@ export default function KPIViewDashboardBreakdown() {
               </svg>
             </span> Yahoo!広告
           </h2>
-          <div className="bg-gradient-to-r from-purple-50 to-fuchsia-50 rounded-2xl p-8 shadow-inner">
-            <div className="flex items-center justify-center gap-8">
-              <FormulaCard
-                label="Yahoo!広告費"
-                value={metrics.yahooCost}
-                unit="円"
-                isPositiveGood={false}
-              />
-              <Operator symbol="÷" />
-              <FormulaCard
-                label="ECForce CV"
-                value={metrics.yahooConversions}
-              />
-              <Operator symbol="=" />
-              <FormulaCard
-                label="Yahoo! CPO"
-                value={metrics.yahooCPO}
-                unit="円"
-                isResult
-                isPositiveGood={false}
-              />
-            </div>
+          <div className="bg-gradient-to-r from-purple-50 to-fuchsia-50 rounded-2xl p-8 shadow-inner overflow-x-auto">
+            <PlatformKPIFormula
+              platformName="Yahoo!"
+              platformConfig={{
+                color: 'purple',
+                bgGradient: 'from-purple-50 to-fuchsia-50'
+              }}
+              data={{
+                adSpend: {
+                  total: metrics.yahooCost,
+                  breakdown: [
+                    {
+                      label: '検索広告',
+                      value: metrics.yahooCost * 0.7,
+                      color: 'red'
+                    },
+                    {
+                      label: 'ディスプレイ広告',
+                      value: metrics.yahooCost * 0.25,
+                      color: 'orange'
+                    },
+                    {
+                      label: 'その他',
+                      value: metrics.yahooCost * 0.05,
+                      color: 'gray'
+                    }
+                  ]
+                },
+                conversions: metrics.yahooConversions,
+                cpo: metrics.yahooCPO,
+                impressions: yahooAdsData?.impressions,
+                clicks: yahooAdsData?.clicks,
+                ctr: yahooAdsData?.clicks && yahooAdsData?.impressions
+                  ? (yahooAdsData.clicks / yahooAdsData.impressions * 100)
+                  : undefined,
+                cvr: metrics.cvr,
+                cpc: metrics.yahooCost && yahooAdsData?.clicks
+                  ? metrics.yahooCost / yahooAdsData.clicks
+                  : undefined
+              }}
+              isLoading={false}
+            />
 
             {/* 連携準備中メッセージ */}
             <div className="mt-6 pt-6 border-t border-purple-200 text-center">

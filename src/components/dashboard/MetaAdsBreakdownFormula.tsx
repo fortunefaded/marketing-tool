@@ -46,22 +46,21 @@ const Operator = ({ symbol, size = 'lg' }: { symbol: string; size?: 'sm' | 'lg' 
   </div>
 )
 
-interface GoogleAdsBreakdownData {
+interface MetaAdsBreakdownData {
   total: number
-  pmax: number
-  demandgen: number
-  general: number
+  facebook: number
+  instagram: number
+  audienceNetwork: number
 }
 
-interface GoogleAdsBreakdownFormulaProps {
-  data: GoogleAdsBreakdownData | null
+interface MetaAdsBreakdownFormulaProps {
+  data: MetaAdsBreakdownData | null
   conversions: number
   cpo: number
   isLoading?: boolean
 }
 
-
-export const GoogleAdsBreakdownFormula: React.FC<GoogleAdsBreakdownFormulaProps> = ({
+export const MetaAdsBreakdownFormula: React.FC<MetaAdsBreakdownFormulaProps> = ({
   data,
   conversions,
   cpo,
@@ -69,18 +68,12 @@ export const GoogleAdsBreakdownFormula: React.FC<GoogleAdsBreakdownFormulaProps>
 }) => {
   const [isExpanded, setIsExpanded] = useState(false)
 
-  // 構成比率を計算
-  const calculatePercentage = (value: number, total: number) => {
-    if (total === 0) return 0
-    return Math.round((value / total) * 100)
-  }
-
   // ローディング状態
   if (isLoading) {
     return (
       <div className="flex items-center justify-center gap-8">
         <div className="relative rounded-xl transition-all duration-300 p-6 min-w-[180px] shadow-md bg-white border border-gray-200">
-          <div className="font-medium tracking-wider mb-2 text-xs text-gray-500 uppercase">Google広告費</div>
+          <div className="font-medium tracking-wider mb-2 text-xs text-gray-500 uppercase">Meta広告費</div>
           <div className="animate-pulse">
             <div className="h-9 bg-gray-200 rounded w-32 mb-2"></div>
             <div className="h-4 bg-gray-100 rounded w-24"></div>
@@ -89,7 +82,7 @@ export const GoogleAdsBreakdownFormula: React.FC<GoogleAdsBreakdownFormulaProps>
         <Operator symbol="÷" />
         <FormulaCard label="ECForce CV" value={0} />
         <Operator symbol="=" />
-        <FormulaCard label="Google CPO" value={0} unit="円" isResult />
+        <FormulaCard label="Meta CPO" value={0} unit="円" isResult />
       </div>
     )
   }
@@ -99,30 +92,29 @@ export const GoogleAdsBreakdownFormula: React.FC<GoogleAdsBreakdownFormulaProps>
     return (
       <div className="flex items-center justify-center gap-8">
         <div className="relative rounded-xl transition-all duration-300 p-6 min-w-[180px] shadow-md bg-white border border-gray-200">
-          <div className="font-medium tracking-wider mb-2 text-xs text-gray-500 uppercase">Google広告費</div>
+          <div className="font-medium tracking-wider mb-2 text-xs text-gray-500 uppercase">Meta広告費</div>
           <div className="font-bold text-3xl text-gray-900">¥0</div>
           <div className="text-xs text-gray-400 mt-2">データなし</div>
         </div>
         <Operator symbol="÷" />
         <FormulaCard label="ECForce CV" value={0} />
         <Operator symbol="=" />
-        <FormulaCard label="Google CPO" value={0} unit="円" isResult />
+        <FormulaCard label="Meta CPO" value={0} unit="円" isResult />
       </div>
     )
   }
-
 
   return (
     <div className="flex items-center justify-center gap-8">
       {/* 展開時は青い枠線コンテナで囲む */}
       {isExpanded ? (
         <div className="relative rounded-xl p-6 border-2 border-blue-300 bg-white shadow-lg flex items-center gap-8">
-          {/* 左側：Google広告費の合計 */}
+          {/* 左側：Meta広告費の合計 */}
           <div
             className="cursor-pointer"
             onClick={() => setIsExpanded(!isExpanded)}
           >
-            <div className="text-gray-600 text-sm mb-2">Google広告費</div>
+            <div className="text-gray-600 text-sm mb-2">Meta広告費</div>
             <div className="text-4xl font-bold text-gray-900">
               ¥{Math.round(data.total).toLocaleString()}
             </div>
@@ -133,29 +125,31 @@ export const GoogleAdsBreakdownFormula: React.FC<GoogleAdsBreakdownFormulaProps>
 
           <Operator symbol="=" size="lg" />
 
-          {/* 内訳カード */}
+          {/* 内訳カード - Facebook */}
           <div className="rounded-xl p-4 min-w-[140px] bg-blue-50 border border-blue-200">
-            <div className="text-xs text-gray-600 mb-1">P-Max</div>
+            <div className="text-xs text-gray-600 mb-1">Facebook</div>
             <div className="font-bold text-xl text-gray-900">
-              ¥{Math.round(data.pmax).toLocaleString()}
+              ¥{Math.round(data.facebook).toLocaleString()}
             </div>
           </div>
 
           <Operator symbol="+" size="sm" />
 
-          <div className="rounded-xl p-4 min-w-[140px] bg-green-50 border border-green-200">
-            <div className="text-xs text-gray-600 mb-1">Demand Gen</div>
+          {/* 内訳カード - Instagram */}
+          <div className="rounded-xl p-4 min-w-[140px] bg-pink-50 border border-pink-200">
+            <div className="text-xs text-gray-600 mb-1">Instagram</div>
             <div className="font-bold text-xl text-gray-900">
-              ¥{Math.round(data.demandgen).toLocaleString()}
+              ¥{Math.round(data.instagram).toLocaleString()}
             </div>
           </div>
 
           <Operator symbol="+" size="sm" />
 
-          <div className="rounded-xl p-4 min-w-[140px] bg-gray-50 border border-gray-200">
-            <div className="text-xs text-gray-600 mb-1">一般</div>
+          {/* 内訳カード - Audience Network */}
+          <div className="rounded-xl p-4 min-w-[140px] bg-purple-50 border border-purple-200">
+            <div className="text-xs text-gray-600 mb-1">Audience Network</div>
             <div className="font-bold text-xl text-gray-900">
-              ¥{Math.round(data.general).toLocaleString()}
+              ¥{Math.round(data.audienceNetwork).toLocaleString()}
             </div>
           </div>
 
@@ -170,7 +164,7 @@ export const GoogleAdsBreakdownFormula: React.FC<GoogleAdsBreakdownFormulaProps>
           className="relative rounded-xl transition-all duration-300 p-6 min-w-[180px] shadow-md bg-white border border-gray-200 cursor-pointer hover:shadow-lg hover:scale-105"
           onClick={() => setIsExpanded(!isExpanded)}
         >
-          <div className="font-medium tracking-wider mb-2 text-xs text-gray-500 uppercase">Google広告費</div>
+          <div className="font-medium tracking-wider mb-2 text-xs text-gray-500 uppercase">Meta広告費</div>
           <div className="font-bold text-3xl text-gray-900">
             ¥{Math.round(data.total).toLocaleString()}
           </div>
@@ -194,7 +188,7 @@ export const GoogleAdsBreakdownFormula: React.FC<GoogleAdsBreakdownFormulaProps>
       <Operator symbol="=" />
 
       <FormulaCard
-        label="Google CPO"
+        label="Meta CPO"
         value={cpo}
         unit="円"
         isResult
