@@ -1723,16 +1723,27 @@ export default function KPIViewDashboardBreakdown() {
     value,
     unit = '',
     isResult = false,
+    onClick,
   }: {
     label: string
     value: number
     unit?: string
     isResult?: boolean
+    onClick?: () => void
   }) => (
-    <div className={`
-      rounded-lg px-4 py-3 min-w-[100px] text-center
-      ${isResult ? 'bg-blue-100 border border-blue-300' : 'bg-gray-50'}
-    `}>
+    <div
+      className={`
+        rounded-lg px-4 py-3 min-w-[100px] text-center
+        ${isResult ? 'bg-blue-100 border border-blue-300' : 'bg-gray-50'}
+        ${onClick ? 'cursor-pointer' : ''}
+      `}
+      onClick={(e) => {
+        if (onClick) {
+          e.stopPropagation()
+          onClick()
+        }
+      }}
+    >
       <div className="text-xs text-gray-500">{label}</div>
       <div className="text-lg font-semibold mt-1">
         {unit === '¥' || unit === '円'
@@ -2062,21 +2073,39 @@ export default function KPIViewDashboardBreakdown() {
                 onClick={() => setExpandedMetric(expandedMetric === 'cost' ? null : 'cost')}
                 breakdown={
                   <div className="flex items-center gap-3">
-                    <div className="text-center px-4 py-3 bg-blue-50 rounded-lg min-w-[120px]">
+                    <div
+                      className="text-center px-4 py-3 bg-blue-50 rounded-lg min-w-[120px] cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setExpandedMetric(null)
+                      }}
+                    >
                       <div className="text-xs text-gray-400 mb-1">Meta</div>
                       <div className="text-2xl font-semibold text-gray-500">
                         ¥{formatNumber(metrics.metaCost)}
                       </div>
                     </div>
                     <div className="text-xl text-gray-400">+</div>
-                    <div className="text-center px-4 py-3 bg-yellow-50 rounded-lg min-w-[120px]">
+                    <div
+                      className="text-center px-4 py-3 bg-yellow-50 rounded-lg min-w-[120px] cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setExpandedMetric(null)
+                      }}
+                    >
                       <div className="text-xs text-gray-400 mb-1">Google</div>
                       <div className="text-2xl font-semibold text-gray-500">
                         ¥{formatNumber(metrics.googleCost)}
                       </div>
                     </div>
                     <div className="text-xl text-gray-400">+</div>
-                    <div className="text-center px-4 py-3 bg-red-50 rounded-lg min-w-[120px]">
+                    <div
+                      className="text-center px-4 py-3 bg-red-50 rounded-lg min-w-[120px] cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setExpandedMetric(null)
+                      }}
+                    >
                       <div className="text-xs text-gray-400 mb-1">Yahoo</div>
                       <div className="text-2xl font-semibold text-gray-500">
                         ¥{formatNumber(metrics.yahooCost)}
@@ -2095,21 +2124,39 @@ export default function KPIViewDashboardBreakdown() {
                 onClick={() => setExpandedMetric(expandedMetric === 'cv' ? null : 'cv')}
                 breakdown={
                   <div className="flex items-center gap-3">
-                    <div className="text-center px-4 py-3 bg-blue-50 rounded-lg min-w-[100px]">
+                    <div
+                      className="text-center px-4 py-3 bg-blue-50 rounded-lg min-w-[100px] cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setExpandedMetric(null)
+                      }}
+                    >
                       <div className="text-xs text-gray-400 mb-1">Meta</div>
                       <div className="text-2xl font-semibold text-gray-500">
                         {formatNumber(metrics.metaConversions)}
                       </div>
                     </div>
                     <div className="text-xl text-gray-400">+</div>
-                    <div className="text-center px-4 py-3 bg-yellow-50 rounded-lg min-w-[100px]">
+                    <div
+                      className="text-center px-4 py-3 bg-yellow-50 rounded-lg min-w-[100px] cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setExpandedMetric(null)
+                      }}
+                    >
                       <div className="text-xs text-gray-400 mb-1">Google</div>
                       <div className="text-2xl font-semibold text-gray-500">
                         {formatNumber(metrics.googleConversions)}
                       </div>
                     </div>
                     <div className="text-xl text-gray-400">+</div>
-                    <div className="text-center px-4 py-3 bg-red-50 rounded-lg min-w-[100px]">
+                    <div
+                      className="text-center px-4 py-3 bg-red-50 rounded-lg min-w-[100px] cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setExpandedMetric(null)
+                      }}
+                    >
                       <div className="text-xs text-gray-400 mb-1">Yahoo</div>
                       <div className="text-2xl font-semibold text-gray-500">
                         {formatNumber(metrics.yahooConversions)}
