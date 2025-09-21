@@ -178,14 +178,27 @@ export const refreshAccessToken = action({
     success: boolean
     accessToken?: string
     expiresAt?: number
+    error?: string
   }> => {
     const config = await ctx.runQuery(api.googleAds.getConfig) as any
 
-    if (!config || !config.refreshToken) {
-      return { success: false }
+    if (!config) {
+      console.error('No Google Ads config found')
+      return { success: false, error: 'Google Ads設定が見つかりません' }
+    }
+
+    if (!config.refreshToken) {
+      console.error('No refresh token available')
+      return { success: false, error: 'リフレッシュトークンがありません。再度認証を行ってください。' }
+    }
+
+    if (!config.clientId || !config.clientSecret) {
+      console.error('Missing client credentials')
+      return { success: false, error: 'Client IDまたはClient Secretが設定されていません' }
     }
 
     try {
+      console.log('Attempting to refresh access token...')
       const tokenUrl = 'https://oauth2.googleapis.com/token'
       const response = await fetch(tokenUrl, {
         method: 'POST',
@@ -200,16 +213,30 @@ export const refreshAccessToken = action({
         }),
       })
 
+      const responseText = await response.text()
+
       if (!response.ok) {
-        throw new Error('Token refresh failed')
+        console.error('Token refresh failed:', response.status, responseText)
+        try {
+          const errorData = JSON.parse(responseText)
+          if (errorData.error === 'invalid_grant') {
+            return { success: false, error: 'リフレッシュトークンが無効です。再度認証を行ってください。' }
+          }
+          return { success: false, error: `トークン更新エラー: ${errorData.error_description || errorData.error}` }
+        } catch {
+          return { success: false, error: `トークン更新に失敗しました: ${response.status}` }
+        }
       }
 
-      const tokens = await response.json()
-      const expiresAt = Date.now() + (tokens.expires_in * 1000)
+      const tokens = JSON.parse(responseText)
+      const expiresAt = Date.now() + ((tokens.expires_in || 3600) * 1000)
 
-      // トークンを更新
+      console.log('Token refreshed successfully')
+
+      // トークンを更新（Convexメタデータフィールドを除外）
+      const { _creationTime, _id, createdAt, updatedAt, ...configData } = config
       await ctx.runMutation(api.googleAds.saveConfig, {
-        ...config,
+        ...configData,
         accessToken: tokens.access_token,
         tokenExpiresAt: expiresAt,
       })
@@ -219,9 +246,9 @@ export const refreshAccessToken = action({
         accessToken: tokens.access_token,
         expiresAt,
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Token refresh error:', error)
-      return { success: false }
+      return { success: false, error: error.message || 'トークン更新中に予期しないエラーが発生しました' }
     }
   },
 })
@@ -243,11 +270,15 @@ export const fetchPerformanceData = action({
     // トークンの有効期限をチェック
     let accessToken = config.accessToken
     if (!accessToken || (config.tokenExpiresAt && config.tokenExpiresAt < Date.now())) {
+      console.log('Access token expired or not found, refreshing...')
       const refreshResult = await ctx.runAction(api.googleAds.refreshAccessToken)
       if (!refreshResult.success || !refreshResult.accessToken) {
-        throw new Error('Failed to refresh access token')
+        const errorMessage = refreshResult.error || 'アクセストークンの更新に失敗しました'
+        console.error('Token refresh failed:', errorMessage)
+        throw new Error(errorMessage)
       }
       accessToken = refreshResult.accessToken
+      console.log('Access token refreshed successfully')
     }
 
     // Developer Tokenを確認
@@ -425,13 +456,100 @@ export const getDailySummaries = query({
   },
 })
 
+// 接続テスト
+export const testConnection = action({
+  args: {},
+  handler: async (ctx): Promise<{
+    success: boolean
+    message: string
+    details?: any
+  }> => {
+    try {
+      const config = await ctx.runQuery(api.googleAds.getConfig) as any
+
+      if (!config) {
+        return {
+          success: false,
+          message: 'Google Ads設定が見つかりません。設定を完了してください。',
+          details: { hasConfig: false }
+        }
+      }
+
+      // 必須フィールドのチェック
+      const missingFields = []
+      if (!config.clientId) missingFields.push('Client ID')
+      if (!config.clientSecret) missingFields.push('Client Secret')
+      if (!config.customerId) missingFields.push('Customer ID')
+
+      if (missingFields.length > 0) {
+        return {
+          success: false,
+          message: `以下の必須フィールドが不足しています: ${missingFields.join(', ')}`,
+          details: { missingFields }
+        }
+      }
+
+      // OAuth認証状態のチェック
+      if (!config.refreshToken) {
+        return {
+          success: false,
+          message: 'OAuth認証が完了していません。「アカウントを接続」ボタンから認証を行ってください。',
+          details: { hasRefreshToken: false }
+        }
+      }
+
+      // アクセストークンの状態チェック
+      const tokenExpired = config.tokenExpiresAt && config.tokenExpiresAt < Date.now()
+      if (!config.accessToken || tokenExpired) {
+        console.log('Access token needs refresh, attempting...')
+        const refreshResult = await ctx.runAction(api.googleAds.refreshAccessToken)
+
+        if (!refreshResult.success) {
+          return {
+            success: false,
+            message: refreshResult.error || 'アクセストークンの更新に失敗しました。再度認証を行ってください。',
+            details: { tokenRefreshError: refreshResult.error }
+          }
+        }
+
+        return {
+          success: true,
+          message: '接続成功！Google Ads APIは正常に動作しています。',
+          details: {
+            tokenRefreshed: true,
+            customerId: config.customerId,
+            hasAccessToken: true
+          }
+        }
+      }
+
+      return {
+        success: true,
+        message: '接続成功！Google Ads APIは正常に動作しています。',
+        details: {
+          customerId: config.customerId,
+          hasAccessToken: true,
+          tokenValid: true
+        }
+      }
+    } catch (error: any) {
+      console.error('Connection test error:', error)
+      return {
+        success: false,
+        message: `接続テスト中にエラーが発生しました: ${error.message}`,
+        details: { error: error.message }
+      }
+    }
+  },
+})
+
 // OAuth認証URLを生成
 export const generateAuthUrl = action({
   args: {
     clientId: v.string(),
     redirectUri: v.optional(v.string()),
   },
-  handler: async (ctx, args): Promise<string> => {
+  handler: async (_ctx, args): Promise<string> => {
     // Google OAuth2の認証URLを生成
     const baseUrl = 'https://accounts.google.com/o/oauth2/v2/auth'
     const scope = 'https://www.googleapis.com/auth/adwords'
