@@ -676,7 +676,8 @@ export default function KPIViewDashboardBreakdown() {
           startDate: startDate.toISOString(),
           endDate: endDate.toISOString(),
           googleAdsData,
-          spend: googleAdsData?.spend
+          spend: googleAdsData?.spend,
+          campaignTypeBreakdown: googleAdsData?.campaignTypeBreakdown
         })
 
         // 日別データを取得
@@ -711,6 +712,10 @@ export default function KPIViewDashboardBreakdown() {
         })
 
         // Google Adsデータを保存
+        console.log('📊 Google AdsデータのcampaignTypeBreakdown:', {
+          current: googleAdsData?.campaignTypeBreakdown,
+          previous: previousGoogleAdsData?.campaignTypeBreakdown
+        })
         setGoogleAdsSpendData({
           current: googleAdsData,
           previous: previousGoogleAdsData
@@ -2568,27 +2573,40 @@ export default function KPIViewDashboardBreakdown() {
               data={{
                 adSpend: {
                   total: metrics.googleCost,
-                  breakdown: googleAdsSpendData?.current?.campaignTypeBreakdown ? [
-                    {
-                      label: 'P-Max',
-                      value: googleAdsSpendData.current.campaignTypeBreakdown.pmax?.reduce((sum: number, item: any) => sum + item.spend, 0) || 0,
-                      color: 'blue'
-                    },
-                    {
-                      label: 'Demand Gen',
-                      value: googleAdsSpendData.current.campaignTypeBreakdown.demandgen?.reduce((sum: number, item: any) => sum + item.spend, 0) || 0,
-                      color: 'green'
-                    },
-                    {
-                      label: '一般',
-                      value: googleAdsSpendData.current.campaignTypeBreakdown.general?.reduce((sum: number, item: any) => sum + item.spend, 0) || 0,
-                      color: 'gray'
+                  breakdown: (() => {
+                    const breakdown = googleAdsSpendData?.current?.campaignTypeBreakdown
+                    console.log('🎯 Google Ads Breakdown データ:', {
+                      breakdown,
+                      pmax: breakdown?.pmax,
+                      demandgen: breakdown?.demandgen,
+                      general: breakdown?.general
+                    })
+                    if (breakdown) {
+                      return [
+                        {
+                          label: 'P-Max',
+                          value: breakdown.pmax?.reduce((sum: number, item: any) => sum + item.spend, 0) || 0,
+                          color: 'blue'
+                        },
+                        {
+                          label: 'Demand Gen',
+                          value: breakdown.demandgen?.reduce((sum: number, item: any) => sum + item.spend, 0) || 0,
+                          color: 'green'
+                        },
+                        {
+                          label: '一般',
+                          value: breakdown.general?.reduce((sum: number, item: any) => sum + item.spend, 0) || 0,
+                          color: 'gray'
+                        }
+                      ]
+                    } else {
+                      return [
+                        { label: 'P-Max', value: 0, color: 'blue' },
+                        { label: 'Demand Gen', value: 0, color: 'green' },
+                        { label: '一般', value: 0, color: 'gray' }
+                      ]
                     }
-                  ] : [
-                    { label: 'P-Max', value: 0, color: 'blue' },
-                    { label: 'Demand Gen', value: 0, color: 'green' },
-                    { label: '一般', value: 0, color: 'gray' }
-                  ]
+                  })()
                 },
                 conversions: metrics.googleConversions,
                 cpo: metrics.googleCPO,
@@ -2636,6 +2654,57 @@ export default function KPIViewDashboardBreakdown() {
                       <div className="flex justify-between">
                         <span className="text-gray-600">取得期間:</span>
                         <span>{formatDateToISO(calculateDateRange.startDate)} ~ {formatDateToISO(calculateDateRange.endDate)}</span>
+                      </div>
+                      {/* キャンペーンタイプ別データ表示 */}
+                      <div className="mt-3 pt-3 border-t border-gray-200">
+                        <div className="font-semibold text-gray-700 mb-2">キャンペーンタイプ別内訳:</div>
+                        {(() => {
+                          const breakdown = googleAdsSpendData?.current?.campaignTypeBreakdown
+                          if (breakdown) {
+                            const pmaxTotal = breakdown.pmax?.reduce((sum: number, item: any) => sum + item.spend, 0) || 0
+                            const demandgenTotal = breakdown.demandgen?.reduce((sum: number, item: any) => sum + item.spend, 0) || 0
+                            const generalTotal = breakdown.general?.reduce((sum: number, item: any) => sum + item.spend, 0) || 0
+
+                            return (
+                              <div className="space-y-1">
+                                <div className="flex justify-between">
+                                  <span className="text-gray-600">P-Max:</span>
+                                  <span className="font-medium">¥{Math.round(pmaxTotal).toLocaleString()}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-600">Demand Gen:</span>
+                                  <span className="font-medium">¥{Math.round(demandgenTotal).toLocaleString()}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-600">一般:</span>
+                                  <span className="font-medium">¥{Math.round(generalTotal).toLocaleString()}</span>
+                                </div>
+                                <div className="flex justify-between pt-2 border-t border-gray-100">
+                                  <span className="text-gray-700 font-semibold">合計:</span>
+                                  <span className="font-bold text-blue-600">
+                                    ¥{Math.round(pmaxTotal + demandgenTotal + generalTotal).toLocaleString()}
+                                  </span>
+                                </div>
+                              </div>
+                            )
+                          } else {
+                            return (
+                              <div className="space-y-2">
+                                <div className="text-gray-500 italic">データ取得中...</div>
+                                <div className="text-xs text-gray-400">
+                                  <div>googleAdsSpendData: {googleAdsSpendData ? 'あり' : 'なし'}</div>
+                                  <div>current: {googleAdsSpendData?.current ? 'あり' : 'なし'}</div>
+                                  <div>campaignTypeBreakdown: {googleAdsSpendData?.current?.campaignTypeBreakdown ? 'あり' : 'なし'}</div>
+                                  {googleAdsSpendData?.current && (
+                                    <div className="mt-2 p-2 bg-gray-100 rounded overflow-x-auto">
+                                      <pre className="text-xs">{JSON.stringify(googleAdsSpendData.current, null, 2).substring(0, 500)}</pre>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )
+                          }
+                        })()}
                       </div>
 
                       {/* デバッグ情報表示 */}
@@ -2836,20 +2905,43 @@ export default function KPIViewDashboardBreakdown() {
                             }
                             setGoogleAdsDebugInfo(testDebugInfo)
 
-                            // API再取得テスト
+                            // キャンペーンタイプ別データを取得
                             if (getGoogleAdsConfig?.isConnected) {
                               try {
-                                const testData = await getGoogleAdsCostSummary({
+                                console.log('🚀 キャンペーンタイプ別データ取得開始...')
+                                const result = await fetchGoogleAdsDirectData({
                                   startDate: formatDateToISO(calculateDateRange.startDate),
-                                  endDate: formatDateToISO(calculateDateRange.endDate)
+                                  endDate: formatDateToISO(calculateDateRange.endDate),
+                                  withDailyData: true
                                 })
 
-                                testDebugInfo.response = {
-                                  dataCount: testData.length,
-                                  rawData: testData,
-                                  firstItem: testData[0] || null
+                                console.log('📊 取得結果:', result)
+
+                                if (result.success && result.data) {
+                                  const campaignBreakdown = result.data.campaignTypeBreakdown
+                                  console.log('🎯 キャンペーンタイプ別:', campaignBreakdown)
+
+                                  // データをstateに保存
+                                  setGoogleAdsSpendData({
+                                    current: {
+                                      ...result.data,
+                                      spend: result.data.totalSpend,
+                                      campaignTypeBreakdown: campaignBreakdown
+                                    },
+                                    previous: googleAdsSpendData?.previous
+                                  })
+
+                                  testDebugInfo.response = {
+                                    dataCount: result.data.dailyData?.length || 0,
+                                    totalSpend: result.data.totalSpend,
+                                    campaignTypeBreakdown: campaignBreakdown,
+                                    rawData: result.data
+                                  }
+                                  testDebugInfo.request.status = 'キャンペーンタイプ別データ取得成功'
+                                } else {
+                                  testDebugInfo.response = result
+                                  testDebugInfo.request.status = 'データ取得失敗'
                                 }
-                                testDebugInfo.request.status = 'API呼び出し成功'
                                 setGoogleAdsDebugInfo(testDebugInfo)
                               } catch (error: any) {
                                 testDebugInfo.error = {
@@ -2863,7 +2955,7 @@ export default function KPIViewDashboardBreakdown() {
                           }}
                           className="px-3 py-1 bg-yellow-500 text-white text-xs rounded hover:bg-yellow-600 transition-colors"
                         >
-                          API再テスト実行
+                          キャンペーンタイプ別データ取得
                         </button>
                       </div>
 

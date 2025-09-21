@@ -913,10 +913,11 @@ export const fetchDirectApiData = action({
         console.warn('⚠️ No results returned for aggregate query')
       }
 
-      // 日別データを取得（必要な場合）
+      // 日別データとキャンペーンタイプ別データを取得
       let dailyData: any[] = []
       let campaignTypeBreakdown: any = {}
-      if (args.withDailyData) {
+      // キャンペーンタイプ別データは常に取得（CPO計算表示のため）
+      if (true) {
         const dailyQuery = `
           SELECT
             campaign.id,
@@ -1025,7 +1026,10 @@ export const fetchDirectApiData = action({
               })
             })
 
-            dailyData = Array.from(dateMap.values()).sort((a, b) => a.date.localeCompare(b.date))
+            // withDailyDataがtrueの場合のみ日別データを返す
+            if (args.withDailyData) {
+              dailyData = Array.from(dateMap.values()).sort((a, b) => a.date.localeCompare(b.date))
+            }
 
             // キャンペーンタイプ別の集計結果を整理
             const typeBreakdownArray = Array.from(typeBreakdownMap.values())
