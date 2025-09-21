@@ -1,40 +1,6 @@
 import React, { useState } from 'react'
 import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline'
 
-// FormulaCard コンポーネント
-const FormulaCard = ({
-  label,
-  value,
-  unit = '',
-  isResult = false,
-}: {
-  label: string
-  value: number | string
-  unit?: string
-  isResult?: boolean
-}) => {
-  const formatValue = (val: number | string) => {
-    if (typeof val === 'number') {
-      return val.toLocaleString()
-    }
-    return val
-  }
-
-  return (
-    <div className={`
-      relative rounded-xl transition-all duration-300
-      p-6 min-w-[180px] shadow-md
-      ${isResult ? 'bg-gradient-to-br from-green-50 to-white border-2 border-green-300' : 'bg-white border border-gray-200'}
-    `}>
-      <div className="font-medium tracking-wider mb-2 text-xs text-gray-500 uppercase">
-        {label}
-      </div>
-      <div className={`font-bold text-3xl ${isResult ? 'text-green-600' : 'text-gray-900'}`}>
-        {formatValue(value)}{unit}
-      </div>
-    </div>
-  )
-}
 
 // Operator コンポーネント
 const Operator = ({ symbol, size = 'lg' }: { symbol: string; size?: 'sm' | 'lg' }) => (

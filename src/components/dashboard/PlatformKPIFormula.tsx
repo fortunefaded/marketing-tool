@@ -7,13 +7,11 @@ const FormulaCard = ({
   value,
   unit = '',
   isResult = false,
-  platformColor = 'gray',
 }: {
   label: string
   value: number | string
   unit?: string
   isResult?: boolean
-  platformColor?: string
 }) => {
   const formatValue = (val: number | string) => {
     if (typeof val === 'number') {

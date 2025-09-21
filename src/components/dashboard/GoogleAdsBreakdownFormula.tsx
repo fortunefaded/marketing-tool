@@ -69,11 +69,6 @@ export const GoogleAdsBreakdownFormula: React.FC<GoogleAdsBreakdownFormulaProps>
 }) => {
   const [isExpanded, setIsExpanded] = useState(false)
 
-  // 構成比率を計算
-  const calculatePercentage = (value: number, total: number) => {
-    if (total === 0) return 0
-    return Math.round((value / total) * 100)
-  }
 
   // ローディング状態
   if (isLoading) {
