@@ -292,6 +292,8 @@ export const fetchPerformanceData = action({
       const apiUrl = `https://googleads.googleapis.com/v21/customers/${config.customerId.replace(/-/g, '')}/googleAds:searchStream`
 
       // Google Ads Query Language (GAQL) クエリ
+      // キャンペーンが新しい場合や、指定期間にデータがない場合を考慮
+      // まずはシンプルにメトリクスを取得
       const query = `
         SELECT
           campaign.id,
@@ -302,16 +304,18 @@ export const fetchPerformanceData = action({
           metrics.clicks,
           metrics.cost_micros,
           metrics.conversions,
-          metrics.conversions_value,
-          metrics.average_cpm,
-          metrics.average_cpc,
-          metrics.ctr,
-          metrics.conversions_from_interactions_rate
+          metrics.conversions_value
         FROM campaign
         WHERE segments.date BETWEEN '${args.startDate}' AND '${args.endDate}'
-          AND campaign.status != 'REMOVED'
         ORDER BY segments.date DESC
       `
+
+      console.log('📤 Google Ads API Request:', {
+        url: apiUrl,
+        customerId: config.customerId,
+        dateRange: `${args.startDate} ~ ${args.endDate}`,
+        query: query.trim()
+      })
 
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -323,35 +327,73 @@ export const fetchPerformanceData = action({
         body: JSON.stringify({ query }),
       })
 
+      const responseText = await response.text()
+      console.log('📥 Google Ads API Response Status:', response.status)
+      console.log('📥 Google Ads API Response Headers:', response.headers)
+
       if (!response.ok) {
-        const error = await response.text()
-        console.error('Google Ads API error:', error)
-        throw new Error(`Google Ads API error: ${error}`)
+        console.error('❌ Google Ads API error:', responseText)
+        throw new Error(`Google Ads API error (${response.status}): ${responseText}`)
       }
 
-      const result = await response.json()
+      let result
+      try {
+        result = JSON.parse(responseText)
+
+        // レスポンスが配列の場合、最初の要素を取得
+        if (Array.isArray(result) && result.length > 0 && result[0].results) {
+          console.log('🔄 Response is wrapped in array, unwrapping...')
+          result = result[0]
+        }
+
+        console.log('📥 Google Ads API Response Body:', {
+          hasResults: !!result.results,
+          resultsCount: result.results?.length || 0,
+          firstResult: result.results?.[0] || null,
+          responseKeys: Object.keys(result),
+          fullResponse: JSON.stringify(result).substring(0, 500) // 最初の500文字だけログ
+        })
+      } catch (e) {
+        console.error('Failed to parse response as JSON:', responseText)
+        throw new Error('Invalid JSON response from Google Ads API')
+      }
+
       const performanceData = []
 
       // APIレスポンスをパース
-      if (result.results) {
+      if (result.results && result.results.length > 0) {
+        console.log(`✅ Found ${result.results.length} rows of data`)
         for (const row of result.results) {
           const data = {
-            date: row.segments.date,
-            campaignName: row.campaign.name,
-            campaignId: row.campaign.id,
-            impressions: parseInt(row.metrics.impressions || '0'),
-            clicks: parseInt(row.metrics.clicks || '0'),
-            cost: parseInt(row.metrics.costMicros || '0') / 1000000, // マイクロ単位から円に変換
-            conversions: parseFloat(row.metrics.conversions || '0'),
-            conversionValue: parseFloat(row.metrics.conversionsValue || '0'),
+            date: row.segments?.date || '',
+            campaignName: row.campaign?.name || '',
+            campaignId: row.campaign?.id || '',
+            impressions: parseInt(row.metrics?.impressions || '0'),
+            clicks: parseInt(row.metrics?.clicks || '0'),
+            cost: parseInt(row.metrics?.costMicros || '0') / 1000000, // マイクロ単位から円に変換
+            conversions: parseFloat(row.metrics?.conversions || '0'),
+            conversionValue: parseFloat(row.metrics?.conversionsValue || '0'),
           }
 
           performanceData.push(data)
-          // データの保存は行わない（許可なしで保存しない）
-          // await ctx.runMutation(api.googleAds.savePerformanceData, data)
+        }
+        console.log('📊 Processed data summary:', {
+          totalRows: performanceData.length,
+          totalCost: performanceData.reduce((sum, d) => sum + d.cost, 0),
+          totalImpressions: performanceData.reduce((sum, d) => sum + d.impressions, 0),
+          totalClicks: performanceData.reduce((sum, d) => sum + d.clicks, 0)
+        })
+      } else {
+        console.log('⚠️ No results found in API response')
+        console.log('Full response for debugging:', JSON.stringify(result))
+
+        // エラーメッセージがある場合は表示
+        if (result.error) {
+          console.error('API Error in response:', result.error)
         }
       }
 
+      // デバッグ用：パフォーマンスデータと生のレスポンスを含めて返す
       return performanceData
     } catch (error) {
       console.error('Error fetching Google Ads data:', error)
@@ -369,10 +411,18 @@ export const getCostSummary = action({
   },
   handler: async (ctx, args) => {
     try {
+      console.log('🎯 getCostSummary called with:', { startDate: args.startDate, endDate: args.endDate })
+
       // 最新のデータを取得
       const freshData = await ctx.runAction(api.googleAds.fetchPerformanceData, {
         startDate: args.startDate,
         endDate: args.endDate,
+      })
+
+      console.log('🎯 fetchPerformanceData returned:', {
+        count: freshData.length,
+        firstItem: freshData[0] || null,
+        isEmpty: freshData.length === 0
       })
 
       // 日付ごとに集計
@@ -398,9 +448,11 @@ export const getCostSummary = action({
         })
       })
 
-      return Array.from(dailyMap.values()).sort((a, b) => a.date.localeCompare(b.date))
+      const result = Array.from(dailyMap.values()).sort((a, b) => a.date.localeCompare(b.date))
+      console.log('🎯 getCostSummary returning:', { count: result.length })
+      return result
     } catch (error) {
-      console.error('Error in getCostSummary:', error)
+      console.error('❌ Error in getCostSummary:', error)
       // エラー時は空配列を返す
       return []
     }
@@ -456,92 +508,6 @@ export const getDailySummaries = query({
   },
 })
 
-// 接続テスト
-export const testConnection = action({
-  args: {},
-  handler: async (ctx): Promise<{
-    success: boolean
-    message: string
-    details?: any
-  }> => {
-    try {
-      const config = await ctx.runQuery(api.googleAds.getConfig) as any
-
-      if (!config) {
-        return {
-          success: false,
-          message: 'Google Ads設定が見つかりません。設定を完了してください。',
-          details: { hasConfig: false }
-        }
-      }
-
-      // 必須フィールドのチェック
-      const missingFields = []
-      if (!config.clientId) missingFields.push('Client ID')
-      if (!config.clientSecret) missingFields.push('Client Secret')
-      if (!config.customerId) missingFields.push('Customer ID')
-
-      if (missingFields.length > 0) {
-        return {
-          success: false,
-          message: `以下の必須フィールドが不足しています: ${missingFields.join(', ')}`,
-          details: { missingFields }
-        }
-      }
-
-      // OAuth認証状態のチェック
-      if (!config.refreshToken) {
-        return {
-          success: false,
-          message: 'OAuth認証が完了していません。「アカウントを接続」ボタンから認証を行ってください。',
-          details: { hasRefreshToken: false }
-        }
-      }
-
-      // アクセストークンの状態チェック
-      const tokenExpired = config.tokenExpiresAt && config.tokenExpiresAt < Date.now()
-      if (!config.accessToken || tokenExpired) {
-        console.log('Access token needs refresh, attempting...')
-        const refreshResult = await ctx.runAction(api.googleAds.refreshAccessToken)
-
-        if (!refreshResult.success) {
-          return {
-            success: false,
-            message: refreshResult.error || 'アクセストークンの更新に失敗しました。再度認証を行ってください。',
-            details: { tokenRefreshError: refreshResult.error }
-          }
-        }
-
-        return {
-          success: true,
-          message: '接続成功！Google Ads APIは正常に動作しています。',
-          details: {
-            tokenRefreshed: true,
-            customerId: config.customerId,
-            hasAccessToken: true
-          }
-        }
-      }
-
-      return {
-        success: true,
-        message: '接続成功！Google Ads APIは正常に動作しています。',
-        details: {
-          customerId: config.customerId,
-          hasAccessToken: true,
-          tokenValid: true
-        }
-      }
-    } catch (error: any) {
-      console.error('Connection test error:', error)
-      return {
-        success: false,
-        message: `接続テスト中にエラーが発生しました: ${error.message}`,
-        details: { error: error.message }
-      }
-    }
-  },
-})
 
 // OAuth認証URLを生成
 export const generateAuthUrl = action({
@@ -657,6 +623,481 @@ export const handleOAuthCallback = action({
   },
 })
 
+// 全キャンペーンを取得（デバッグ用）
+export const getAllCampaigns = action({
+  args: {},
+  handler: async (ctx) => {
+    const config = await ctx.runQuery(api.googleAds.getConfig) as any
+
+    if (!config || !config.isConnected) {
+      throw new Error('Google Ads API is not configured')
+    }
+
+    // トークンの有効期限をチェック
+    let accessToken = config.accessToken
+    if (!accessToken || (config.tokenExpiresAt && config.tokenExpiresAt < Date.now())) {
+      console.log('Access token expired or not found, refreshing...')
+      const refreshResult = await ctx.runAction(api.googleAds.refreshAccessToken)
+      if (!refreshResult.success || !refreshResult.accessToken) {
+        throw new Error(refreshResult.error || 'Failed to refresh access token')
+      }
+      accessToken = refreshResult.accessToken
+    }
+
+    const developerToken = config.developerToken || config.developerId
+    if (!developerToken) {
+      throw new Error('Developer token is not configured')
+    }
+
+    try {
+      const apiUrl = `https://googleads.googleapis.com/v21/customers/${config.customerId.replace(/-/g, '')}/googleAds:searchStream`
+
+      // すべてのキャンペーンを取得するシンプルなクエリ
+      const query = `
+        SELECT
+          campaign.id,
+          campaign.name,
+          campaign.status,
+          campaign.start_date,
+          campaign.end_date
+        FROM campaign
+      `
+
+      console.log('📤 Getting all campaigns with query:', query.trim())
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'developer-token': developerToken,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query }),
+      })
+
+      const responseText = await response.text()
+      console.log('📥 Response status:', response.status)
+
+      if (!response.ok) {
+        console.error('API Error:', responseText)
+        throw new Error(`API Error (${response.status}): ${responseText}`)
+      }
+
+      const result = JSON.parse(responseText)
+      console.log('📥 All campaigns result:', result)
+
+      return {
+        success: true,
+        campaigns: result.results || [],
+        totalCount: result.results?.length || 0
+      }
+    } catch (error) {
+      console.error('Error getting all campaigns:', error)
+      throw error
+    }
+  },
+})
+
+// 実際のGoogle Ads APIデータを直接取得（CORS回避のためバックエンド経由）
+export const fetchDirectApiData = action({
+  args: {
+    startDate: v.string(),
+    endDate: v.string(),
+    withDailyData: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args): Promise<{
+    success: boolean
+    error: string | null
+    data: any | null
+  }> => {
+    console.log('📊 fetchDirectApiData called:', args)
+
+    // 設定を取得
+    let config = await ctx.runQuery(api.googleAds.getConfig) as any
+
+    if (!config || !config.isConnected) {
+      console.error('Google Ads not configured')
+      return {
+        success: false,
+        error: 'Google Ads APIが設定されていません',
+        data: null
+      }
+    }
+
+    // Customer IDの検証
+    const expectedCustomerId = '9659708798'
+    if (config.customerId !== expectedCustomerId) {
+      console.warn(`⚠️ Customer ID mismatch: Expected ${expectedCustomerId}, got ${config.customerId}`)
+      config.customerId = expectedCustomerId
+    }
+
+    // Manager Account IDの検証
+    const expectedManagerId = '3712162647'
+    if (!config.managerAccountId || config.managerAccountId !== expectedManagerId) {
+      console.warn(`⚠️ Manager ID missing or mismatch: Setting to ${expectedManagerId}`)
+      config.managerAccountId = expectedManagerId
+    }
+
+    // トークンの有効期限をチェック
+    let accessToken = config.accessToken
+    if (!accessToken || (config.tokenExpiresAt && config.tokenExpiresAt < Date.now())) {
+      console.log('Access token expired, refreshing...')
+      const refreshResult = await ctx.runAction(api.googleAds.refreshAccessToken) as any
+      if (!refreshResult.success || !refreshResult.accessToken) {
+        return {
+          success: false,
+          error: refreshResult.error || 'トークンの更新に失敗しました',
+          data: null
+        }
+      }
+      accessToken = refreshResult.accessToken
+    }
+
+    const developerToken = config.developerToken || config.developerId
+    if (!developerToken) {
+      return {
+        success: false,
+        error: 'Developer tokenが設定されていません',
+        data: null
+      }
+    }
+
+    const customerId = config.customerId.replace(/-/g, '')
+    const apiUrl = `https://googleads.googleapis.com/v21/customers/${customerId}/googleAds:searchStream`
+
+    // APIリクエスト前のログ
+    console.log('🔍 Google Ads API Request Details:', {
+      customerId: config.customerId,
+      managerAccountId: config.managerAccountId || '3712162647',
+      hasAccessToken: !!accessToken,
+      developerToken: developerToken?.substring(0, 10) + '...',
+      apiUrl: apiUrl,
+      dateRange: `${args.startDate} to ${args.endDate}`,
+      withDailyData: args.withDailyData
+    })
+
+    try {
+      // まずキャンペーン一覧を取得（デバッグ用）
+      const campaignQuery = `
+        SELECT
+          campaign.id,
+          campaign.name,
+          campaign.status
+        FROM campaign
+        WHERE campaign.status = 'ENABLED'
+      `
+
+      console.log('🔍 Fetching campaigns first...')
+      const campaignResponse = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'developer-token': developerToken,
+          'login-customer-id': config.managerAccountId || '3712162647',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query: campaignQuery }),
+      })
+
+      if (campaignResponse.ok) {
+        let campaignData = await campaignResponse.json()
+        // 配列の場合はアンラップ
+        if (Array.isArray(campaignData) && campaignData.length > 0 && campaignData[0].results) {
+          campaignData = campaignData[0]
+        }
+        console.log('✅ Active campaigns:', campaignData.results?.length || 0, campaignData.results)
+      }
+
+      // メインクエリ（集計データ - キャンペーンレベル）
+      // すべてのキャンペーンタイプを含む: P-Max, 一般, 指名KW, デマンド広告
+      const aggregateQuery = `
+        SELECT
+          campaign.id,
+          campaign.name,
+          campaign.advertising_channel_type,
+          campaign.advertising_channel_sub_type,
+          metrics.impressions,
+          metrics.clicks,
+          metrics.cost_micros,
+          metrics.conversions,
+          metrics.conversions_value,
+          metrics.average_cpc,
+          metrics.average_cpm,
+          metrics.ctr
+        FROM campaign
+        WHERE segments.date BETWEEN '${args.startDate}' AND '${args.endDate}'
+      `
+
+      console.log('🔍 Executing Google Ads Query:', {
+        queryType: 'aggregated',
+        resource: 'campaign',
+        dateRange: `${args.startDate} to ${args.endDate}`,
+        query: aggregateQuery.trim().substring(0, 200) + '...'
+      })
+
+      const aggregateResponse = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'developer-token': developerToken,
+          'login-customer-id': config.managerAccountId || '3712162647',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query: aggregateQuery }),
+      })
+
+      const aggregateText = await aggregateResponse.text()
+      console.log('📥 Aggregate response status:', aggregateResponse.status)
+
+      if (!aggregateResponse.ok) {
+        console.error('❌ Google Ads API Error:', {
+          status: aggregateResponse.status,
+          statusText: aggregateResponse.statusText,
+          responseBody: aggregateText,
+          headers: Object.fromEntries(aggregateResponse.headers.entries())
+        })
+        return {
+          success: false,
+          error: `API error (${aggregateResponse.status}): ${aggregateText}`,
+          data: null
+        }
+      }
+
+      let aggregateData = JSON.parse(aggregateText)
+      // 配列の場合はアンラップ
+      if (Array.isArray(aggregateData) && aggregateData.length > 0 && aggregateData[0].results) {
+        console.log('🔄 Unwrapping array response for aggregate data')
+        aggregateData = aggregateData[0]
+      }
+      console.log('✅ Google Ads API Success:', {
+        hasResults: !!aggregateData.results,
+        resultsCount: aggregateData.results?.length || 0,
+        firstResult: aggregateData.results?.[0] || null,
+        fieldMask: aggregateData.fieldMask || null,
+        requestId: aggregateData.requestId || null
+      })
+
+      // 集計データを処理
+      let totalSpend = 0
+      let totalImpressions = 0
+      let totalClicks = 0
+      let totalConversions = 0
+      let totalConversionValue = 0
+
+      if (aggregateData.results && aggregateData.results.length > 0) {
+        console.log('✅ Query successful:', {
+          resultsCount: aggregateData.results.length,
+          firstResult: aggregateData.results[0],
+          campaigns: aggregateData.results.map((r: any) => ({
+            name: r.campaign?.name,
+            type: r.campaign?.advertisingChannelType,
+            subType: r.campaign?.advertisingChannelSubType
+          })).filter(c => c.name)
+        })
+
+        aggregateData.results.forEach((row: any) => {
+          totalSpend += parseInt(row.metrics?.costMicros || '0') / 1000000
+          totalImpressions += parseInt(row.metrics?.impressions || '0')
+          totalClicks += parseInt(row.metrics?.clicks || '0')
+          totalConversions += parseFloat(row.metrics?.conversions || '0')
+          totalConversionValue += parseFloat(row.metrics?.conversionsValue || '0')
+        })
+
+        console.log('📊 Totals calculated:', {
+          totalSpend: `¥${totalSpend.toLocaleString()}`,
+          totalImpressions,
+          totalClicks,
+          totalConversions
+        })
+      } else {
+        console.warn('⚠️ No results returned for aggregate query')
+      }
+
+      // 日別データを取得（必要な場合）
+      let dailyData: any[] = []
+      let campaignTypeBreakdown: any = {}
+      if (args.withDailyData) {
+        const dailyQuery = `
+          SELECT
+            campaign.id,
+            campaign.name,
+            campaign.advertising_channel_type,
+            campaign.advertising_channel_sub_type,
+            segments.date,
+            metrics.impressions,
+            metrics.clicks,
+            metrics.cost_micros,
+            metrics.conversions,
+            metrics.conversions_value
+          FROM campaign
+          WHERE segments.date BETWEEN '${args.startDate}' AND '${args.endDate}'
+          ORDER BY segments.date DESC
+        `
+
+        console.log('🔍 Executing Google Ads Query:', {
+          queryType: 'daily',
+          resource: 'campaign',
+          dateRange: `${args.startDate} to ${args.endDate}`
+        })
+        const dailyResponse = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'developer-token': developerToken,
+            'login-customer-id': config.managerAccountId || '3712162647',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ query: dailyQuery }),
+        })
+
+        if (dailyResponse.ok) {
+          let dailyResponseData = await dailyResponse.json()
+          // 配列の場合はアンラップ
+          if (Array.isArray(dailyResponseData) && dailyResponseData.length > 0 && dailyResponseData[0].results) {
+            console.log('🔄 Unwrapping array response for daily data')
+            dailyResponseData = dailyResponseData[0]
+          }
+          console.log('📊 Daily data rows:', dailyResponseData.results?.length || 0)
+
+          if (dailyResponseData.results && dailyResponseData.results.length > 0) {
+            console.log('✅ Daily query successful:', {
+              daysWithData: dailyResponseData.results.length,
+              firstDay: dailyResponseData.results[0]?.segments?.date,
+              lastDay: dailyResponseData.results[dailyResponseData.results.length - 1]?.segments?.date
+            })
+            // 日付ごとおよびキャンペーンタイプごとに集計
+            const dateMap = new Map()
+            const typeBreakdownMap = new Map()
+
+            dailyResponseData.results.forEach((row: any) => {
+              const date = row.segments?.date
+              if (!date) return
+
+              // キャンペーンタイプを判定
+              const channelType = row.campaign?.advertisingChannelType
+              const channelSubType = row.campaign?.advertisingChannelSubType
+              let campaignType = '一般'
+
+              if (channelType === 'PERFORMANCE_MAX') {
+                campaignType = 'P-Max'
+              } else if (channelType === 'DEMAND_GEN' || channelSubType === 'DEMAND_GEN') {
+                campaignType = 'Demand Gen'
+              }
+
+              // 全体の日別集計
+              const existing = dateMap.get(date) || {
+                date,
+                spend: 0,
+                impressions: 0,
+                clicks: 0,
+                conversions: 0,
+                conversionValue: 0,
+              }
+
+              dateMap.set(date, {
+                ...existing,
+                spend: existing.spend + (parseInt(row.metrics?.costMicros || '0') / 1000000),
+                impressions: existing.impressions + parseInt(row.metrics?.impressions || '0'),
+                clicks: existing.clicks + parseInt(row.metrics?.clicks || '0'),
+                conversions: existing.conversions + parseFloat(row.metrics?.conversions || '0'),
+                conversionValue: existing.conversionValue + parseFloat(row.metrics?.conversionsValue || '0'),
+              })
+
+              // キャンペーンタイプ別の日別集計
+              const typeKey = `${campaignType}:${date}`
+              const typeExisting = typeBreakdownMap.get(typeKey) || {
+                type: campaignType,
+                date,
+                spend: 0,
+                impressions: 0,
+                clicks: 0,
+                conversions: 0,
+                conversionValue: 0,
+              }
+
+              typeBreakdownMap.set(typeKey, {
+                ...typeExisting,
+                spend: typeExisting.spend + (parseInt(row.metrics?.costMicros || '0') / 1000000),
+                impressions: typeExisting.impressions + parseInt(row.metrics?.impressions || '0'),
+                clicks: typeExisting.clicks + parseInt(row.metrics?.clicks || '0'),
+                conversions: typeExisting.conversions + parseFloat(row.metrics?.conversions || '0'),
+                conversionValue: typeExisting.conversionValue + parseFloat(row.metrics?.conversionsValue || '0'),
+              })
+            })
+
+            dailyData = Array.from(dateMap.values()).sort((a, b) => a.date.localeCompare(b.date))
+
+            // キャンペーンタイプ別の集計結果を整理
+            const typeBreakdownArray = Array.from(typeBreakdownMap.values())
+            campaignTypeBreakdown = {
+              pmax: typeBreakdownArray.filter(d => d.type === 'P-Max').sort((a, b) => a.date.localeCompare(b.date)),
+              demandgen: typeBreakdownArray.filter(d => d.type === 'Demand Gen').sort((a, b) => a.date.localeCompare(b.date)),
+              general: typeBreakdownArray.filter(d => d.type === '一般').sort((a, b) => a.date.localeCompare(b.date)),
+            }
+          } else {
+            console.warn('⚠️ No daily data returned')
+          }
+        }
+      }
+
+      return {
+        success: true,
+        error: null,
+        data: {
+          totalSpend,
+          totalImpressions,
+          totalClicks,
+          totalConversions,
+          totalConversionValue,
+          ctr: totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0,
+          cpc: totalClicks > 0 ? totalSpend / totalClicks : 0,
+          cpa: totalConversions > 0 ? totalSpend / totalConversions : 0,
+          dailyData,
+          campaignTypeBreakdown,
+        }
+      }
+    } catch (error: any) {
+      console.error('🔥 Google Ads API Exception:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+        config: {
+          customerId: config.customerId,
+          managerAccountId: config.managerAccountId,
+          hasToken: !!accessToken
+        }
+      })
+
+      // エラーメッセージから問題を特定
+      if (error.message.includes('PERMISSION_DENIED')) {
+        return {
+          success: false,
+          error: '権限エラー: Manager Account IDまたはCustomer IDを確認してください',
+          data: null
+        }
+      } else if (error.message.includes('INVALID_CUSTOMER_ID')) {
+        return {
+          success: false,
+          error: `Customer ID (${config.customerId}) が無効です`,
+          data: null
+        }
+      } else if (error.message.includes('AUTHENTICATION')) {
+        return {
+          success: false,
+          error: '認証エラー: アクセストークンの有効性を確認してください',
+          data: null
+        }
+      }
+
+      return {
+        success: false,
+        error: error.message || 'APIエラーが発生しました',
+        data: null
+      }
+    }
+  },
+})
+
 // 接続テスト
 export const testConnection = action({
   args: {},
@@ -668,6 +1109,7 @@ export const testConnection = action({
       developerId: string
       hasAuth?: boolean
       authStatus?: string
+      campaigns?: any
     }
   }> => {
     const config = await ctx.runQuery(api.googleAds.getConfig) as any

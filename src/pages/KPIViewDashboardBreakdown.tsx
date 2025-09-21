@@ -7,6 +7,8 @@ import { DateRangeFilter } from '../features/meta-api/components/DateRangeFilter
 import type { DateRangeFilter as DateRangeFilterType } from '../features/meta-api/hooks/useAdFatigueSimplified'
 import { MetaAccount } from '@/types'
 import { MetaCampaignBreakdown } from '../components/MetaCampaignBreakdown'
+import { GoogleAdsBreakdown } from '../components/dashboard/GoogleAdsBreakdown'
+import { GoogleAdsBreakdownFormula } from '../components/dashboard/GoogleAdsBreakdownFormula'
 import {
   ChartBarSquareIcon,
   ArrowTrendingUpIcon,
@@ -32,7 +34,7 @@ import {
 } from 'recharts'
 import { motion, AnimatePresence } from 'framer-motion'
 import { generateYahooAdsData } from '../utils/mockData/yahooAds'
-import { generateGoogleAdsData } from '../utils/mockData/googleAds'
+// import { generateGoogleAdsData } from '../utils/mockData/googleAds'  // 実データのみ使用するため無効化
 import { generateMetaAdsData } from '../utils/mockData/metaAds'
 import {
   saveSelectedAccount,
@@ -42,11 +44,15 @@ import {
   clearCachedData,
 } from '@/utils/localStorage'
 import { logAPI, logState } from '../utils/debugLogger'
+import { testGoogleAdsDirectly } from '../utils/testGoogleAdsApi'
 
 export default function KPIViewDashboardBreakdown() {
   const convex = useConvex()
-  // const getGoogleAdsCostSummary = useAction(api.googleAds.getCostSummary)
-  // const getGoogleAdsTestData = useAction(api.googleAdsTestData.getRealisticTestData)
+  const convexAction = useAction  // Convex Action呼び出し用
+  const getGoogleAdsCostSummary = useAction(api.googleAds.getCostSummary)
+  const fetchGoogleAdsDirectData = useAction(api.googleAds.fetchDirectApiData)
+  const getGoogleAdsConfig = useQuery(api.googleAds.getConfig)
+  const getAllGoogleAdsCampaigns = useAction(api.googleAds.getAllCampaigns)
   const [data, setData] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -58,6 +64,12 @@ export default function KPIViewDashboardBreakdown() {
   const [dailyMetaData, setDailyMetaData] = useState<any[]>([])
   const [googleAdsData, setGoogleAdsData] = useState<any>(null)
   const [yahooAdsData, setYahooAdsData] = useState<any>(null)
+  const [googleAdsDebugInfo, setGoogleAdsDebugInfo] = useState<any>(null)
+
+  // Google Ads API直接呼び出し用のstate
+  const [googleAdsSpendData, setGoogleAdsSpendData] = useState<any>(null)
+  const [googleAdsConfigState, setGoogleAdsConfigState] = useState<any>(null)
+  const [dailyGoogleAdsData, setDailyGoogleAdsData] = useState<any[]>([])
 
   // ブレークダウン展開状態の管理
   const [expandedMetric, setExpandedMetric] = useState<'cv' | 'cpo' | 'cost' | null>(null)
@@ -198,6 +210,20 @@ export default function KPIViewDashboardBreakdown() {
     } finally {
       setIsLoadingAccounts(false)
     }
+  }, [convex])
+
+  // Google Ads設定を取得
+  useEffect(() => {
+    const loadGoogleAdsConfig = async () => {
+      try {
+        const config = await convex.query(api.googleAds.getConfig)
+        setGoogleAdsConfigState(config)
+        console.log('✅ Google Ads設定取得完了:', config?.isConnected ? '接続済み' : '未接続')
+      } catch (error) {
+        console.error('❌ Google Ads設定取得エラー:', error)
+      }
+    }
+    loadGoogleAdsConfig()
   }, [convex])
 
   // 日付フォーマット関数
@@ -399,6 +425,66 @@ export default function KPIViewDashboardBreakdown() {
     return null
   }, [accounts])
 
+  // Google Ads APIから広告費を取得（Convex経由でCORS回避）
+  const fetchGoogleAdsSpendData = useCallback(async (
+    startDate: Date,
+    endDate: Date,
+    withDailyData: boolean = false
+  ) => {
+    if (!googleAdsConfigState?.isConnected) {
+      console.log('Google Ads未接続')
+      return null
+    }
+
+    try {
+      console.log('📊 Google Ads APIからデータ取得中（Convex経由）...', {
+        withDailyData,
+        since: formatDateToISO(startDate),
+        until: formatDateToISO(endDate)
+      })
+
+      // ConvexのActionを呼び出し（CORS回避）
+      const result = await fetchGoogleAdsDirectData({
+        startDate: formatDateToISO(startDate),
+        endDate: formatDateToISO(endDate),
+        withDailyData
+      })
+
+      console.log('📥 Convex Action結果:', result)
+
+      if (!result || !result.success) {
+        console.error('Google Ads API エラー:', result?.error || 'Unknown error')
+        return null
+      }
+
+      if (!result.data) {
+        console.log('⚠️ Google Ads APIレスポンスにデータなし')
+        return null
+      }
+
+      if (withDailyData && result.data.dailyData) {
+        console.log('✅ Google Ads日別データ取得完了:', result.data.dailyData.length, '日分')
+        return result.data.dailyData
+      } else {
+        const googleAdsData = {
+          spend: result.data.totalSpend || 0,
+          clicks: result.data.totalClicks || 0,
+          impressions: result.data.totalImpressions || 0,
+          conversions: result.data.totalConversions || 0,
+          ctr: result.data.ctr || 0,
+          cpc: result.data.cpc || 0,
+          cpa: result.data.cpa || 0,
+          campaignTypeBreakdown: result.data.campaignTypeBreakdown || null,
+        }
+        console.log('✅ Google Ads集計データ取得完了:', googleAdsData)
+        return googleAdsData
+      }
+    } catch (error) {
+      console.error('Google Ads API取得エラー:', error)
+      return null
+    }
+  }, [googleAdsConfigState, formatDateToISO, fetchGoogleAdsDirectData])
+
 
   // データの統合取得
   useEffect(() => {
@@ -413,22 +499,108 @@ export default function KPIViewDashboardBreakdown() {
         selectedAccountId
       })
 
-      // Google Adsデータを取得（モック） - アカウント選択不要
-      const googleData = generateGoogleAdsData(startDate, endDate)
-      console.log('🔵 Google Adsモックデータ生成結果:', googleData)
-      console.log('🔵 Google totalCost:', googleData.totalCost)
-      console.log('🔵 Google totalConversions:', googleData.totalConversions)
-      // データ構造を統一（currentフィールドを含む形式に）
-      const googleAdsDataToSet = {
-        ...googleData,
-        cost: googleData.totalCost,
-        impressions: googleData.totalImpressions,
-        clicks: googleData.totalClicks,
-        conversions: googleData.totalConversions,
-        data: googleData.current // 互換性のため
+      // Google Adsデータを取得（実データのみ、モックデータは使用しない）
+      const debugInfo = {
+        config: {
+          isConnected: getGoogleAdsConfig?.isConnected,
+          hasAccessToken: !!getGoogleAdsConfig?.accessToken,
+          customerId: getGoogleAdsConfig?.customerId,
+          tokenExpiresAt: getGoogleAdsConfig?.tokenExpiresAt
+        },
+        request: {
+          startDate: formatDateToISO(startDate),
+          endDate: formatDateToISO(endDate)
+        },
+        response: null as any,
+        error: null as any,
+        timestamp: new Date().toISOString()
       }
-      console.log('🔵 Setting googleAdsData:', googleAdsDataToSet)
-      setGoogleAdsData(googleAdsDataToSet)
+
+      if (getGoogleAdsConfig?.isConnected) {
+        try {
+          debugInfo.request.status = 'API呼び出し中...'
+          setGoogleAdsDebugInfo(debugInfo)
+
+          const googleSummary = await getGoogleAdsCostSummary({
+            startDate: formatDateToISO(startDate),
+            endDate: formatDateToISO(endDate)
+          })
+
+          debugInfo.response = {
+            dataCount: googleSummary.length,
+            rawData: googleSummary,
+            firstItem: googleSummary[0] || null
+          }
+
+          // APIデータを集計
+          const totalCost = googleSummary.reduce((sum: number, item: any) => sum + (item.cost || 0), 0)
+          const totalImpressions = googleSummary.reduce((sum: number, item: any) => sum + (item.impressions || 0), 0)
+          const totalClicks = googleSummary.reduce((sum: number, item: any) => sum + (item.clicks || 0), 0)
+          const totalConversions = googleSummary.reduce((sum: number, item: any) => sum + (item.conversions || 0), 0)
+
+          const googleAdsDataToSet = {
+            totalCost,
+            totalImpressions,
+            totalClicks,
+            totalConversions,
+            cost: totalCost,
+            impressions: totalImpressions,
+            clicks: totalClicks,
+            conversions: totalConversions,
+            current: googleSummary,
+            data: googleSummary
+          }
+
+          debugInfo.response.aggregated = {
+            totalCost,
+            totalImpressions,
+            totalClicks,
+            totalConversions
+          }
+          debugInfo.request.status = 'API呼び出し成功'
+          setGoogleAdsDebugInfo(debugInfo)
+          setGoogleAdsData(googleAdsDataToSet)
+        } catch (error: any) {
+          debugInfo.error = {
+            message: error.message || 'Unknown error',
+            stack: error.stack,
+            timestamp: new Date().toISOString()
+          }
+          debugInfo.request.status = 'API呼び出し失敗'
+          setGoogleAdsDebugInfo(debugInfo)
+
+          // エラー時は実データがないことを明示（モックデータは使用しない）
+          setGoogleAdsData({
+            totalCost: 0,
+            totalImpressions: 0,
+            totalClicks: 0,
+            totalConversions: 0,
+            cost: 0,
+            impressions: 0,
+            clicks: 0,
+            conversions: 0,
+            current: [],
+            data: []
+          })
+        }
+      } else {
+        debugInfo.request.status = 'Google Ads未接続'
+        setGoogleAdsDebugInfo(debugInfo)
+
+        // 未接続時は実データがないことを明示（モックデータは使用しない）
+        setGoogleAdsData({
+          totalCost: 0,
+          totalImpressions: 0,
+          totalClicks: 0,
+          totalConversions: 0,
+          cost: 0,
+          impressions: 0,
+          clicks: 0,
+          conversions: 0,
+          current: [],
+          data: []
+        })
+      }
 
       // Yahoo Adsデータを取得（モック）
       const yahooData = generateYahooAdsData(startDate, endDate)
@@ -492,6 +664,56 @@ export default function KPIViewDashboardBreakdown() {
         })
       }
 
+      // Google Adsデータを取得（直接API呼び出し）
+      if (googleAdsConfigState?.isConnected) {
+        // 集計データを取得
+        const googleAdsData = await fetchGoogleAdsSpendData(startDate, endDate, false)
+        console.log('🔷 Google Ads広告費取得結果:', {
+          dateRange,
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString(),
+          googleAdsData,
+          spend: googleAdsData?.spend
+        })
+
+        // 日別データを取得
+        try {
+          const dailyGoogleAds = await fetchGoogleAdsSpendData(startDate, endDate, true)
+          console.log('📡 fetchGoogleAdsSpendData結果 (daily):', dailyGoogleAds)
+          if (dailyGoogleAds && Array.isArray(dailyGoogleAds)) {
+            console.log('✅ dailyGoogleAdsDataにセット:', dailyGoogleAds.length, '日分')
+            setDailyGoogleAdsData(dailyGoogleAds)
+          } else {
+            console.warn('⚠️ dailyGoogleAdsDataは空または無効:', dailyGoogleAds)
+            setDailyGoogleAdsData([])
+          }
+        } catch (error) {
+          console.error('❌ 日別Google Adsデータ取得エラー:', error)
+          setDailyGoogleAdsData([])
+        }
+
+        // 前期間のGoogle Adsデータも取得
+        const periodDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
+        const previousStart = new Date(startDate)
+        previousStart.setDate(previousStart.getDate() - periodDays - 1)
+        const previousEnd = new Date(startDate)
+        previousEnd.setDate(previousEnd.getDate() - 1)
+
+        const previousGoogleAdsData = await fetchGoogleAdsSpendData(previousStart, previousEnd, false)
+        console.log('🔷 前期間Google Ads広告費取得結果:', {
+          previousStart: previousStart.toISOString(),
+          previousEnd: previousEnd.toISOString(),
+          previousGoogleAdsData,
+          spend: previousGoogleAdsData?.spend
+        })
+
+        // Google Adsデータを保存
+        setGoogleAdsSpendData({
+          current: googleAdsData,
+          previous: previousGoogleAdsData
+        })
+      }
+
       setLastUpdateTime(new Date())
     }
 
@@ -512,10 +734,10 @@ export default function KPIViewDashboardBreakdown() {
     saveSelectedAccount(accountId)
     const { startDate, endDate } = calculateDateRange
     if (startDate && endDate) {
-      // Google/Yahooモックデータを生成
-      const googleData = generateGoogleAdsData(startDate, endDate)
+      // Yahooモックデータを生成
       const yahooData = generateYahooAdsData(startDate, endDate)
 
+      // Google Adsは実データのみ使用（モックデータは生成しない）
       // ECForceデータは実データ（Convex）を使用するため、ここでは生成しない
 
       // Metaデータを取得
@@ -978,11 +1200,12 @@ export default function KPIViewDashboardBreakdown() {
       dateRange
     })
     const metaCost = metaSpendData?.current?.spend || 0
-    const googleCost = googleAdsData?.cost || 0  // 直接costを参照
+    const googleCost = googleAdsSpendData?.current?.spend || googleAdsData?.cost || 0  // API直接呼び出しデータを優先
     const yahooCost = yahooAdsData?.cost || 0
     console.log('💰 広告費計算:', {
       metaCost,
       googleCost,
+      googleAdsSpendData: googleAdsSpendData?.current,
       yahooCost,
       googleAdsData,
       yahooAdsData,
@@ -990,23 +1213,29 @@ export default function KPIViewDashboardBreakdown() {
     })
     const cost = metaCost + googleCost + yahooCost || kpiSummaryData?.current?.cost || 0
 
+    // クリック数も統合
+    const metaClicks = metaSpendData?.current?.clicks || 0
+    const googleAdsClicks = googleAdsSpendData?.current?.clicks || googleAdsData?.clicks || 0
+    const yahooClicks = yahooAdsData?.clicks || 0
+    const totalClicks = metaClicks + googleAdsClicks + yahooClicks
+
     // 各媒体のCV数を計算（Meta CVはConvexの実データから取得）
     const metaConversions = kpiSummaryData?.current?.cvOrder || 0
-    const googleConversionsValue = googleAdsData?.conversions || 0
+    const googleConversionsValue = googleAdsSpendData?.current?.conversions || googleAdsData?.conversions || 0
     const yahooConversionsValue = yahooAdsData?.conversions || 0
 
     // 全体のCV数（各媒体のCVを合算）
     const cv = metaConversions + googleConversionsValue + yahooConversionsValue
     const sales = kpiSummaryData?.current?.salesAmount || 0
 
-    // MetaとGoogle Adsのクリック・インプレッションを合算
-    const metaClicks = metaSpendData?.current?.clicks || 0
-    const googleClicks = googleAdsData?.clicks || 0  // 直接clicksを参照
-    const clicks = metaClicks + googleClicks || kpiSummaryData?.current?.accessCount || 0
+    // クリック数はすでに上で計算済み（totalClicks）
+    const clicks = totalClicks || kpiSummaryData?.current?.accessCount || 0
 
+    // インプレッションを合算
     const metaImpressions = metaSpendData?.current?.impressions || 0
-    const googleImpressions = googleAdsData?.impressions || 0  // 直接impressionsを参照
-    const impressions = metaImpressions + googleImpressions || 0
+    const googleImpressions = googleAdsSpendData?.current?.impressions || googleAdsData?.impressions || 0
+    const yahooImpressions = yahooAdsData?.impressions || 0
+    const impressions = metaImpressions + googleImpressions + yahooImpressions || 0
 
     // 計算指標
     const cpo = cv > 0 ? cost / cv : 0
@@ -1018,15 +1247,17 @@ export default function KPIViewDashboardBreakdown() {
 
     // 前期比較データ
     const previousMetaCost = metaSpendData?.previous?.spend || 0
-    const previousGoogleCost = googleAdsData?.previous?.cost || 0
-    const previousCost = previousMetaCost + previousGoogleCost || kpiSummaryData?.previous?.cost || 0
+    const previousGoogleCost = googleAdsSpendData?.previous?.spend || googleAdsData?.previous?.cost || 0
+    const previousYahooCost = 0  // Yahooの前期データは今回は扱わない
+    const previousCost = previousMetaCost + previousGoogleCost + previousYahooCost || kpiSummaryData?.previous?.cost || 0
 
     const previousCv = kpiSummaryData?.previous?.cvOrder || 0
     const previousSales = kpiSummaryData?.previous?.salesAmount || 0
 
     const previousMetaClicks = metaSpendData?.previous?.clicks || 0
-    const previousGoogleClicks = googleAdsData?.previous?.clicks || 0
-    const previousClicks = previousMetaClicks + previousGoogleClicks || kpiSummaryData?.previous?.accessCount || 0
+    const previousGoogleClicks = googleAdsSpendData?.previous?.clicks || googleAdsData?.previous?.clicks || 0
+    const previousYahooClicks = 0  // Yahooの前期データは今回は扱わない
+    const previousClicks = previousMetaClicks + previousGoogleClicks + previousYahooClicks || kpiSummaryData?.previous?.accessCount || 0
 
     const previousMetaImpressions = metaSpendData?.previous?.impressions || 0
     const previousGoogleImpressions = googleAdsData?.previous?.impressions || 0
@@ -1153,8 +1384,29 @@ export default function KPIViewDashboardBreakdown() {
       existing.spend += spendValue
     })
 
-    // Google Adsデータの日別集計を追加
-    if (googleAdsData?.dailyData) {
+    // Google Ads API直接呼び出しの日別データを追加（優先）
+    console.log('🔍 dailyGoogleAdsData確認:', {
+      データ数: dailyGoogleAdsData.length,
+      最初のデータ: dailyGoogleAdsData[0],
+      dailyGoogleAdsData
+    })
+    if (dailyGoogleAdsData.length > 0) {
+      dailyGoogleAdsData.forEach(item => {
+        const dateStr = item.date
+        if (!dataMap.has(dateStr)) {
+          dataMap.set(dateStr, { cv: 0, metaCv: 0, googleCv: 0, yahooCv: 0, spend: 0, metaSpend: 0, googleSpend: 0, yahooSpend: 0 })
+        }
+        const existing = dataMap.get(dateStr)!
+        const spendValue = item.spend || 0
+        console.log(`💵 ${dateStr}: Google Ads広告費(API直接) = ¥${spendValue}`)
+        existing.googleSpend += spendValue
+        existing.spend += spendValue
+        existing.googleCv += item.conversions || 0
+        existing.cv += item.conversions || 0
+      })
+    }
+    // Google Adsデータの日別集計を追加（フォールバック）
+    else if (googleAdsData?.dailyData) {
       googleAdsData.dailyData.forEach((item: any) => {
         const dateStr = item.date
         if (!dataMap.has(dateStr)) {
@@ -2293,44 +2545,354 @@ export default function KPIViewDashboardBreakdown() {
               </svg>
             </span> Google広告
           </h2>
-          <div className="bg-gradient-to-r from-yellow-50 to-amber-50 rounded-2xl p-8 shadow-inner">
-            <div className="flex items-center justify-center gap-8">
-              <FormulaCard
-                label="Google広告費"
-                value={metrics.googleCost}
-                unit="円"
-                isPositiveGood={false}
-              />
-              <Operator symbol="÷" />
-              <FormulaCard
-                label="ECForce CV"
-                value={metrics.googleConversions}
-              />
-              <Operator symbol="=" />
-              <FormulaCard
-                label="Google CPO"
-                value={metrics.googleCPO}
-                unit="円"
-                isResult
-                isPositiveGood={false}
-              />
-            </div>
+          <div className="bg-gradient-to-r from-yellow-50 to-amber-50 rounded-2xl p-8 shadow-inner overflow-x-auto">
+            <GoogleAdsBreakdownFormula
+              data={googleAdsSpendData?.current?.campaignTypeBreakdown ? {
+                total: metrics.googleCost,
+                pmax: googleAdsSpendData.current.campaignTypeBreakdown.pmax?.reduce((sum: number, item: any) => sum + item.spend, 0) || 0,
+                demandgen: googleAdsSpendData.current.campaignTypeBreakdown.demandgen?.reduce((sum: number, item: any) => sum + item.spend, 0) || 0,
+                general: googleAdsSpendData.current.campaignTypeBreakdown.general?.reduce((sum: number, item: any) => sum + item.spend, 0) || 0,
+              } : {
+                total: metrics.googleCost,
+                pmax: 0,
+                demandgen: 0,
+                general: 0,
+              }}
+              conversions={metrics.googleConversions}
+              cpo={metrics.googleCPO}
+              isLoading={false}
+            />
 
-            {/* データソース表示 */}
-            <div className="mt-6 pt-6 border-t border-yellow-200 text-center">
-              {googleAdsData?.current?.isTestData ? (
+          {/* データソース表示 */}
+          <div className="mt-6 pt-6 border-t border-yellow-200">
+              {getGoogleAdsConfig?.isConnected ? (
                 <div>
-                  <p className="text-sm text-yellow-600">
-                    テストデータを表示中
+                  <p className="text-sm text-yellow-600 text-center">
+                    Google Ads APIから取得
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Developer Token承認後、実データが表示されます
-                  </p>
+
+                  {/* APIレスポンス詳細表示 */}
+                  <div className="mt-4 bg-white/50 rounded-lg p-4 text-left">
+                    <h4 className="text-sm font-semibold text-gray-700 mb-2">APIレスポンス詳細:</h4>
+                    <div className="space-y-2 text-xs">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">接続状態:</span>
+                        <span className="text-green-600 font-medium">
+                          {getGoogleAdsConfig?.isConnected ? '✓ 接続済み' : '✗ 未接続'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Customer ID:</span>
+                        <span className="font-mono">{getGoogleAdsConfig?.customerId || 'N/A'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">データ件数:</span>
+                        <span>{googleAdsData?.data?.length || 0}件</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">取得期間:</span>
+                        <span>{formatDateToISO(calculateDateRange.startDate)} ~ {formatDateToISO(calculateDateRange.endDate)}</span>
+                      </div>
+
+                      {/* デバッグ情報表示 */}
+                      {googleAdsDebugInfo && (
+                        <div className="mt-3 p-3 bg-gray-50 rounded-md border border-gray-200">
+                          <h5 className="text-xs font-semibold text-gray-700 mb-2">📊 デバッグ情報</h5>
+
+                          {/* リクエスト情報 */}
+                          <div className="mb-2">
+                            <p className="text-xs font-medium text-gray-600">リクエスト:</p>
+                            <div className="ml-2 text-xs text-gray-500">
+                              <p>状態: <span className={googleAdsDebugInfo.request?.status === 'API呼び出し成功' ? 'text-green-600' : 'text-yellow-600'}>{googleAdsDebugInfo.request?.status}</span></p>
+                              <p>期間: {googleAdsDebugInfo.request?.startDate} ~ {googleAdsDebugInfo.request?.endDate}</p>
+                            </div>
+                          </div>
+
+                          {/* レスポンス情報 */}
+                          {googleAdsDebugInfo.response && (
+                            <div className="mb-2">
+                              <p className="text-xs font-medium text-gray-600">レスポンス:</p>
+                              <div className="ml-2 text-xs text-gray-500">
+                                <p>データ件数: {googleAdsDebugInfo.response.dataCount}件</p>
+                                {googleAdsDebugInfo.response.aggregated && (
+                                  <>
+                                    <p>合計費用: ¥{googleAdsDebugInfo.response.aggregated.totalCost.toLocaleString()}</p>
+                                    <p>合計インプレッション: {googleAdsDebugInfo.response.aggregated.totalImpressions.toLocaleString()}</p>
+                                    <p>合計クリック: {googleAdsDebugInfo.response.aggregated.totalClicks.toLocaleString()}</p>
+                                  </>
+                                )}
+                              </div>
+
+                              {/* 生データプレビュー */}
+                              {googleAdsDebugInfo.response.rawData && googleAdsDebugInfo.response.rawData.length > 0 && (
+                                <div className="mt-2">
+                                  <p className="text-xs font-medium text-gray-600">生データ (最初の3件):</p>
+                                  <pre className="ml-2 mt-1 p-2 bg-white rounded text-xs overflow-x-auto max-h-40">
+{JSON.stringify(googleAdsDebugInfo.response.rawData.slice(0, 3), null, 2)}
+                                  </pre>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* エラー情報 */}
+                          {googleAdsDebugInfo.error && (
+                            <div className="mb-2">
+                              <p className="text-xs font-medium text-red-600">エラー:</p>
+                              <div className="ml-2 text-xs text-red-500">
+                                <p>{googleAdsDebugInfo.error.message}</p>
+                                {googleAdsDebugInfo.error.stack && (
+                                  <details className="mt-1">
+                                    <summary className="cursor-pointer text-xs text-gray-500">スタックトレース</summary>
+                                    <pre className="mt-1 p-2 bg-white rounded text-xs overflow-x-auto max-h-32">
+{googleAdsDebugInfo.error.stack}
+                                    </pre>
+                                  </details>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          <p className="text-xs text-gray-400 mt-2">更新時刻: {googleAdsDebugInfo.timestamp}</p>
+                        </div>
+                      )}
+
+                      {/* ボタン群 */}
+                      <div className="mt-3 flex gap-2">
+                        {/* 全キャンペーン確認ボタン */}
+                        <button
+                          onClick={async () => {
+                            const campaignDebugInfo = {
+                              ...googleAdsDebugInfo,
+                              campaignCheck: {
+                                status: 'キャンペーン確認中...',
+                                campaigns: null as any,
+                                error: null as any
+                              },
+                              timestamp: new Date().toISOString()
+                            }
+                            setGoogleAdsDebugInfo(campaignDebugInfo)
+
+                            try {
+                              const result = await getAllGoogleAdsCampaigns()
+                              console.log('Campaign check result:', result)
+
+                              // 新しいオブジェクトを作成して状態を更新
+                              setGoogleAdsDebugInfo({
+                                ...campaignDebugInfo,
+                                campaignCheck: {
+                                  status: 'キャンペーン確認完了',
+                                  campaigns: result.campaigns,
+                                  totalCount: result.totalCount || result.campaigns?.length || 0
+                                },
+                                timestamp: new Date().toISOString()
+                              })
+                            } catch (error: any) {
+                              console.error('Campaign check error:', error)
+                              // 新しいオブジェクトを作成して状態を更新
+                              setGoogleAdsDebugInfo({
+                                ...campaignDebugInfo,
+                                campaignCheck: {
+                                  status: 'キャンペーン確認失敗',
+                                  campaigns: null,
+                                  error: error.message || 'Unknown error'
+                                },
+                                timestamp: new Date().toISOString()
+                              })
+                            }
+                          }}
+                          className="px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition-colors"
+                        >
+                          全キャンペーン確認
+                        </button>
+
+                        {/* 直接APIテストボタン */}
+                        <button
+                          onClick={async () => {
+                            if (!getGoogleAdsConfig?.accessToken || !getGoogleAdsConfig?.developerToken) {
+                              alert('認証情報がありません')
+                              return
+                            }
+
+                            const apiUrl = `https://googleads.googleapis.com/v21/customers/${getGoogleAdsConfig.customerId.replace(/-/g, '')}/googleAds:searchStream`
+
+                            const query = `
+                              SELECT
+                                campaign.id,
+                                campaign.name,
+                                campaign.status,
+                                segments.date,
+                                metrics.impressions,
+                                metrics.clicks,
+                                metrics.cost_micros
+                              FROM campaign
+                              WHERE segments.date BETWEEN '${formatDateToISO(calculateDateRange.startDate)}' AND '${formatDateToISO(calculateDateRange.endDate)}'
+                            `
+
+                            console.log('🚀 直接API呼び出し:', {
+                              url: apiUrl,
+                              query: query.trim(),
+                              customerId: getGoogleAdsConfig.customerId,
+                              hasToken: !!getGoogleAdsConfig.accessToken
+                            })
+
+                            try {
+                              const response = await fetch(apiUrl, {
+                                method: 'POST',
+                                headers: {
+                                  'Authorization': `Bearer ${getGoogleAdsConfig.accessToken}`,
+                                  'developer-token': getGoogleAdsConfig.developerToken || getGoogleAdsConfig.developerId,
+                                  'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({ query }),
+                              })
+
+                              const responseText = await response.text()
+                              console.log('📥 直接APIレスポンス:', {
+                                status: response.status,
+                                ok: response.ok,
+                                responseText: responseText.substring(0, 1000)
+                              })
+
+                              if (!response.ok) {
+                                console.error('APIエラー:', responseText)
+                                alert(`APIエラー (${response.status}): ${responseText.substring(0, 200)}`)
+                              } else {
+                                const data = JSON.parse(responseText)
+                                console.log('✅ 成功! データ:', data)
+                                alert(`成功! データ件数: ${data.results?.length || 0}件\n\n詳細はコンソールを確認してください`)
+                              }
+                            } catch (error: any) {
+                              console.error('リクエストエラー:', error)
+                              alert(`リクエストエラー: ${error.message}`)
+                            }
+                          }}
+                          className="px-3 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600 transition-colors"
+                        >
+                          直接APIテスト
+                        </button>
+
+                        {/* API再テストボタン */}
+                        <button
+                          onClick={async () => {
+                            const testDebugInfo = {
+                              config: {
+                                isConnected: getGoogleAdsConfig?.isConnected,
+                                hasAccessToken: !!getGoogleAdsConfig?.accessToken,
+                                customerId: getGoogleAdsConfig?.customerId,
+                              },
+                              request: {
+                                startDate: formatDateToISO(calculateDateRange.startDate),
+                                endDate: formatDateToISO(calculateDateRange.endDate),
+                                status: 'API呼び出し中...'
+                              },
+                              response: null as any,
+                              error: null as any,
+                              timestamp: new Date().toISOString()
+                            }
+                            setGoogleAdsDebugInfo(testDebugInfo)
+
+                            // API再取得テスト
+                            if (getGoogleAdsConfig?.isConnected) {
+                              try {
+                                const testData = await getGoogleAdsCostSummary({
+                                  startDate: formatDateToISO(calculateDateRange.startDate),
+                                  endDate: formatDateToISO(calculateDateRange.endDate)
+                                })
+
+                                testDebugInfo.response = {
+                                  dataCount: testData.length,
+                                  rawData: testData,
+                                  firstItem: testData[0] || null
+                                }
+                                testDebugInfo.request.status = 'API呼び出し成功'
+                                setGoogleAdsDebugInfo(testDebugInfo)
+                              } catch (error: any) {
+                                testDebugInfo.error = {
+                                  message: error.message || 'Unknown error',
+                                  stack: error.stack
+                                }
+                                testDebugInfo.request.status = 'API呼び出し失敗'
+                                setGoogleAdsDebugInfo(testDebugInfo)
+                              }
+                            }
+                          }}
+                          className="px-3 py-1 bg-yellow-500 text-white text-xs rounded hover:bg-yellow-600 transition-colors"
+                        >
+                          API再テスト実行
+                        </button>
+                      </div>
+
+                      {/* キャンペーン確認結果の表示 */}
+                      {googleAdsDebugInfo?.campaignCheck && (
+                        <div className="mt-3 p-3 bg-blue-50 rounded-md border border-blue-200">
+                          <h5 className="text-xs font-semibold text-blue-700 mb-2">📋 キャンペーン確認結果</h5>
+                          <p className="text-xs text-blue-600">
+                            状態: {googleAdsDebugInfo.campaignCheck.status}
+                          </p>
+                          {googleAdsDebugInfo.campaignCheck.totalCount !== undefined && (
+                            <p className="text-xs text-blue-600">
+                              キャンペーン総数: {googleAdsDebugInfo.campaignCheck.totalCount}件
+                            </p>
+                          )}
+                          {googleAdsDebugInfo.campaignCheck.campaigns && googleAdsDebugInfo.campaignCheck.campaigns.length > 0 && (
+                            <div className="mt-2">
+                              <p className="text-xs font-medium text-blue-700">キャンペーン一覧:</p>
+                              <div className="mt-1 max-h-32 overflow-y-auto">
+                                {googleAdsDebugInfo.campaignCheck.campaigns.map((campaign: any, idx: number) => (
+                                  <div key={idx} className="text-xs text-blue-600 ml-2 py-1 border-b border-blue-100 last:border-b-0">
+                                    <p className="font-medium">{campaign.campaign?.name || 'Unknown'}</p>
+                                    <p className="text-blue-500">
+                                      ID: {campaign.campaign?.id} |
+                                      Status: {campaign.campaign?.status} |
+                                      Start: {campaign.campaign?.start_date || campaign.campaign?.startDate || 'N/A'} |
+                                      End: {campaign.campaign?.end_date || campaign.campaign?.endDate || 'N/A'}
+                                    </p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {googleAdsDebugInfo.campaignCheck.error && (
+                            <p className="text-xs text-red-600 mt-2">
+                              エラー: {googleAdsDebugInfo.campaignCheck.error}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                      {googleAdsData?.data?.length === 0 && (
+                        <div className="mt-3 p-3 bg-yellow-50 rounded-md">
+                          <p className="text-yellow-800 font-medium">データが取得できていません</p>
+                          <p className="text-yellow-700 text-xs mt-1">
+                            考えられる原因:
+                          </p>
+                          <ul className="text-yellow-600 text-xs mt-1 ml-4 list-disc">
+                            <li>指定期間にキャンペーンが存在しない</li>
+                            <li>アカウントに有効なキャンペーンがない</li>
+                            <li>APIアクセス権限が不足している</li>
+                          </ul>
+                        </div>
+                      )}
+                      {googleAdsData?.data?.length > 0 && (
+                        <div className="mt-3 p-2 bg-gray-50 rounded max-h-40 overflow-y-auto">
+                          <p className="text-xs font-medium text-gray-700 mb-1">取得データ:</p>
+                          <pre className="text-xs text-gray-600 whitespace-pre-wrap">
+                            {JSON.stringify(googleAdsData.data.slice(0, 3), null, 2)}
+                          </pre>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               ) : (
-                <p className="text-sm text-yellow-600">
-                  Google Ads APIから取得
-                </p>
+                <div className="text-center">
+                  <p className="text-sm text-yellow-600">
+                    Google Ads APIが未接続です
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    設定画面から接続してください
+                  </p>
+                </div>
               )}
               <div className="mt-2 flex justify-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-blue-400"></span>

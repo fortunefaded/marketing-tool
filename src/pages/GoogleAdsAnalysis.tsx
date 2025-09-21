@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAction, useQuery } from 'convex/react'
 import { api } from '../../convex/_generated/api'
-import { GoogleAdsDailyCharts } from '../components/dashboard/GoogleAdsDailyCharts'
 import { GoogleAdsAccountSelector } from '../components/GoogleAdsAccountSelector'
-import { IntegratedDashboard } from '../components/dashboard/IntegratedDashboard'
+import { GoogleAdsCampaignTypeTable } from '../components/GoogleAdsCampaignTypeTable'
 import { MonthlySummaryTable } from '../components/dashboard/MonthlySummaryTable'
 import { FatigueDashboardPresentation } from '../features/meta-api/components/FatigueDashboardPresentation'
 import { format, subDays, startOfMonth, endOfMonth } from 'date-fns'
@@ -25,6 +24,7 @@ interface GoogleAdsAccount {
 
 export function GoogleAdsAnalysis() {
   const [data, setData] = useState<any[]>([])
+  const [campaignTypeBreakdown, setCampaignTypeBreakdown] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
@@ -38,6 +38,7 @@ export function GoogleAdsAnalysis() {
   const config = useQuery(api.googleAds.getConfig)
   const fetchPerformanceDataAction = useAction(api.googleAds.fetchPerformanceData)
   const getCostSummaryAction = useAction(api.googleAds.getCostSummary)
+  const fetchDirectApiData = useAction(api.googleAds.fetchDirectApiData)
 
   // Google Adsアカウント情報を設定から作成
   const accounts: GoogleAdsAccount[] = config ? [{
@@ -283,6 +284,164 @@ export function GoogleAdsAnalysis() {
                   今月
                 </button>
               </div>
+              {/* 8月データ取得ボタン */}
+              <button
+                onClick={async () => {
+                  setIsLoading(true)
+                  setError(null)
+                  try {
+                    console.log('🚀 8月データ取得開始...')
+                    const result = await fetchDirectApiData({
+                      startDate: '2024-08-01',
+                      endDate: '2024-08-31',
+                      withDailyData: true
+                    })
+                    console.log('🎯 8月データ取得結果:', result)
+
+                    // 生のレスポンスを画面に表示
+                    const rawDataDiv = document.getElementById('raw-api-response')
+                    if (rawDataDiv) {
+                      rawDataDiv.innerHTML = `
+                        <div class="p-4 bg-gray-900 text-green-400 rounded-lg overflow-auto">
+                          <h3 class="text-lg font-bold mb-2">📡 API Raw Response:</h3>
+                          <pre class="text-xs">${JSON.stringify(result, null, 2)}</pre>
+                        </div>
+                      `
+                    }
+
+                    if (result.success && result.data) {
+                      // データを表示用に変換
+                      const augustData = result.data.dailyData || []
+                      setData(augustData.map((item: any) => ({
+                        ...item,
+                        campaignName: 'August Campaign',
+                        ctr: item.impressions > 0 ? (item.clicks / item.impressions * 100) : 0,
+                        cpc: item.clicks > 0 ? (item.spend / item.clicks) : 0,
+                        cpa: item.conversions > 0 ? (item.spend / item.conversions) : 0,
+                      })))
+
+                      // キャンペーンタイプ別データをセット
+                      if (result.data.campaignTypeBreakdown) {
+                        setCampaignTypeBreakdown(result.data.campaignTypeBreakdown)
+                      }
+
+                      setLastUpdateTime(new Date())
+
+                      // 集計情報をコンソールに表示
+                      console.log('📊 8月集計:', {
+                        総広告費: `¥${result.data.totalSpend?.toLocaleString() || 0}`,
+                        インプレッション: result.data.totalImpressions?.toLocaleString() || 0,
+                        クリック: result.data.totalClicks?.toLocaleString() || 0,
+                        コンバージョン: result.data.totalConversions || 0,
+                        CTR: `${result.data.ctr?.toFixed(2) || 0}%`,
+                        CPC: `¥${result.data.cpc?.toFixed(0) || 0}`,
+                        CPA: `¥${result.data.cpa?.toFixed(0) || 0}`,
+                        日別データ数: augustData.length
+                      })
+                    } else {
+                      setError(result.error || 'データ取得に失敗しました')
+                    }
+                  } catch (err: any) {
+                    console.error('❌ 8月データ取得エラー:', err)
+                    setError(err.message || 'エラーが発生しました')
+                  } finally {
+                    setIsLoading(false)
+                  }
+                }}
+                disabled={isLoading || !config?.isConnected}
+                className={`px-4 py-2 text-sm font-medium rounded-md ${
+                  isLoading || !config?.isConnected
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-purple-600 text-white hover:bg-purple-700'
+                }`}
+              >
+                {isLoading ? '取得中...' : '8月データを取得'}
+              </button>
+              {/* 2025年8月データ取得ボタン（全キャンペーンタイプ） */}
+              <button
+                onClick={async () => {
+                  setIsLoading(true)
+                  setError(null)
+                  try {
+                    console.log('🚀 2025年8月データ取得開始...')
+                    console.log('📋 対象キャンペーンタイプ: P-Max, 一般, 指名KW, デマンド広告')
+                    const result = await fetchDirectApiData({
+                      startDate: '2025-08-01',
+                      endDate: '2025-08-31',
+                      withDailyData: true
+                    })
+                    console.log('🎯 2025年8月データ取得結果:', result)
+
+                    // 生のレスポンスを画面に表示
+                    const rawDataDiv = document.getElementById('raw-api-response')
+                    if (rawDataDiv) {
+                      rawDataDiv.innerHTML = `
+                        <div class="p-4 bg-gray-900 text-green-400 rounded-lg overflow-auto">
+                          <h3 class="text-lg font-bold mb-2">📡 2025年8月 API Raw Response:</h3>
+                          <pre class="text-xs">${JSON.stringify(result, null, 2)}</pre>
+                        </div>
+                      `
+                    }
+
+                    if (result.success && result.data) {
+                      // データを表示用に変換
+                      const augustData = result.data.dailyData || []
+                      setData(augustData.map((item: any) => ({
+                        ...item,
+                        campaignName: '2025 August Campaign',
+                        ctr: item.impressions > 0 ? (item.clicks / item.impressions * 100) : 0,
+                        cpc: item.clicks > 0 ? (item.spend / item.clicks) : 0,
+                        cpa: item.conversions > 0 ? (item.spend / item.conversions) : 0,
+                      })))
+
+                      // キャンペーンタイプ別データをセット
+                      if (result.data.campaignTypeBreakdown) {
+                        setCampaignTypeBreakdown(result.data.campaignTypeBreakdown)
+                      }
+
+                      setLastUpdateTime(new Date())
+
+                      // 集計情報をコンソールに表示
+                      console.log('📊 2025年8月集計:', {
+                        総広告費: `¥${result.data.totalSpend?.toLocaleString() || 0}`,
+                        インプレッション: result.data.totalImpressions?.toLocaleString() || 0,
+                        クリック: result.data.totalClicks?.toLocaleString() || 0,
+                        コンバージョン: result.data.totalConversions || 0,
+                        CTR: `${result.data.ctr?.toFixed(2) || 0}%`,
+                        CPC: `¥${result.data.cpc?.toFixed(0) || 0}`,
+                        CPA: `¥${result.data.cpa?.toFixed(0) || 0}`,
+                        日別データ数: augustData.length
+                      })
+
+                      // 管理画面との差異を表示
+                      const managementScreenValue = 2320000 // 232万円
+                      const apiValue = result.data.totalSpend || 0
+                      const difference = managementScreenValue - apiValue
+                      console.log('📊 管理画面との比較:', {
+                        管理画面: `¥${managementScreenValue.toLocaleString()}`,
+                        API取得: `¥${apiValue.toLocaleString()}`,
+                        差額: `¥${difference.toLocaleString()}`,
+                        乖離率: `${((difference / managementScreenValue) * 100).toFixed(1)}%`
+                      })
+                    } else {
+                      setError(result.error || 'データ取得に失敗しました')
+                    }
+                  } catch (err: any) {
+                    console.error('❌ 2025年8月データ取得エラー:', err)
+                    setError(err.message || 'エラーが発生しました')
+                  } finally {
+                    setIsLoading(false)
+                  }
+                }}
+                disabled={isLoading || !config?.isConnected}
+                className={`px-4 py-2 text-sm font-medium rounded-md ${
+                  isLoading || !config?.isConnected
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                }`}
+              >
+                {isLoading ? '取得中...' : '2025年8月データを取得'}
+              </button>
             </div>
             <div className="flex items-center gap-4">
               <GoogleAdsAccountSelector
@@ -342,6 +501,20 @@ export function GoogleAdsAnalysis() {
           </div>
         )}
 
+        {/* 生のAPIレスポンス表示エリア */}
+        <div id="raw-api-response" className="px-4 py-2"></div>
+
+        {/* キャンペーンタイプ別テーブル */}
+        {campaignTypeBreakdown && (
+          <div className="px-4 py-4">
+            <GoogleAdsCampaignTypeTable
+              data={campaignTypeBreakdown}
+              startDate="2025-08-01"
+              endDate="2025-08-31"
+            />
+          </div>
+        )}
+
         {/* データ取得ボタン（データがない場合） */}
         {!isLoading && config?.isConnected && data.length === 0 && !error && (
           <div className="px-4 py-4">
@@ -366,31 +539,7 @@ export function GoogleAdsAnalysis() {
         {/* 日別グラフと統合ダッシュボード */}
         {selectedAccountId && (
           <div className="px-4 py-4 space-y-4">
-            {/* Google Ads日別チャート */}
-            <GoogleAdsDailyCharts
-              accountId={selectedAccountId}
-              dateRange={(() => {
-                const { start, end } = getDateRangeStrings()
-                return {
-                  start: format(start, 'yyyy-MM-dd'),
-                  end: format(end, 'yyyy-MM-dd')
-                }
-              })()}
-            />
 
-            {/* 統合ダッシュボード */}
-            <IntegratedDashboard
-              metaData={data}
-              ecforceData={ecforceData}
-              dateRange={(() => {
-                const { start, end } = getDateRangeStrings()
-                return {
-                  start: format(start, 'yyyy-MM-dd'),
-                  end: format(end, 'yyyy-MM-dd')
-                }
-              })()}
-              selectedAccountId={selectedAccountId}
-            />
 
             {/* 月次サマリー（データがある場合のみ） */}
             {monthlySummaries.length > 0 && (
