@@ -92,23 +92,15 @@ export default function KPIViewDashboardBreakdown() {
   const [showYahoo, setShowYahoo] = useState(true)
   const [showStackedCv, setShowStackedCv] = useState(true) // true: 積み上げ表示, false: 合計表示
 
-  // 日足/週足/月足切り替え用のstate（localStorage保持 + 期間に応じたデフォルト値）
+  // 日足/週足/月足切り替え用のstate（localStorage保持）
   const [viewMode, setViewMode] = useState<'daily' | 'weekly' | 'monthly'>(() => {
     // localStorageから保存された値を取得
     const savedMode = localStorage.getItem('viewMode')
     if (savedMode === 'daily' || savedMode === 'weekly' || savedMode === 'monthly') {
       return savedMode
     }
-
-    // 保存値がない場合、期間に応じてデフォルト値を設定（初回のみ）
-    const { startDate, endDate } = calculateDateRange
-    if (startDate && endDate) {
-      const diffInDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
-      // 3ヶ月（約90日）未満の場合は日足、それ以上は週足をデフォルトに
-      return diffInDays < 90 ? 'daily' : 'weekly'
-    }
-
-    return 'daily' // デフォルトは日足
+    // デフォルトは日足（後でuseEffectで期間に応じて調整）
+    return 'daily'
   })
 
   // 目標値設定用のstate
@@ -751,6 +743,21 @@ export default function KPIViewDashboardBreakdown() {
   useEffect(() => {
     loadAccountsFromConvex()
   }, [loadAccountsFromConvex])
+
+  // 期間に応じてviewModeのデフォルト値を設定（localStorageに値がない場合のみ）
+  useEffect(() => {
+    const savedMode = localStorage.getItem('viewMode')
+    if (!savedMode && calculateDateRange.startDate && calculateDateRange.endDate) {
+      const diffInDays = Math.ceil(
+        (calculateDateRange.endDate.getTime() - calculateDateRange.startDate.getTime()) /
+        (1000 * 60 * 60 * 24)
+      )
+      // 3ヶ月（約90日）未満の場合は日足、それ以上は週足をデフォルトに
+      const defaultMode = diffInDays < 90 ? 'daily' : 'weekly'
+      setViewMode(defaultMode)
+      localStorage.setItem('viewMode', defaultMode)
+    }
+  }, [calculateDateRange])
 
   // アカウント変更ハンドラー
   const handleAccountChange = async (accountId: string) => {
