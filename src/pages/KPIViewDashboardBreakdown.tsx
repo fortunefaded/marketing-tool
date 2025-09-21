@@ -1525,7 +1525,7 @@ export default function KPIViewDashboardBreakdown() {
     }
 
     return sortedData
-  }, [dailyMetaData, trendData, googleAdsData, yahooAdsData])
+  }, [dailyMetaData, trendData, googleAdsData, yahooAdsData, dailyGoogleAdsData])
 
   // 表示用のデータ（選択範囲がある場合はフィルタリング + チェックボックスに応じた動的計算）
   const chartData = useMemo(() => {
