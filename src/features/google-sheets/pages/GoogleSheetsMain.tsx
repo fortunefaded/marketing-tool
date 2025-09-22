@@ -4,7 +4,7 @@
 
 import React, { useState } from 'react'
 import { useQuery, useMutation } from 'convex/react'
-import { api } from '../../../convex/_generated/api'
+import { api } from '../../../../convex/_generated/api'
 import { GoogleAuthButton } from '../components/GoogleAuth/GoogleAuthButton'
 import { DocumentTextIcon, CogIcon, ArrowDownTrayIcon, CalendarIcon } from '@heroicons/react/24/outline'
 import { GoogleSheetsApiClient } from '../utils/google-sheets-api'

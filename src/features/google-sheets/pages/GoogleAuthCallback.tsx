@@ -5,7 +5,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useMutation } from 'convex/react'
-import { api } from '../../../convex/_generated/api'
+import { api } from '../../../../convex/_generated/api'
 
 export const GoogleAuthCallback: React.FC = () => {
   const navigate = useNavigate()
