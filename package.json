@@ -99,6 +99,7 @@
     "encoding-japanese": "^2.2.0",
     "express": "^5.1.0",
     "framer-motion": "^12.23.13",
+    "googleapis": "^160.0.0",
     "iconv-lite": "^0.7.0",
     "jspdf": "^3.0.1",
     "jspdf-autotable": "^5.0.2",

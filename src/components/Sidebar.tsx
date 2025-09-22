@@ -9,6 +9,7 @@ import {
   ChartBarSquareIcon,
   DocumentChartBarIcon,
   BookOpenIcon,
+  DocumentTextIcon,
 } from '@heroicons/react/24/outline'
 import { ComponentType, useState, useEffect } from 'react'
 
@@ -74,6 +75,11 @@ export default function Sidebar() {
       name: '期間別データ分析',
       path: '/period-analysis',
       icon: PresentationChartLineIcon,
+    },
+    {
+      name: 'Google Sheets統合',
+      path: '/google-sheets',
+      icon: DocumentTextIcon,
     },
     {
       name: '設定・管理',

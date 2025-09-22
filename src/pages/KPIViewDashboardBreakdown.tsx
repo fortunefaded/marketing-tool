@@ -77,6 +77,9 @@ export default function KPIViewDashboardBreakdown() {
   // ブレークダウン展開状態の管理
   const [expandedMetric, setExpandedMetric] = useState<'cv' | 'cpo' | 'cost' | null>(null)
 
+  // Convex接続状態の監視
+  const [convexConnectionStatus, setConvexConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting')
+
   // ドラッグ選択用のstate（表示範囲のみ管理、データは変更しない）
   const [brushRange, setBrushRange] = useState<{ start: number; end: number } | null>(null)
   const [originalDateRange, setOriginalDateRange] = useState<DateRangeFilterType>('current_month')
@@ -150,6 +153,31 @@ export default function KPIViewDashboardBreakdown() {
   const toggleMetricExpansion = (metric: 'cv' | 'cpo') => {
     setExpandedMetric(prev => prev === metric ? null : metric)
   }
+
+  // Convex接続状態の監視
+  useEffect(() => {
+    // Convex接続状態をチェック
+    const checkConnection = async () => {
+      try {
+        // 簡単なクエリを実行して接続を確認
+        const testQuery = await convex.query(api.googleAds.getConfig)
+        setConvexConnectionStatus('connected')
+      } catch (error: any) {
+        if (error.message?.includes('WebSocket') || error.message?.includes('ws://') || error.message?.includes('wss://')) {
+          setConvexConnectionStatus('disconnected')
+          console.error('❌ Convex WebSocket接続エラー:', error.message)
+        } else {
+          setConvexConnectionStatus('connecting')
+        }
+      }
+    }
+
+    checkConnection()
+    // 10秒ごとに接続状態をチェック
+    const interval = setInterval(checkConnection, 10000)
+
+    return () => clearInterval(interval)
+  }, [convex])
 
   // 期間選択が変更されたらlocalStorageに保存
   useEffect(() => {
@@ -2680,6 +2708,59 @@ export default function KPIViewDashboardBreakdown() {
                   {/* APIレスポンス詳細表示 */}
                   <div className="mt-4 bg-white/50 rounded-lg p-4 text-left">
                     <h4 className="text-sm font-semibold text-gray-700 mb-2">APIレスポンス詳細:</h4>
+
+                    {/* WebSocketエラー表示 */}
+                    {convexConnectionStatus === 'disconnected' && (
+                      <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-md">
+                        <h5 className="text-xs font-semibold text-red-700 mb-2">⚠️ 接続エラー</h5>
+                        <div className="text-xs text-red-600 space-y-1">
+                          <p>WebSocket接続エラーが発生しています:</p>
+                          <p className="font-mono text-xxs bg-red-100 p-1 rounded">wss://basic-ferret-772.convex.cloud/api/1.27.0/sync</p>
+                          <p className="mt-2">考えられる原因:</p>
+                          <ul className="ml-4 list-disc space-y-1">
+                            <li>Convexサーバーへの接続がタイムアウト</li>
+                            <li>ネットワーク接続の問題</li>
+                            <li>Convex設定の不一致</li>
+                          </ul>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 接続状態表示 */}
+                    <div className="mb-3 p-3 bg-gray-50 border border-gray-200 rounded-md">
+                      <h5 className="text-xs font-semibold text-gray-700 mb-2">🔌 システム接続状態</h5>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-600">Convex:</span>
+                          <span className={`font-medium flex items-center gap-1 ${
+                            convexConnectionStatus === 'connected' ? 'text-green-600' :
+                            convexConnectionStatus === 'connecting' ? 'text-yellow-600' :
+                            'text-red-600'
+                          }`}>
+                            <span className={`w-2 h-2 rounded-full inline-block ${
+                              convexConnectionStatus === 'connected' ? 'bg-green-500' :
+                              convexConnectionStatus === 'connecting' ? 'bg-yellow-500 animate-pulse' :
+                              'bg-red-500'
+                            }`}></span>
+                            {convexConnectionStatus === 'connected' ? '接続済み' :
+                             convexConnectionStatus === 'connecting' ? '接続中...' :
+                             '切断'}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-600">Google Ads:</span>
+                          <span className={`font-medium flex items-center gap-1 ${
+                            getGoogleAdsConfig?.isConnected ? 'text-green-600' : 'text-gray-400'
+                          }`}>
+                            <span className={`w-2 h-2 rounded-full inline-block ${
+                              getGoogleAdsConfig?.isConnected ? 'bg-green-500' : 'bg-gray-400'
+                            }`}></span>
+                            {getGoogleAdsConfig?.isConnected ? '接続済み' : '未接続'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
                     <div className="space-y-2 text-xs">
                       <div className="flex justify-between">
                         <span className="text-gray-600">接続状態:</span>
@@ -2756,6 +2837,11 @@ export default function KPIViewDashboardBreakdown() {
                         <div className="mt-3 p-3 bg-gray-50 rounded-md border border-gray-200">
                           <h5 className="text-xs font-semibold text-gray-700 mb-2">📊 デバッグ情報</h5>
 
+                          {/* タイムスタンプ */}
+                          <div className="text-xs text-gray-500 mb-2">
+                            最終更新: {googleAdsDebugInfo.timestamp ? new Date(googleAdsDebugInfo.timestamp).toLocaleString('ja-JP') : 'N/A'}
+                          </div>
+
                           {/* リクエスト情報 */}
                           <div className="mb-2">
                             <p className="text-xs font-medium text-gray-600">リクエスト:</p>
@@ -2794,7 +2880,7 @@ export default function KPIViewDashboardBreakdown() {
 
                           {/* エラー情報 */}
                           {googleAdsDebugInfo.error && (
-                            <div className="mb-2">
+                            <div className="mb-2 p-2 bg-red-50 rounded">
                               <p className="text-xs font-medium text-red-600">エラー:</p>
                               <div className="ml-2 text-xs text-red-500">
                                 <p>{googleAdsDebugInfo.error.message}</p>
@@ -2945,7 +3031,9 @@ export default function KPIViewDashboardBreakdown() {
                               },
                               response: null as any,
                               error: null as any,
-                              timestamp: new Date().toISOString()
+                              timestamp: new Date().toISOString(),
+                              convexStatus: 'checking...',
+                              websocketError: null as string | null
                             }
                             setGoogleAdsDebugInfo(testDebugInfo)
 
@@ -2993,6 +3081,15 @@ export default function KPIViewDashboardBreakdown() {
                                   stack: error.stack
                                 }
                                 testDebugInfo.request.status = 'API呼び出し失敗'
+
+                                // WebSocketエラーをチェック
+                                if (error.message?.includes('WebSocket') || error.message?.includes('ws://') || error.message?.includes('wss://')) {
+                                  testDebugInfo.websocketError = error.message
+                                  testDebugInfo.convexStatus = 'disconnected'
+                                } else {
+                                  testDebugInfo.convexStatus = 'error'
+                                }
+
                                 setGoogleAdsDebugInfo(testDebugInfo)
                               }
                             }

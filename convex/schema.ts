@@ -1,6 +1,130 @@
 import { defineSchema, defineTable } from 'convex/server'
 import { v } from 'convex/values'
 
+  // === Google Sheets Integration ===
+  // Google OAuth2認証情報
+  googleAuthTokens: defineTable({
+    userId: v.optional(v.string()), // 将来的なユーザー管理用
+    accessToken: v.string(),
+    refreshToken: v.string(),
+    tokenType: v.string(),
+    expiresAt: v.number(), // タイムスタンプ
+    scope: v.string(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index('by_user', ['userId'])
+    .index('by_expires', ['expiresAt']),
+
+  // スプレッドシート設定
+  googleSheetConfigs: defineTable({
+    sheetId: v.string(), // スプレッドシートID
+    sheetName: v.string(), // 表示名
+    sheetUrl: v.string(), // SpreadsheetのURL
+    agencyName: v.string(), // 代理店名（mogumo, prisma等）
+    formatType: v.string(), // フォーマットタイプ識別子
+    
+    // 範囲設定
+    dataRange: v.optional(v.string()), // A1:Z1000 形式
+    headerRow: v.number(), // ヘッダー行番号
+    dataStartRow: v.number(), // データ開始行
+    
+    // マッピング設定
+    columnMappings: v.object({
+      // 共通フィールドへのマッピング
+      date: v.optional(v.string()), // 日付列
+      impressions: v.optional(v.string()), // インプレッション列
+      clicks: v.optional(v.string()), // クリック列
+      cost: v.optional(v.string()), // コスト列
+      conversions: v.optional(v.string()), // CV列
+      // 動的に追加可能
+    }),
+    
+    // 同期設定
+    isActive: v.boolean(),
+    syncFrequency: v.string(), // 'daily' | 'weekly' | 'manual'
+    lastSyncAt: v.optional(v.number()),
+    nextSyncAt: v.optional(v.number()),
+    
+    // メタデータ
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index('by_agency', ['agencyName'])
+    .index('by_active', ['isActive'])
+    .index('by_next_sync', ['nextSyncAt']),
+
+  // 統合された広告パフォーマンスデータ
+  unifiedAdPerformance: defineTable({
+    // 識別情報
+    sourceType: v.string(), // 'google_sheets' | 'meta_api' | 'ecforce'
+    sourceId: v.string(), // 元データのID
+    agencyName: v.string(), // 代理店名
+    
+    // 基本データ（統一フィールド）
+    date: v.string(), // YYYY-MM-DD
+    campaignName: v.optional(v.string()),
+    adsetName: v.optional(v.string()),
+    adName: v.optional(v.string()),
+    
+    // パフォーマンス指標
+    impressions: v.number(),
+    clicks: v.number(),
+    cost: v.number(), // 円単位
+    conversions: v.number(),
+    conversionValue: v.optional(v.number()),
+    
+    // 計算フィールド
+    ctr: v.optional(v.number()), // CTR
+    cvr: v.optional(v.number()), // CVR
+    cpc: v.optional(v.number()), // CPC
+    cpa: v.optional(v.number()), // CPA
+    
+    // 元データ（フォーマット固有のフィールド保持用）
+    rawData: v.optional(v.any()),
+    
+    // メタデータ
+    importedAt: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index('by_date', ['date'])
+    .index('by_agency', ['agencyName'])
+    .index('by_source', ['sourceType', 'sourceId'])
+    .index('by_date_agency', ['date', 'agencyName']),
+
+  // インポート履歴
+  googleSheetImports: defineTable({
+    sheetConfigId: v.id('googleSheetConfigs'),
+    importId: v.string(),
+    status: v.string(), // 'processing' | 'success' | 'failed'
+    
+    // インポート範囲
+    startDate: v.optional(v.string()),
+    endDate: v.optional(v.string()),
+    
+    // 統計
+    totalRows: v.number(),
+    processedRows: v.number(),
+    successRows: v.number(),
+    errorRows: v.number(),
+    
+    errors: v.optional(v.array(v.object({
+      row: v.number(),
+      message: v.string(),
+      data: v.optional(v.any()),
+    }))),
+    
+    // タイミング
+    startedAt: v.number(),
+    completedAt: v.optional(v.number()),
+    
+    createdAt: v.number(),
+  })
+    .index('by_sheet', ['sheetConfigId'])
+    .index('by_status', ['status'])
+    .index('by_date', ['createdAt']),
+
 export default defineSchema({
   // === Meta API Core ===
   metaAccounts: defineTable({
