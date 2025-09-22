@@ -4,7 +4,7 @@
 
 import React, { useState, useCallback } from 'react'
 import { useMutation, useQuery } from 'convex/react'
-import { api } from '../../../../convex/_generated/api'
+import { api } from '../../../../../convex/_generated/api'
 
 export const GoogleAuthButton: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false)
