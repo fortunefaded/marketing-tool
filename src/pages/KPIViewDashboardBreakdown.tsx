@@ -2604,7 +2604,19 @@ export default function KPIViewDashboardBreakdown() {
               }}
               data={{
                 adSpend: {
-                  total: metrics.googleCost,
+                  total: (() => {
+                    const breakdown = googleAdsSpendData?.current?.campaignTypeBreakdown
+                    if (breakdown) {
+                      const pmaxTotal = breakdown.pmax?.reduce((sum: number, item: any) => sum + item.spend, 0) || 0
+                      const demandgenTotal = breakdown.demandgen?.reduce((sum: number, item: any) => sum + item.spend, 0) || 0
+                      const generalTotal = breakdown.general?.reduce((sum: number, item: any) => sum + item.spend, 0) || 0
+                      const calculatedTotal = pmaxTotal + demandgenTotal + generalTotal
+
+                      // キャンペーンタイプ別のデータがある場合はその合計を使用、なければmetrics.googleCostを使用
+                      return calculatedTotal > 0 ? calculatedTotal : metrics.googleCost
+                    }
+                    return metrics.googleCost
+                  })(),
                   breakdown: (() => {
                     const breakdown = googleAdsSpendData?.current?.campaignTypeBreakdown
                     console.log('🎯 Google Ads Breakdown データ:', {
