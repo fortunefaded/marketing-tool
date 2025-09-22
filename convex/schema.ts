@@ -1,12 +1,13 @@
 import { defineSchema, defineTable } from 'convex/server'
 import { v } from 'convex/values'
 
+export default defineSchema({
   // === Google Sheets Integration ===
   // Google OAuth2認証情報
   googleAuthTokens: defineTable({
     userId: v.optional(v.string()), // 将来的なユーザー管理用
     accessToken: v.string(),
-    refreshToken: v.string(),
+    refreshToken: v.optional(v.string()),
     tokenType: v.string(),
     expiresAt: v.number(), // タイムスタンプ
     scope: v.string(),
@@ -30,15 +31,7 @@ import { v } from 'convex/values'
     dataStartRow: v.number(), // データ開始行
     
     // マッピング設定
-    columnMappings: v.object({
-      // 共通フィールドへのマッピング
-      date: v.optional(v.string()), // 日付列
-      impressions: v.optional(v.string()), // インプレッション列
-      clicks: v.optional(v.string()), // クリック列
-      cost: v.optional(v.string()), // コスト列
-      conversions: v.optional(v.string()), // CV列
-      // 動的に追加可能
-    }),
+    columnMappings: v.any(), // 動的なカラムマッピング
     
     // 同期設定
     isActive: v.boolean(),
@@ -125,7 +118,6 @@ import { v } from 'convex/values'
     .index('by_status', ['status'])
     .index('by_date', ['createdAt']),
 
-export default defineSchema({
   // === Meta API Core ===
   metaAccounts: defineTable({
     accountId: v.string(),

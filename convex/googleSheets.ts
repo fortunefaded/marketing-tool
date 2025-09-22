@@ -349,13 +349,13 @@ export const listImportHistory = query({
       query = query.filter(q => q.eq(q.field('sheetConfigId'), args.sheetConfigId))
     }
 
-    query = query.order('desc')
+    const orderedQuery = query.order('desc')
 
     if (args.limit) {
-      return await query.take(args.limit)
+      return await orderedQuery.take(args.limit)
     }
 
-    return await query.collect()
+    return await orderedQuery.collect()
   },
 })
 
