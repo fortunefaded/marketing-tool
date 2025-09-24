@@ -4,7 +4,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { useMutation } from 'convex/react'
+import { useAction } from 'convex/react'
 import { api } from '../../../../convex/_generated/api'
 
 export const GoogleAuthCallback: React.FC = () => {
@@ -13,7 +13,7 @@ export const GoogleAuthCallback: React.FC = () => {
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing')
   const [errorMessage, setErrorMessage] = useState<string>('')
 
-  const saveToken = useMutation(api.googleSheets.saveAuthToken)
+  const exchangeCodeForTokens = useAction(api.googleAuth.exchangeCodeForTokens)
 
   useEffect(() => {
     const handleCallback = async () => {
@@ -25,11 +25,7 @@ export const GoogleAuthCallback: React.FC = () => {
         setStatus('error')
         setErrorMessage('認証がキャンセルされました')
         setTimeout(() => {
-          if (window.opener) {
-            window.close()
-          } else {
-            navigate('/google-sheets')
-          }
+          navigate('/settings/google-sheets')
         }, 2000)
         return
       }
@@ -41,48 +37,21 @@ export const GoogleAuthCallback: React.FC = () => {
       }
 
       try {
-        // アクセストークンを取得
-        const response = await fetch('https://oauth2.googleapis.com/token', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: new URLSearchParams({
-            code,
-            client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || '',
-            client_secret: import.meta.env.VITE_GOOGLE_CLIENT_SECRET || '',
-            redirect_uri: import.meta.env.VITE_GOOGLE_REDIRECT_URI || `${window.location.origin}/google-sheets/callback`,
-            grant_type: 'authorization_code',
-          }),
+        // Convexアクションを使用してトークンを交換（設定はConvexから取得）
+        const result = await exchangeCodeForTokens({
+          code,
+          redirectUri: `${window.location.origin}/settings/google-sheets/callback`,
+          service: 'google_sheets',
         })
 
-        if (!response.ok) {
-          const errorData = await response.text()
-          console.error('Token exchange error:', errorData)
-          throw new Error('アクセストークンの取得に失敗しました')
+        if (result.success) {
+          setStatus('success')
+          setTimeout(() => {
+            navigate('/settings/google-sheets')
+          }, 1500)
+        } else {
+          throw new Error(result.error || '認証に失敗しました')
         }
-
-        const tokenData = await response.json()
-
-        // Convexにトークンを保存
-        await saveToken({
-          accessToken: tokenData.access_token,
-          refreshToken: tokenData.refresh_token,
-          tokenType: tokenData.token_type,
-          expiresIn: tokenData.expires_in,
-          scope: tokenData.scope,
-        })
-
-        setStatus('success')
-
-        // 成功したら元のウィンドウに戻る
-        setTimeout(() => {
-          if (window.opener) {
-            window.close()
-          } else {
-            navigate('/google-sheets')
-          }
-        }, 1500)
       } catch (err) {
         console.error('Authentication error:', err)
         setStatus('error')
@@ -91,7 +60,7 @@ export const GoogleAuthCallback: React.FC = () => {
     }
 
     handleCallback()
-  }, [searchParams, saveToken, navigate])
+  }, [searchParams, exchangeCodeForTokens, navigate])
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -136,7 +105,7 @@ export const GoogleAuthCallback: React.FC = () => {
                 if (window.opener) {
                   window.close()
                 } else {
-                  navigate('/google-sheets')
+                  navigate('/settings/google-sheets')
                 }
               }}
               className="mt-4 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"

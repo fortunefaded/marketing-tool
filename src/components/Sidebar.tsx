@@ -78,7 +78,7 @@ export default function Sidebar() {
     },
     {
       name: 'Google Sheets統合',
-      path: '/google-sheets',
+      path: '/settings/google-sheets',
       icon: DocumentTextIcon,
     },
     {

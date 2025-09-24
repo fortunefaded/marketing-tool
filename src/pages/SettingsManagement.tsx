@@ -55,6 +55,27 @@ export const SettingsManagement: React.FC = () => {
           </div>
         </div>
 
+        {/* Google Sheets統合セクション */}
+        <div>
+          <h3 className="text-lg font-medium text-gray-900 mb-4">データ統合</h3>
+          <div className="bg-white border border-gray-200 rounded-lg p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h4 className="text-base font-medium text-gray-900">Google Sheets統合</h4>
+                <p className="text-sm text-gray-500 mt-1">
+                  複数の代理店からのスプレッドシートデータを統合管理
+                </p>
+              </div>
+              <Link
+                to="/settings/google-sheets"
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium transition-colors"
+              >
+                設定する
+              </Link>
+            </div>
+          </div>
+        </div>
+
         {/* API連携設定セクション */}
         <div>
           <h3 className="text-lg font-medium text-gray-900 mb-4">API連携設定</h3>

@@ -26,6 +26,7 @@ import type * as ecforcePeriodAnalysis from "../ecforcePeriodAnalysis.js";
 import type * as ecforceTestSync from "../ecforceTestSync.js";
 import type * as ecforceTrendOptimized from "../ecforceTrendOptimized.js";
 import type * as googleAds from "../googleAds.js";
+import type * as googleAuth from "../googleAuth.js";
 import type * as googleSheets from "../googleSheets.js";
 import type * as kpiSnapshots from "../kpiSnapshots.js";
 import type * as metaAccounts from "../metaAccounts.js";
@@ -58,6 +59,7 @@ declare const fullApi: ApiFromModules<{
   ecforceTestSync: typeof ecforceTestSync;
   ecforceTrendOptimized: typeof ecforceTrendOptimized;
   googleAds: typeof googleAds;
+  googleAuth: typeof googleAuth;
   googleSheets: typeof googleSheets;
   kpiSnapshots: typeof kpiSnapshots;
   metaAccounts: typeof metaAccounts;

@@ -30,6 +30,9 @@ import { GoogleAdsAPIReference } from './pages/GoogleAdsAPIReference'
 import { TestOAuthCallback } from './pages/TestOAuthCallback'
 // Google Sheets統合
 import { GoogleSheetsMain } from './features/google-sheets/pages/GoogleSheetsMain'
+import { GoogleSheetsSettings } from './pages/GoogleSheetsSettings'
+import { GoogleSheetsData } from './pages/GoogleSheetsData'
+import { GoogleSheetsImport } from './pages/GoogleSheetsImport'
 import { GoogleAuthCallback } from './features/google-sheets/pages/GoogleAuthCallback'
 // 月次目標設定
 import { MonthlyTargets } from './pages/MonthlyTargets'
@@ -111,8 +114,10 @@ function AppContent() {
             <Route path="/settings/ecforce/sync" element={<ECForceSync />} />
             <Route path="/settings/ecforce/history" element={<ECForceHistory />} />
             {/* Google Sheets統合ルート */}
-            <Route path="/google-sheets" element={<GoogleSheetsMain />} />
-            <Route path="/google-sheets/callback" element={<GoogleAuthCallback />} />
+            <Route path="/settings/google-sheets" element={<GoogleSheetsSettings />} />
+            <Route path="/settings/google-sheets/data" element={<GoogleSheetsData />} />
+            <Route path="/settings/google-sheets/import" element={<GoogleSheetsImport />} />
+            <Route path="/settings/google-sheets/callback" element={<GoogleAuthCallback />} />
             <Route
               path="*"
               element={

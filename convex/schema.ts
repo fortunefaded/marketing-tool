@@ -3,17 +3,21 @@ import { v } from 'convex/values'
 
 export default defineSchema({
   // === Google Sheets Integration ===
-  // Google OAuth2認証情報
+  // Google OAuth2認証情報（拡張版）
   googleAuthTokens: defineTable({
+    service: v.string(), // 'google_ads' | 'google_sheets' | 'unified'
     userId: v.optional(v.string()), // 将来的なユーザー管理用
-    accessToken: v.string(),
-    refreshToken: v.optional(v.string()),
+    accessToken: v.string(), // 暗号化済み
+    refreshToken: v.optional(v.string()), // 暗号化済み
     tokenType: v.string(),
     expiresAt: v.number(), // タイムスタンプ
     scope: v.string(),
+    clientId: v.string(),
+    clientSecret: v.string(), // 暗号化済み
     createdAt: v.number(),
     updatedAt: v.number(),
   })
+    .index('by_service', ['service'])
     .index('by_user', ['userId'])
     .index('by_expires', ['expiresAt']),
 
@@ -302,6 +306,58 @@ export default defineSchema({
     value: v.any(),
     updatedAt: v.number(),
   }).index('by_key', ['key']),
+
+  // === Google Sheets Integration ===
+  googleSheetsSettings: defineTable({
+    spreadsheetUrl: v.string(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }),
+
+  // Google Sheetsから取得した広告データ
+  googleSheetsData: defineTable({
+    // 識別子
+    date: v.string(),          // 日付（YYYY-MM-DD）
+    platform: v.string(),      // 媒体名（全体、Facebook広告、Google広告、LINE広告）
+    sourceHash: v.string(),    // 重複チェック用（date + platform）
+
+    // 基本メトリクス
+    impressions: v.number(),   // IMP（インプレッション）
+    clicks: v.number(),        // CLICK（クリック）
+    ctr: v.number(),          // CTR（クリック率）※ 小数で保存（1.3% → 0.013）
+    cpc: v.number(),          // CPC（クリック単価）
+    cpm: v.number(),          // CPM（1000インプレッション単価）
+
+    // 費用関連
+    costWithoutFee: v.number(),     // 配信金額（fee抜/税別）
+    costWithFee: v.number(),         // 配信金額（fee込/税別）
+    costWithFeeTax: v.number(),     // 配信金額（fee込/税込）
+
+    // マイクロコンバージョン
+    mcv: v.number(),          // MCV（マイクロコンバージョン）
+    mcvr: v.number(),         // MCVR（マイクロコンバージョン率）※ 小数で保存
+    mcpa: v.number(),         // MCPA（マイクロコンバージョン単価）
+
+    // コンバージョン
+    cv: v.number(),           // CV（コンバージョン）
+    mediaCv: v.number(),      // 媒体CV
+    cvr: v.number(),          // CVR（コンバージョン率）※ 小数で保存
+
+    // CPA
+    cpaWithoutFee: v.number(),      // CPA（fee抜/税別）
+    cpaWithFee: v.number(),          // CPA（fee込/税別）
+
+    // メタ情報
+    importedAt: v.number(),          // インポート日時
+    sheetName: v.optional(v.string()), // シート名（例：2025-09）
+    rawData: v.optional(v.any()),   // 元データ（デバッグ用）
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index('by_date', ['date'])
+    .index('by_platform', ['platform'])
+    .index('by_date_platform', ['date', 'platform'])
+    .index('by_hash', ['sourceHash']),
 
   // === ECForce Integration ===
   // ECForce広告パフォーマンスデータ
