@@ -1,0 +1,71 @@
+name: 毎日のGoogle Sheetsデータインポート
+
+on:
+  schedule:
+    # 毎日 日本時間午前9時 (UTC 0時) に実行
+    - cron: '0 0 * * *'
+  workflow_dispatch: # 手動実行も可能
+
+jobs:
+  import-google-sheets-data:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup Convex
+        run: npx convex dev --once --url ${{ secrets.CONVEX_URL }}
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+
+      - name: Execute daily Google Sheets import
+        run: |
+          echo "🚀 毎日のGoogle Sheetsデータインポートを開始"
+          node -e "
+            const { ConvexHttpClient } = require('convex/browser');
+            const { api } = require('./convex/_generated/api.js');
+
+            const client = new ConvexHttpClient(process.env.CONVEX_URL);
+
+            async function runDailyImport() {
+              try {
+                console.log('📊 dailyImportGoogleSheetsData関数を実行中...');
+                const result = await client.action(api.googleSheets.dailyImportGoogleSheetsData, {});
+
+                if (result.success) {
+                  console.log('✅ インポート成功:', result.message);
+                  console.log('📈 インポート件数:', result.imported || 0);
+                  process.exit(0);
+                } else {
+                  console.error('❌ インポート失敗:', result.error);
+                  process.exit(1);
+                }
+              } catch (error) {
+                console.error('🔥 実行エラー:', error);
+                process.exit(1);
+              }
+            }
+
+            runDailyImport();
+          "
+        env:
+          CONVEX_URL: ${{ secrets.CONVEX_URL }}
+
+      - name: Notify completion
+        if: always()
+        run: |
+          if [ $? -eq 0 ]; then
+            echo "🎉 Google Sheetsデータの自動インポートが完了しました"
+          else
+            echo "⚠️ Google Sheetsデータの自動インポートでエラーが発生しました"
+          fi
