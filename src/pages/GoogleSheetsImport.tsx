@@ -6,7 +6,7 @@
 import React, { useState, useEffect } from 'react'
 import { useQuery, useAction, useMutation } from 'convex/react'
 import { api } from '../../convex/_generated/api'
-import { ArrowLeft, Calendar, RefreshCw, FileText, AlertCircle, CheckCircle, Upload, ChevronUp, ChevronDown } from 'lucide-react'
+import { ArrowLeft, RefreshCw, FileText, AlertCircle, CheckCircle, Upload, ChevronUp, ChevronDown, Search } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 export const GoogleSheetsImport: React.FC = () => {
@@ -29,10 +29,16 @@ export const GoogleSheetsImport: React.FC = () => {
   const [sortField, setSortField] = useState<string>('date')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
 
+  // テスト用の状態
+  const [isTestingYesterday, setIsTestingYesterday] = useState(false)
+  const [testResult, setTestResult] = useState<any>(null)
+  const [testError, setTestError] = useState<string | null>(null)
+
   const spreadsheetUrl = useQuery(api.googleSheets.getSpreadsheetUrl)
   const previewHistoricalData = useAction(api.googleSheets.previewHistoricalData)
   const extractSpreadsheetId = useAction(api.googleSheets.extractSpreadsheetId)
   const saveGoogleSheetsData = useMutation(api.googleSheets.saveGoogleSheetsData)
+  const dailyImportGoogleSheetsData = useAction(api.googleSheets.dailyImportGoogleSheetsData)
 
 
   // 初期日付の設定（今月）
@@ -126,7 +132,7 @@ export const GoogleSheetsImport: React.FC = () => {
         hasError: !!result?.error,
         errorMessage: result?.error,
         totalData: result?.sampleData?.length,
-        allData: result?.allData?.length,
+        allData: (result as any)?.allData?.length,
         summaryTotalRows: result?.summary?.totalRows,
         platformCount: result?.platformSummary?.length,
         fullResult: result,
@@ -176,10 +182,10 @@ export const GoogleSheetsImport: React.FC = () => {
     setImportResult(null)
 
     try {
-      // プレビューで取得したデータをそのまま保存（isNewフィールドを除去）
+      // プレビューで取得したデータをそのまま保存（UIフィールドを除去）
       const rawData = previewData.allData || previewData.sampleData || []
-      const dataToSave = rawData.map(item => {
-        const { isNew, ...cleanData } = item
+      const dataToSave = rawData.map((item: any) => {
+        const { isNew, isExisting, ...cleanData } = item
         return cleanData
       })
 
@@ -218,6 +224,39 @@ export const GoogleSheetsImport: React.FC = () => {
     }
   }
 
+  // 昨日分データ一括処理テスト（取得＋保存）
+  const handleTestYesterdayData = async () => {
+    if (!spreadsheetUrl) {
+      alert('スプレッドシートURLが設定されていません')
+      return
+    }
+
+    setIsTestingYesterday(true)
+    setTestError(null)
+    setTestResult(null)
+
+    try {
+      console.log('🚀 GitHub Actions用の統合処理をテスト開始')
+      console.log('使用する関数: dailyImportGoogleSheetsData')
+
+      // GitHub Actionsで実行されるのと同じ統合関数を呼び出し
+      const result = await dailyImportGoogleSheetsData()
+
+      console.log('✅ 統合処理テスト結果:', result)
+      setTestResult(result)
+
+      if (result.success) {
+        console.log(`📊 インポート完了: ${result.imported || 0}件のデータが保存されました`)
+        console.log(`📅 対象データ: ${result.message || ''}`)
+      }
+    } catch (error) {
+      console.error('❌ 統合処理テストエラー:', error)
+      setTestError(error instanceof Error ? error.message : '不明なエラーが発生しました')
+    } finally {
+      setIsTestingYesterday(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -239,6 +278,15 @@ export const GoogleSheetsImport: React.FC = () => {
           </div>
 
           <button
+            onClick={handleTestYesterdayData}
+            disabled={isTestingYesterday}
+            className="px-4 py-2 text-orange-600 bg-orange-50 border border-orange-300 rounded-md hover:bg-orange-100 disabled:opacity-50 disabled:cursor-not-allowed mr-3"
+          >
+            <Search className="h-4 w-4 inline mr-2" />
+            {isTestingYesterday ? '統合処理テスト中...' : 'GitHub Actions統合テスト'}
+          </button>
+
+          <button
             onClick={() => navigate('/settings/google-sheets/data')}
             className="px-4 py-2 text-blue-600 bg-blue-50 border border-blue-300 rounded-md hover:bg-blue-100"
           >
@@ -246,6 +294,73 @@ export const GoogleSheetsImport: React.FC = () => {
             保存済みデータを見る
           </button>
         </div>
+
+        {/* テスト結果表示 */}
+        {(testResult || testError) && (
+          <div className="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+              <Search className="h-5 w-5 mr-2 text-gray-600" />
+              GitHub Actions統合処理テスト結果
+            </h2>
+
+            {testError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                <div className="flex">
+                  <AlertCircle className="h-5 w-5 text-red-400 mr-2" />
+                  <div>
+                    <h3 className="text-red-800 font-medium">統合処理でエラーが発生しました</h3>
+                    <p className="text-red-700 text-sm mt-1">{testError}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {testResult && (
+              <div className={`${testResult.success ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'} border rounded-lg p-4`}>
+                <div className="flex">
+                  {testResult.success ? (
+                    <CheckCircle className="h-5 w-5 text-green-400 mr-2" />
+                  ) : (
+                    <AlertCircle className="h-5 w-5 text-yellow-400 mr-2" />
+                  )}
+                  <div>
+                    <h3 className={`${testResult.success ? 'text-green-800' : 'text-yellow-800'} font-medium`}>
+                      {testResult.success ? '統合処理成功（取得＋保存完了）' : '統合処理失敗'}
+                    </h3>
+                    <div className={`${testResult.success ? 'text-green-700' : 'text-yellow-700'} text-sm mt-2`}>
+                      {testResult.success ? (
+                        <>
+                          <p><span className="font-medium">保存件数:</span> {testResult.imported || 0}件</p>
+                          <p><span className="font-medium">処理内容:</span> {testResult.message || '昨日分データの自動インポート'}</p>
+                          <p><span className="font-medium">使用されたスプレッドシート:</span> {spreadsheetUrl || 'N/A'}</p>
+                        </>
+                      ) : (
+                        <p><span className="font-medium">エラー:</span> {testResult.error || '不明なエラー'}</p>
+                      )}
+                      <p><span className="font-medium">実行関数:</span> dailyImportGoogleSheetsData</p>
+                      <p><span className="font-medium">完全なレスポンス:</span></p>
+                      <pre className={`${testResult.success ? 'bg-green-100' : 'bg-yellow-100'} p-2 rounded text-xs mt-2 max-h-32 overflow-auto`}>
+                        {JSON.stringify(testResult, null, 2)}
+                      </pre>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="mt-4 text-right">
+              <button
+                onClick={() => {
+                  setTestResult(null)
+                  setTestError(null)
+                }}
+                className="text-sm text-gray-500 hover:text-gray-700"
+              >
+                結果をクリア
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* インポート設定 */}
         <div className="bg-white rounded-lg shadow p-6 mb-6">
