@@ -32,10 +32,16 @@ const encrypt = (text: string): string => {
 }
 
 const decrypt = (encryptedText: string): string => {
+  if (!encryptedText || typeof encryptedText !== 'string') {
+    return ''
+  }
+
   try {
     // Base64デコード
-    return decodeURIComponent(atob(encryptedText))
+    const decoded = atob(encryptedText)
+    return decodeURIComponent(decoded)
   } catch (e) {
+    console.warn('Decrypt failed, assuming plain text:', e)
     // フォールバック: そのまま返す（既に平文の場合）
     return encryptedText
   }
@@ -87,17 +93,22 @@ export const getOAuthConfig = query({
     service: v.union(v.literal('google_ads'), v.literal('google_sheets')),
   },
   handler: async (ctx, args) => {
-    const config = await ctx.db
-      .query('googleAuthTokens')
-      .filter(q => q.eq(q.field('service'), args.service))
-      .first()
+    try {
+      const config = await ctx.db
+        .query('googleAuthTokens')
+        .filter(q => q.eq(q.field('service'), args.service))
+        .first()
 
-    if (!config) return null
+      if (!config) return null
 
-    return {
-      clientId: config.clientId,
-      hasClientSecret: !!config.clientSecret,
-      // Client Secretは返さない（セキュリティのため）
+      return {
+        clientId: config.clientId || '',
+        hasClientSecret: !!config.clientSecret,
+        // Client Secretは返さない（セキュリティのため）
+      }
+    } catch (error: any) {
+      console.error('Error in getOAuthConfig:', error)
+      return null
     }
   },
 })
@@ -108,16 +119,31 @@ export const getOAuthConfigInternal = query({
     service: v.union(v.literal('google_ads'), v.literal('google_sheets')),
   },
   handler: async (ctx, args) => {
-    const config = await ctx.db
-      .query('googleAuthTokens')
-      .filter(q => q.eq(q.field('service'), args.service))
-      .first()
+    try {
+      const config = await ctx.db
+        .query('googleAuthTokens')
+        .filter(q => q.eq(q.field('service'), args.service))
+        .first()
 
-    if (!config) return null
+      if (!config) return null
 
-    return {
-      clientId: config.clientId,
-      clientSecret: config.clientSecret ? decrypt(config.clientSecret) : null,
+      let decryptedClientSecret = null
+      if (config.clientSecret) {
+        try {
+          decryptedClientSecret = decrypt(config.clientSecret)
+        } catch (e) {
+          console.error('Failed to decrypt client secret for config:', e)
+          decryptedClientSecret = config.clientSecret
+        }
+      }
+
+      return {
+        clientId: config.clientId,
+        clientSecret: decryptedClientSecret,
+      }
+    } catch (error: any) {
+      console.error('Error in getOAuthConfigInternal:', error)
+      return null
     }
   },
 })
@@ -171,18 +197,50 @@ export const getAuthTokens = query({
     service: v.union(v.literal('google_ads'), v.literal('google_sheets')),
   },
   handler: async (ctx, args) => {
-    const tokens = await ctx.db
-      .query('googleAuthTokens')
-      .filter(q => q.eq(q.field('service'), args.service))
-      .first()
+    try {
+      const tokens = await ctx.db
+        .query('googleAuthTokens')
+        .filter(q => q.eq(q.field('service'), args.service))
+        .first()
 
-    if (!tokens) return null
+      if (!tokens) return null
 
-    return {
-      ...tokens,
-      accessToken: decrypt(tokens.accessToken),
-      refreshToken: tokens.refreshToken ? decrypt(tokens.refreshToken) : '',
-      clientSecret: decrypt(tokens.clientSecret),
+      // 安全にdecryptを実行
+      let decryptedAccessToken = ''
+      let decryptedRefreshToken = ''
+      let decryptedClientSecret = ''
+
+      try {
+        decryptedAccessToken = tokens.accessToken ? decrypt(tokens.accessToken) : ''
+      } catch (e) {
+        console.error('Failed to decrypt access token:', e)
+        decryptedAccessToken = tokens.accessToken || ''
+      }
+
+      try {
+        decryptedRefreshToken = tokens.refreshToken ? decrypt(tokens.refreshToken) : ''
+      } catch (e) {
+        console.error('Failed to decrypt refresh token:', e)
+        decryptedRefreshToken = tokens.refreshToken || ''
+      }
+
+      try {
+        decryptedClientSecret = tokens.clientSecret ? decrypt(tokens.clientSecret) : ''
+      } catch (e) {
+        console.error('Failed to decrypt client secret:', e)
+        decryptedClientSecret = tokens.clientSecret || ''
+      }
+
+      return {
+        ...tokens,
+        accessToken: decryptedAccessToken,
+        refreshToken: decryptedRefreshToken,
+        clientSecret: decryptedClientSecret,
+      }
+    } catch (error: any) {
+      console.error('Error in getAuthTokens:', error)
+      // 本番環境では詳細なエラー情報を隠す
+      throw new Error('認証情報の取得に失敗しました')
     }
   },
 })
